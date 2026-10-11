@@ -705,10 +705,17 @@ void drawTiles(MinecraftUIRenderContext& context, glm::vec2 size, double pixelsP
     (void)size;
 }
 
+// A mark's name, drawn after every mark when it is wanted (drawNames).
+struct MarkName {
+    MarkKey key;
+    float cx, y;
+    std::string text;
+    Rgb color;
+};
 // Footprints (L-139): shapes, then schematic placements over them, each a
 // faint fill, a frame and its name, under the other markers. Hidden ones
 // stay faint, like hidden waypoints; the selected one is framed white.
-void drawAreas(MinecraftUIRenderContext& context) {
+void drawAreas(MinecraftUIRenderContext& context, std::vector<MarkName>& names) {
     auto& view = state.view;
     state.areas = shapeMarks(state.dimension);
     auto placements = placementMarks(state.dimension);
@@ -729,14 +736,28 @@ void drawAreas(MinecraftUIRenderContext& context) {
         ui::frame(context, x0 - 1, y0 - 1, w + 2, h + 2, Rgb{0, 0, 0}, .6f * opacity);
         ui::frame(context, x0, y0, w, h, chosen ? ui::palette::white : color, opacity);
         auto name = mark.visible ? mark.name : mark.name + " " + ui::translated("worldMap.hidden");
-        smallLabel(context, cx, y0 + h + 2, name, mark.visible ? ui::palette::text : ui::palette::faint);
+        names.push_back({mark.key, cx, y0 + h + 2, std::move(name), mark.visible ? ui::palette::text : ui::palette::faint});
         state.markers.push_back({mark.key, x0, y0, x0 + w, y0 + h});
+    }
+}
+// Many names overlap where marks crowd, so by default a name shows only for
+// the mark under the pointer, the selected one and the one with a menu open.
+void drawNames(MinecraftUIRenderContext& context, std::vector<MarkName> const& names, bool always) {
+    auto p = state.pointer;
+    bool onMap = p.y > state.top && p.y < state.view.height - bottomHeight && p.x < state.view.width - state.panelWidth
+        && !(state.drag && state.drag->moved);
+    auto hovered = onMap ? markerAt(p.x, p.y) : std::nullopt;
+    for (auto const& name : names) {
+        bool wanted = always || name.key == hovered || (state.panelWidth > 0 && state.selected == name.key)
+            || (state.menu && state.menu->kind != MenuKind::Ground && state.menu->mark == name.key);
+        if (wanted) smallLabel(context, name.cx, name.y, name.text, name.color);
     }
 }
 void drawMarkers(MinecraftUIRenderContext& context, Settings::Map const& settings) {
     auto& view = state.view;
     state.markers.clear();
-    drawAreas(context);
+    std::vector<MarkName> names;
+    drawAreas(context, names);
     // A footprint whose provider turned off, or whose entry is gone, takes
     // its selection and menu with it.
     if (state.selected && !pointLayer(state.selected->layer) && !areaOf(*state.selected)) state.selected.reset();
@@ -773,7 +794,7 @@ void drawMarkers(MinecraftUIRenderContext& context, Settings::Map const& setting
             if (state.panelWidth > 0 && state.selected == waypointKey(w.id)) diamond(context, x, y, 13, ui::palette::white, 1);
             diamond(context, x, y, 9, rgb(waypointColors[static_cast<size_t>(clampColor(w.color))]), opacity);
             auto name = w.visible ? w.name : w.name + " " + ui::translated("worldMap.hidden");
-            smallLabel(context, x, y + 6, name, w.visible ? ui::palette::text : ui::palette::faint);
+            names.push_back({waypointKey(w.id), x, y + 6, std::move(name), w.visible ? ui::palette::text : ui::palette::faint});
             state.markers.push_back({waypointKey(w.id), x, y, x, y});
         }
         if (set.death && set.death->dimension == state.dimension) {
@@ -781,10 +802,11 @@ void drawMarkers(MinecraftUIRenderContext& context, Settings::Map const& setting
             float y = std::round(static_cast<float>(view.screenY(set.death->z + .5)));
             if (state.panelWidth > 0 && state.selected == deathKey) ui::frame(context, x - 5, y - 5, 10, 10, ui::palette::white);
             cross(context, x, y);
-            if (hovering(x - 5, y - 5, 10, 10)) smallLabel(context, x, y + 5, ui::translated("waypoint.death"), ui::palette::text);
+            names.push_back({deathKey, x, y + 5, ui::translated("waypoint.death"), ui::palette::text});
             state.markers.push_back({deathKey, x, y, x, y});
         }
     }
+    drawNames(context, names, settings.worldMapNames);
     if (spot && spot->dimension == state.dimension) {
         // The arrow is drawn into a small texture, uploaded again when it turns.
         constexpr int side = 32;

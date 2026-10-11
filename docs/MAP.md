@@ -34,7 +34,7 @@ parts and hiding during FreeCamera on `775c8c0` (2026-10-07).
 The minimap and other Lamium HUD elements also follow F1 (L-107); map
 recording and death tracking continue while hidden (checked on `18e2cc8`).
 
-Map layers (L-139, built 2026-10-11, unchecked in game): schematic
+Map layers (L-139, built 2026-10-11; passed the 0.2.0 regression check on `2aea267`): schematic
 placements and shapes are marks from the features that own them
 (`MapLayers.cpp`), keyed by layer and session id (`MapMarks.h`). The world
 map selects and acts on them (placements: select, show/hide, open in the
@@ -42,6 +42,11 @@ Placed tab; shapes: show/hide, open in the Shapes view); the minimap draws
 placements, and shapes with the minimap's Shapes option (off by default).
 Overlapping marks take the cursor in a fixed order: waypoints and the death
 point, placements, shapes, the smallest footprint first.
+Names on the world map (maintainer 2026-10-11, after names crowded on
+`2aea267`): a mark's name shows while the pointer is over it (the mark the
+cursor order picks), for the selected one and for the one with a menu
+open, on a dark plate; the world map option "Always show names" (off by
+default) shows them all. Player names from the radar stay always shown.
 
 ## Technical entry points
 

@@ -243,6 +243,8 @@ inline constexpr auto simplifiedChinese = std::to_array<Text>({
     {"worldMap", "世界地图: {}"},
     {"worldMapNetherAuto", "在下界中跟随我的高度: {}"},
     {"help.map.worldMapNetherAuto", "下界按 16 格高的层保存。开: 世界地图显示你所在的层。在地图上选择层会关闭此项；“以我为中心”会重新打开它。"},
+    {"worldMapNames", "始终显示名称: {}"},
+    {"help.map.worldMapNames", "开: 世界地图始终显示路径点、已放置的蓝图和形状的名称。关: 仅在指针悬停于标记上时以及对选中的标记显示名称。"},
     {"key.Lamium.openworldmap", "打开世界地图"},
     {"key.Lamium.previews", "切换容器预览"},
     {"key.Lamium.durability", "切换耐久度数值"},

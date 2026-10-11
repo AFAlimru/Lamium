@@ -477,6 +477,10 @@ cached by the overlay until a shape changes; placements (at most 64) are
 listed per frame. Shapes on the minimap: map option "Shapes", off by
 default. Not done: one combined side-panel list per layer (the list stays
 waypoints; placements and shapes are selected on the map).
+Follow-up (maintainer 2026-10-11, 0.2.0): names crowded where marks
+overlap, so the world map shows a name on hover, for the selection and an
+open menu; option "Always show names" (off by default). Built 2026-10-11,
+in-game check pending.
 One list of things drawn on the minimap and the world map, filled by the
 features that own them (INTEGRATION.md B): waypoints and the death point
 (as today), schematic placements first, then Shapes. On the world map they

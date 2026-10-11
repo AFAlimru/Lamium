@@ -144,6 +144,7 @@ struct Settings {
         bool worldMap = false; // Recording and the world map screen.
         bool worldMapNetherAuto = true; // The Nether layer shown follows the player's height.
         bool seedLink = true; // World map menu: open an external seed map here, copy the seed.
+        bool worldMapNames = false; // Every mark's name; off: under the pointer, selected or with a menu.
         bool worldMapPanel = true; // The world map's waypoint side panel is open; changed on the map.
     } map;
     struct Schematic {

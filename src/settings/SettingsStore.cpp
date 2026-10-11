@@ -202,7 +202,7 @@ Json encode(Settings const& settings) {
                  {"waypointsMinimap", settings.map.waypointsMinimap}, {"waypointsDeath", settings.map.waypointsDeath},
                  {"waypointsCrossScale", settings.map.waypointsCrossScale}, {"worldMap", settings.map.worldMap},
                  {"worldMapNetherAuto", settings.map.worldMapNetherAuto}, {"worldMapPanel", settings.map.worldMapPanel},
-                 {"seedLink", settings.map.seedLink},
+                 {"seedLink", settings.map.seedLink}, {"worldMapNames", settings.map.worldMapNames},
                  {"radarFaces", settings.map.radarFaces}}},
         {"schematic", {{"enabled", settings.schematic.enabled}, {"hud", settings.schematic.hud},
                        {"hudVerify", settings.schematic.hudVerify}, {"hudMaterials", settings.schematic.hudMaterials},
@@ -434,6 +434,7 @@ Settings decodeSettings(std::string_view text) {
         value.map.worldMapNetherAuto = map.value("worldMapNetherAuto", value.map.worldMapNetherAuto);
         value.map.worldMapPanel = map.value("worldMapPanel", value.map.worldMapPanel);
         value.map.seedLink = map.value("seedLink", value.map.seedLink);
+        value.map.worldMapNames = map.value("worldMapNames", value.map.worldMapNames);
         value.map.radarFaces = map.value("radarFaces", value.map.radarFaces);
     }
     if (data.contains("schematic") && data.at("schematic").is_object()) {

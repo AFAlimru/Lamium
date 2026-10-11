@@ -245,6 +245,8 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"worldMap", "World map: {}", "ワールドマップ: {}"},
     {"worldMapNetherAuto", "Follow my height in the Nether: {}", "ネザーの層を自分の高さに合わせる: {}"},
     {"help.map.worldMapNetherAuto", "The Nether is saved in 16-block layers. On: the world map shows the layer you are in. Choosing a layer on the map turns this off; \"Center on me\" turns it back on.", "ネザーは 16 ブロックごとの層で記録します。オン：ワールドマップは自分のいる層を表示します。地図で層を選ぶとオフになり、「自分に戻る」でオンに戻ります。"},
+    {"worldMapNames", "Always show names: {}", "名前を常に表示: {}"},
+    {"help.map.worldMapNames", "On: the world map always shows the names of waypoints, placed schematics and shapes. Off: a name shows while the pointer is over its mark, and for the selected one.", "オン: ワールドマップにウェイポイント・配置した設計図・形状の名前を常に表示します。オフ: ポインターを重ねている間と、選択中のものだけ表示します。"},
     {"key.Lamium.openworldmap", "Open the world map", "ワールドマップを開く"},
     {"key.Lamium.previews", "Toggle container previews", "収納アイテムのプレビューを切り替え"},
     {"key.Lamium.durability", "Toggle durability numbers", "耐久値の数値を切り替え"},
