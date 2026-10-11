@@ -318,8 +318,11 @@ Contents:
 - (Decided, BACKLOG L-38; lower limit revised 2026-09-30, L-80; wheel range
   widened 2026-10-06, L-99) Zoom goes up to 50x. The initial magnification
   setting stays 2x-50x (a saved value below 2x loads as 2x), so pressing Zoom
-  always visibly zooms. While held, the wheel goes from 0.5x to 50x: below
-  1x the view widens, but never past 160 degrees (the wheel stops there). A
+  always visibly zooms. While held, the wheel goes from 1x to 50x; with the
+  Zoom setting "Wide-angle view" (off by default; decided 2026-10-11, L-140)
+  it goes down to 0.5x: below 1x the view widens, but never past 160 degrees
+  (the wheel stops there). Turning the setting off brings a kept level below
+  1x up to 1x. A
   wheel notch multiplies or divides the target magnification by a fixed ratio
   (about 1.15), so every notch feels the same at 2x and at 40x; a notch that
   crosses 1x stops on exactly 1x once. The shown magnification eases toward

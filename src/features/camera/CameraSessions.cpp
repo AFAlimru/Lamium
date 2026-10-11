@@ -224,6 +224,7 @@ void CameraSessions::configure(Settings const& settings) {
     freeLeaveOnHit = settings.camera.freeCameraLeaveOnHit;
     zoomToggle = settings.camera.zoomToggle;
     state.configure(settings.camera.magnification);
+    state.allowWide(settings.camera.zoomWideAngle);
 }
 bool CameraSessions::wanted(Session session) const {
     switch (session) {

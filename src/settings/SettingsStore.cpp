@@ -144,6 +144,7 @@ Json encode(Settings const& settings) {
                     {"freeCameraWorldFixed", settings.camera.freeCameraWorldFixed},
                     {"freeCameraLeaveOnHit", settings.camera.freeCameraLeaveOnHit},
                     {"magnification", settings.camera.magnification},
+                    {"zoomWideAngle", settings.camera.zoomWideAngle},
                     {"showMagnification", settings.camera.showMagnification}}},
         {"lighting", {{"nightVision", settings.lighting.nightVision}, {"nightVisionEven", settings.lighting.nightVisionEven}}},
         {"inspection", {{"containerPreviews", settings.inspection.containerPreviews},
@@ -395,6 +396,7 @@ Settings decodeSettings(std::string_view text) {
         value.camera.freeCameraSpeed = camera.value("freeCameraSpeed", value.camera.freeCameraSpeed);
         value.camera.zoomToggle = camera.value("zoomToggle", value.camera.zoomToggle);
         value.camera.magnification = camera.value("magnification", value.camera.magnification);
+        value.camera.zoomWideAngle = camera.value("zoomWideAngle", value.camera.zoomWideAngle);
         value.camera.showMagnification = camera.value("showMagnification", value.camera.showMagnification);
     }
     if (data.contains("map") && data.at("map").is_object()) {

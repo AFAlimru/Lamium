@@ -155,8 +155,13 @@ int main() try {
     int notches = 0;
     while (zoom.targetLevel() < lamium::ZoomState::maxLevel && notches < 100) { zoom.wheel(1); ++notches; }
     check(zoom.targetLevel() == 50 && notches <= 25, "50x is a reasonable number of notches from 3x");
-    // L-99: the wheel goes below 1x, stopping once on exactly 1x.
+    // L-140: without Wide-angle view (the default) the wheel stops at 1x.
     zoom.fov(70);
+    for (int i=0; i<100; ++i) zoom.wheel(-1);
+    check(zoom.targetLevel() == 1.0f, "without Wide-angle view the wheel stops at 1x");
+    for (int i=0; i<5; ++i) zoom.wheel(1);
+    zoom.allowWide(true);
+    // L-99: the wheel goes below 1x, stopping once on exactly 1x.
     bool stoppedAtOne = false;
     for (int i=0; i<100; ++i) { zoom.wheel(-1); stoppedAtOne = stoppedAtOne || zoom.targetLevel() == 1.0f; }
     check(stoppedAtOne, "a notch crossing 1x stops on exactly 1x");
@@ -207,6 +212,12 @@ int main() try {
     check(zoom.level() == 2, "a configured level below 2x is raised to 2x");
     zoom.wheel(-1);
     check(zoom.targetLevel() < 2, "the wheel may go below the setting's 2x floor");
+    for (int i=0; i<30; ++i) zoom.wheel(-1);
+    check(zoom.targetLevel() < 1, "Wide-angle view lets the wheel below 1x");
+    zoom.allowWide(false);
+    check(zoom.targetLevel() == 1 && zoom.level() >= 1, "turning Wide-angle view off brings a level below 1x up to 1x");
+    zoom.wheel(-1);
+    check(zoom.targetLevel() == 1, "and the wheel stays at 1x after it");
     {
         // L-99 follow-up: the wheel adjusts Zoom only while its key is down in toggle mode.
         lamium::ZoomKey key;

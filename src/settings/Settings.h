@@ -51,6 +51,7 @@ struct Settings {
         bool freeCameraLeaveOnHit = false; // L-126: any hit, even without damage, ends FreeCamera.
         float freeCameraSpeed = 20.f;
         float magnification = 3.0f;
+        bool zoomWideAngle = false; // L-140: the wheel may go below 1x.
         bool showMagnification = true;
         bool operator==(Camera const&) const = default;
     } camera;

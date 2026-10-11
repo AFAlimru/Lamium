@@ -92,9 +92,13 @@ L-item wins. Every entry names what the task is, not only its number.
    (2026-10-11, `1a2c231`..`d274227`): L-136 GhostRenderer.cpp split, L-138
    shared face drawing, the map and settings tidy-up, L-139 map layers,
    L-134 SettingsScreen.cpp split, L-137's required part and L-135 PDB as a
-   separate asset. Next: the 0.2.0 regression checks in game (Pre-release
-   checks), step by step; then the release. The radial menu and the
-   smaller links are optional. Order and boundary: L-111.
+   separate asset; the regression check on the normal build passed
+   (Pre-release checks; the fail-open build is left). Maintainer
+   2026-10-11: no 0.2.0 tag for a while; 0.2.0 also gets a review of the
+   features from the player's side, integration and links between
+   features. Chosen so far: L-140 Zoom Wide-angle view, world map names
+   on hover (L-139 follow-up). The radial menu and the smaller links are
+   optional. Order and boundary: L-111.
 5. **Research when convenient:** L-79 carved pumpkin and spyglass frame draw
    path (cheap-model friendly
    trace/test steps), L-71 starting a glide from the mod, L-30 Ender Dragon
@@ -505,6 +509,21 @@ Design points to settle in the step (outside review 2026-10-11):
   would crowd it.
 Does not share: storage (waypoints, placements and shapes keep their own
 files). Keeps: today's waypoint and death-point behavior unchanged.
+
+### L-140 Zoom: Wide-angle view as a setting (0.2.0)
+Kind: Feature (small). Decided by the maintainer 2026-10-11 (noted in their
+notes first, chosen for 0.2.0 the same day). Most players use Zoom to
+magnify, so the wide view below 1x becomes an explicit choice.
+- Zoom setting "Wide-angle view" (広角表示, 广角视野), off by default; help
+  "Allow the zoom wheel to go below 1x for a wider view."
+- Off: the wheel goes 1x-50x. On: 0.5x-50x as before (the 160 degree
+  limit stays). The initial magnification (2x-50x) and its default do not
+  change; the stop on exactly 1x stays.
+- Turning it off brings a kept level below 1x up to 1x, so the old wide
+  level does not return.
+Status: built 2026-10-11, in-game check pending: both activation modes, the
+wheel only while the Zoom key is held, 1x stop, turning the setting off
+while a wide level is kept, saving.
 
 ### L-133 Connected Textures: split glass panes without dark halves
 Kind: Research. Opened 2026-10-11 from L-96.

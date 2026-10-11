@@ -10,11 +10,12 @@ class ZoomState {
     std::atomic<float> shown{3.0f};
     std::atomic<float> initial{3.0f};
     std::atomic<double> last{-1.0};
+    std::atomic<bool> wide{false};
     // The latest unzoomed FOV, so the wheel knows where maxFov is reached.
     mutable std::atomic<float> lastBase{0.0f};
 public:
     // The setting starts at 2x or more, so pressing Zoom always visibly zooms
-    // (L-80); the wheel may go down to 0.5x for a wide view (L-99).
+    // (L-80); with Wide-angle view on the wheel may go down to 0.5x (L-99, L-140).
     static constexpr float minLevel = 2.0f;
     static constexpr float maxLevel = 50.0f;
     static constexpr float wheelMinLevel = 0.5f;
@@ -25,6 +26,14 @@ public:
     // Time constant of the easing toward the wheel target, in seconds.
     static constexpr double ease = 0.04;
 
+    // Turning Wide-angle view off brings a level below 1x up to 1x, so an old
+    // wide level does not come back on the next press.
+    void allowWide(bool on) {
+        wide = on;
+        if (on) return;
+        if (target.load() < 1.0f) target = 1.0f;
+        if (shown.load() < 1.0f) shown = 1.0f;
+    }
     void configure(float value) {
         float next = std::isfinite(value) ? std::clamp(value, minLevel, maxLevel) : 3.0f;
         // Other camera settings (FreeCamera speed keys) save mid-zoom; only a
@@ -52,8 +61,10 @@ public:
     bool held() const { return active.load(); }
     float level() const { return shown.load(); }
     float targetLevel() const { return target.load(); }
-    // The lowest wheel level: 0.5x, or higher where the view would pass maxFov.
+    // The lowest wheel level: 1x without Wide-angle view; with it 0.5x, or
+    // higher where the view would pass maxFov.
     float wheelFloor() const {
+        if (!wide.load()) return 1.0f;
         float base = lastBase.load();
         return base > 0.0f ? std::max(wheelMinLevel, std::min(1.0f, base / maxFov)) : wheelMinLevel;
     }
