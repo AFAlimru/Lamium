@@ -12,6 +12,18 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Zoom Wide-angle view, world map names, Files names (2026-10-11)
+
+By the maintainer, local. On `376cfae` (DLL `1ff38c03...4cbbef4`): long
+schematic file names end before the Size column; the dark plate makes world
+map names readable on sand. On `9e675cc` (DLL
+`6f5d801c72ffa069d3b6d52e6d66e052c17f835a6fc9b18498a0a713624dc841`): world
+map names show for the hovered and selected mark only, "Always show names"
+shows them all; Zoom without Wide-angle view stops at 1x, with it goes to
+0.5x, turning it off after a wide level reopens at 1x (L-140). Reported as
+no problems, not itemized further. Found meanwhile: ghosts of two
+placements on the same cells flicker (L-141).
+
 ## 0.2.0 regression checks, normal build (2026-10-11)
 
 By the maintainer, local, on the 0.2.0 release ZIP's DLL (`2aea267`, DLL

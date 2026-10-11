@@ -272,6 +272,13 @@ found later are handled as bugs.
 
 ## Bugs
 
+### L-141 Ghosts of two schematic placements on the same cells flicker
+Kind: Bug. Found by the maintainer 2026-10-11 on `9e675cc`: two placements
+whose ghost blocks occupy the same cells flicker where they overlap (both
+faces drawn on the same planes). Not yet known whether 0.1.9 does the same
+or the L-136/L-138 split introduced it. Expected: a steady look where
+placements overlap (one placement's ghost wins, decided by a stable order).
+
 ### L-123 FreeCamera stretches the worn elytra on the inventory player model
 Kind: Bug, low priority. Reported from use 2026-10-09 (maintainer's notes).
 Parked 2026-10-10 (maintainer) after two culling rounds; resume from the next ideas below.
@@ -479,8 +486,8 @@ default. Not done: one combined side-panel list per layer (the list stays
 waypoints; placements and shapes are selected on the map).
 Follow-up (maintainer 2026-10-11, 0.2.0): names crowded where marks
 overlap, so the world map shows a name on hover, for the selection and an
-open menu; option "Always show names" (off by default). Built 2026-10-11,
-in-game check pending.
+open menu; option "Always show names" (off by default). Built and passed
+2026-10-11 (`9e675cc`).
 One list of things drawn on the minimap and the world map, filled by the
 features that own them (INTEGRATION.md B): waypoints and the death point
 (as today), schematic placements first, then Shapes. On the world map they
@@ -525,9 +532,9 @@ magnify, so the wide view below 1x becomes an explicit choice.
   change; the stop on exactly 1x stays.
 - Turning it off brings a kept level below 1x up to 1x, so the old wide
   level does not return.
-Status: built 2026-10-11, in-game check pending: both activation modes, the
-wheel only while the Zoom key is held, 1x stop, turning the setting off
-while a wide level is kept, saving.
+Status: built 2026-10-11 (`cea3014`); passed on `9e675cc` (stop at 1x off,
+0.5x on, 1x after turning it off). Not reported separately: toggle mode,
+saving across a restart.
 
 ### L-133 Connected Textures: split glass panes without dark halves
 Kind: Research. Opened 2026-10-11 from L-96.
