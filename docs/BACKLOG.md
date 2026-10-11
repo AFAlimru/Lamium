@@ -312,9 +312,10 @@ Round 2 (`77ceea4`, checked 2026-10-11): still none in the preview, for a
 pickaxe, an enchanted golden apple and a shield. Left as the difference
 from 0.1.8: the preview now runs shared-mesh batches before the foil
 calls (0.1.8 had none). Round 3: glinting items (icon, then glint) are
-drawn before any batch in `drawItemIcons`. If it still fails, check a
-shulker holding only enchanted items (no batch at all) to tell whether the
-batch is the cause.
+drawn before any batch in `drawItemIcons`. Passed on `df79b8d`
+(2026-10-11): pickaxe, golden apple and book glint in the shulker preview.
+Known cost: enchanted leather armor's undyeable parts are see-through
+there (L-91). Done; moves to BACKLOG-DONE with the 0.2.0 release notes.
 
 ### L-143 Debug View hides the game's position line and paper doll
 Kind: Feature (small). Reported on Discord after 0.1.9 (maintainer's notes,
@@ -332,8 +333,12 @@ place the Info HUD overlaps the paper doll. Chosen: an Info HUD option
 only while the drawn Info HUD box meets the doll's area (its `hud_player`
 control widened by one control width each side, from the top of the
 screen down to the chat's 50-unit room for it; `PaperDoll.h`, tested);
-placed elsewhere nothing changes. Shares the L-143 paper doll hook. Built
-2026-10-11, in-game check pending.
+placed elsewhere nothing changes. Shares the L-143 paper doll hook.
+Passed on `df79b8d` (2026-10-11). Follow-up the same day: the game's
+position line (Show Coordinates) overlapped the Info HUD too, so the
+option also hides the `player_position` control where the Info HUD box
+meets it (label "Hide the game's paper doll and position under it").
+In-game check pending.
 
 ### L-144 The game's hotbar in the HUD layout editor
 Kind: Feature (small). Reported on Discord after 0.1.9 (maintainer's notes,
@@ -821,7 +826,10 @@ Kind: Research. Found by the maintainer 2026-10-02 while checking L-75;
 leather added 2026-10-06 (found under L-61).
 Status: parked 2026-10-06 after a trace and three in-game experiments; the
 Update 2026-10-10: leather layers (and fence gates, L-119) fixed by the
-shared-mesh icon path `inspection/render/ItemIcon` (checked). Left: the
+shared-mesh icon path `inspection/render/ItemIcon` (checked). Update
+2026-10-11 (L-142): glinting items went back to the direct path for their
+glint, so an enchanted leather piece shows its undyeable parts
+see-through again (maintainer: record it, not now). Left: the
 enchanted shield's glint; one round failed and is parked; the research
 record and the next idea are in BACKLOG-DONE under L-119.
 cause is known, the fix needs a different draw path (below). Known issue.

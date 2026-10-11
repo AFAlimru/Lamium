@@ -35,7 +35,7 @@ game result.
 
 | Feature | Last confirmed | Not yet checked |
 |---|---|---|
-| Container previews, durability readout (L-35) | 2026-09-26, local; 2026-10-10: icons through the shared-mesh batch: fence gates, leather layers (L-119/L-91, `cbaacfc`) | |
+| Container previews, durability readout (L-35) | 2026-09-26, local; 2026-10-10: icons through the shared-mesh batch: fence gates, leather layers (L-119/L-91, `cbaacfc`); 2026-10-11: glint of enchanted items back, gates and durability bars beside them (L-142, `df79b8d`) | Enchanted leather armor's undyeable parts see-through (known, L-91); shield glint (L-91) |
 | All trader levels and locked trade tooltips (L-129) | 2026-10-10, local: levels 1-5 listed with the locked look, Off restores vanilla (`0a41937`); locked items' hover text (`c7beed9`), frame and text aligned (`3cffc44`) | Servers; other villager professions, wandering traders |
 | English name search (L-130) | 2026-10-10, local: recipe book and creative search find items by English name and ID with the game in Japanese and Simplified Chinese; Off restores vanilla (`3646a11`) | Furnace-type screens (not covered); servers; resource packs that rename items |
 | Player list (L-128, L-131) | 2026-10-10, local and BDS: Tab hold, faces, names, permission marks (visitor, operator, member option, custom; LAN with a phone), platform text, dimension icon, distances for nearby players, drawn over other HUD elements with the target card hidden, card and per-line backgrounds, layout editor (`ea0ade4`) | Many players (columns, "and N more"); players' dimension changes while you stay (last-seen dimension is inferred) |

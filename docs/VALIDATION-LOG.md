@@ -12,6 +12,20 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Glint in previews and the Info HUD over the paper doll (2026-10-11)
+
+By the maintainer, local. `77ceea4` (DLL `4e6a6887...dbca654`): still no
+glint in the shulker preview for a pickaxe, an enchanted golden apple and
+a shield. `df79b8d` (DLL
+`a5fa642172c1a3bed37b0e9406348c9fd4d3b50c2aef555b436222ae89ccfc9e`): the
+enchanted pickaxe, golden apple and book show their glint in the shulker
+preview (L-142); fence gates, other blocks and tool durability bars in the
+same box correct. Enchanted leather armor shows see-through undyeable parts
+there (unenchanted leather does not): known cost of the direct path. The
+paper doll is not drawn under the Info HUD at its default place (L-145);
+the game's position line (Show Coordinates) still overlapped it, so L-145
+also hides that where covered (next build).
+
 ## L-141 to L-144 on `9c173b7` (2026-10-11)
 
 By the maintainer, local, `9c173b7` (DLL
