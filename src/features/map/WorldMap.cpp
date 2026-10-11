@@ -611,6 +611,8 @@ void cross(MinecraftUIRenderContext& context, float cx, float cy) {
 }
 void smallLabel(MinecraftUIRenderContext& context, float cx, float y, std::string const& text, Rgb color) {
     float scale = .75f, w = ui::textWidthScaled(context, text, scale);
+    // A dark plate keeps small names readable on bright terrain (sand, snow).
+    if (!text.empty()) ui::fill(context, std::round(cx - w / 2) - 2, y - 1, std::round(w) + 4, 10 * scale + 2, Rgb{0, 0, 0}, .5f);
     ui::labelScaled(context, cx - w / 2, y, w + 2, text, scale, color, ui::Align::Left, true);
 }
 float button(MinecraftUIRenderContext& context, float x, float y, std::string const& text, Target target, bool on,
