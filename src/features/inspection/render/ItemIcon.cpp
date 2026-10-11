@@ -85,6 +85,18 @@ void drawItemIcons(MinecraftUIRenderContext& context, std::span<IconAt const> ic
     std::vector<int> chunks;
     chunks.reserve(icons.size());
     for (auto const& icon : icons) chunks.push_back(drawable(icon) ? chunkOf(*icon.stack) : -1);
+    auto direct = [&](size_t i) {
+        auto const& icon = icons[i];
+        renderer->renderGuiItemNew(renderContext, *icon.stack, icon.frame, icon.x, icon.y, false, icon.alpha, 1.0f, icon.scale,
+            zOrder);
+        if (icon.glint && chunks[i] == glinting)
+            renderer->renderGuiItemNew(renderContext, *icon.stack, icon.frame, icon.x, icon.y, true, glintOverlayAlpha * icon.alpha,
+                1.0f, icon.scale, zOrder);
+    };
+    // Glinting items before any shared-mesh batch: after one, the foil call
+    // drew nothing even right after its icon (L-142 round 2); 0.1.8 drew no
+    // batches at all.
+    for (size_t i = 0; i < icons.size(); ++i) if (chunks[i] == glinting) direct(i);
     // One batch per chunk type and opacity: the batch key carries the alpha.
     std::vector<float> alphas;
     for (auto const& icon : icons) if (std::find(alphas.begin(), alphas.end(), icon.alpha) == alphas.end()) alphas.push_back(icon.alpha);
@@ -103,14 +115,7 @@ void drawItemIcons(MinecraftUIRenderContext& context, std::span<IconAt const> ic
         }
         context.endSharedMeshBatch(batch.get());
     }
-    for (size_t i = 0; i < icons.size(); ++i) {
-        if (chunks[i] == -1 || chunks[i] == blockChunk || chunks[i] == flatChunk) continue;
-        auto const& icon = icons[i];
-        renderer->renderGuiItemNew(renderContext, *icon.stack, icon.frame, icon.x, icon.y, false, icon.alpha, 1.0f, icon.scale,
-            zOrder);
-        if (icon.glint && chunks[i] == glinting)
-            renderer->renderGuiItemNew(renderContext, *icon.stack, icon.frame, icon.x, icon.y, true, glintOverlayAlpha * icon.alpha,
-                1.0f, icon.scale, zOrder);
-    }
+    for (size_t i = 0; i < icons.size(); ++i)
+        if (chunks[i] != -1 && chunks[i] != glinting && chunks[i] != blockChunk && chunks[i] != flatChunk) direct(i);
 }
 }
