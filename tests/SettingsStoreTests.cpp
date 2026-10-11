@@ -333,6 +333,8 @@ void settingsStoreTests() {
           "world map names show on hover until Always is saved on");
     check(!old.camera.zoomWideAngle && decodeSettings(R"({"camera":{"zoomWideAngle":true}})").camera.zoomWideAngle,
           "Wide-angle view stays off until saved on (L-140)");
+    check(old.information.debugHideVanilla && !decodeSettings(R"({"information":{"debugHideVanilla":false}})").information.debugHideVanilla,
+          "Debug View hides the game's position and paper doll unless saved off");
     {
         auto loaded = decodeSettings(R"({"map":{"zoom":9,"rotate":true},"hud":{"minimap":{"dx":-30}}})");
         loaded.normalize();

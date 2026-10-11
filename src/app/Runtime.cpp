@@ -45,6 +45,7 @@
 #include "features/interaction/PlacementTrace.h"
 #include "features/visuals/HideOffhand.h"
 #include "features/visuals/HideEffects.h"
+#include "features/information/DebugVanillaHud.h"
 #include "features/visuals/EffectTrace.h"
 #include "input/CustomInput.h"
 #include "overlay/WorldOverlay.h"
@@ -152,6 +153,7 @@ Feature const features[] = {
     {"Consumption diagnostics", started<inventory::game::consumptionTrace::start>, inventory::game::consumptionTrace::stop},
     {"Sneak", started<interaction::sneak::start>, interaction::sneak::stop},
     {"Effect visibility", started<visuals::effects::start>, visuals::effects::stop},
+    {"Debug View vanilla HUD", started<information::debugVanilla::start>, information::debugVanilla::stop},
     {"Effect diagnostics", started<visuals::effectTrace::start>, visuals::effectTrace::stop},
 };
 }

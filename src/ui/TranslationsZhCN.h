@@ -891,6 +891,8 @@ inline constexpr auto simplifiedChinese = std::to_array<Text>({
     {"debugLabels.java", "Java 版 F3 样式"},
     {"debugHideHud", "打开时隐藏信息 HUD: {}"},
     {"debugHideTarget", "打开时隐藏目标信息: {}"},
+    {"debugHideVanilla", "打开时隐藏游戏的坐标和纸娃娃: {}"},
+    {"help.information.debugHideVanilla", "调试视图打开时，不绘制左上角游戏自带的坐标行和纸娃娃。不会更改游戏设置。"},
     {"debugLook", "注视"},
     {"debugRenderDistance", "能见度: {}"},
     {"debugRay", "光线追踪: {}"},

@@ -904,6 +904,8 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"debugLabels.java", "Java F3 style", "Java F3 風"},
     {"debugHideHud", "Hide Info HUD while open: {}", "表示中は情報 HUD を隠す: {}"},
     {"debugHideTarget", "Hide Target while open: {}", "表示中は照準先を隠す: {}"},
+    {"debugHideVanilla", "Hide the game's position and paper doll while open: {}", "表示中はゲームの座標とペーパードールを隠す: {}"},
+    {"help.information.debugHideVanilla", "While Debug View is open, the game's own position line and the paper doll in the top left are not drawn. The game's settings are not changed.", "デバッグ表示を開いている間、左上に出るゲーム自身の座標表示とペーパードールを描きません。ゲームの設定は変えません。"},
     {"debugLook", "Look at", "照準"},
     {"debugRenderDistance", "Render distance: {}", "描画距離: {}"},
     {"debugRay", "Ray tracing: {}", "レイトレーシング: {}"},

@@ -97,6 +97,12 @@ Meaning: the native culler type values (3 requested, 5 retained) and the
 virtual slot of `updateLevelCullerType`. Gated (FreeCamera terrain); also
 checks the loader version and that the slot points into game code.
 
+### `src/features/information/DebugVanillaHud.cpp`
+Hooks: `DebugPositionSprite`, `DebugPositionText`, `DebugPaperDoll`
+Meaning: the vanilla HUD's position panel is named `player_position` (label
+`player_position_text`) and the HUD paper doll is drawn by
+`HudPlayerRenderer`. A renamed control only stops the hiding.
+
 ### `src/features/information/FrameTiming.cpp`
 Hooks: `FrameCompleted`
 Rebuild.

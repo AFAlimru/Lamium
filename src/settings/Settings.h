@@ -186,6 +186,7 @@ struct Settings {
         int debugLabels = 0; // 0 game standard, 1 Java F3 style
         bool debugHideHud = true;    // Hide the Info HUD while Debug is on
         bool debugHideTarget = true; // Hide the Target card while Debug is on
+        bool debugHideVanilla = true; // Hide the game's position line and paper doll while Debug is on
         bool debugShadow = true;     // Text shadow on the debug panel
         int debugBackground = 1;     // 0 none, 1 a background behind each line (L-98, default per line)
         bool debugEntityKinds = true; // The entity total by kind under it (L-120)

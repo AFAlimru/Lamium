@@ -177,6 +177,7 @@ inline constexpr auto options = std::to_array<Option>({
     choice<&Settings::information, &Settings::Information::debugLabels, debugLabelLabels>("information.debugLabels", "debugView", "debugLabelStyle"),
     toggle<&Settings::information, &Settings::Information::debugHideHud>("information.debugHideHud", "debugView", "debugHideHud"),
     toggle<&Settings::information, &Settings::Information::debugHideTarget>("information.debugHideTarget", "debugView", "debugHideTarget"),
+    toggle<&Settings::information, &Settings::Information::debugHideVanilla>("information.debugHideVanilla", "debugView", "debugHideVanilla"),
     toggle<&Settings::information, &Settings::Information::debugShadow>("information.debugShadow", "debugView", "hudShadow"),
     choice<&Settings::information, &Settings::Information::debugBackground, debugBackgroundLabels>("information.debugBackground", "debugView", "hudBackground"),
     toggle<&Settings::information, &Settings::Information::debugEntityKinds>("information.debugEntityKinds", "debugView", "debugEntityKinds"),
