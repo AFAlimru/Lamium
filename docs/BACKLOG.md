@@ -88,12 +88,12 @@ L-item wins. Every entry names what the task is, not only its number.
    it, and placement waits for that Design. L-59 waits for the maintainer's
    go.
 4. **0.2.0: clean-up and integration (L-111 integration between
-   features, decided 2026-10-11):** all required items are built on main
-   (2026-10-11, `1a2c231`..`d274227`): L-136 GhostRenderer.cpp split, L-138
-   shared face drawing, the map and settings tidy-up, L-139 map layers,
-   L-134 SettingsScreen.cpp split, L-137's required part and L-135 PDB as a
-   separate asset; the regression check on the normal build passed
-   (Pre-release checks; the fail-open build is left). Maintainer
+   features, decided 2026-10-11):** the required items are done
+   (BACKLOG-DONE, 2026-10-11): L-136 GhostRenderer.cpp split, L-138 shared
+   face drawing, the map and settings tidy-up, L-139 map layers, L-134
+   SettingsScreen.cpp split and L-137 game update readiness, after both
+   regression checks and two outside reviews. L-135 PDB as a separate asset
+   is built; the first release made that way checks it. Maintainer
    2026-10-11: no 0.2.0 tag for a while; 0.2.0 also gets a review of the
    features from the player's side, integration and links between
    features. Done and checked 2026-10-11 (BACKLOG-DONE): L-140 Zoom
@@ -101,10 +101,10 @@ L-item wins. Every entry names what the task is, not only its number.
    overlapping ghost flicker, the 0.1.9 Discord reports L-142 glint,
    L-143 Debug View and vanilla HUD, L-144 hotbar in the HUD editor, L-145
    Info HUD over the paper doll and position line.
-   Maintainer 2026-10-11: the clean-up items (L-134, L-136, L-138, L-139,
-   L-137) move to BACKLOG-DONE only after a code review finds no problems,
-   not on the in-game check alone. The radial menu and the smaller links are optional.
-   Order and boundary: L-111.
+   Maintainer 2026-10-11: clean-up items move to BACKLOG-DONE only after a
+   code review finds no problems, not on the in-game check alone. The
+   radial menu and the smaller links are optional. Order and boundary:
+   L-111.
 5. **Research when convenient:** L-79 carved pumpkin and spyglass frame draw
    path (cheap-model friendly
    trace/test steps), L-71 starting a glide from the mod, L-30 Ender Dragon
@@ -331,41 +331,6 @@ type 3, scale 1.333, with the font's own material).
 
 ## Feature work and research
 
-### L-134 Split SettingsScreen.cpp (with 0.2.0)
-Kind: Refactor. Raised by the maintainer 2026-10-11; planned together with
-L-111 integration and other 0.2.0 clean-up, not before.
-Status: built 2026-10-11, in-game check pending (0.2.0 regression checks).
-Part 1 (`097d32a`): ShapesView and WaypointsView; part 2: SchematicsView
-(`b612e94`), SettingsTableView with Hotkeys and key capture (`22b081a`).
-SettingsScreen.cpp keeps the scene, input queues, prompts, the schematic
-menu and the world map hand-over (1,371 lines). Each view owns its state;
-what the core offers them is ScreenParts.h (footer message, the number
-being typed, navigation, closing, where the player stands); navigation item
-ids are in SettingsNavigation.h; shared list widgets in ListViewWidgets.
-The cut was made by the agent without a separate plan with the
-maintainer (the goal set on 2026-10-11 asked for 0.2.0's required items).
-`src/ui/SettingsScreen.cpp` is 4585 lines (2026-10-11), the largest file by
-far, and changed in 131 commits since 2026-09-01. It mixes the settings rows
-and navigation, key capture and the Hotkeys view, text and number editing,
-the Shapes editor (drafts, swatches, docked rendering), the waypoint list,
-the map cache controls and the version tip. L-73 (BACKLOG-DONE, item D)
-dropped this split on 2026-09-30 at 1,878 lines: the Shapes view and the
-input listeners shared 20+ screen-wide variables, so a file split would only
-have moved text behind a header of shared variables ("split it when the
-screen grows again, after grouping its state first"). Group the state
-first, then split by those parts into files that keep behavior unchanged;
-pure layout and state logic moves into headers with tests where it can
-(AGENTS.md rule 1). Plan the cut with the
-maintainer before moving code: the split should match how L-111 regroups
-features. It runs in two parts (L-111 order): the Shapes view and waypoint
-list state before L-139 map layers, the rest (Hotkeys, the schematic view,
-the plain settings table) after. Each part owns its state and declares what
-others may read; moving the globals into one big context struct passed
-everywhere is not a split (outside review 2026-10-11). In game after each
-part: search, number entry, key binding and capture, shape editing,
-waypoints, HUD layout, Esc/Enter/Tab while editing (the L-73 regression
-area).
-
 ### L-135 Leave the PDB out of the release ZIP (with 0.2.0)
 Kind: Distribution. Decided by the maintainer 2026-10-11.
 Status: built 2026-10-11 (`d274227`); the first release made this way is
@@ -382,167 +347,6 @@ separate asset (`Lamium-<version>-client-windows-x64.pdb` or similar,
 decided 2026-10-11), so LIP and LeviLauncher install only the DLL while the
 symbols stay available for crash addresses. CI checks that the PDB belongs
 to the same build as the DLL in the ZIP (matching debug GUID and age).
-
-### L-136 Split GhostRenderer.cpp by responsibility (with 0.2.0)
-Kind: Refactor **(strong model)**. Chosen by the maintainer 2026-10-11 after
-an outside size review (SettingsScreen.cpp, GhostRenderer.cpp, WorldMap.cpp,
-InfoHud.cpp, Translations.h); planned with L-134 and L-111.
-Status: built 2026-10-11, in-game check pending (0.2.0 regression checks).
-`1a2c231`: GhostRenderer.cpp (the pass, 668 lines), GhostMesh, GhostVerify,
-AreaSave, GhostMarks, GhostBlocks, GhostActors, ResolvedPlacement; the pass
-owns the sections and resolved placements and hands them to the parts.
-`3ec2498`: classification (`classifyReading`, Verify.h), face culling
-(`dropFace`), back faces and blend order (`facesAway`, `farToNear`,
-GhostFaces.h) in tested headers. WorldMap.cpp and InfoHud.cpp were not
-split (the map got its layer model in L-139 instead).
-`src/features/schematic/GhostRenderer.cpp` is 2,792 lines (701 on
-2026-10-05, 1,693 on 2026-10-08) and changed in 107 commits since
-2026-10-01. Despite its name it holds more than drawing: the ghost mesh
-build (neighbors, culling against ghosts, back faces, duplicate quads,
-liquids, layers and quad order), the verification scan and progress
-(cell classification, entity checks, mismatches), the area save (stepped
-save, vanilla load self-check), block entity loading, the in-world drawing
-(selection, placement frames, waiting columns, entities, name tags) and
-the performance report. Split along those lines into files that keep
-behavior unchanged, with the pure parts (classification, culling rules,
-quad ordering) in headers with tests. Each part owns its state, and resource
-creation and release (meshes, scans, saves) keep one clear owner and the
-current timing across world exit and dimension change. Every step is
-checked in game against the L-93 rendering checks (doors, beds, panes, liquids, honey/slime, block
-entities, entity models, large placements' frame rate). WorldMap.cpp
-(~1,240 lines) and InfoHud.cpp (~1,400) are worth a look in the same pass;
-Translations.h is data and stays as it is.
-
-### L-137 Game update readiness (with 0.2.0)
-Kind: Refactor, then Research for each new game version. Chosen by the
-maintainer 2026-10-11 as part of the 0.2.0 clean-up; scope corrected the
-same day.
-Lamium depends on the game through hooks (205 in 45 files, 2026-10-11),
-game structures it reads or writes by member, and game behavior. 88 of 308
-source files include game headers; GhostRenderer.cpp alone includes 70.
-What actually breaks on an update (checked 2026-10-11):
-- Member layouts come from the SDK headers, which are regenerated for each
-  game version, and only one place hard-codes a layout
-  (`StackClassifier.cpp`, the shulker box item vtable). Rebuilding against
-  the new SDK follows layout changes; removed or retyped members fail to
-  compile. An old Lamium on a new game is unlikely: `tooth.json` pins
-  LeviLamina `26.51.*`, and LeviLamina itself is tied to a game version.
-- What a rebuild cannot catch: changed meaning (vertex data whose fields
-  mean something else, packets handled differently, render behavior such as
-  the Vibrant Visuals fog), SDK header mistakes, and a different game
-  executable under the same loader.
-`verifiedGameExecutable()` gates four render paths today.
-Status (2026-10-11): the required part is built; its in-game check (the
-fail-open build) is in the 0.2.0 regression checks. Inventory and
-playbook: [GAME-UPDATES.md](GAME-UPDATES.md), checked by
-`scripts/Check-GameInventory.ps1` in CI. Gates: `versionSensitiveAllowed()`
-(`app/Versions.h`, `44f48a8`) on nine capabilities; test build
-`--unverified_game=y`.
-Discoverability (2026-10-11): the SDK lines in `xmake.lua` and
-`packages/levilamina-client-sdk.lua`, the `verifiedGame` constant and
-AGENTS.md rule 8 point to the playbook; `New-ReleaseArchive.ps1` warns when
-the SDK's game version differs from `verifiedGame` and refuses a tag build.
-Players see the pause (maintainer chose the agent's proposal 2026-10-11,
-`1da4316`): toggle toasts and settings feature rows add "paused" or
-"partly paused", the settings header shows "Some features paused" in the
-warning color with the reason in its tooltip, and the first HUD frame after
-joining a world shows an 8-second toast naming the paused features in use.
-Nothing shows on the verified game. Passed on the unverified build of
-`ddac26c` (2026-10-11; the join toast wraps, only the note is yellow).
-Required for 0.2.0:
-1. Inventory, kept next to the code (script-checked where possible): per
-   feature, its hooks and the game meanings it relies on (vertex fields,
-   packet order, render state), marking the ones a rebuild cannot catch.
-2. Playbook for a new Minecraft or LeviLamina version: SDK bump, build,
-   inventory-driven in-game checks, widening the verified version
-   (DISTRIBUTION.md or a new doc).
-3. Gate the risky operations, not whole features: a path that writes game
-   memory or relies on an unchecked meaning checks the verified version at
-   that path and fails open there, so safe parts of the same feature keep
-   working.
-4. A way to test the gates without an unsupported game: a build option
-   (like `--feature_skip`) that makes the version check fail, so the
-   fail-open branches can be run and checked in game.
-Later, per game version: run the playbook and extend the gates as the
-inventory shows.
-L-134 and L-136 help by separating game glue from pure logic, so an update
-touches the glue and the tests still vouch for the logic.
-
-### L-138 Shared face drawing for cell overlays (0.2.0, L-111 A)
-Kind: Refactor **(strong model)**. Step 2 of the 0.2.0 order (L-111).
-Status: built 2026-10-11, in-game check pending (0.2.0 regression checks).
-`overlay/CellSurface.h` (pure, tested) builds the faces on the cells' own
-planes and the outline; `overlay/CellMesh` uploads and draws them with the
-face material, the outline coloring (vertex or shader color) and the pull.
-One feature per commit: Shapes (`d4a83d1`), the breaking region
-(`dd1f58c`), the schematic save area (`8a4c71a`; corners now on the block's
-planes with a nearer pull than its outline, `depth::markPull`).
-`overlay/Depth.h` already holds the depth rules every face overlay follows
-(L-110). Add one builder for the faces and outline of a set of cells that
-Shapes, the breaking restriction and the schematic area frame call.
-Shares: face and outline geometry for cells, the depth/inset rules, color
-and alpha handling. Does not share: the schematic ghost blocks (real block
-shapes, liquids, translucency, neighbor-dependent meshes stay in the
-schematic renderer), per-feature colors and when each overlay is shown.
-Keeps: each overlay's current look (no z-fighting, no flicker, no inset),
-per-feature on/off and fail-open. One feature moves per commit, with an
-in-game check of overlapping Shapes, restriction and schematic frames.
-
-### L-139 Map layers (0.2.0, L-111 B)
-Kind: Feature **(strong model)**. Step 4 of the 0.2.0 order (L-111), after
-the WorldMap.cpp and SettingsScreen.cpp tidy-up (step 3).
-Status: built 2026-10-11, in-game check pending (0.2.0 regression checks).
-Session ids (`534134f`, app/SessionIds.h), selection and menus by mark key
-(`7f85e7d`), layers (`cf54db8`). Settled in the step: marks are
-`MarkKey{layer, id}` (MapMarks.h); under the cursor waypoints and the death
-point come first, then placements, then shapes, the smallest footprint
-first within a layer (`markAt`, tested); a provider that turns off
-(Schematics off, shapes not drawn) returns no marks, and a selection or
-menu on a mark that is gone is dropped; the minimap only draws, the world
-map hit-tests and acts. World map actions: placements select (also the
-schematic's selected placement), show/hide, open in the Placed tab; shapes
-show/hide, open in the Shapes view; the side panel shows the selected
-footprint's extent, a Show switch and the open button. Shape boxes are
-cached by the overlay until a shape changes; placements (at most 64) are
-listed per frame. Shapes on the minimap: map option "Shapes", off by
-default. Not done: one combined side-panel list per layer (the list stays
-waypoints; placements and shapes are selected on the map).
-Follow-up (maintainer 2026-10-11, 0.2.0): names crowded where marks
-overlap, so the world map shows a name on hover, for the selection and an
-open menu; option "Always show names" (off by default). Built and passed
-2026-10-11 (`9e675cc`).
-One list of things drawn on the minimap and the world map, filled by the
-features that own them (INTEGRATION.md B): waypoints and the death point
-(as today), schematic placements first, then Shapes. On the world map they
-share one way of selecting and acting (show/hide, select, the feature's own
-actions); the minimap only draws.
-Design points to settle in the step (outside review 2026-10-11):
-- Marks are identified by a stable id from their provider, never by list
-  index, so adding or removing one cannot retarget a selection. Today only
-  Shapes have one (`ShapeId`, in memory, not saved); `Waypoint` and
-  `SavedPlacement` are plain vector entries (`PlacementSet::selected` is an
-  index) and the death point is a single optional. Proposed: each provider
-  assigns a session id when an entry is loaded or added, never reused within
-  the session and unchanged by reordering, edits or other deletions; the
-  death point uses a fixed key. Ids are not saved (selections reset on world
-  exit anyway), so no file format changes; saving them is a separate
-  decision if a cross-session reference is ever needed. Tests: two
-  waypoints or placements with the same name and position; deleting another
-  entry while one is selected; editing a map-selected placement from the
-  schematic screen; world exit and rejoin clear the selection; an action on
-  an id that no longer exists does nothing.
-- A fixed priority when marks of different layers overlap under the cursor.
-- When a provider turns off (feature disabled, world exit, dimension
-  change), its marks, selection and open actions are dropped.
-- What the minimap and world map share (marks, hit tests) and what stays
-  apart (the world map's panel and menus).
-- Drawing cost with many placements or shapes: footprints are computed when
-  an entry changes and cached, not rebuilt every frame; drawing uses the
-  visible range and is bounded per frame.
-- Shapes on the minimap: a setting (decided 2026-10-11), since many shapes
-  would crowd it.
-Does not share: storage (waypoints, placements and shapes keep their own
-files). Keeps: today's waypoint and death-point behavior unchanged.
 
 ### L-133 Connected Textures: split glass panes without dark halves
 Kind: Research. Opened 2026-10-11 from L-96.
