@@ -160,18 +160,23 @@ void noteHotbar(ScreenView const& view) {
     glm::vec2 screen = *view.mSize;
     seenHotbar = SeenHotbar{*hotbar.box, screen.x, screen.y};
 }
-void notePaperDoll(ScreenView const& view, ui::hud_editor::Boxes const& drawn, Settings::Information const& settings) {
+void noteCoveredVanilla(ScreenView const& view, ui::hud_editor::Boxes const& drawn, Settings::Information const& settings) {
     auto const& info = drawn[static_cast<size_t>(ui::HudElementId::Info)];
-    std::optional<paperDoll::Box> control, hud;
+    std::optional<paperDoll::Box> doll, position, hud;
     if (settings.hudHidePaperDoll && info) {
         hud = paperDoll::Box{info->x, info->y, info->w, info->h};
-        if (VisualTree* tree = view.mVisualTree.get())
-            if (auto doll = tree->getControlByName("hud_player", true); doll && !doll->mCachedPositionDirty) {
-                glm::vec2 position = *doll->mCachedPosition, size = *doll->mSize;
-                control = paperDoll::Box{position.x, position.y, size.x, size.y};
-            }
+        if (VisualTree* tree = view.mVisualTree.get()) {
+            auto boxOf = [&](char const* name) -> std::optional<paperDoll::Box> {
+                auto control = tree->getControlByName(name, true);
+                if (!control || control->mCachedPositionDirty) return std::nullopt;
+                glm::vec2 at = *control->mCachedPosition, size = *control->mSize;
+                return paperDoll::Box{at.x, at.y, size.x, size.y};
+            };
+            doll = boxOf("hud_player");
+            position = boxOf("player_position");
+        }
     }
-    debugVanilla::infoCoversDoll(paperDoll::covered(control, hud));
+    debugVanilla::infoCovers(paperDoll::covered(doll, hud), paperDoll::meets(position, hud));
 }
 HotbarPlace editorHotbar(float width, float height) {
     auto box = offhand::editorHotbar(seenHotbar ? std::optional(seenHotbar->box) : std::nullopt,

@@ -12,7 +12,7 @@
 namespace lamium::information::debugVanilla {
 namespace {
 bool installedSprite = false, installedText = false, installedDoll = false;
-std::atomic<bool> covered{false};
+std::atomic<bool> dollCovered{false}, positionCovered{false};
 bool hiding() noexcept {
     try {
         auto& runtime = Runtime::instance();
@@ -21,7 +21,7 @@ bool hiding() noexcept {
         return settings->information.debug && settings->information.debugHideVanilla;
     } catch (...) { return false; }
 }
-bool hidingDoll() noexcept {
+bool hidingCovered(std::atomic<bool> const& covered) noexcept {
     try { return hiding() || (covered.load() && Runtime::instance().enabled()); } catch (...) { return false; }
 }
 bool position(UIControl& owner) noexcept {
@@ -33,21 +33,24 @@ bool position(UIControl& owner) noexcept {
 }
 LL_TYPE_INSTANCE_HOOK(DebugPositionSprite, ll::memory::HookPriority::Normal, SpriteComponent,
     &SpriteComponent::render, void, UIRenderContext& context) {
-    if (position(mOwner) && hiding()) return;
+    if (position(mOwner) && hidingCovered(positionCovered)) return;
     origin(context);
 }
 LL_TYPE_INSTANCE_HOOK(DebugPositionText, ll::memory::HookPriority::Normal, TextComponent,
     &TextComponent::$render, void, UIRenderContext& context) {
-    if (position(mOwner) && hiding()) return;
+    if (position(mOwner) && hidingCovered(positionCovered)) return;
     origin(context);
 }
 LL_TYPE_INSTANCE_HOOK(DebugPaperDoll, ll::memory::HookPriority::Normal, HudPlayerRenderer,
     &HudPlayerRenderer::$render, void, MinecraftUIRenderContext& context, IClientInstance& client, UIControl& owner,
     int pass) {
-    if (hidingDoll()) return;
+    if (hidingCovered(dollCovered)) return;
     origin(context, client, owner, pass);
 }
-void infoCoversDoll(bool on) { covered = on; }
+void infoCovers(bool doll, bool position) {
+    dollCovered = doll;
+    positionCovered = position;
+}
 void start() noexcept {
     try {
         if (!installedSprite) installedSprite = DebugPositionSprite::hook(true) == 0;
@@ -58,7 +61,7 @@ void start() noexcept {
     } catch (...) {}
 }
 void stop() {
-    covered = false;
+    dollCovered = positionCovered = false;
     if (installedDoll && DebugPaperDoll::unhook(true)) installedDoll = false;
     if (installedText && DebugPositionText::unhook(true)) installedText = false;
     if (installedSprite && DebugPositionSprite::unhook(true)) installedSprite = false;

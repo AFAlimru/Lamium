@@ -17,9 +17,9 @@ void drawOffhandSlot(MinecraftUIRenderContext&, ScreenView const& view, Settings
 // layout editor, which draws it there (it opens over another screen).
 void noteHotbar(ScreenView const& view);
 struct HotbarPlace { float x, y, w, h; };
-// Whether the Info HUD drawn this frame covers the game's paper doll, for
-// hiding it there (L-145, option on).
-void notePaperDoll(ScreenView const& view, ui::hud_editor::Boxes const& drawn, Settings::Information const&);
+// Whether the Info HUD drawn this frame covers the game's paper doll or its
+// position line, for hiding them there (L-145, option on).
+void noteCoveredVanilla(ScreenView const& view, ui::hud_editor::Boxes const& drawn, Settings::Information const&);
 HotbarPlace editorHotbar(float width, float height);
 // A biome's name in the game's language, or its id when it has none.
 std::string biomeName(std::string const& identifier);

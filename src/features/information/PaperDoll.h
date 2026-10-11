@@ -4,7 +4,8 @@
 #include <optional>
 
 namespace lamium::information::paperDoll {
-// Whether Lamium's Info HUD covers the game's paper doll (L-145). Pure.
+// Whether Lamium's Info HUD covers the game's paper doll or its position
+// line (L-145). Pure.
 struct Box { float x, y, w, h; };
 // The doll is drawn larger than its control (15x15 units on desktop): about
 // one control width to each side, and from the top of the screen down to
@@ -18,6 +19,10 @@ inline std::optional<Box> area(Box control) {
 }
 inline bool overlaps(Box a, Box b) {
     return a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+}
+// The position line is drawn within its own control.
+inline bool meets(std::optional<Box> control, std::optional<Box> hud) {
+    return control && hud && control->w > 0 && control->h > 0 && overlaps(*control, *hud);
 }
 inline bool covered(std::optional<Box> control, std::optional<Box> hud) {
     if (!control || !hud) return false;

@@ -883,7 +883,7 @@ void render(ll::event::UIRenderEvent& event) {
             auto const& settings = Runtime::instance().preferences().information;
             auto drawn = information::drawHud(context,size.x,size.y,settings);
             information::noteHotbar(view);
-            information::notePaperDoll(view,drawn,settings);
+            information::noteCoveredVanilla(view,drawn,settings);
             if (!current.getOptions().getHideHud()) {
                 information::drawOffhandSlot(context,view,settings);
                 information::drawSaturation(context,view,settings);

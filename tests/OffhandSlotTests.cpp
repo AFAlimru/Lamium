@@ -36,6 +36,9 @@ void offhandSlotTests() {
               "placed away from it, the doll stays");
         check(!doll::covered(std::nullopt, doll::Box{2, 2, 120, 60}) && !doll::covered(control, std::nullopt),
               "no doll control or no Info HUD: nothing hidden");
+        doll::Box line{2, 66, 110, 10}; // the position line under the doll's room
+        check(doll::meets(line, doll::Box{2, 2, 120, 70}) && !doll::meets(line, doll::Box{2, 2, 120, 60}),
+              "the position line is hidden only where the Info HUD meets it");
     }
 
     lamium::Settings defaults;
