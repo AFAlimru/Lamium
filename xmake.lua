@@ -154,6 +154,8 @@ option("camera_position_probe")
 option_end()
 
 includes("packages/levilamina-client-sdk.lua")
+-- A new SDK (game or LeviLamina version): follow the playbook in
+-- docs/GAME-UPDATES.md; the verified game in src/app/Versions.cpp changes last.
 add_requires("levilamina-client-sdk 26.51.5", {configs = {shared = true}})
 
 add_requires("levibuildscript")

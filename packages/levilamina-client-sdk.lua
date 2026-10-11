@@ -1,3 +1,4 @@
+-- Version bumps follow the playbook in docs/GAME-UPDATES.md.
 -- Consume the published client runtime's exports and matching source headers.
 -- Building the runtime itself is unnecessary for a mod and fails for this tag
 -- with current MSVC headers (MinecraftCommands deletes incomplete CommandRegistry).

@@ -426,6 +426,12 @@ playbook: [GAME-UPDATES.md](GAME-UPDATES.md), checked by
 `scripts/Check-GameInventory.ps1` in CI. Gates: `versionSensitiveAllowed()`
 (`app/Versions.h`, `44f48a8`) on nine capabilities; test build
 `--unverified_game=y`.
+Discoverability (2026-10-11): the SDK lines in `xmake.lua` and
+`packages/levilamina-client-sdk.lua`, the `verifiedGame` constant and
+AGENTS.md rule 8 point to the playbook; `New-ReleaseArchive.ps1` warns when
+the SDK's game version differs from `verifiedGame` and refuses a tag build.
+Open, the maintainer's call: telling players in game that gated features
+are off on an unverified game (today only the log says so).
 Required for 0.2.0:
 1. Inventory, kept next to the code (script-checked where possible): per
    feature, its hooks and the game meanings it relies on (vertex fields,

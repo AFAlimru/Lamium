@@ -61,9 +61,12 @@ paths can be checked in game on the verified game.
 4. **Check the meanings.** For each **Meaning** entry below, do its in-game
    check on the new version (VALIDATION.md names the cases). Record results
    in VALIDATION-LOG.md with the game version.
-5. **Widen the verified version** in `app/Versions.cpp` only after the
-   gated capabilities' checks pass; if one fails, keep the old version, or
-   split that capability's gate so the passing ones can be widened.
+5. **Widen the verified version** (`verifiedGame` in `app/Versions.cpp`)
+   only after the gated capabilities' checks pass; if one fails, keep the
+   old version, or split that capability's gate so the passing ones can be
+   widened. Until then `scripts/New-ReleaseArchive.ps1` warns on every build
+   and refuses a tagged release: the SDK's game version (LeviLamina
+   `26.51.x` targets Minecraft `1.26.51`) must match it.
 6. **Release** as usual (DISTRIBUTION.md); the release notes name the game
    version.
 

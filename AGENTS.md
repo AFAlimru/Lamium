@@ -120,7 +120,9 @@ Rules the code already follows; keep them:
    [docs/GAME-UPDATES.md](docs/GAME-UPDATES.md) (CI runs
    `scripts/Check-GameInventory.ps1`). A path that writes game memory or
    relies on a meaning a rebuild cannot check asks
-   `versionSensitiveAllowed()` (`app/Versions.h`) at that path.
+   `versionSensitiveAllowed()` (`app/Versions.h`) at that path. Moving to a
+   new Minecraft or LeviLamina version follows the playbook in the same
+   file; the verified game version changes last, after the in-game checks.
 9. **Engineering behavior** (DESIGN.md, the authoritative wording): bound
    expensive scans and uploads per frame/tick, discard stale async results by
    world/dimension generation, confirm gameplay mutations from authoritative

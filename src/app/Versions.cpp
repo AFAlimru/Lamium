@@ -25,6 +25,11 @@ std::string runningVersionLine() {
     return versionLine(LAMIUM_VERSION, runningGameVersion(), runningLoaderVersion());
 }
 namespace {
+// The game executable the version-sensitive paths were checked on. Change it
+// only at step 5 of the playbook in docs/GAME-UPDATES.md, after every gated
+// capability was checked on the new game; never as part of an SDK bump.
+// New-ReleaseArchive.ps1 refuses a release whose SDK targets another game.
+constexpr unsigned verifiedGame[4] = {1, 26, 51, 1};
 bool readVerified() {
 #ifdef LAMIUM_UNVERIFIED_GAME
     return false;
@@ -40,8 +45,8 @@ bool readVerified() {
     UINT size = 0;
     if (!VerQueryValueW(data.data(), L"\\", reinterpret_cast<void**>(&info), &size)
         || size < sizeof(*info) || info->dwSignature != 0xfeef04bd) return false;
-    return info->dwFileVersionMS == ((1u << 16) | 26u)
-        && info->dwFileVersionLS == ((51u << 16) | 1u);
+    return info->dwFileVersionMS == ((verifiedGame[0] << 16) | verifiedGame[1])
+        && info->dwFileVersionLS == ((verifiedGame[2] << 16) | verifiedGame[3]);
 #endif
 }
 }
