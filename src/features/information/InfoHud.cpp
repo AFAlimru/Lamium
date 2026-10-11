@@ -34,6 +34,7 @@
 #include "features/information/ClientCounters.h"
 #include "features/information/OffhandSlot.h"
 #include "features/information/PaperDoll.h"
+#include "ui/TextFit.h"
 #include "features/information/DebugVanillaHud.h"
 #include "features/inspection/render/PreviewLayout.h"
 #include "mc/client/gui/CaretMeasureData.h"
@@ -1354,11 +1355,16 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
         if (!toast && preview) toast = ui::Toast::Visible{ui::translated("feature.toolSwitch"), true, 1.f};
         if (toast) {
             float zoom = elementZoom(hud.toast);
-            // A message may hold several lines ("\n"), each centered in the box.
+            // A message may hold several lines ("\n"), each centered in the box;
+            // a line wider than most of the screen wraps.
             std::vector<std::string> parts;
+            float widest = std::max(width * .6f, 120.f);
+            auto measure = [&](std::string_view part) { return ui::textWidthScaled(context, part, zoom); };
             for (size_t start = 0;;) {
                 auto end = toast->text.find('\n', start);
-                parts.push_back(toast->text.substr(start, end == std::string::npos ? std::string::npos : end - start));
+                auto line = toast->text.substr(start, end == std::string::npos ? std::string::npos : end - start);
+                if (measure(line) <= widest) parts.push_back(std::move(line));
+                else for (auto& wrapped : ui::wrapLabel(line, widest, 4, measure)) parts.push_back(std::move(wrapped));
                 if (end == std::string::npos) break;
                 start = end + 1;
             }

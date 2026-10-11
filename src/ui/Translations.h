@@ -20,7 +20,7 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"paused.partly", "partly paused", "一部停止中"},
     {"paused.part", "{} (partly)", "{}（一部）"},
     {"paused.header", "Some features paused", "一部の機能を停止中"},
-    {"paused.notice", "Lamium is not verified on Minecraft {} yet. Paused: {}", "Lamium は Minecraft {} で未確認のため停止中: {}"},
+    {"paused.notice", "Lamium is not verified on Minecraft {} yet.\nPaused: {}", "Lamium は Minecraft {} で未確認です。\n停止中: {}"},
     {"paused.tip", "Lamium is not verified on Minecraft {} yet. Features marked paused keep vanilla behavior where they depend on the game version; the rest works.", "Lamium は Minecraft {} での動作を確認していません。「停止中」の機能は、ゲームのバージョンに依存する部分がバニラの動作のままになります。それ以外は動きます。"},
     {"help.paused", "Paused on this Minecraft version, which Lamium is not verified on yet: the part that depends on the game version stays vanilla.", "Lamium が未確認の Minecraft のバージョンのため停止中です。ゲームのバージョンに依存する部分はバニラの動作のままになります。"},
     {"help.effectsPaused", "The main Hide effects switch is off. Individual switches and keys only change the saved selections until it is turned on.", "「視覚効果を隠す」全体がオフです。個別のスイッチやキーは選択だけを変更し、全体をオンにするまで非表示にはなりません。"},

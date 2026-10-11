@@ -390,10 +390,8 @@ void handleKey(int key) {
 
 // ---- Settings table drawing ----
 std::string featureName(FeatureInfo const& feature) { return translated(feature.name); }
-// The header's version, with a warning while features are paused (L-137).
-std::string headerVersion() {
-    return verifiedGameExecutable() ? lamiumVersion() : lamiumVersion() + "  " + translated("paused.header");
-}
+// The note after the header's version while features are paused (L-137).
+std::string pausedHeader() { return verifiedGameExecutable() ? std::string() : "  " + translated("paused.header"); }
 // " (paused)" after a gated feature on an unverified game (L-137).
 std::string pausedSuffix(std::string_view feature) {
     auto level = pausedLevel(feature);
@@ -692,7 +690,7 @@ void copyVersion_() {
 }
 void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, glm::vec2 size, glm::vec2 pointer) {
     auto t = SettingsTable::fit(size.x, size.y, static_cast<int>(rows.size()), first, nav::count);
-    t.placeVersion(textWidth(context, "Lamium"), textWidth(context, headerVersion()));
+    t.placeVersion(textWidth(context, "Lamium"), textWidth(context, lamiumVersion() + pausedHeader()));
     displayed = t;
     if (sliderDrag && sliderDrag->numeric) setSlider(*sliderDrag, std::max(0.f, t.sliderFraction(std::min(pointer.x, t.sliderValueX() - 1))));
     first = t.first;
@@ -711,9 +709,13 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
     // Header: title, search field (table views), Close.
     // The sidebar or tabs show where you are; the header names only Lamium (L-101).
     label(context,t.left+SettingsTable::pad,t.top+6,80,"Lamium");
-    if (t.versionWidth > 0)
-        label(context,t.versionX,t.top+6,t.versionWidth+2,headerVersion(),
-            !verifiedGameExecutable() ? palette::warning : hover.zone == Zone::Version ? palette::dim : palette::faint);
+    if (t.versionWidth > 0) {
+        auto version = lamiumVersion();
+        float versionWidth = textWidth(context, version);
+        label(context,t.versionX,t.top+6,versionWidth+2,version,hover.zone == Zone::Version ? palette::dim : palette::faint);
+        if (auto paused = pausedHeader(); !paused.empty())
+            label(context,t.versionX+versionWidth,t.top+6,t.versionWidth-versionWidth+2,std::move(paused),palette::warning);
+    }
     if (!shapesView() && !waypointsView() && !schematicsView()) {
     fill(context,t.searchX,t.top+4,t.searchWidth,12,Rgb{0,0,0},.45f);
     frame(context,t.searchX,t.top+4,t.searchWidth,12,searchFocused_() ? palette::accent : palette::keyEdge);
