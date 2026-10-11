@@ -97,8 +97,11 @@ L-item wins. Every entry names what the task is, not only its number.
    2026-10-11: no 0.2.0 tag for a while; 0.2.0 also gets a review of the
    features from the player's side, integration and links between
    features. Chosen so far: L-140 Zoom Wide-angle view, world map names
-   on hover (L-139 follow-up). The radial menu and the smaller links are
-   optional. Order and boundary: L-111.
+   on hover (L-139 follow-up), fixes and adjustments: L-141 overlapping
+   ghost flicker, the 0.1.9 Discord reports L-142 glint, L-143 Debug View
+   and vanilla HUD, L-144 hotbar in the HUD editor (built together for one
+   in-game round). The radial menu and the smaller links are optional.
+   Order and boundary: L-111.
 5. **Research when convenient:** L-79 carved pumpkin and spyglass frame draw
    path (cheap-model friendly
    trace/test steps), L-71 starting a glide from the mod, L-30 Ender Dragon
@@ -278,6 +281,43 @@ whose ghost blocks occupy the same cells flicker where they overlap (both
 faces drawn on the same planes). Not yet known whether 0.1.9 does the same
 or the L-136/L-138 split introduced it. Expected: a steady look where
 placements overlap (one placement's ghost wins, decided by a stable order).
+Status: built 2026-10-11, in-game check pending. The placement earlier in
+the list draws a shared cell (a ghost block of it, within its shown
+layers, while it is shown in this dimension); the later one leaves the cell
+out, mistake marks included. The earlier overlapping placements are part of
+a placement's build key, so moving, hiding or changing one rebuilds the
+overlap (`schematic/PlacementOverlap.h`, tested). Known limit: the later
+placement still culls its faces against its own blocks in the left-out
+cells. Verification and progress are unchanged (each placement counts its
+own cells).
+
+### L-142 Enchanted items lost their glint in Lamium's icons (0.1.9)
+Kind: Bug. Reported on Discord after 0.1.9 (maintainer's notes,
+2026-10-11): enchanted swords and pickaxes show no glint in the shulker
+preview. Cause (from the code; not traced): since `cbaacfc` flat items are
+drawn in a shared-mesh batch, and the caller's foil call draws no glint
+over a batched icon. Fix built 2026-10-11: glinting items (`Item::isGlint`)
+keep the direct icon path as in 0.1.8, so the foil call draws over them
+again; enchanted leather pieces then lose their undyeable layer as before
+0.1.9. Applies to every Lamium icon (previews, HUD, offhand slot, settings).
+In-game check pending; the shield (L-91) is unchanged.
+
+### L-143 Debug View hides the game's position line and paper doll
+Kind: Feature (small). Reported on Discord after 0.1.9 (maintainer's notes,
+2026-10-11): with Debug View open, the game's own coordinates and paper
+doll still show in the top left under it. Built 2026-10-11: Debug View
+option "Hide the game's position and paper doll while open" (on by
+default); while Debug View is shown the `player_position` panel and the
+HUD paper doll (`HudPlayerRenderer`) are not drawn. The game's options are
+not touched, so nothing needs restoring. In-game check pending.
+
+### L-144 The game's hotbar in the HUD layout editor
+Kind: Feature (small). Reported on Discord after 0.1.9 (maintainer's notes,
+2026-10-11): the editor shows Lamium's elements but not the hotbar, so
+elements are placed blind next to it. Built 2026-10-11: the editor draws
+the hotbar's images (not an element, not clickable) where the game last
+laid it out on a screen of the same size (also Pocket UI), else at the
+desktop place (182x22, bottom center). In-game check pending.
 
 ### L-123 FreeCamera stretches the worn elytra on the inventory player model
 Kind: Bug, low priority. Reported from use 2026-10-09 (maintainer's notes).
