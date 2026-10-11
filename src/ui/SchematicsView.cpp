@@ -750,7 +750,7 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
         heading(shownX - 6, switchWidth + 12, "shape.columnShown", Align::Center);
         break;
     case SchematicTab::Files:
-        heading(left, blocksX - left - 4, "shape.columnName");
+        heading(left, (showSize ? sizeX : blocksX) - left - 4, "shape.columnName");
         if (showSize) heading(sizeX, sizeW, "schematic.column.size", Align::Right);
         heading(blocksX, blocksW, "schematic.column.blockCount", Align::Right);
         break;
@@ -843,9 +843,8 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
                 break;
             }
             auto const& f = schematicFiles[static_cast<size_t>(row.file)];
-            bool grouped = !schematicFileRows.empty() && schematicFileRows.front().file < 0;
-            label(context,left+(grouped ? 6.f : 0.f),y+3,
-                  blocksX-left-10,fileTitle(f.relative),palette::text);
+            float indent = !schematicFileRows.empty() && schematicFileRows.front().file < 0 ? 6.f : 0.f;
+            label(context,left+indent,y+3,(showSize ? sizeX : blocksX)-left-indent-4,fileTitle(f.relative),palette::text);
             auto structure = schematic::session::loaded(f.relative);
             if (!structure && !loadedOne && f.bytes <= schematic::session::largeFileBytes) {
                 loadedOne = true;
