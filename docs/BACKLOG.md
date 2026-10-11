@@ -96,11 +96,11 @@ L-item wins. Every entry names what the task is, not only its number.
    (Pre-release checks; the fail-open build is left). Maintainer
    2026-10-11: no 0.2.0 tag for a while; 0.2.0 also gets a review of the
    features from the player's side, integration and links between
-   features. Chosen so far: L-140 Zoom Wide-angle view, world map names
-   on hover (L-139 follow-up), fixes and adjustments: L-141 overlapping
-   ghost flicker, the 0.1.9 Discord reports L-142 glint, L-143 Debug View
-   and vanilla HUD, L-144 hotbar in the HUD editor, L-145 Info HUD over the
-   paper doll (built together for one in-game round). The radial menu and the smaller links are optional.
+   features. Done and checked 2026-10-11 (BACKLOG-DONE): L-140 Zoom
+   Wide-angle view, world map names on hover (L-139 follow-up), L-141
+   overlapping ghost flicker, the 0.1.9 Discord reports L-142 glint,
+   L-143 Debug View and vanilla HUD, L-144 hotbar in the HUD editor, L-145
+   Info HUD over the paper doll and position line. The radial menu and the smaller links are optional.
    Order and boundary: L-111.
 5. **Research when convenient:** L-79 carved pumpkin and spyglass frame draw
    path (cheap-model friendly
@@ -274,79 +274,6 @@ found later are handled as bugs.
 ---
 
 ## Bugs
-
-### L-141 Ghosts of two schematic placements on the same cells flicker
-Kind: Bug. Found by the maintainer 2026-10-11 on `9e675cc`: two placements
-whose ghost blocks occupy the same cells flicker where they overlap (both
-faces drawn on the same planes). Not yet known whether 0.1.9 does the same
-or the L-136/L-138 split introduced it. Expected: a steady look where
-placements overlap (one placement's ghost wins, decided by a stable order).
-Status: built 2026-10-11, in-game check pending. The placement earlier in
-the list draws a shared cell (a ghost block of it, within its shown
-layers, while it is shown in this dimension); the later one leaves the cell
-out, mistake marks included. The earlier overlapping placements are part of
-a placement's build key, so moving, hiding or changing one rebuilds the
-overlap (`schematic/PlacementOverlap.h`, tested). Known limit: the later
-placement still culls its faces against its own blocks in the left-out
-cells. Verification and progress are unchanged (each placement counts its
-own cells).
-
-### L-142 Enchanted items lost their glint in Lamium's icons (0.1.9)
-Kind: Bug. Reported on Discord after 0.1.9 (maintainer's notes,
-2026-10-11): enchanted swords and pickaxes show no glint in the shulker
-preview. Cause (from the code; not traced): since `cbaacfc` flat items are
-drawn in a shared-mesh batch, and the caller's foil call draws no glint
-over a batched icon. Fix built 2026-10-11: glinting items (`Item::isGlint`)
-keep the direct icon path as in 0.1.8, so the foil call draws over them
-again; enchanted leather pieces then lose their undyeable layer as before
-0.1.9. Applies to every Lamium icon (previews, HUD, offhand slot, settings).
-In-game check pending; the shield (L-91) is unchanged.
-Round 1 (`beece33`, checked 2026-10-11): still no glint in the shulker
-preview. 0.1.8 drew each icon and then its glint; since `cbaacfc` all
-icons are drawn first and the glints after, and the foil call apparently
-covers only the icon drawn just before it (the offhand slot, one icon then
-its glint, kept its glint). Round 2: `drawItemIcons` draws a glinting
-item's foil call right after its own icon (`IconAt::glint`), for the
-previews, the inventory HUD and the offhand slot.
-Round 2 (`77ceea4`, checked 2026-10-11): still none in the preview, for a
-pickaxe, an enchanted golden apple and a shield. Left as the difference
-from 0.1.8: the preview now runs shared-mesh batches before the foil
-calls (0.1.8 had none). Round 3: glinting items (icon, then glint) are
-drawn before any batch in `drawItemIcons`. Passed on `df79b8d`
-(2026-10-11): pickaxe, golden apple and book glint in the shulker preview.
-Known cost: enchanted leather armor's undyeable parts are see-through
-there (L-91). Done; moves to BACKLOG-DONE with the 0.2.0 release notes.
-
-### L-143 Debug View hides the game's position line and paper doll
-Kind: Feature (small). Reported on Discord after 0.1.9 (maintainer's notes,
-2026-10-11): with Debug View open, the game's own coordinates and paper
-doll still show in the top left under it. Built 2026-10-11: Debug View
-option "Hide the game's position and paper doll while open" (on by
-default); while Debug View is shown the `player_position` panel and the
-HUD paper doll (`HudPlayerRenderer`) are not drawn. The game's options are
-not touched, so nothing needs restoring. In-game check pending.
-
-### L-145 Info HUD hides the game's paper doll where it covers it
-Kind: Feature (small). Maintainer 2026-10-11 (after L-143): at the default
-place the Info HUD overlaps the paper doll. Chosen: an Info HUD option
-"Hide the game's paper doll under it", on by default, that hides the doll
-only while the drawn Info HUD box meets the doll's area (its `hud_player`
-control widened by one control width each side, from the top of the
-screen down to the chat's 50-unit room for it; `PaperDoll.h`, tested);
-placed elsewhere nothing changes. Shares the L-143 paper doll hook.
-Passed on `df79b8d` (2026-10-11). Follow-up the same day: the game's
-position line (Show Coordinates) overlapped the Info HUD too, so the
-option also hides the `player_position` control where the Info HUD box
-meets it (label "Hide the game's paper doll and position under it").
-In-game check pending.
-
-### L-144 The game's hotbar in the HUD layout editor
-Kind: Feature (small). Reported on Discord after 0.1.9 (maintainer's notes,
-2026-10-11): the editor shows Lamium's elements but not the hotbar, so
-elements are placed blind next to it. Built 2026-10-11: the editor draws
-the hotbar's images (not an element, not clickable) where the game last
-laid it out on a screen of the same size (also Pocket UI), else at the
-desktop place (182x22, bottom center). In-game check pending.
 
 ### L-123 FreeCamera stretches the worn elytra on the inventory player model
 Kind: Bug, low priority. Reported from use 2026-10-09 (maintainer's notes).
@@ -589,21 +516,6 @@ Design points to settle in the step (outside review 2026-10-11):
   would crowd it.
 Does not share: storage (waypoints, placements and shapes keep their own
 files). Keeps: today's waypoint and death-point behavior unchanged.
-
-### L-140 Zoom: Wide-angle view as a setting (0.2.0)
-Kind: Feature (small). Decided by the maintainer 2026-10-11 (noted in their
-notes first, chosen for 0.2.0 the same day). Most players use Zoom to
-magnify, so the wide view below 1x becomes an explicit choice.
-- Zoom setting "Wide-angle view" (広角表示, 广角视野), off by default; help
-  "Allow the zoom wheel to go below 1x for a wider view."
-- Off: the wheel goes 1x-50x. On: 0.5x-50x as before (the 160 degree
-  limit stays). The initial magnification (2x-50x) and its default do not
-  change; the stop on exactly 1x stays.
-- Turning it off brings a kept level below 1x up to 1x, so the old wide
-  level does not return.
-Status: built 2026-10-11 (`cea3014`); passed on `9e675cc` (stop at 1x off,
-0.5x on, 1x after turning it off). Not reported separately: toggle mode,
-saving across a restart.
 
 ### L-133 Connected Textures: split glass panes without dark halves
 Kind: Research. Opened 2026-10-11 from L-96.

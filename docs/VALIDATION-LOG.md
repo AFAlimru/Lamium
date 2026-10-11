@@ -12,6 +12,14 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Info HUD over the position line (2026-10-11)
+
+By the maintainer, local, `f822b70` (DLL
+`4ad9cc074e1fd375667f6b9895d3fd6e0dd6bf97e114930f230bb6c0e25af720`): with
+Show Coordinates on and the Info HUD at its default place the game's
+position line is not drawn; moved away, the paper doll and the position
+line return (L-145). Reported as no problems.
+
 ## Glint in previews and the Info HUD over the paper doll (2026-10-11)
 
 By the maintainer, local. `77ceea4` (DLL `4e6a6887...dbca654`): still no
