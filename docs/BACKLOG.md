@@ -143,6 +143,17 @@ unmet gates for versions already published. Registry pickup for 0.1.4 to
 (LiteLDev/lipr, "add github.com/amatouhake/Lamium@0.1.8") was merged
 2026-10-09 UTC.
 
+- 0.2.0 was released on 2026-10-11 (`v0.2.0` at the commit recording this;
+  built from `6f77159`): ZIP SHA-256 `4cc9f3cd...a1555` (1.8 MB), symbols
+  `Lamium-0.2.0-client-windows-x64.pdb.zip` SHA-256 `a0f41454...2131c`
+  (first release with the PDB as its own asset, L-135; GUID and age match
+  the DLL). Clean-up and integration (L-134, L-136, L-137, L-138, L-139),
+  L-140 Zoom Wide-angle view, map names on hover, L-141 overlapping ghosts,
+  L-142 glint fix, L-143/L-145 vanilla HUD under Debug View and the Info
+  HUD, L-144 hotbar in the HUD editor, paused-feature notices. The
+  maintainer's smoke test passed on the release-ZIP DLL `71db2f0f...ae49c`.
+  No settings migration. After tagging: check the tag CI, that the registry
+  PR picks up `v0.2.0` and that LeviLauncher/Bedrinth offer it.
 - 0.1.9 was released on 2026-10-11 (`v0.1.9` at `8bf28c0`; asset SHA-256
   `c0bbc358...a4b`): L-96 Connected Textures (panes with the one-texel
   stretch; split panes parked as L-133), L-128 player list, L-127 inventory
@@ -347,6 +358,17 @@ separate asset (`Lamium-<version>-client-windows-x64.pdb` or similar,
 decided 2026-10-11), so LIP and LeviLauncher install only the DLL while the
 symbols stay available for crash addresses. CI checks that the PDB belongs
 to the same build as the DLL in the ZIP (matching debug GUID and age).
+
+### L-146 Layer switches on the world map (with the next integration review)
+Kind: Design. Raised by the maintainer 2026-10-11 before the 0.2.0 release;
+parked until the links between features are reviewed again (after 0.2.0).
+Today placements and Shapes always show on the world map while their
+feature draws them; a hidden one stays faint there so it can be shown
+again, so the only way to clear them off the map is turning the feature
+off. Agent's proposal: switches for Waypoints, Schematics and Shapes in the
+world map's top bar (remembered across openings), rather than a settings
+option, since the map is where that choice is made. Add when players ask
+for it or when the integration review takes it up.
 
 ### L-133 Connected Textures: split glass panes without dark halves
 Kind: Research. Opened 2026-10-11 from L-96.
