@@ -12,6 +12,20 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## 0.2.0 regression checks, fail-open build (2026-10-11)
+
+By the maintainer, local, `891b798` built with `--unverified_game=y` (DLL
+`52ce90228783ae58c7c868de59f5b1ed0b87b636ac465cf1152f8ac5c747a17e`). No
+crash. Night Vision had no effect and a real potion looked vanilla; Edge
+Guard let the player walk off an edge; water fog, rain and the nausea swirl
+stayed while particles and boss bars still hid; Connected Textures left
+glass borders; FreeCamera kept vanilla underground culling and otherwise
+worked; schematic ghost blocks were absent and entities were dashed frames,
+while frames, the Check list, Materials, area saving and map marks worked.
+The log has one "stays vanilla" line for each of the nine capabilities in
+GAME-UPDATES.md (forced by the build option, version 1.26.51+0559ac5), no
+errors. Normal build restored afterwards (DLL `625e186e...ac5403a`).
+
 ## Info HUD over the position line (2026-10-11)
 
 By the maintainer, local, `f822b70` (DLL
