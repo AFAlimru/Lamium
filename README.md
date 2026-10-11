@@ -22,7 +22,10 @@ remaining gaps are tracked in [validation status](docs/VALIDATION.md).
 
 Supported: Minecraft Bedrock 1.26.51.01, LeviLamina Client 26.51.x, Windows
 x64. Android support is not currently planned: it would be a separate ARM64
-port, not a repackaged build.
+port, not a repackaged build. On a game version Lamium has not been checked
+on, the parts that depend on it (for example Night Vision's light, Edge
+Guard, Connected Textures, ghost blocks) stay vanilla; the settings screen,
+toggle toasts and a toast on joining a world say which features are paused.
 
 ## Install
 
@@ -71,8 +74,9 @@ are first-class views in the same UI. Every feature has one switch that its
 key also toggles; "All", each category and Hotkeys can reset their settings
 to the defaults.
 
-- **Camera/visuals:** Zoom up to 50x with a smooth wheel and an optional
-  magnification readout, Night Vision, Freelook (rear third person by
+- **Camera/visuals:** Zoom up to 50x with a smooth wheel, an optional
+  magnification readout and an optional wide-angle view (the wheel goes below
+  1x), Night Vision, Freelook (rear third person by
   default, restoring your previous view), experimental FreeCamera (keeps its
   position through menus, adjustable speed with a sprint boost, a player- or
   world-fixed position, the camera's own position and facing in the Info HUD
@@ -92,10 +96,13 @@ to the defaults.
   vertical speed and real time), a Durability HUD for the held item, offhand
   and armor, an offhand slot beside the hotbar (count and durability bar
   included), saturation shown as gold outlines on the hunger bar (holding
-  food previews what eating it would add), a live HUD layout editor, a
+  food previews what eating it would add), a live HUD layout editor that
+  shows where the game's hotbar is, a
   Target card with icons, hearts in real health units (one heart per 2 HP),
   armor and bars, a Java F3-style Debug View (game, world, look-at and PC
-  details, entity counts by kind and the most common entity types), a player
+  details, entity counts by kind and the most common entity types; the
+  game's own position line and paper doll are hidden while it is open, and
+  where the Info HUD covers them), a player
   list while `Tab` is held (faces, platform, dimension, distance and
   permission marks), an inventory HUD (your inventory as a 9x3 grid) and a
   used-slots counter such as 13/36, and toggle toasts.
@@ -135,7 +142,8 @@ to the defaults.
   a link that opens the same place in ChunkBase's seed map. Schematic
   placements and shapes show on the world map, where a click selects one and
   its menu shows or hides it or opens it in its own screen; shapes can also
-  show on the minimap (an option, off by default).
+  show on the minimap (an option, off by default). Names on the world map
+  show when the pointer is over a mark (an option shows them all).
 - **Schematics (experimental, off by default):** place `.mcstructure` files
   from `mods/Lamium/schematics/` as ghost blocks (move, turn, mirror, show
   layers along any axis), see what is missing, wrong or in the wrong state
@@ -167,7 +175,8 @@ Minecraft's "copy coordinates" while Lamium is installed unless you rebind it.
   (Tool Protection swaps a tool before it breaks).
 - Enchanted shields show no glint in Lamium's item icons (offhand slot,
   Shulker/Bundle previews, the inventory HUD); enchanted golden apples and
-  other flat icons do.
+  other flat icons do. Enchanted leather armor shows its undyeable parts
+  see-through there (unenchanted leather draws whole).
 - The Simplified Chinese text is a first, AI-assisted translation;
   corrections are welcome (see [Translating](docs/TRANSLATING.md)).
 - Hide effects cannot hide the carved pumpkin overlay or the spyglass frame
