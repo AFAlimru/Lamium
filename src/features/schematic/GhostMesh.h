@@ -12,6 +12,7 @@
 #include <glm/vec3.hpp>
 #include <array>
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <tuple>
@@ -70,6 +71,8 @@ struct BuildCamera {
 // The world's blocks in a section's cells, hashed: equal values mean nothing
 // there changed and the built meshes still hold.
 std::uint64_t signatureOf(BlockSource& region, session::Shown const& shown, SectionKey key);
+// `owned`: cells an earlier placement draws (L-141), left out here.
 void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& view, BlockTessellator& own,
-                  session::Shown const& shown, Resolved const& blocks, SectionKey key, BuildCamera const& camera, Section& out);
+                  session::Shown const& shown, Resolved const& blocks, SectionKey key, BuildCamera const& camera,
+                  std::function<bool(Point)> const& owned, Section& out);
 }

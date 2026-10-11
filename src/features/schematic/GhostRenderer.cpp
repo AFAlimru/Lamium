@@ -1,5 +1,6 @@
 #include "features/schematic/GhostRenderer.h"
 #include "features/schematic/AreaSave.h"
+#include "features/schematic/PlacementOverlap.h"
 #include "features/schematic/EntityModels.h"
 #include "features/schematic/GhostActors.h"
 #include "features/schematic/GhostMarks.h"
@@ -166,7 +167,9 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
         std::vector<bool> taken(resolved.size());
         for (int i = 0; i < static_cast<int>(snapshot.placements.size()); ++i) {
             auto const& shown = snapshot.placements[static_cast<size_t>(i)];
-            auto key = drawKey(shown.placement);
+            // Overlapping earlier placements are part of the key: they decide
+            // which cells this one leaves out (L-141).
+            auto key = drawKey(shown.placement) + overlap::earlierKey(snapshot.placements, static_cast<size_t>(i));
             int old = -1;
             for (int j = 0; j < static_cast<int>(builtKeys.size()); ++j)
                 if (!taken[static_cast<size_t>(j)] && builtKeys[static_cast<size_t>(j)] == key
@@ -388,7 +391,9 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
 #ifdef LAMIUM_SCHEMATIC_PERF_TRACE
         auto buildStart = std::chrono::steady_clock::now();
 #endif
-        buildSection(screen, region, *view, *own, snapshot.placements[index], resolved[index], w.key, buildCamera, sections[w.key]);
+        auto owned = [&](Point cell) { return overlap::ownedEarlier(snapshot.placements, static_cast<size_t>(index), dimension, cell); };
+        buildSection(screen, region, *view, *own, snapshot.placements[index], resolved[index], w.key, buildCamera, owned,
+                     sections[w.key]);
 #ifdef LAMIUM_SCHEMATIC_PERF_TRACE
         auto took = static_cast<std::uint64_t>((std::chrono::steady_clock::now() - buildStart).count());
         perf.buildNs += took;

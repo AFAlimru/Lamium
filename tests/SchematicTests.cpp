@@ -13,6 +13,7 @@
 #include "features/schematic/RestPose.h"
 #include "features/schematic/PreviewView.h"
 #include "features/schematic/GhostFaces.h"
+#include "features/schematic/PlacementOverlap.h"
 #include <algorithm>
 #include <array>
 #include <set>
@@ -634,6 +635,32 @@ void drawKeys() {
     check(drawKey(a) != drawKey(moved) && drawKey(a) != drawKey(layered), "moving or changing layers rebuilds a placement's ghosts");
 }
 
+// L-141: the earlier placement draws the shared cells.
+void placementOverlap() {
+    auto structure = std::make_shared<Structure>();
+    structure->size = {2, 1, 1};
+    structure->palette = {PaletteBlock{"minecraft:stone", {}, 0}, PaletteBlock{"minecraft:air", {}, 0}};
+    structure->blocks = {0, 1}; // stone at x 0, air at x 1
+    session::Shown first{{}, structure}, second{{}, structure}, far{{}, structure};
+    first.placement.file = second.placement.file = far.placement.file = "a.mcstructure";
+    first.placement.placement.origin = {0, 0, 0};
+    second.placement.placement.origin = {0, 0, 0};
+    far.placement.placement.origin = {10, 0, 0};
+    std::vector<session::Shown> list{first, second, far};
+    check(overlap::drawsCell(first, 0, {0, 0, 0}) && !overlap::drawsCell(first, 0, {1, 0, 0}),
+          "a placement draws its blocks, not its air");
+    check(overlap::ownedEarlier(list, 1, 0, {0, 0, 0}) && !overlap::ownedEarlier(list, 0, 0, {0, 0, 0}),
+          "the earlier placement owns a shared cell");
+    check(!overlap::ownedEarlier(list, 1, 0, {1, 0, 0}), "an air cell of the earlier one does not take the cell");
+    check(!overlap::ownedEarlier(list, 1, 1, {0, 0, 0}), "a placement in another dimension owns nothing here");
+    list[0].placement.visible = false;
+    check(!overlap::ownedEarlier(list, 1, 0, {0, 0, 0}), "a hidden placement owns nothing");
+    std::string hiddenKey = overlap::earlierKey(list, 1);
+    list[0].placement.visible = true;
+    check(overlap::earlierKey(list, 1) != hiddenKey && overlap::earlierKey(list, 2).empty(),
+          "the earlier overlapping placements are part of the build key, distant ones are not");
+}
+
 void placementDocuments() {
     PlacementSet set;
     SavedPlacement hut;
@@ -787,6 +814,7 @@ void schematicTests() {
     liquidCorners();
     verificationOrder();
     placementDocuments();
+    placementOverlap();
     drawKeys();
     menuRules();
     ghostFaces();

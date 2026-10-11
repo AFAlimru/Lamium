@@ -278,7 +278,8 @@ std::uint64_t signatureOf(BlockSource& region, session::Shown const& shown, Sect
 }
 
 void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& view, BlockTessellator& own,
-                  session::Shown const& shown, Resolved const& blocks, SectionKey key, BuildCamera const& camera, Section& out) {
+                  session::Shown const& shown, Resolved const& blocks, SectionKey key, BuildCamera const& camera,
+                  std::function<bool(Point)> const& owned, Section& out) {
     auto const& structure = *shown.structure;
     auto const& placement = shown.placement;
     Size placed = placedSize(structure.size, placement.placement.rotation);
@@ -330,6 +331,7 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
                 if (!local) continue;
                 auto paletteIndex = structure.blocks[static_cast<size_t>(structure.cell(local->x, local->y, local->z))];
                 if (paletteIndex == voidCell || static_cast<size_t>(paletteIndex) >= blocks.blocks.size()) continue;
+                if (owned && owned({x, y, z})) continue;
                 Block const* expected = blocks.blocks[static_cast<size_t>(paletteIndex)];
                 bool expectsAir = structure.palette[static_cast<size_t>(paletteIndex)].isAir();
                 BlockPos pos{x, y, z};
