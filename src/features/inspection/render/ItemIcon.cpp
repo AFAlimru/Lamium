@@ -13,6 +13,7 @@
 #include "mc/deps/core/file/PathView.h"
 #include "mc/deps/core/resource/ResourceLocation.h"
 #include "mc/world/item/ItemStack.h"
+#include "mc/world/item/Item.h"
 #include <algorithm>
 #include <cstddef>
 #include <cstring>
@@ -59,7 +60,14 @@ public:
     ComponentRenderBatch& get() { return *std::launder(reinterpret_cast<ComponentRenderBatch*>(bytes)); }
 };
 bool drawable(IconAt const& icon) { return icon.stack && !icon.stack->isNull() && icon.stack->mItem; }
-int chunkOf(ItemStack const& stack) { return static_cast<int>(InventoryItemRenderer::getRenderTypeFromItem(stack)); }
+// Glinting items keep the direct path: the caller's foil call draws nothing
+// over a batched icon (enchanted tools lost their glint in 0.1.9), and over a
+// direct one it matches vanilla. An enchanted leather piece loses its
+// undyeable layer that way, as before 0.1.9.
+int chunkOf(ItemStack const& stack) {
+    if (stack.mItem->isGlint(stack)) return -2;
+    return static_cast<int>(InventoryItemRenderer::getRenderTypeFromItem(stack));
+}
 }
 void drawItemIcons(MinecraftUIRenderContext& context, std::span<IconAt const> icons, int zOrder) {
     auto& client = context.mClient;
@@ -88,7 +96,7 @@ void drawItemIcons(MinecraftUIRenderContext& context, std::span<IconAt const> ic
         context.endSharedMeshBatch(batch.get());
     }
     for (size_t i = 0; i < icons.size(); ++i) {
-        if (chunks[i] < 0 || chunks[i] == blockChunk || chunks[i] == flatChunk) continue;
+        if (chunks[i] == -1 || chunks[i] == blockChunk || chunks[i] == flatChunk) continue;
         auto const& icon = icons[i];
         renderer->renderGuiItemNew(renderContext, *icon.stack, icon.frame, icon.x, icon.y, false, icon.alpha, 1.0f, icon.scale,
             zOrder);

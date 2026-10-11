@@ -7,7 +7,8 @@ namespace lamium::inspection::render {
 // Slots add block and flat items to a shared-mesh batch that the UI draws
 // with its item material; drawn on their own, fence gates show nothing and
 // leather loses its undyeable layer. Other items (shields, entity blocks)
-// keep the item renderer's direct path. The glint overlay stays the caller's.
+// and glinting items keep the item renderer's direct path. The glint overlay
+// stays the caller's.
 struct IconAt {
     ItemStack const* stack;
     float x, y;
