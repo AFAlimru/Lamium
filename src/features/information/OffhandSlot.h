@@ -31,4 +31,11 @@ inline Box iconBox(Box slot) {
     return {slot.x + 3 * unit, slot.y + 3 * unit, 16 * unit, 16 * unit};
 }
 inline bool shown(bool enabled, bool holding, bool emptyFrame) { return enabled && (holding || emptyFrame); }
+// Where the layout editor shows the hotbar: where the game last laid it out
+// on a screen of this size, else the desktop layout's place (182x22 units,
+// bottom center).
+inline Box editorHotbar(std::optional<Box> seen, float seenW, float seenH, float screenW, float screenH) {
+    if (seen && std::abs(seenW - screenW) < .5f && std::abs(seenH - screenH) < .5f) return *seen;
+    return {std::round((screenW - 182) / 2), screenH - 22, 182, 22};
+}
 }

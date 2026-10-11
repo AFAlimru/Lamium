@@ -149,6 +149,21 @@ HotbarLookup hotbarBox(ScreenView const& view) {
     }
     return {};
 }
+struct SeenHotbar { offhand::Box box; float screenW, screenH; };
+std::optional<SeenHotbar> seenHotbar;
+}
+void noteHotbar(ScreenView const& view) {
+    auto hotbar = hotbarBox(view);
+    if (!hotbar.box) return;
+    glm::vec2 screen = *view.mSize;
+    seenHotbar = SeenHotbar{*hotbar.box, screen.x, screen.y};
+}
+HotbarPlace editorHotbar(float width, float height) {
+    auto box = offhand::editorHotbar(seenHotbar ? std::optional(seenHotbar->box) : std::nullopt,
+        seenHotbar ? seenHotbar->screenW : 0, seenHotbar ? seenHotbar->screenH : 0, width, height);
+    return {box.x, box.y, box.w, box.h};
+}
+namespace {
 // One line whenever what the slot was placed from changes.
 void logPlacement(HotbarLookup const& hotbar, std::optional<offhand::Box> const& slot, glm::vec2 screen) {
     static std::string last;

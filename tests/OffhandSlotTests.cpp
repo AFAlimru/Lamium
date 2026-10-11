@@ -18,6 +18,12 @@ void offhandSlotTests() {
           "an unusable hotbar box draws nothing");
     check(shown(true, true, false) && !shown(true, false, false) && shown(true, false, true)
           && !shown(false, true, true), "hidden while empty unless the empty frame is kept");
+    auto drawn = editorHotbar(Box{149, 248, 182, 22}, 480, 270, 480, 270);
+    check(drawn.x == 149 && drawn.y == 248, "the editor shows the hotbar where the game laid it out");
+    auto fallback = editorHotbar(Box{200, 200, 300, 44}, 800, 300, 480, 270);
+    check(fallback.x == 149 && fallback.y == 248 && fallback.w == 182,
+          "on another screen size, or before any was seen, the desktop place");
+    check(editorHotbar(std::nullopt, 0, 0, 480, 270).y == 248, "nothing seen yet: the desktop place");
 
     lamium::Settings defaults;
     check(!defaults.information.offhandSlot && !defaults.information.offhandSlotEmpty, "the offhand slot starts off");

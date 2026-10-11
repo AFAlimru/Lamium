@@ -882,6 +882,7 @@ void render(ll::event::UIRenderEvent& event) {
         if (gameplayScreen(current.getScreenName()) && hudView(view)) {
             auto const& settings = Runtime::instance().preferences().information;
             information::drawHud(context,size.x,size.y,settings);
+            information::noteHotbar(view);
             if (!current.getOptions().getHideHud()) {
                 information::drawOffhandSlot(context,view,settings);
                 information::drawSaturation(context,view,settings);

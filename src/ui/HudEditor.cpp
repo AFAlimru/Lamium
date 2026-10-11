@@ -331,6 +331,15 @@ void render(MinecraftUIRenderContext& context, float width, float height, float 
         if (active && *active == anchor) fill(context, x, y, 5, 5, palette::accent);
         else frame(context, x, y, 5, 5, palette::white, .35f);
     }
+    // The game's hotbar where it sits in play, to place elements beside it;
+    // only a picture, not an element of the layout.
+    auto hotbar = information::editorHotbar(width, height);
+    float unit = hotbar.h / 22;
+    images(context, "textures/ui/hotbar_start_cap", {{hotbar.x, hotbar.y, unit, hotbar.h}}, .6f);
+    std::vector<ImageRect> cells;
+    for (int i = 0; i < 9; ++i) cells.push_back({hotbar.x + (1 + 20 * i) * unit, hotbar.y, 20 * unit, hotbar.h});
+    images(context, "textures/ui/hotbar_0", cells, .6f);
+    images(context, "textures/ui/hotbar_end_cap", {{hotbar.x + 181 * unit, hotbar.y, unit, hotbar.h}}, .6f);
     lastBoxes = information::drawHud(context, width, height, value.information, &preview);
     if (drag && drag->drop) {
         if (drag->drop->lineX) fill(context, *drag->drop->lineX - .5f, 0, 1, height, palette::warning, .8f);
