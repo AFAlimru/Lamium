@@ -12,6 +12,17 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Paused features shown to players (2026-10-11)
+
+By the maintainer, local, `--unverified_game=y` builds. `1da4316` (DLL
+`2cbcb1ad...a405bc`): FreeCamera's toggle toast says "partly paused", Night
+Vision's "paused"; the settings header warning and its tooltip show; the
+join toast was one line too long for the screen. `ddac26c` (DLL
+`8efcdf7e27283218b857567f83f0ee91a2d4341d00475aa0a2f49f0b029c0bd5`): the join
+toast wraps and reads whole; only "Some features paused" is in the warning
+color. Reported as passing. Normal build restored afterwards (DLL
+`5c70e133...602c9`).
+
 ## 0.2.0 regression checks, fail-open build (2026-10-11)
 
 By the maintainer, local, `891b798` built with `--unverified_game=y` (DLL

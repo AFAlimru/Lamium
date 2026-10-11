@@ -435,8 +435,8 @@ Players see the pause (maintainer chose the agent's proposal 2026-10-11,
 "partly paused", the settings header shows "Some features paused" in the
 warning color with the reason in its tooltip, and the first HUD frame after
 joining a world shows an 8-second toast naming the paused features in use.
-Nothing shows on the verified game. In-game check on the unverified build
-pending.
+Nothing shows on the verified game. Passed on the unverified build of
+`ddac26c` (2026-10-11; the join toast wraps, only the note is yellow).
 Required for 0.2.0:
 1. Inventory, kept next to the code (script-checked where possible): per
    feature, its hooks and the game meanings it relies on (vertex fields,
