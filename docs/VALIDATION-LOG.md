@@ -12,6 +12,20 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## 0.2.0 regression checks, normal build (2026-10-11)
+
+By the maintainer, local, on the 0.2.0 release ZIP's DLL (`2aea267`, DLL
+`1854bc418b38c9172b11564a44328360bc769e9de7d66f26fd6dd180fe02f125`, trace
+off). Check 1 of the 0.2.0 regression checks (schematic ghosts and saving,
+Shapes and the breaking region, map layers and waypoint actions, the
+settings screen, the gated paths on the verified game) reported as passing
+("almost": no problem with the listed items). Not itemized per step. Two
+display problems found while looking again: long names in the Schematics
+Files tab ran over the Size column; waypoint and placement names on the
+world map were hard to read on bright terrain. Fixed in `ca83014` (names end
+before the Size column) and `376cfae` (dark plate behind the small names),
+not yet checked in game. The fail-open build (check 2) was not run yet.
+
 ## L-96 shading on split faces before 0.1.9 (2026-10-11)
 
 By the maintainer, during the 0.1.9 smoke test. Split faces showed dark

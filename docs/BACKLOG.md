@@ -189,7 +189,10 @@ unmet gates for versions already published. Registry pickup for 0.1.4 to
 covers (added 2026-10-11 from an outside review). Built on main 2026-10-11;
 first deployed build `d274227` (DLL `c7163916...e084c468`). The steps were
 built back to back without an in-game check in between, so each check names
-the commits a regression would sit in (L-111 rule: one step's commits):
+the commits a regression would sit in (L-111 rule: one step's commits).
+Check 1 (normal build, `2aea267`) reported passing on 2026-10-11
+(VALIDATION-LOG); left: the fail-open build (below) and the two fixes it
+turned up (`ca83014` Files names, `376cfae` map name plates). The steps:
 - L-136 (`1a2c231`, `3ec2498`): schematic ghosts look and behave as on
   0.1.9 (doors, beds, panes, liquids, honey/slime, block entities, entity
   models, mistakes, large placements' frame rate), saving an area, the
