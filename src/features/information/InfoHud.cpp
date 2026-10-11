@@ -958,13 +958,6 @@ std::optional<std::string> infoLineText(std::string_view id, PlayerInfo const& i
     return {};
 }
 }
-// The glint pass and its strength as in container previews.
-void slotGlint(MinecraftUIRenderContext& context, ItemRenderer& renderer, ItemStack const& stack, int frame, float x, float y,
-               float unit) {
-    if (!stack.mItem || !stack.mItem->isGlint(stack)) return;
-    BaseActorRenderContext renderContext(context.mScreenContext, context.mClient, context.mClient.getMinecraftGame_DEPRECATED());
-    renderer.renderGuiItemNew(renderContext, stack, frame, x, y, true, 1.35f, 1.f, unit, 17);
-}
 // The durability bar and stack count over a slot icon, as in inventory slots.
 void slotDecorations(MinecraftUIRenderContext& context, ItemStack const& stack, offhand::Box icon, float unit) {
     if (!stack.mItem) return;
@@ -1006,13 +999,12 @@ void drawOffhandSlot(MinecraftUIRenderContext& context, ScreenView const& view, 
     stack.mShowPickUp = false;
     stack.mWasPickedUp = false;
     auto icon = offhand::iconBox(*slot);
-    if (auto* renderer = context.mClient.getItemRenderer()) {
+    {
         // Unrounded like the hotbar's own icons (see iconBox).
         float x = icon.x, y = icon.y;
         // Compasses and clocks pick their frame as in an inventory slot.
         int frame = stack.mItem->getAnimationFrameFor(player, false, &stack, true);
-        inspection::render::drawItemIcon(context, {&stack, x, y, unit, frame}, 17);
-        slotGlint(context, *renderer, stack, frame, x, y, unit);
+        inspection::render::drawItemIcon(context, {&stack, x, y, unit, frame, 1.f, true}, 17);
     }
     slotDecorations(context, stack, icon, unit);
 }
@@ -1079,13 +1071,10 @@ std::optional<ui::hud_editor::Box> drawInventoryGrid(MinecraftUIRenderContext& c
             ui::frame(context, x, y, cell, cell, ui::palette::text, .18f);
             if (!sample.occupied[i]) continue;
             offhand::Box icon{std::round(x + z), std::round(y + z), 16 * z, 16 * z};
-            icons.push_back({&sample.stacks[i], icon.x, icon.y, z});
+            icons.push_back({&sample.stacks[i], icon.x, icon.y, z, 0, 1.f, true});
             drawn.push_back({&sample.stacks[i], icon});
         }
-    if (auto* renderer = context.mClient.getItemRenderer()) {
-        inspection::render::drawItemIcons(context, icons, 17);
-        for (auto [stack, icon] : drawn) slotGlint(context, *renderer, *stack, 0, icon.x, icon.y, z);
-    }
+    inspection::render::drawItemIcons(context, icons, 17);
     for (auto [stack, icon] : drawn) slotDecorations(context, *stack, icon, z);
     context.flushText(0, std::nullopt);
     return ui::hud_editor::Box{placement.x, placement.y, boxW, boxH};

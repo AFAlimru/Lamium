@@ -27,7 +27,7 @@ namespace {
 // Chunk types vanilla slots batch (InventoryItemRenderer::getRenderTypeFromItem):
 // 0 blocks on the terrain atlas (slot alpha argument 0), 2 flat items on the
 // item atlas (alpha 1). Both use UI material 13 ("Item").
-constexpr int blockChunk = 0, flatChunk = 2;
+constexpr int blockChunk = 0, flatChunk = 2, glinting = -2;
 constexpr UIMaterialType itemMaterial = static_cast<UIMaterialType>(13);
 
 // ComponentRenderBatch and BatchKey have no usable default constructors, so
@@ -60,12 +60,20 @@ public:
     ComponentRenderBatch& get() { return *std::launder(reinterpret_cast<ComponentRenderBatch*>(bytes)); }
 };
 bool drawable(IconAt const& icon) { return icon.stack && !icon.stack->isNull() && icon.stack->mItem; }
-// Glinting items keep the direct path: the caller's foil call draws nothing
-// over a batched icon (enchanted tools lost their glint in 0.1.9), and over a
-// direct one it matches vanilla. An enchanted leather piece loses its
-// undyeable layer that way, as before 0.1.9.
+// Glinting items keep the direct path, with the foil call right after their
+// icon as in 0.1.8; an enchanted leather piece loses its undyeable layer
+// that way, as before 0.1.9.
+// renderGuiItemNew(foil = true) draws the additive glint overlay on its own,
+// outside the UI's InventoryItemGlint material pass, and comes out weaker than
+// vanilla's slot glint. Its `transparency` argument scales the overlay
+// linearly, so one pass at this value reproduces vanilla: frame-averaged
+// blue-minus-green over the item pixels of an enchanted book, measured in the
+// same frames as a vanilla inventory slot, was +4 at 1.0, +23 at 1.3, +38 at
+// 1.5 and +27.6 at 1.35 against vanilla's +27.7. Drawing the overlay several
+// times instead over-tints: +30 for two passes, +58 for three.
+constexpr float glintOverlayAlpha = 1.35f;
 int chunkOf(ItemStack const& stack) {
-    if (stack.mItem->isGlint(stack)) return -2;
+    if (stack.mItem->isGlint(stack)) return glinting;
     return static_cast<int>(InventoryItemRenderer::getRenderTypeFromItem(stack));
 }
 }
@@ -100,6 +108,9 @@ void drawItemIcons(MinecraftUIRenderContext& context, std::span<IconAt const> ic
         auto const& icon = icons[i];
         renderer->renderGuiItemNew(renderContext, *icon.stack, icon.frame, icon.x, icon.y, false, icon.alpha, 1.0f, icon.scale,
             zOrder);
+        if (icon.glint && chunks[i] == glinting)
+            renderer->renderGuiItemNew(renderContext, *icon.stack, icon.frame, icon.x, icon.y, true, glintOverlayAlpha * icon.alpha,
+                1.0f, icon.scale, zOrder);
     }
 }
 }
