@@ -203,7 +203,19 @@ the commits a regression would sit in (L-111 rule: one step's commits).
 Check 1 (normal build, `2aea267`) reported passing on 2026-10-11
 (VALIDATION-LOG), its two fixes too (`ca83014` Files names, `376cfae` map
 name plates); the fail-open build (`891b798`) passed the same day. Left:
-a code review of the clean-up steps before they move to done. The steps:
+a code review of the clean-up steps before they move to done.
+Review 2026-10-11 (two outside reviews of `v0.1.9..c2bbbe9`, findings
+checked against the code by the agent): no blocking problem in L-134,
+L-136, L-138, L-139 or L-137. Fixed: the overlap key missed an earlier
+placement's file changing on disk, waterlogged water ignored the overlap,
+and the overlap check now only looks at placements whose boxes meet
+(`15e5b4a`); the release check compares README's full game version too and
+GAME-UPDATES.md says the ghost gate also stops the in-world mistake
+outlines (`0b3e9a4`). Not changed: the Placed tab still acts on list
+indices while the screen is open (nothing else changes the list then);
+"Open in Placed" from the map selects the placement, as every pick in that
+tab does; the gate takes a lock per query only on an unverified game.
+The steps:
 - L-136 (`1a2c231`, `3ec2498`): schematic ghosts look and behave as on
   0.1.9 (doors, beds, panes, liquids, honey/slime, block entities, entity
   models, mistakes, large placements' frame rate), saving an area, the
