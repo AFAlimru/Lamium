@@ -99,8 +99,8 @@ L-item wins. Every entry names what the task is, not only its number.
    features. Chosen so far: L-140 Zoom Wide-angle view, world map names
    on hover (L-139 follow-up), fixes and adjustments: L-141 overlapping
    ghost flicker, the 0.1.9 Discord reports L-142 glint, L-143 Debug View
-   and vanilla HUD, L-144 hotbar in the HUD editor (built together for one
-   in-game round). The radial menu and the smaller links are optional.
+   and vanilla HUD, L-144 hotbar in the HUD editor, L-145 Info HUD over the
+   paper doll (built together for one in-game round). The radial menu and the smaller links are optional.
    Order and boundary: L-111.
 5. **Research when convenient:** L-79 carved pumpkin and spyglass frame draw
    path (cheap-model friendly
@@ -308,6 +308,13 @@ covers only the icon drawn just before it (the offhand slot, one icon then
 its glint, kept its glint). Round 2: `drawItemIcons` draws a glinting
 item's foil call right after its own icon (`IconAt::glint`), for the
 previews, the inventory HUD and the offhand slot.
+Round 2 (`77ceea4`, checked 2026-10-11): still none in the preview, for a
+pickaxe, an enchanted golden apple and a shield. Left as the difference
+from 0.1.8: the preview now runs shared-mesh batches before the foil
+calls (0.1.8 had none). Round 3: glinting items (icon, then glint) are
+drawn before any batch in `drawItemIcons`. If it still fails, check a
+shulker holding only enchanted items (no batch at all) to tell whether the
+batch is the cause.
 
 ### L-143 Debug View hides the game's position line and paper doll
 Kind: Feature (small). Reported on Discord after 0.1.9 (maintainer's notes,
@@ -317,6 +324,16 @@ option "Hide the game's position and paper doll while open" (on by
 default); while Debug View is shown the `player_position` panel and the
 HUD paper doll (`HudPlayerRenderer`) are not drawn. The game's options are
 not touched, so nothing needs restoring. In-game check pending.
+
+### L-145 Info HUD hides the game's paper doll where it covers it
+Kind: Feature (small). Maintainer 2026-10-11 (after L-143): at the default
+place the Info HUD overlaps the paper doll. Chosen: an Info HUD option
+"Hide the game's paper doll under it", on by default, that hides the doll
+only while the drawn Info HUD box meets the doll's area (its `hud_player`
+control widened by one control width each side, from the top of the
+screen down to the chat's 50-unit room for it; `PaperDoll.h`, tested);
+placed elsewhere nothing changes. Shares the L-143 paper doll hook. Built
+2026-10-11, in-game check pending.
 
 ### L-144 The game's hotbar in the HUD layout editor
 Kind: Feature (small). Reported on Discord after 0.1.9 (maintainer's notes,
