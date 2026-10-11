@@ -5,8 +5,10 @@
 #include "features/schematic/Placement.h"
 #include "features/schematic/PlacementStore.h"
 #include "features/schematic/SchematicSession.h"
+#include <format>
 #include <span>
 #include <string>
+#include <vector>
 
 namespace lamium::schematic::overlap {
 // Whether a placement shown in this dimension has a ghost block (not void,
@@ -26,11 +28,6 @@ inline bool drawsCell(session::Shown const& shown, int dimension, Point cell) {
     return index != voidCell && static_cast<size_t>(index) < structure.palette.size()
         && !structure.palette[static_cast<size_t>(index)].isAir();
 }
-inline bool ownedEarlier(std::span<session::Shown const> placements, size_t index, int dimension, Point cell) {
-    for (size_t j = 0; j < index && j < placements.size(); ++j)
-        if (drawsCell(placements[j], dimension, cell)) return true;
-    return false;
-}
 inline bool boxesMeet(session::Shown const& a, session::Shown const& b) {
     if (!a.structure || !b.structure || a.placement.dimension != b.placement.dimension) return false;
     Size sa = placedSize(a.structure->size, a.placement.placement.rotation);
@@ -39,13 +36,26 @@ inline bool boxesMeet(session::Shown const& a, session::Shown const& b) {
     return oa.x < ob.x + sb.x && ob.x < oa.x + sa.x && oa.y < ob.y + sb.y && ob.y < oa.y + sa.y
         && oa.z < ob.z + sb.z && ob.z < oa.z + sa.z;
 }
-// The earlier shown placements whose boxes meet this one's, as draw keys:
-// part of its built sections' key, so a change to one rebuilds the overlap.
+// The earlier shown placements whose boxes meet this one's: only these can
+// own its cells, so a section build looks at them alone.
+inline std::vector<size_t> earlierMeeting(std::span<session::Shown const> placements, size_t index) {
+    std::vector<size_t> out;
+    for (size_t j = 0; j < index && j < placements.size(); ++j)
+        if (placements[j].placement.visible && boxesMeet(placements[j], placements[index])) out.push_back(j);
+    return out;
+}
+inline bool ownedEarlier(std::span<session::Shown const> placements, std::span<size_t const> earlier, int dimension, Point cell) {
+    for (size_t j : earlier)
+        if (j < placements.size() && drawsCell(placements[j], dimension, cell)) return true;
+    return false;
+}
+// Those placements as draw keys with their loaded structure: part of this
+// one's built sections' key, so moving, hiding or changing one, or its file
+// changing on disk (a new structure), rebuilds the overlap.
 inline std::string earlierKey(std::span<session::Shown const> placements, size_t index) {
     std::string key;
-    for (size_t j = 0; j < index && j < placements.size(); ++j)
-        if (placements[j].placement.visible && boxesMeet(placements[j], placements[index]))
-            key += "#" + drawKey(placements[j].placement);
+    for (size_t j : earlierMeeting(placements, index))
+        key += std::format("#{}@{}", drawKey(placements[j].placement), static_cast<void const*>(placements[j].structure.get()));
     return key;
 }
 }

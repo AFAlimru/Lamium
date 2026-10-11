@@ -440,6 +440,7 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
             for (int y = std::max(low.y, origin.y); y < std::min(low.y + sectionSize, origin.y + placed.y); ++y)
                 for (int z = std::max(low.z, origin.z); z < std::min(low.z + sectionSize, origin.z + placed.z); ++z) {
                     if (!layerShown(placement.layers, placed, {x - origin.x, y - origin.y, z - origin.z})) continue;
+                    if (owned && owned({x, y, z})) continue;
                     auto local = toLocal(structure.size, placement.placement, {x, y, z});
                     if (!local) continue;
                     auto index = structure.liquids[static_cast<size_t>(structure.cell(local->x, local->y, local->z))];

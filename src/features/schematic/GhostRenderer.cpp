@@ -337,7 +337,9 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
     std::unique_ptr<BlockTessellator> own;
     auto now = Clock::now();
     // Ghost blocks come from the game's block tessellator and mesh streams;
-    // frames, marks and the check do not, and keep working without them.
+    // frames, the Check list and materials do not, and keep working without
+    // them. The in-world mistake outlines are built with the sections, so
+    // they stop too.
     bool tessellate = versionSensitiveAllowed("Schematic ghost blocks (block tessellation)");
     for (auto const& w : wanted) {
         if (!tessellate) break;
@@ -391,7 +393,10 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
 #ifdef LAMIUM_SCHEMATIC_PERF_TRACE
         auto buildStart = std::chrono::steady_clock::now();
 #endif
-        auto owned = [&](Point cell) { return overlap::ownedEarlier(snapshot.placements, static_cast<size_t>(index), dimension, cell); };
+        auto earlier = overlap::earlierMeeting(snapshot.placements, index);
+        std::function<bool(Point)> owned;
+        if (!earlier.empty())
+            owned = [&](Point cell) { return overlap::ownedEarlier(snapshot.placements, earlier, dimension, cell); };
         buildSection(screen, region, *view, *own, snapshot.placements[index], resolved[index], w.key, buildCamera, owned,
                      sections[w.key]);
 #ifdef LAMIUM_SCHEMATIC_PERF_TRACE

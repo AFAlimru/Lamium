@@ -649,16 +649,23 @@ void placementOverlap() {
     std::vector<session::Shown> list{first, second, far};
     check(overlap::drawsCell(first, 0, {0, 0, 0}) && !overlap::drawsCell(first, 0, {1, 0, 0}),
           "a placement draws its blocks, not its air");
-    check(overlap::ownedEarlier(list, 1, 0, {0, 0, 0}) && !overlap::ownedEarlier(list, 0, 0, {0, 0, 0}),
-          "the earlier placement owns a shared cell");
-    check(!overlap::ownedEarlier(list, 1, 0, {1, 0, 0}), "an air cell of the earlier one does not take the cell");
-    check(!overlap::ownedEarlier(list, 1, 1, {0, 0, 0}), "a placement in another dimension owns nothing here");
+    auto owned = [&](size_t index, int dimension, Point cell) {
+        auto earlier = overlap::earlierMeeting(list, index);
+        return overlap::ownedEarlier(list, earlier, dimension, cell);
+    };
+    check(owned(1, 0, {0, 0, 0}) && !owned(0, 0, {0, 0, 0}), "the earlier placement owns a shared cell");
+    check(!owned(1, 0, {1, 0, 0}), "an air cell of the earlier one does not take the cell");
+    check(!owned(1, 1, {0, 0, 0}), "a placement in another dimension owns nothing here");
+    check(overlap::earlierMeeting(list, 2).empty(), "a distant placement has no earlier one to look at");
     list[0].placement.visible = false;
-    check(!overlap::ownedEarlier(list, 1, 0, {0, 0, 0}), "a hidden placement owns nothing");
+    check(!owned(1, 0, {0, 0, 0}), "a hidden placement owns nothing");
     std::string hiddenKey = overlap::earlierKey(list, 1);
     list[0].placement.visible = true;
     check(overlap::earlierKey(list, 1) != hiddenKey && overlap::earlierKey(list, 2).empty(),
           "the earlier overlapping placements are part of the build key, distant ones are not");
+    auto before = overlap::earlierKey(list, 1);
+    list[0].structure = std::make_shared<Structure>(*structure); // its file read again
+    check(overlap::earlierKey(list, 1) != before, "a new structure for the earlier placement rebuilds the overlap");
 }
 
 void placementDocuments() {
