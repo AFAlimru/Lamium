@@ -1,4 +1,5 @@
 #pragma once
+#include "app/PausedFeatures.h"
 #include <format>
 #include <string>
 #include <string_view>
@@ -23,4 +24,6 @@ bool verifiedGameExecutable();
 // check asks here, at that path, and stays vanilla on a no. Other parts of
 // the same feature keep working. The first no per capability is logged.
 bool versionSensitiveAllowed(std::string_view capability);
+// How much of a feature is paused on this game (none on the verified one).
+paused::Level pausedLevel(std::string_view feature);
 }

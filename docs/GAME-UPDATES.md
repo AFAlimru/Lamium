@@ -34,6 +34,12 @@ of the feature keeps working. A build configured with
 `xmake f ... --unverified_game=y` answers no everywhere, so the fail-open
 paths can be checked in game on the verified game.
 
+Players see it too (decided 2026-10-11): `app/PausedFeatures.h` maps the
+capabilities to their features, fully or partly paused; toggle toasts and
+the settings rows say "paused", the settings header shows a warning with
+the reason, and joining a world shows a toast naming the paused features in
+use. A new gate gets its feature there as well.
+
 | Capability (log name) | Where | Stays vanilla | Still works |
 |---|---|---|---|
 | FreeCamera terrain (native culler request) | `FreeCameraCulling.cpp` | underground terrain hidden as vanilla culls it | FreeCamera itself |

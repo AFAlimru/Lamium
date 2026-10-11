@@ -390,6 +390,16 @@ void handleKey(int key) {
 
 // ---- Settings table drawing ----
 std::string featureName(FeatureInfo const& feature) { return translated(feature.name); }
+// The header's version, with a warning while features are paused (L-137).
+std::string headerVersion() {
+    return verifiedGameExecutable() ? lamiumVersion() : lamiumVersion() + "  " + translated("paused.header");
+}
+// " (paused)" after a gated feature on an unverified game (L-137).
+std::string pausedSuffix(std::string_view feature) {
+    auto level = pausedLevel(feature);
+    if (level == paused::Level::No) return {};
+    return " (" + translated(level == paused::Level::Fully ? "paused.full" : "paused.partly") + ")";
+}
 std::string actionLabel(input::Action action, bool child = false) {
     return actionName(translated(actionTranslationKey(action, child)));
 }
@@ -531,6 +541,7 @@ std::string description() {
     case RowKind::Feature: {
         auto text = translated(entry.feature->description);
         if (auto primary = primaryAction(*entry.feature)) text += " " + behaviorText(*primary);
+        if (pausedLevel(entry.feature->id) != paused::Level::No) text = translated("help.paused") + " " + text;
         return text;
     }
     case RowKind::Option: {
@@ -655,19 +666,25 @@ void drawConflictTip(MinecraftUIRenderContext& context, IClientInstance& current
     if (shown < conflicts.size())
         label(context,x+pad,cursor+1,inner,translated("tip.more", std::to_string(conflicts.size() - shown)),palette::faint);
 }
-// The full version line under the header version while it is hovered (L-101).
+// The full version line under the header version while it is hovered (L-101),
+// and on an unverified game why some features are paused (L-137).
 void drawVersionTip(MinecraftUIRenderContext& context, SettingsTable const& t, SettingsTable::Hit const& hover) {
     if (hover.zone != Zone::Version) return;
     constexpr float pad = 4, lineHeight = 12;
     auto line = runningVersionLine();
     auto hint = translated("version.copyHint");
+    std::string note = verifiedGameExecutable() ? std::string() : translated("paused.tip", runningGameVersion());
     float width = std::min(t.width - 2*SettingsTable::pad, std::max(textWidth(context, line), textWidth(context, hint)) + 2*pad);
+    if (!note.empty()) width = std::min(t.width - 2*SettingsTable::pad, std::max(width, 220.f));
+    size_t noteLines = note.empty() ? 0 : paragraphLines(context, width - 2*pad, note, 4);
+    float height = (2 + noteLines)*lineHeight + 2*pad;
     float x = std::min(t.versionX, t.left + t.width - SettingsTable::pad - width), y = t.top + SettingsTable::headerHeight + 1;
     context.flushText(0, std::nullopt);
-    fill(context,x,y,width,2*lineHeight+2*pad,palette::panel,.97f);
-    frame(context,x,y,width,2*lineHeight+2*pad,palette::keyEdge);
+    fill(context,x,y,width,height,palette::panel,.97f);
+    frame(context,x,y,width,height,palette::keyEdge);
     label(context,x+pad,y+pad,width-2*pad,std::move(line));
-    label(context,x+pad,y+pad+lineHeight,width-2*pad,std::move(hint),palette::faint);
+    if (noteLines) paragraph(context,x+pad,y+pad+lineHeight,width-2*pad,note,noteLines,palette::warning);
+    label(context,x+pad,y+pad+(1 + noteLines)*lineHeight,width-2*pad,std::move(hint),palette::faint);
     context.flushText(0, std::nullopt);
 }
 void copyVersion_() {
@@ -675,7 +692,7 @@ void copyVersion_() {
 }
 void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, glm::vec2 size, glm::vec2 pointer) {
     auto t = SettingsTable::fit(size.x, size.y, static_cast<int>(rows.size()), first, nav::count);
-    t.placeVersion(textWidth(context, "Lamium"), textWidth(context, lamiumVersion()));
+    t.placeVersion(textWidth(context, "Lamium"), textWidth(context, headerVersion()));
     displayed = t;
     if (sliderDrag && sliderDrag->numeric) setSlider(*sliderDrag, std::max(0.f, t.sliderFraction(std::min(pointer.x, t.sliderValueX() - 1))));
     first = t.first;
@@ -695,7 +712,8 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
     // The sidebar or tabs show where you are; the header names only Lamium (L-101).
     label(context,t.left+SettingsTable::pad,t.top+6,80,"Lamium");
     if (t.versionWidth > 0)
-        label(context,t.versionX,t.top+6,t.versionWidth+2,lamiumVersion(),hover.zone == Zone::Version ? palette::dim : palette::faint);
+        label(context,t.versionX,t.top+6,t.versionWidth+2,headerVersion(),
+            !verifiedGameExecutable() ? palette::warning : hover.zone == Zone::Version ? palette::dim : palette::faint);
     if (!shapesView() && !waypointsView() && !schematicsView()) {
     fill(context,t.searchX,t.top+4,t.searchWidth,12,Rgb{0,0,0},.45f);
     frame(context,t.searchX,t.top+4,t.searchWidth,12,searchFocused_() ? palette::accent : palette::keyEdge);
@@ -795,7 +813,8 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
         switch (entry.kind) {
         case RowKind::Feature: {
             if (entry.children) chevron(context,t.nameX,y+5,entry.expanded);
-            drawName(context,t.nameX+9,y,nameRight,featureName(*entry.feature),palette::text,entry.children,entry.feature->experimental);
+            drawName(context,t.nameX+9,y,nameRight,featureName(*entry.feature)+pausedSuffix(entry.feature->id),palette::text,
+                entry.children,entry.feature->experimental);
             if (auto option = settings::find(entry.feature->toggle))
                 toggleSwitch(context,t.stateX+(SettingsTable::stateWidth-switchWidth)/2,y+(SettingsTable::rowHeight-switchHeight)/2,
                     std::get<bool>(option->read(preferences)));

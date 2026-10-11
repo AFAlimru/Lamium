@@ -1,4 +1,5 @@
 #include "input/Actions.h"
+#include "app/Versions.h"
 #include "features/interaction/PermanentSneak.h"
 #include "features/interaction/PeriodicInput.h"
 #include "features/inventory/FakeOffhand.h"
@@ -83,7 +84,13 @@ void emitToggleToast(IClientInstance& client, input::Action action, Settings con
     if (auto mode = autoModeText(value, action)) name += ": " + *mode;
     if (ui::effectsPaused(input::actions[static_cast<size_t>(action)].feature,value))
         name += " (" + ui::translated("effectsPaused") + ")";
-    ui::showToggleToast(name, toggleState(client, value, action));
+    bool on = toggleState(client, value, action);
+    // On an unverified game a gated feature says so when switched on (L-137);
+    // particles and boss bars are not gated.
+    if (on && action != input::Action::HideParticles && action != input::Action::HideBossBars)
+        if (auto level = pausedLevel(input::actions[static_cast<size_t>(action)].feature); level != paused::Level::No)
+            name += " (" + ui::translated(level == paused::Level::Fully ? "paused.full" : "paused.partly") + ")";
+    ui::showToggleToast(name, on);
 }
 }
 bool isSessionFeature(std::string_view feature) {

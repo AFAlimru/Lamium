@@ -75,7 +75,7 @@ namespace {
 Toast activeToast;
 }
 void showToggleToast(std::string feature, bool on) { activeToast.show(std::move(feature), on, toastNow()); }
-void showMessageToast(std::string message) { activeToast.show(std::move(message), false, toastNow(), true); }
+void showMessageToast(std::string message, double seconds) { activeToast.show(std::move(message), false, toastNow(), true, seconds); }
 std::optional<Toast::Visible> currentToggleToast(double now) { return activeToast.current(now); }
 }
 namespace lamium::information {

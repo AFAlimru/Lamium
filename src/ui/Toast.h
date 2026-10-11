@@ -15,13 +15,15 @@ class Toast {
     bool state = false;
     bool plain = false;
     bool armed = false;
+    double length = duration;
 public:
     static constexpr double duration = 1.5;
     static constexpr double fade = 0.3;
     // A plain toast is a message without the on/off switch.
     struct Visible { std::string text; bool on; float opacity; bool plain = false; };
-    void show(std::string text, bool on, double now, bool asMessage = false) {
+    void show(std::string text, bool on, double now, bool asMessage = false, double seconds = duration) {
         if (!std::isfinite(now)) return;
+        length = std::isfinite(seconds) && seconds > fade ? seconds : duration;
         message = std::move(text);
         state = on;
         plain = asMessage;
@@ -32,9 +34,9 @@ public:
     std::optional<Visible> current(double now) const {
         if (!armed || !std::isfinite(now)) return {};
         double elapsed = now - shownAt;
-        if (elapsed < 0 || elapsed >= duration) return {};
-        float opacity = elapsed <= duration - fade ? 1.f
-            : static_cast<float>((duration - elapsed) / fade);
+        if (elapsed < 0 || elapsed >= length) return {};
+        float opacity = elapsed <= length - fade ? 1.f
+            : static_cast<float>((length - elapsed) / fade);
         return Visible{message, state, std::clamp(opacity, 0.f, 1.f), plain};
     }
 };
@@ -43,6 +45,6 @@ inline double toastNow() {
 }
 // Process-wide toast fed by hotkey toggles (Actions) and drawn by InfoHud.
 void showToggleToast(std::string feature, bool on);
-void showMessageToast(std::string message);
+void showMessageToast(std::string message, double seconds = Toast::duration);
 std::optional<Toast::Visible> currentToggleToast(double now);
 }

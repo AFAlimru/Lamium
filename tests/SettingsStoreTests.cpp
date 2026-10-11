@@ -1,3 +1,4 @@
+#include "app/PausedFeatures.h"
 #include "settings/SettingsStore.h"
 #include "settings/Options.h"
 #include "features/inventory/FakeOffhandPlan.h"
@@ -337,6 +338,23 @@ void settingsStoreTests() {
           "Debug View hides the game's position and paper doll unless saved off");
     check(old.information.hudHidePaperDoll && !decodeSettings(R"({"information":{"hudHidePaperDoll":false}})").information.hudHidePaperDoll,
           "the Info HUD hides a covered paper doll unless saved off (L-145)");
+    {
+        // L-137: what players see of the gates on an unverified game.
+        using lamium::paused::Level;
+        for (auto feature : lamium::paused::gatedFeatures)
+            check(lamium::paused::onUnverified(feature) != Level::No, "every gated feature is marked paused");
+        check(lamium::paused::onUnverified("nightVision") == Level::Fully && lamium::paused::onUnverified("freecamera") == Level::Partly
+              && lamium::paused::onUnverified("zoom") == Level::No, "fully, partly or not paused");
+        lamium::Settings s;
+        s.lighting.nightVision = true;
+        s.visuals.hideEffects = true;
+        s.visuals.hideWater = s.visuals.hideLava = s.visuals.hidePowderSnow = s.visuals.hideDistanceFog = false;
+        s.visuals.hideWeather = s.visuals.hideNausea = false;
+        auto used = lamium::paused::inUse(s);
+        check(used.size() == 1 && used[0] == "nightVision", "the join toast names switched-on gated features, not particles alone");
+        s.visuals.hideWeather = true;
+        check(lamium::paused::inUse(s).size() == 2, "a gated hide effect counts");
+    }
     {
         auto loaded = decodeSettings(R"({"map":{"zoom":9,"rotate":true},"hud":{"minimap":{"dx":-30}}})");
         loaded.normalize();

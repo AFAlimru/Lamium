@@ -54,6 +54,9 @@ bool verifiedGameExecutable() {
     static bool const verified = readVerified();
     return verified;
 }
+paused::Level pausedLevel(std::string_view feature) {
+    return verifiedGameExecutable() ? paused::Level::No : paused::onUnverified(feature);
+}
 bool versionSensitiveAllowed(std::string_view capability) {
     if (verifiedGameExecutable()) return true;
     static std::mutex mutex;

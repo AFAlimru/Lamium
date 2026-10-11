@@ -1,3 +1,4 @@
+#include "ui/PausedNotice.h"
 #include "ui/SettingsScreen.h"
 #include "settings/Options.h"
 #include "ui/SettingsRows.h"
@@ -884,6 +885,7 @@ void render(ll::event::UIRenderEvent& event) {
             auto drawn = information::drawHud(context,size.x,size.y,settings);
             information::noteHotbar(view);
             information::noteCoveredVanilla(view,drawn,settings);
+            paused_notice::frame(Runtime::instance().preferences());
             if (!current.getOptions().getHideHud()) {
                 information::drawOffhandSlot(context,view,settings);
                 information::drawSaturation(context,view,settings);
