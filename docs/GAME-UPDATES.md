@@ -49,14 +49,16 @@ use. A new gate gets its feature there as well.
 | Hide effects (fog and camera medium) | `HideEffects.cpp` `MediumFogVisibility` | water/lava/powder snow fog, distance fog | the other hide effects |
 | Hide effects (weather densities) | `HideEffects.cpp` `WeatherVisibility` | rain and snow drawn | the other hide effects |
 | Hide nausea (overlay mesh) | `HideEffects.cpp` nausea hooks | nausea swirl drawn | the effect icon and the rest |
-| Schematic ghost blocks (block tessellation) | `GhostRenderer.cpp` | no ghost blocks or block actors | frames, mistakes list, materials, saving, map marks |
+| Schematic ghost blocks (block tessellation) | `GhostRenderer.cpp` | no ghost blocks or block actors, no in-world mistake outlines (built with the sections) | frames, the Check list, materials, saving, map marks |
 | Schematic entity models (actor renderers) | `GhostMarks.cpp` | missing entities as dashed frames | everything else |
 
 ## Playbook for a new Minecraft or LeviLamina version
 
 1. **SDK bump.** Update `packages/levilamina-client-sdk.lua` and the
    `add_requires` version in `xmake.lua`, `tooth.json`'s LeviLamina range
-   and the game version in DISTRIBUTION.md; refresh `xmake-requires.lock`.
+   and the game versions in README.md ("Supported: Minecraft Bedrock" with
+   the full build number, install steps, Target); refresh
+   `xmake-requires.lock`.
 2. **Build.** `xmake f ... -y`, `xmake build Lamium`, `LamiumTests`,
    `LamiumNativeTests`. Fix compile errors: they are the removed or retyped
    functions and members. Run `scripts/Check-GameInventory.ps1`.
@@ -72,7 +74,8 @@ use. A new gate gets its feature there as well.
    old version, or split that capability's gate so the passing ones can be
    widened. Until then `scripts/New-ReleaseArchive.ps1` warns on every build
    and refuses a tagged release: the SDK's game version (LeviLamina
-   `26.51.x` targets Minecraft `1.26.51`) must match it.
+   `26.51.x` targets Minecraft `1.26.51`) and README's full supported version
+   must match it.
 6. **Release** as usual (DISTRIBUTION.md); the release notes name the game
    version.
 

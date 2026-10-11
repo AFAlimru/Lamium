@@ -23,17 +23,27 @@ if ($env:GITHUB_REF_TYPE -eq 'tag' -and $env:GITHUB_REF_NAME -ne "v$version") {
 }
 
 # The game the gated paths were checked on must be the one the SDK targets
-# (docs/GAME-UPDATES.md playbook): a release with a stale verified version
-# would ship with every gated capability turned off. Warned on every build,
-# refused for a tag, since mid-update builds legitimately differ.
+# and the README names (docs/GAME-UPDATES.md playbook): a release with a
+# stale verified version would ship with every gated capability turned off.
+# The SDK gives only 1.26.51; the README's full version (1.26.51.01) catches
+# a different build number. Warned on every build, refused for a tag, since
+# mid-update builds legitimately differ.
 $sdk = [regex]::Match($xmake, 'add_requires\("levilamina-client-sdk\s+(\d+)\.(\d+)\.\d+"')
 $versions = Get-Content -LiteralPath (Join-Path $projectDirectory 'src/app/Versions.cpp') -Raw
 $verified = [regex]::Match($versions, 'verifiedGame\[4\]\s*=\s*\{\s*(\d+),\s*(\d+),\s*(\d+),\s*(\d+)\s*\}')
 if (-not $sdk.Success -or -not $verified.Success) { throw 'SDK version or verifiedGame not found.' }
+$readme = Get-Content -LiteralPath (Join-Path $projectDirectory 'README.md') -Raw
+$supported = [regex]::Match($readme, 'Supported: Minecraft Bedrock (\d+)\.(\d+)\.(\d+)\.(\d+)')
+if (-not $supported.Success) { throw 'The supported game version was not found in README.md.' }
 $sdkGame = "1.$($sdk.Groups[1].Value).$($sdk.Groups[2].Value)"
-$verifiedGame = "$($verified.Groups[1].Value).$($verified.Groups[2].Value).$($verified.Groups[3].Value)"
-if ($sdkGame -ne $verifiedGame) {
-    $message = "The SDK targets Minecraft $sdkGame but the verified game is $verifiedGame (src/app/Versions.cpp); gated capabilities stay vanilla until the GAME-UPDATES.md playbook is done."
+$verifiedParts = 1..4 | ForEach-Object { [int]$verified.Groups[$_].Value }
+$supportedParts = 1..4 | ForEach-Object { [int]$supported.Groups[$_].Value }
+$verifiedGame = $verifiedParts -join '.'
+$problems = @()
+if ($sdkGame -ne ($verifiedParts[0..2] -join '.')) { $problems += "the SDK targets Minecraft $sdkGame" }
+if (($supportedParts -join '.') -ne $verifiedGame) { $problems += "README.md supports $($supported.Value.Split(' ')[-1])" }
+if ($problems) {
+    $message = "The verified game is $verifiedGame (src/app/Versions.cpp) but $($problems -join ' and '); gated capabilities stay vanilla until the GAME-UPDATES.md playbook is done."
     if ($env:GITHUB_REF_TYPE -eq 'tag') { throw $message }
     Write-Warning $message
 }
