@@ -1083,6 +1083,8 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"biome.mesa_plateau_stone_mutated.name", "Mesa Plateau Stone Mutated", "変異したメサ高原石"},
     {"biome.desert_mutated.name", "Desert Mutated", "変異した砂漠"},
     {"hudFacing", "Facing: {}", "向き: {}"},
+    {"hudHidePaperDoll", "Hide the game's paper doll under it: {}", "重なったゲームのペーパードールを隠す: {}"},
+    {"help.infoHud.hidePaperDoll", "On: where the Info HUD covers the game's paper doll, the paper doll is not drawn. Placed elsewhere, nothing changes. The game's settings are not changed.", "オン: 情報 HUD がゲームのペーパードールに重なるとき、ペーパードールを描きません。離れた場所に置いているときは何も変わりません。ゲームの設定は変えません。"},
     {"hudYaw", "Yaw: {}", "水平角: {}"},
     {"hudPitch", "Pitch: {}", "上下角: {}"},
     {"hudSprintingRow", "Sprinting: {}", "ダッシュ中のみ表示: {}"},

@@ -101,7 +101,8 @@ checks the loader version and that the slot points into game code.
 Hooks: `DebugPositionSprite`, `DebugPositionText`, `DebugPaperDoll`
 Meaning: the vanilla HUD's position panel is named `player_position` (label
 `player_position_text`) and the HUD paper doll is drawn by
-`HudPlayerRenderer`. A renamed control only stops the hiding.
+`HudPlayerRenderer`, its control named `hud_player` (where the Info HUD
+covers it, L-145). A renamed control only stops the hiding.
 
 ### `src/features/information/FrameTiming.cpp`
 Hooks: `FrameCompleted`

@@ -1,4 +1,5 @@
 #include "features/information/OffhandSlot.h"
+#include "features/information/PaperDoll.h"
 #include "settings/SettingsStore.h"
 #include <limits>
 void check(bool, char const*);
@@ -24,6 +25,18 @@ void offhandSlotTests() {
     check(fallback.x == 149 && fallback.y == 248 && fallback.w == 182,
           "on another screen size, or before any was seen, the desktop place");
     check(editorHotbar(std::nullopt, 0, 0, 480, 270).y == 248, "nothing seen yet: the desktop place");
+    {
+        namespace doll = lamium::information::paperDoll;
+        doll::Box control{15, 15, 15, 15}; // the desktop paper doll's control
+        auto area = doll::area(control);
+        check(area && area->x == 0 && area->y == 0 && area->w == 45 && area->h == 50,
+              "the paper doll's area reaches past its control as far as the chat's room for it");
+        check(doll::covered(control, doll::Box{2, 2, 120, 60}), "the Info HUD at its default top-left place covers the doll");
+        check(!doll::covered(control, doll::Box{300, 2, 120, 60}) && !doll::covered(control, doll::Box{2, 60, 120, 60}),
+              "placed away from it, the doll stays");
+        check(!doll::covered(std::nullopt, doll::Box{2, 2, 120, 60}) && !doll::covered(control, std::nullopt),
+              "no doll control or no Info HUD: nothing hidden");
+    }
 
     lamium::Settings defaults;
     check(!defaults.information.offhandSlot && !defaults.information.offhandSlotEmpty, "the offhand slot starts off");

@@ -881,8 +881,9 @@ void render(ll::event::UIRenderEvent& event) {
         // so draw once, on the HUD view itself.
         if (gameplayScreen(current.getScreenName()) && hudView(view)) {
             auto const& settings = Runtime::instance().preferences().information;
-            information::drawHud(context,size.x,size.y,settings);
+            auto drawn = information::drawHud(context,size.x,size.y,settings);
             information::noteHotbar(view);
+            information::notePaperDoll(view,drawn,settings);
             if (!current.getOptions().getHideHud()) {
                 information::drawOffhandSlot(context,view,settings);
                 information::drawSaturation(context,view,settings);

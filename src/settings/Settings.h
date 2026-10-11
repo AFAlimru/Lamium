@@ -215,6 +215,7 @@ struct Settings {
         bool saturation = true;        // Gold outlines on the hunger bar (L-63)
         bool saturationPreview = true; // What the held food would add
         bool hud = false;
+        bool hudHidePaperDoll = true; // L-145: the game's paper doll is not drawn where the Info HUD covers it.
         bool coordinates = true; // Defaults match DESIGN "HUD".
         bool scaledCoordinates = false;
         bool dimension = false;

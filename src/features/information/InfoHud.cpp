@@ -33,6 +33,8 @@
 #include "features/information/DurabilityHud.h"
 #include "features/information/ClientCounters.h"
 #include "features/information/OffhandSlot.h"
+#include "features/information/PaperDoll.h"
+#include "features/information/DebugVanillaHud.h"
 #include "features/inspection/render/PreviewLayout.h"
 #include "mc/client/gui/CaretMeasureData.h"
 #include "mc/client/gui/Font.h"
@@ -157,6 +159,19 @@ void noteHotbar(ScreenView const& view) {
     if (!hotbar.box) return;
     glm::vec2 screen = *view.mSize;
     seenHotbar = SeenHotbar{*hotbar.box, screen.x, screen.y};
+}
+void notePaperDoll(ScreenView const& view, ui::hud_editor::Boxes const& drawn, Settings::Information const& settings) {
+    auto const& info = drawn[static_cast<size_t>(ui::HudElementId::Info)];
+    std::optional<paperDoll::Box> control, hud;
+    if (settings.hudHidePaperDoll && info) {
+        hud = paperDoll::Box{info->x, info->y, info->w, info->h};
+        if (VisualTree* tree = view.mVisualTree.get())
+            if (auto doll = tree->getControlByName("hud_player", true); doll && !doll->mCachedPositionDirty) {
+                glm::vec2 position = *doll->mCachedPosition, size = *doll->mSize;
+                control = paperDoll::Box{position.x, position.y, size.x, size.y};
+            }
+    }
+    debugVanilla::infoCoversDoll(paperDoll::covered(control, hud));
 }
 HotbarPlace editorHotbar(float width, float height) {
     auto box = offhand::editorHotbar(seenHotbar ? std::optional(seenHotbar->box) : std::nullopt,

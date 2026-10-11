@@ -6,11 +6,13 @@
 #include "mc/client/gui/controls/UIControl.h"
 #include "mc/client/gui/controls/renderers/HudPlayerRenderer.h"
 #include "settings/Settings.h"
+#include <atomic>
 #include <string>
 
 namespace lamium::information::debugVanilla {
 namespace {
 bool installedSprite = false, installedText = false, installedDoll = false;
+std::atomic<bool> covered{false};
 bool hiding() noexcept {
     try {
         auto& runtime = Runtime::instance();
@@ -18,6 +20,9 @@ bool hiding() noexcept {
         auto settings = runtime.snapshot();
         return settings->information.debug && settings->information.debugHideVanilla;
     } catch (...) { return false; }
+}
+bool hidingDoll() noexcept {
+    try { return hiding() || (covered.load() && Runtime::instance().enabled()); } catch (...) { return false; }
 }
 bool position(UIControl& owner) noexcept {
     try {
@@ -39,9 +44,10 @@ LL_TYPE_INSTANCE_HOOK(DebugPositionText, ll::memory::HookPriority::Normal, TextC
 LL_TYPE_INSTANCE_HOOK(DebugPaperDoll, ll::memory::HookPriority::Normal, HudPlayerRenderer,
     &HudPlayerRenderer::$render, void, MinecraftUIRenderContext& context, IClientInstance& client, UIControl& owner,
     int pass) {
-    if (hiding()) return;
+    if (hidingDoll()) return;
     origin(context, client, owner, pass);
 }
+void infoCoversDoll(bool on) { covered = on; }
 void start() noexcept {
     try {
         if (!installedSprite) installedSprite = DebugPositionSprite::hook(true) == 0;
@@ -52,6 +58,7 @@ void start() noexcept {
     } catch (...) {}
 }
 void stop() {
+    covered = false;
     if (installedDoll && DebugPaperDoll::unhook(true)) installedDoll = false;
     if (installedText && DebugPositionText::unhook(true)) installedText = false;
     if (installedSprite && DebugPositionSprite::unhook(true)) installedSprite = false;
