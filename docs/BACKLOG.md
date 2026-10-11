@@ -430,8 +430,13 @@ Discoverability (2026-10-11): the SDK lines in `xmake.lua` and
 `packages/levilamina-client-sdk.lua`, the `verifiedGame` constant and
 AGENTS.md rule 8 point to the playbook; `New-ReleaseArchive.ps1` warns when
 the SDK's game version differs from `verifiedGame` and refuses a tag build.
-Open, the maintainer's call: telling players in game that gated features
-are off on an unverified game (today only the log says so).
+Players see the pause (maintainer chose the agent's proposal 2026-10-11,
+`1da4316`): toggle toasts and settings feature rows add "paused" or
+"partly paused", the settings header shows "Some features paused" in the
+warning color with the reason in its tooltip, and the first HUD frame after
+joining a world shows an 8-second toast naming the paused features in use.
+Nothing shows on the verified game. In-game check on the unverified build
+pending.
 Required for 0.2.0:
 1. Inventory, kept next to the code (script-checked where possible): per
    feature, its hooks and the game meanings it relies on (vertex fields,
