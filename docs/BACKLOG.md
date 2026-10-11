@@ -92,8 +92,8 @@ L-item wins. Every entry names what the task is, not only its number.
    (BACKLOG-DONE, 2026-10-11): L-136 GhostRenderer.cpp split, L-138 shared
    face drawing, the map and settings tidy-up, L-139 map layers, L-134
    SettingsScreen.cpp split and L-137 game update readiness, after both
-   regression checks and two outside reviews. L-135 PDB as a separate asset
-   is built; the first release made that way checks it. Maintainer
+   regression checks and two outside reviews. Released as 0.2.0 on
+   2026-10-11 (L-135 PDB as a separate asset done with it). Maintainer
    2026-10-11: no 0.2.0 tag for a while; 0.2.0 also gets a review of the
    features from the player's side, integration and links between
    features. Done and checked 2026-10-11 (BACKLOG-DONE): L-140 Zoom
@@ -152,8 +152,9 @@ unmet gates for versions already published. Registry pickup for 0.1.4 to
   L-142 glint fix, L-143/L-145 vanilla HUD under Debug View and the Info
   HUD, L-144 hotbar in the HUD editor, paused-feature notices. The
   maintainer's smoke test passed on the release-ZIP DLL `71db2f0f...ae49c`.
-  No settings migration. After tagging: check the tag CI, that the registry
-  PR picks up `v0.2.0` and that LeviLauncher/Bedrinth offer it.
+  No settings migration. Tag CI passed; the GitHub release carries both
+  assets with matching digests. Next: check that the registry PR picks up
+  `v0.2.0` and that LeviLauncher/Bedrinth offer it.
 - 0.1.9 was released on 2026-10-11 (`v0.1.9` at `8bf28c0`; asset SHA-256
   `c0bbc358...a4b`): L-96 Connected Textures (panes with the one-texel
   stretch; split panes parked as L-133), L-128 player list, L-127 inventory
@@ -341,23 +342,6 @@ type 3, scale 1.333, with the font's own material).
 ---
 
 ## Feature work and research
-
-### L-135 Leave the PDB out of the release ZIP (with 0.2.0)
-Kind: Distribution. Decided by the maintainer 2026-10-11.
-Status: built 2026-10-11 (`d274227`); the first release made this way is
-the check. The symbols asset is `Lamium-<version>-client-windows-x64.pdb.zip`
-(the PDB compressed: 17.6 MB instead of 170 MB for 0.1.9's); the identity
-check is `scripts/PdbIdentity.ps1`.
-`Lamium.pdb` is about 90% of the release ZIP and grows each release
-(compressed 13.2 MB in 0.1.7, 15.6 MB in 0.1.8, 17.3 MB in 0.1.9; the DLL is
-1.8 MB). No crash report has arrived, and a description of the situation is
-expected to be enough to reproduce one. From 0.2.0 the ZIP ships without the
-PDB (`scripts/New-ReleaseArchive.ps1`, `Check-Package.ps1`, DISTRIBUTION.md,
-the LIP package contents). The PDB is attached to the GitHub release as a
-separate asset (`Lamium-<version>-client-windows-x64.pdb` or similar,
-decided 2026-10-11), so LIP and LeviLauncher install only the DLL while the
-symbols stay available for crash addresses. CI checks that the PDB belongs
-to the same build as the DLL in the ZIP (matching debug GUID and age).
 
 ### L-146 Layer switches on the world map (with the next integration review)
 Kind: Design. Raised by the maintainer 2026-10-11 before the 0.2.0 release;
