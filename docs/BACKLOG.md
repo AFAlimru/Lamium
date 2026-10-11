@@ -301,6 +301,13 @@ keep the direct icon path as in 0.1.8, so the foil call draws over them
 again; enchanted leather pieces then lose their undyeable layer as before
 0.1.9. Applies to every Lamium icon (previews, HUD, offhand slot, settings).
 In-game check pending; the shield (L-91) is unchanged.
+Round 1 (`beece33`, checked 2026-10-11): still no glint in the shulker
+preview. 0.1.8 drew each icon and then its glint; since `cbaacfc` all
+icons are drawn first and the glints after, and the foil call apparently
+covers only the icon drawn just before it (the offhand slot, one icon then
+its glint, kept its glint). Round 2: `drawItemIcons` draws a glinting
+item's foil call right after its own icon (`IconAt::glint`), for the
+previews, the inventory HUD and the offhand slot.
 
 ### L-143 Debug View hides the game's position line and paper doll
 Kind: Feature (small). Reported on Discord after 0.1.9 (maintainer's notes,

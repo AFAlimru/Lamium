@@ -12,6 +12,16 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-141 to L-144 on `9c173b7` (2026-10-11)
+
+By the maintainer, local, `9c173b7` (DLL
+`2d59d5d2131510f8d8d7b26e32307430dce9d6e488d304811f46771c047b19fb`). Passed:
+Debug View hides the game's position line and paper doll and they return
+when it closes (L-143); the HUD layout editor shows the hotbar (L-144);
+overlapping placements no longer flicker and hiding the earlier one shows
+the later one's ghosts there (L-141). Failed: enchanted items still show no
+glint in the shulker preview (L-142, round 2 follows).
+
 ## Zoom Wide-angle view, world map names, Files names (2026-10-11)
 
 By the maintainer, local. On `376cfae` (DLL `1ff38c03...4cbbef4`): long
