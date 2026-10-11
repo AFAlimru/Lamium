@@ -100,7 +100,10 @@ L-item wins. Every entry names what the task is, not only its number.
    Wide-angle view, world map names on hover (L-139 follow-up), L-141
    overlapping ghost flicker, the 0.1.9 Discord reports L-142 glint,
    L-143 Debug View and vanilla HUD, L-144 hotbar in the HUD editor, L-145
-   Info HUD over the paper doll and position line. The radial menu and the smaller links are optional.
+   Info HUD over the paper doll and position line.
+   Maintainer 2026-10-11: the clean-up items (L-134, L-136, L-138, L-139,
+   L-137) move to BACKLOG-DONE only after a code review finds no problems,
+   not on the in-game check alone. The radial menu and the smaller links are optional.
    Order and boundary: L-111.
 5. **Research when convenient:** L-79 carved pumpkin and spyglass frame draw
    path (cheap-model friendly
