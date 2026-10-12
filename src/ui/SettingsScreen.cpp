@@ -1310,6 +1310,10 @@ void start() {
             return;
         }
         event.cancel();
+        if (calculatorOpen && wheel) {
+            if (scaled) calculator_view::wheel(event.buttonData() > 0 ? 1 : -1, x, y);
+            return;
+        }
         if (schematicMenu && wheel) {
             pendingWheels.push_back({x, y, event.buttonData() > 0 ? 1 : -1});
             return;
@@ -1357,10 +1361,12 @@ void start() {
         }
         // Let key-up through so keys pressed before opening cannot stick.
         if (!event.isDown()) return;
-        // The calculator copies its result, not the line (L-171).
+        // The calculator copies its result (Ctrl+C) or "expression = value"
+        // (Ctrl+Shift+C), not the field's text (L-171).
         if (calculatorOpen && event.keyCode() == 0x43 && heldCtrl()) {
             event.cancel();
-            calculator_view::copyResult();
+            if (heldShift()) calculator_view::copyLine();
+            else calculator_view::copyValue();
             return;
         }
         if (auto target = focusedText(); target.field && textEditKey(event.keyCode(), heldCtrl())) {

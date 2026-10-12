@@ -456,6 +456,12 @@ same button on hover). No coordinates block and no variables list; the
 function buttons fill that space on the same page (sqrt abs round floor
 ceil / min max nether ow , / ticks secs pi), so there is no fn switch;
 x y z stay in the row with st ch lc.
+Final layout (maintainer 2026-10-13, calculator-v3.html "B"): one
+six-column grid of equal keys like a scientific calculator: st ch lc x y z
+on top, then sqrt abs ( ) C backspace / round floor 7 8 9 / / ceil min 4 5
+6 * / max ^ 1 2 3 - / nether ow 0 . ans + / ticks secs , pi % =; keys
+grow taller to fill the column. No switch to a plain calculator (add a
+"hide functions" option only if asked).
 
 ### L-170 Enchantment order planner
 Kind: Design, then Research (strong model). Requested by the maintainer

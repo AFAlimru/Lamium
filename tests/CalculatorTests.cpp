@@ -37,8 +37,9 @@ void calculatorTests() {
           "results are grouped and trimmed");
     check(restatable(64) && restatable(-128) && !restatable(63) && !restatable(100.5), "only whole counts of 64 or more restate");
     std::vector<Line> history;
-    for (int i = 0; i < 12; ++i) remember(history, {std::to_string(i), static_cast<double>(i)});
-    check(history.size() == historyLimit && history.front().text == "11" && history.back().text == "2", "ten lines, newest first");
-    remember(history, {"11", 11});
-    check(history.size() == historyLimit && history[1].text == "10", "the same line twice is kept once");
+    for (int i = 0; i < 22; ++i) remember(history, {std::to_string(i), static_cast<double>(i)});
+    check(history.size() == historyLimit && history.back().text == "21" && history.front().text == "2", "twenty lines, newest last");
+    remember(history, {"21", 21});
+    check(history.size() == historyLimit && history.back().text == "21" && history[historyLimit - 2].text == "20",
+          "the same line twice in a row is kept once");
 }

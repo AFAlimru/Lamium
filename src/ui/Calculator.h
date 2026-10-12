@@ -220,15 +220,16 @@ inline std::string format(double value) {
 inline bool restatable(double value) {
     return std::isfinite(value) && std::fabs(value) >= 64 && std::fabs(value) < 9e15 && std::floor(value) == value;
 }
-// The history the panel keeps for the session (decided 2026-10-12: 10 lines).
+// The history the panel keeps for the session, oldest first (decided
+// 2026-10-13: 20 cards, newest drawn at the bottom).
 struct Line {
     std::string text;
     double value = 0;
 };
-inline constexpr std::size_t historyLimit = 10;
+inline constexpr std::size_t historyLimit = 20;
 inline void remember(std::vector<Line>& history, Line line) {
-    if (!history.empty() && history.front().text == line.text) history.erase(history.begin());
-    history.insert(history.begin(), std::move(line));
-    if (history.size() > historyLimit) history.resize(historyLimit);
+    if (!history.empty() && history.back().text == line.text) return;
+    history.push_back(std::move(line));
+    if (history.size() > historyLimit) history.erase(history.begin());
 }
 }
