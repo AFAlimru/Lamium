@@ -97,7 +97,7 @@ std::string error;
 
 // Navigation items (SettingsNavigation.h).
 constexpr int navCount = nav::count, hotkeysNav = nav::hotkeys, shapesNav = nav::shapes, waypointsNav = nav::waypoints,
-    schematicsNav = nav::schematics, worldMapNav = nav::worldMap, hudNav = nav::hud;
+    schematicsNav = nav::schematics, worldMapNav = nav::worldMap, hudNav = nav::hud, calculatorNav = nav::calculator;
 // Leaving the HUD layout editor returns to editorReturn.
 int editorReturn = 0;
 bool pendingRelease = false;
@@ -155,8 +155,10 @@ int schematicMenuClosedAt = -1; // the level shown when it last closed
 // World map (L-60): replaces the whole panel; the add prompt opened from it
 // returns to it.
 bool worldMapOpen = false, promptOnMap = false;
-// The calculator panel (L-171): replaces everything else while open.
-bool calculatorOpen = false;
+// The calculator panel (L-171): replaces everything else while open. Opened
+// from the settings sidebar, Esc returns there; from its key, Esc closes.
+bool calculatorOpen = false, calculatorFromSettings = false;
+void enterCalculator(bool fromSettings);
 // The text field the keyboard edits now and what tells its owner it changed
 // (L-172), in the order text events are routed.
 struct FocusedText { TextEdit* field = nullptr; void (*changed)() = nullptr; };
@@ -210,6 +212,7 @@ void selectNav(int index, bool temporary = false) {
     index = std::clamp(index, 0, navCount - 1);
     waypoints_view::setFromMap(false);
     if (index == worldMapNav) { enterWorldMap(true, false); return; }
+    if (index == calculatorNav) { enterCalculator(true); return; }
     if (index == hudNav && navigation.current != hudNav) {
         editorReturn = navigation.current;
         hud_editor::reset();
@@ -839,6 +842,13 @@ void renderSavePrompt(MinecraftUIRenderContext& context, glm::vec2 size, glm::ve
     label(context, x, l.keysY(), l.inner(), translated("schematic.save.keys"), palette::faint);
     context.flushText(0, std::nullopt);
 }
+void enterCalculator(bool fromSettings) {
+    finishNumber();
+    table_view::unfocusSearch();
+    calculatorOpen = true;
+    calculatorFromSettings = fromSettings;
+    calculator_view::begin();
+}
 void enterWorldMap(bool fromSettings, bool resume) {
     if (!client) return;
     finishNumber();
@@ -950,7 +960,10 @@ void render(ll::event::UIRenderEvent& event) {
         if (!closing) {
             if (auto click = std::exchange(pendingClick, std::nullopt); click && !click->right) calculator_view::click(click->x, click->y, size);
             for (int key : std::exchange(pendingKeys, {}))
-                if (calculatorOpen && !closing && calculator_view::key(key) == calculator_view::Result::Close) close();
+                if (calculatorOpen && !closing && calculator_view::key(key) == calculator_view::Result::Close) {
+                    if (calculatorFromSettings) { calculatorOpen = false; pendingKeys.clear(); break; }
+                    close();
+                }
         }
         if (!scene || !calculatorOpen) return;
         displayedInverseScale = current.getGuiData()->mInvGuiScale;
@@ -1204,8 +1217,7 @@ void openCalculator(IClientInstance& current) {
     if (scene) return; // From gameplay only; over container screens is a later step (L-171).
     open(current);
     if (!scene) return;
-    calculatorOpen = true;
-    calculator_view::begin();
+    enterCalculator(false);
 }
 void openWorldMap(IClientInstance& current) {
     std::lock_guard lock(mutex);

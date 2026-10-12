@@ -170,5 +170,6 @@ void render(MinecraftUIRenderContext& context, glm::vec2 size, glm::vec2 pointer
     labelScaled(context, x, l.hintY(), l.inner(), translated("calc.keys"), .75f, palette::faint);
     labelScaled(context, x, l.hintY() + 9, l.inner(), translated("calc.units"), .75f, palette::faint);
     labelScaled(context, x, l.hintY() + 18, l.inner(), translated("calc.functions"), .75f, palette::faint);
+    context.flushText(0, std::nullopt);
 }
 }

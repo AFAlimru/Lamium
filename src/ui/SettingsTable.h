@@ -109,7 +109,7 @@ struct SettingsTable {
     float controlX() const { return stateX; }
     float controlWidth() const { return keyX + keyWidth - stateX; }
     float navItemY(int index) const { return navTop + 4 + index * navStep; }
-    static constexpr int pinnedItems = 6; // Hotkeys, Shapes, Waypoints, Schematics, World map, HUD layout.
+    static constexpr int pinnedItems = 7; // Hotkeys, Shapes, Waypoints, Schematics, World map, HUD layout, Calculator.
     float pinnedItemY(int k) const { return navBottom - 4 - (pinnedItems - k) * navStep; }
     // Binding-editor buttons (Clear / Reset / Cancel) on the edited row, ending
     // just before its key cell (L-159).

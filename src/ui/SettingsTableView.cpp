@@ -554,6 +554,7 @@ std::string navLabel(int index, bool compact) {
     if (index == nav::schematics) return translated("nav.schematics");
     if (index == nav::worldMap) return translated("nav.worldMap");
     if (index == nav::hud) return translated("nav.hudLayout");
+    if (index == nav::calculator) return translated("nav.calculator");
     auto key = std::string(sections[index-1]);
     return translated(compact ? key + ".short" : key);
 }
