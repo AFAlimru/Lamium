@@ -21,6 +21,7 @@
 namespace lamium::overlay::depth {
 inline constexpr float ghostPull = .998f;
 inline constexpr float facePull = .997f;   // Shapes, restriction faces, light tints
+inline constexpr float worldLinePull = .996f; // Chunk Borders and Hitboxes, over shape faces (L-157)
 inline constexpr float digitPull = .995f;  // Light digits over their tint
 inline constexpr float markPull = .995f;   // A cell mark over another overlay's outline (save-area corners)
 inline constexpr float linePull = .993f;   // Light digit lines over both

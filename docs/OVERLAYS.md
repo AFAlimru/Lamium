@@ -132,7 +132,8 @@ interpolated, actor-specific eye offset sampled from `getEyePos()`; the view
 vector uses the same frame alpha. White bounds and the revised eye marker were
 confirmed in game by 2026-09-28 (L-51). Chunk Borders and
 Hitboxes submit grouped per-color line batches through the shared tessellator
-path and
+path, pulled toward the eye by 0.996 (Depth.h; without it lines lying on block
+faces broke up into dashes, L-157), and
 retain no actor/player pointer across frames. Basic visible output is past the
 compile-only stage; crowded-world performance, graphics/resource-pack variants
 and broader lifecycle cases still need coverage.

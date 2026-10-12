@@ -191,11 +191,14 @@ void drawLines(BaseActorRenderContext& context, std::span<LineBatch const> batch
     Tessellator batch(shared.mBufferResourceService);
     batch.begin({}, mce::PrimitiveMode::LineList, static_cast<int>(count * 2), false);
     Vec3 const camera = context.mImpl->mCameraPosition;
+    // Pulled toward the eye (Depth.h rule 2): chunk walls lie on block faces,
+    // and unpulled lines there broke up into dashes against the terrain (L-157).
+    constexpr float pull = depth::worldLinePull;
     for (auto const& group : batches) {
         batch.color(group.r, group.g, group.b, group.a);
         for (auto const& line : group.lines) for (auto p : {line.from, line.to})
-            batch.vertex(static_cast<float>(p.x - camera.x), static_cast<float>(p.y - camera.y),
-                static_cast<float>(p.z - camera.z));
+            batch.vertex(static_cast<float>(p.x - camera.x) * pull, static_cast<float>(p.y - camera.y) * pull,
+                static_cast<float>(p.z - camera.z) * pull);
     }
     auto mesh = batch.end(Tessellator::UploadMode::Buffered, "Lamium world lines", SupplementaryFieldAutoGenerationMode{});
     mce::MaterialPtr material(mce::RenderMaterialGroup::common(), HashedString{"debug"});

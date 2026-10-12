@@ -372,7 +372,14 @@ combinations. Inspect the shared line material/depth path in WorldOverlay
 and record whether geometry, depth, color/alpha or contrast is responsible.
 Preserve existing colors and grid structure until evidence justifies a
 change. Check Chunk Borders and Hitboxes together if shared rendering changes.
-See OVERLAYS.md for the current contract. No fix or post-fix check yet.
+See OVERLAYS.md for the current contract.
+Maintainer 2026-10-12: the lines break up where they meet terrain (other
+choices offered: thin lines, colors blending in, lines vanishing). In the
+screenshot a dirt wall lies on the chunk wall's plane and the lines on it
+show as dashes: lines coplanar with block faces fight for depth. Chunk
+Borders and Hitboxes were the only world lines not pulled toward the eye
+(Depth.h rule 2). Built 2026-10-12: `drawLines` pulls them by 0.996
+(`worldLinePull`); colors and grid unchanged. In-game check pending.
 
 ### L-123 FreeCamera stretches the worn elytra on the inventory player model
 Kind: Bug, low priority. Reported from use 2026-10-09 (maintainer's notes).
