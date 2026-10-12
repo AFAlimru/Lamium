@@ -1,14 +1,19 @@
 #pragma once
-#include <array>
+#include <cstdint>
 #include <optional>
-#include <vector>
+#include <string>
 #include <string_view>
+#include <vector>
 
 namespace lamium::visuals::connected {
-// Connected Textures (BACKLOG L-96): a block face drops its border on the
-// sides where the neighbor in the face's plane is the same block, so blocks
-// of one kind read as one surface. Pure parts; ConnectedTextures.cpp hooks
-// the block tessellator.
+// Connected Textures (BACKLOG L-96, L-164): a block face drops its border on
+// the sides where the neighbor in the face's plane is the same block, so
+// blocks of one kind read as one surface. The face keeps vanilla's single quad
+// and shows a sprite baked from the loaded texture for its joined sides; the
+// sprites are added to the terrain atlas when it is built. Splitting faces into
+// several quads darkened them (L-133 panes, L-156 bookshelves under Vibrant
+// Visuals); one quad per face did not (L-164 spike, 2026-10-12). Pure parts;
+// ConnectedTexturesHooks.cpp and ConnectedSprites.cpp are the game glue.
 enum class Face { Down, Up, North, South, West, East };
 struct Offset { int x = 0, y = 0, z = 0; };
 // The neighbors beside a face, seen from outside: toward the texture's left
@@ -33,119 +38,101 @@ inline bool connects(std::string_view identifier) {
 inline bool connectsPane(std::string_view identifier) {
     return identifier.ends_with("glass_pane");
 }
-// The face's texture rectangle with one source texel cut on each connected
-// side. The rectangle may run either way; the cut always moves inward.
-struct Uv { float u0 = 0, v0 = 0, u1 = 0, v1 = 0; };
-struct Joined { bool left = false, right = false, top = false, bottom = false; };
+
+// Joined sides in the texture image's own orientation (x to the right, y down).
+enum Side : unsigned { Left = 1, Right = 2, Top = 4, Bottom = 8 };
+using Mask = unsigned;
 // How many source texels a block drops on each joined side of a face, out of
-// 16 (scaled for larger textures). Glass loses its 1-texel frame on every
-// face; other blocks only on their side faces (L-96 trial, 2026-10-11:
+// 16 (scaled for larger textures), and the texel each refilled strip starts
+// from (-1: the texels right inside the border). Glass loses its frame on
+// every face; other blocks only on their side faces (L-96 trial, 2026-10-11:
 // bookshelves lose the plank column between side-by-side shelves, sandstone
 // the light band on top when another sits on it).
 struct Rule {
     int left = 1, right = 1, top = 1, bottom = 1;
     bool sidesOnly = false;
-    // Split: draw the face as strips at the texture's own scale, the dropped
-    // border replaced by the texels next to it, instead of stretching the rest
-    // (trial 2026-10-11, sandstone first).
-    bool split = false;
-    // The texel column or row each side's strip copies from; -1 is the texels
-    // right inside the border. Sandstone copies rock from the middle so the
-    // copy does not sit next to its source (chosen in game 2026-10-11).
     int leftFrom = -1, rightFrom = -1, topFrom = -1, bottomFrom = -1;
 };
+// Far away the game samples shrunk copies of the texture that average
+// neighboring texels, so a strip right next to the frame let it show again at
+// a distance (2026-10-11). Glass drops two texels and refills them from the
+// middle. Sandstone copies rock from the middle too (chosen in game).
+inline Rule glassRule() { return {2, 2, 2, 2, false, 7, 7, 7, 7}; }
+inline Rule bookshelfRule() { return {1, 1, 0, 0, true}; }
+inline Rule sandstoneRule() { return {0, 0, 4, 0, true, -1, -1, 8, -1}; }
 inline std::optional<Rule> ruleFor(std::string_view identifier) {
-    // Every rule draws split since 2026-10-11: cropping stretched the texture,
-    // which showed while a block was being placed.
-    if (connects(identifier)) {
-        // Far away the game samples shrunk copies of the texture that average
-        // neighboring texels, so a strip right next to the frame let it show
-        // again at a distance (2026-10-11). Glass drops two texels on joined
-        // sides and fills them from the middle of the texture.
-        Rule glass{2, 2, 2, 2, false, true};
-        glass.leftFrom = glass.rightFrom = glass.topFrom = glass.bottomFrom = 7;
-        return glass;
-    }
-    if (identifier == "minecraft:bookshelf") return Rule{1, 1, 0, 0, true, true};
-    if (identifier == "minecraft:sandstone" || identifier == "minecraft:red_sandstone") {
-        Rule sandstone{0, 0, 4, 0, true, true};
-        sandstone.topFrom = 8;
-        return sandstone;
-    }
+    if (connects(identifier)) return glassRule();
+    if (identifier == "minecraft:bookshelf") return bookshelfRule();
+    if (identifier == "minecraft:sandstone" || identifier == "minecraft:red_sandstone") return sandstoneRule();
     return std::nullopt;
 }
-inline Uv trim(Uv uv, int imageWidth, int imageHeight, Joined joined, Rule rule = {}) {
-    int width = imageWidth > 0 ? imageWidth : 16, height = imageHeight > 0 ? imageHeight : 16;
-    float du = (uv.u1 - uv.u0) / static_cast<float>(width), dv = (uv.v1 - uv.v0) / static_cast<float>(height);
-    float sx = width / 16.f, sy = height / 16.f;
-    auto scaled = [](int texels, float scale) { return texels > 0 && scale > 1 ? texels * scale : static_cast<float>(texels); };
-    Uv out = uv;
-    if (joined.left) out.u0 += du * scaled(rule.left, sx);
-    if (joined.right) out.u1 -= du * scaled(rule.right, sx);
-    if (joined.top) out.v0 += dv * scaled(rule.top, sy);
-    if (joined.bottom) out.v1 -= dv * scaled(rule.bottom, sy);
+// The texture files those blocks draw (side textures only for side rules).
+// Resource packs replace the files under the same paths.
+inline std::string_view fileName(std::string_view path) {
+    auto slash = path.find_last_of('/');
+    return slash == std::string_view::npos ? path : path.substr(slash + 1);
+}
+inline std::optional<Rule> ruleForTexture(std::string_view path) {
+    auto name = fileName(path);
+    if (name == "glass" || name == "tinted_glass" || (name.starts_with("glass_") && name.find("pane") == std::string_view::npos))
+        return glassRule();
+    if (name == "bookshelf") return bookshelfRule();
+    if (name == "sandstone_normal" || name == "red_sandstone_normal") return sandstoneRule();
+    return std::nullopt;
+}
+inline Mask ruleSides(Rule const& rule) {
+    return (rule.left > 0 ? Left : 0u) | (rule.right > 0 ? Right : 0u) | (rule.top > 0 ? Top : 0u) | (rule.bottom > 0 ? Bottom : 0u);
+}
+// Every joined combination a rule needs a sprite for (not the lone face).
+inline std::vector<Mask> variantMasks(Rule const& rule) {
+    std::vector<Mask> out;
+    Mask all = ruleSides(rule);
+    for (Mask mask = 1; mask < 16; ++mask)
+        if ((mask & all) == mask) out.push_back(mask);
     return out;
 }
-
-// A face split into cells for a split rule. s/t run across the face from its
-// u0/v0 corner (0) to its u1/v1 corner (1); su/tv are the texture fractions the
-// cell shows. A joined side becomes a strip that shows the texels just inside
-// the dropped border; the rest of the face keeps its own texels.
-struct Cell { float s0 = 0, s1 = 1, t0 = 0, t1 = 1, su0 = 0, su1 = 1, tv0 = 0, tv1 = 1; };
-struct Span { float at0, at1, from0, from1; };
-inline std::vector<Span> spans(bool lowJoined, int low, bool highJoined, int high, int lowFrom = -1, int highFrom = -1) {
-    float a = lowJoined && low > 0 ? low / 16.f : 0, b = highJoined && high > 0 ? high / 16.f : 0;
-    std::vector<Span> out;
-    float fromLow = lowFrom >= 0 ? lowFrom / 16.f : a, fromHigh = highFrom >= 0 ? highFrom / 16.f : 1 - 2 * b;
-    if (a > 0) out.push_back({0, a, fromLow, fromLow + a});
-    out.push_back({a, 1 - b, a, 1 - b});
-    if (b > 0) out.push_back({1 - b, 1, fromHigh, fromHigh + b});
-    return out;
+// The source column (row) texel `i` of a joined face shows.
+inline int sourceTexel(int i, int size, bool lowJoined, int low, int lowFrom, bool highJoined, int high, int highFrom) {
+    int a = lowJoined ? size * low / 16 : 0, b = highJoined ? size * high / 16 : 0;
+    if (i < a) return (lowFrom >= 0 ? size * lowFrom / 16 : a) + i;
+    if (i >= size - b) return (highFrom >= 0 ? size * highFrom / 16 : size - 2 * b) + (i - (size - b));
+    return i;
 }
-// The spans that fall on the part [low, high] of the texture a quad shows
-// (pane faces show only part of it), with `at` made relative to that part
-// (0..1 across the quad) and `from` kept in texture fractions.
-inline std::vector<Span> clip(std::vector<Span> const& all, float low, float high) {
-    std::vector<Span> out;
-    if (!(high - low > 1e-6f)) return out;
-    for (auto const& span : all) {
-        float c0 = span.at0 > low ? span.at0 : low, c1 = span.at1 < high ? span.at1 : high;
-        if (c1 - c0 <= 1e-6f) continue;
-        out.push_back({(c0 - low) / (high - low), (c1 - low) / (high - low), span.from0 + (c0 - span.at0),
-                       span.from0 + (c1 - span.at0)});
+// The sprite for `mask`, from RGBA pixels in rows.
+inline std::vector<std::uint32_t> bake(std::uint32_t const* pixels, int width, int height, Rule const& rule, Mask mask) {
+    std::vector<std::uint32_t> out(static_cast<size_t>(width) * height);
+    for (int y = 0; y < height; ++y) {
+        int sy = sourceTexel(y, height, mask & Top, rule.top, rule.topFrom, mask & Bottom, rule.bottom, rule.bottomFrom);
+        for (int x = 0; x < width; ++x) {
+            int sx = sourceTexel(x, width, mask & Left, rule.left, rule.leftFrom, mask & Right, rule.right, rule.rightFrom);
+            out[static_cast<size_t>(y) * width + x] = pixels[static_cast<size_t>(sy) * width + sx];
+        }
     }
     return out;
 }
-// Shading at (s, t) of a quad whose corners, in the order they were emitted,
-// sit at (S[i], T[i]) on the unit square: the quad is drawn as the triangles
-// (0, 1, 2) and (0, 2, 3), each blending its corners linearly, so cells take
-// their corner shading the same way (a bilinear blend showed dark smudges at
-// night, 2026-10-11). Returns the weight of each emitted corner.
-inline std::array<float, 4> triangleWeights(std::array<float, 4> const& S, std::array<float, 4> const& T, float s, float t) {
-    auto inTriangle = [&](int a, int b, int c, std::array<float, 4>& w) {
-        float det = (T[b] - T[c]) * (S[a] - S[c]) + (S[c] - S[b]) * (T[a] - T[c]);
-        if (det == 0) return false;
-        float wa = ((T[b] - T[c]) * (s - S[c]) + (S[c] - S[b]) * (t - T[c])) / det;
-        float wb = ((T[c] - T[a]) * (s - S[c]) + (S[a] - S[c]) * (t - T[c])) / det;
-        float wc = 1 - wa - wb;
-        constexpr float e = -1e-4f;
-        if (wa < e || wb < e || wc < e) return false;
-        w = {};
-        w[a] = wa;
-        w[b] = wb;
-        w[c] = wc;
-        return true;
-    };
-    std::array<float, 4> w{};
-    if (inTriangle(0, 1, 2, w) || inTriangle(0, 2, 3, w)) return w;
-    return {(1 - s) * (1 - t), s * (1 - t), s * t, (1 - s) * t}; // Not a square: fall back.
+// Larger textures draw vanilla: their sprites would cost too much atlas space.
+inline bool bakeable(int width, int height) { return width >= 16 && width == height && width <= 64; }
+inline std::string spriteName(std::string_view path, Mask mask) {
+    return "lamium_ct_" + std::string(fileName(path)) + "_" + std::to_string(mask);
 }
-inline std::vector<Cell> splitCells(Joined joined, Rule rule) {
-    std::vector<Cell> cells;
-    for (auto const& across : spans(joined.left, rule.left, joined.right, rule.right, rule.leftFrom, rule.rightFrom))
-        for (auto const& down : spans(joined.top, rule.top, joined.bottom, rule.bottom, rule.topFrom, rule.bottomFrom))
-            cells.push_back({across.at0, across.at1, down.at0, down.at1, across.from0, across.from1, down.from0, down.from1});
-    return cells;
+inline std::string spritePath(std::string_view path, Mask mask) { return "textures/blocks/" + spriteName(path, mask); }
+// A face's joined sides (toward u0, u1, v0, v1) in image orientation: a face
+// whose texture runs backwards shows its u0 side at the image's right.
+inline Mask imageMask(bool towardU0, bool towardU1, bool towardV0, bool towardV1, bool reversedU, bool reversedV) {
+    Mask mask = 0;
+    if (towardU0) mask |= reversedU ? Right : Left;
+    if (towardU1) mask |= reversedU ? Left : Right;
+    if (towardV0) mask |= reversedV ? Bottom : Top;
+    if (towardV1) mask |= reversedV ? Top : Bottom;
+    return mask;
+}
+// Which image side a texture coordinate on a joined edge lies on: the tile's
+// low or high end (within half a texel), else none.
+inline Mask edgeSide(float value, float low, float high, float texel, Side lowSide, Side highSide) {
+    float half = (texel < 0 ? -texel : texel) / 2;
+    if (value - low < half && low - value < half) return lowSide;
+    if (value - high < half && high - value < half) return highSide;
+    return 0;
 }
 
 // ---- Glass panes (checked in game 2026-10-11) ----
@@ -185,13 +172,5 @@ Parts partsOf(Boxes const& boxes) {
         if (box.z0 < 0.1f) parts.part[partIndex(Part::North)] = true;
     }
     return parts;
-}
-// One texture coordinate of a quad moved one texel inward: from the quad's
-// low end up, or from its high end down; values inside stay.
-inline float inward(float value, float low, float high, float step) {
-    float s = step < 0 ? -step : step;
-    if (value - low < 1e-6f && low - value < 1e-6f) return value + s;
-    if (value - high < 1e-6f && high - value < 1e-6f) return value - s;
-    return value;
 }
 }

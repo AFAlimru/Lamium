@@ -288,9 +288,14 @@ tessellator (render layer, shape set, region), the mesh data streams
 material names `beacon_beam_transparent`, `holo_hand_pointer`. Gated
 (Schematic ghost blocks; entity models in `GhostMarks.cpp`).
 
-### `src/features/visuals/ConnectedSpritesTrace.cpp`
-Hooks: `SpriteAtlas`, `SpritePackIndex`, `SpritePackLoadPair`
-Trace (L-164 spike, `ctsprite_trace`).
+### `src/features/visuals/ConnectedSprites.cpp`
+Hooks: `SpriteAtlas`, `SpritePackIndex`, `SpritePackLoad`
+Meaning: the terrain atlas's `texture_data` entries (`texture_name`
+"atlas.terrain"), the resource pack lookup (`getPackStackIndexOfResource`:
+-1 makes the atlas skip an image; the string is the matched extension) and
+the pair overload of `load` the atlas reads images through; the sprite
+places from `BlockGraphics::getTextureUVCoordinateSet`. Gated (Connected
+Textures): on an unverified game nothing is added.
 
 ### `src/features/visuals/ConnectedTexturesHooks.cpp`
 Hooks: `ConnectedBlock`, `Name`, `ConnectedPane`, `ConnectedPaneGlass`, `ConnectedRebuild`

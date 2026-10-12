@@ -1,11 +1,10 @@
 #include "features/visuals/ConnectedTexturesHooks.h"
+#include "features/visuals/ConnectedSprites.h"
 #include "features/visuals/ConnectedTextures.h"
-#include "features/visuals/ConnectedSpritesTrace.h"
 #include "app/Runtime.h"
 #include "app/Versions.h"
 #include "ll/api/memory/Hook.h"
 #include "mc/client/renderer/Tessellator.h"
-#include "mc/client/renderer/TessellatorQuadInfo.h"
 #include "mc/client/renderer/block/BlockGraphics.h"
 #include "mc/client/renderer/block/BlockTessellator.h"
 #include "mc/client/renderer/block/TextureItem.h"
@@ -19,10 +18,6 @@
 #include "mc/world/level/block/Block.h"
 #include "mc/world/level/block/BlockType.h"
 #include <algorithm>
-#include <format>
-#include <string>
-#include <array>
-#include <cstdint>
 #include <atomic>
 #include <cmath>
 #include <unordered_map>
@@ -50,18 +45,22 @@ bool sameAt(Block const& block, Offset offset) {
     BlockPos at{current.pos.x + offset.x, current.pos.y + offset.y, current.pos.z + offset.z};
     return &current.region->getBlock(at).getBlockType() == &block.getBlockType();
 }
+// The face's texture moved onto the sprite for its joined sides; vanilla's
+// when nothing joins or the atlas has no sprite for it (fail open).
 TextureUVCoordinateSet faceTexture(Face face, Block const& block, TextureUVCoordinateSet const& tex) {
-    TextureUVCoordinateSet out = tex;
-    if (current.block != &block || !current.region || current.rule.split) return out;
-    if (current.rule.sidesOnly && (face == Face::Up || face == Face::Down)) return out;
+    if (current.block != &block || !current.region) return tex;
+    if (current.rule.sidesOnly && (face == Face::Up || face == Face::Down)) return tex;
     auto s = sides(face);
-    auto uv = trim({tex._u0, tex._v0, tex._u1, tex._v1}, tex._sourceImageWidth, tex._sourceImageHeight,
-                   {sameAt(block, s.left), sameAt(block, s.right), sameAt(block, s.top), sameAt(block, s.bottom)},
-                   current.rule);
-    out._u0 = uv.u0;
-    out._v0 = uv.v0;
-    out._u1 = uv.u1;
-    out._v1 = uv.v1;
+    auto mask = imageMask(sameAt(block, s.left), sameAt(block, s.right), sameAt(block, s.top), sameAt(block, s.bottom),
+                          tex._u0 > tex._u1, tex._v0 > tex._v1)
+        & ruleSides(current.rule);
+    auto moved = sprites::shift(std::min(tex._u0, tex._u1), std::min(tex._v0, tex._v1), mask);
+    if (!moved) return tex;
+    TextureUVCoordinateSet out = tex;
+    out._u0 += moved->u;
+    out._u1 += moved->u;
+    out._v0 += moved->v;
+    out._v1 += moved->v;
     return out;
 }
 
@@ -77,142 +76,10 @@ LL_TYPE_INSTANCE_HOOK(ConnectedBlock, ll::memory::HookPriority::Normal, BlockTes
     current = saved;
     return result;
 }
-#ifdef LAMIUM_CTSPRITE_TRACE
-// L-164 spike: plain glass joined on all four sides and bookshelf sides joined
-// left and right draw as one quad with a generated sprite instead of split cells.
-std::optional<TextureUVCoordinateSet> spriteFace(Face face, Block const& block) {
-    try {
-        if (current.block != &block || !current.region) return std::nullopt;
-        auto s = sides(face);
-        auto name = block.getTypeName();
-        if (name == "minecraft:glass") {
-            if (!(sameAt(block, s.left) && sameAt(block, s.right) && sameAt(block, s.top) && sameAt(block, s.bottom))) return std::nullopt;
-            return sprites::uv(sprites::Kind::Glass);
-        }
-        if (name == "minecraft:bookshelf" && face != Face::Up && face != Face::Down) {
-            if (!(sameAt(block, s.left) && sameAt(block, s.right))) return std::nullopt;
-            return sprites::uv(sprites::Kind::BookshelfSides);
-        }
-        return std::nullopt;
-    } catch (...) { return std::nullopt; }
-}
-#else
-std::optional<TextureUVCoordinateSet> spriteFace(Face, Block const&) { return std::nullopt; }
-#endif
-// The cells a split rule draws this face as; one cell means draw it as is.
-std::vector<Cell> faceCells(Face face, Block const& block) {
-    if (current.block != &block || !current.region || !current.rule.split) return {};
-    if (current.rule.sidesOnly && (face == Face::Up || face == Face::Down)) return {};
-    auto s = sides(face);
-    return splitCells({sameAt(block, s.left), sameAt(block, s.right), sameAt(block, s.top), sameAt(block, s.bottom)},
-                      current.rule);
-}
-// Gives the quad at `dst` (a copy of the quad at `src`) the cell's part of
-// it: corners placed across the source quad (s, t from its u0/v0 corner) and
-// texels from the texture's fractions (su, tv) of `tex`. Vanilla's corner
-// shading (color and light) is interpolated to the cell's corners, so strips
-// keep the face's gradient. Reads all of `src` before writing `dst`.
-struct TexRect { float u0, v0, u1, v1; };
-void reshape(Tessellator& tessellator, size_t src, size_t dst, Cell const& c, TexRect tex) {
-    auto& positions = *tessellator.mMeshData->mPositions;
-    auto& uvs = *tessellator.mMeshData->mTextureUVs[0];
-    auto& colors = *tessellator.mMeshData->mColors;
-    float du = tex.u1 - tex.u0, dv = tex.v1 - tex.v0;
-    if (du == 0 || dv == 0 || positions.size() < dst + 4 || uvs.size() < dst + 4) return;
-    // The source corners by where they sit on its part of the texture.
-    std::array<float, 4> fu{}, fv{};
-    for (size_t i = 0; i < 4; ++i) {
-        fu[i] = (uvs[src + i].x - tex.u0) / du;
-        fv[i] = (uvs[src + i].y - tex.v0) / dv;
-    }
-    float midU = (*std::min_element(fu.begin(), fu.end()) + *std::max_element(fu.begin(), fu.end())) / 2;
-    float midV = (*std::min_element(fv.begin(), fv.end()) + *std::max_element(fv.begin(), fv.end())) / 2;
-    std::array<bool, 4> high{}, low{};
-    std::array<glm::vec3, 4> corner{};
-    std::array<std::uint32_t, 4> cornerColor{};
-    std::array<std::array<glm::vec2, 4>, 2> cornerLight{};
-    bool hasColors = colors.size() >= dst + 4;
-    std::array<bool, 2> hasLight{};
-    for (size_t set = 0; set < 2; ++set) hasLight[set] = tessellator.mMeshData->mTextureUVs[set + 1]->size() >= dst + 4;
-    // Positions by corner (the face is flat); shading by emitted vertex, as
-    // the quad's two triangles blend it.
-    std::array<float, 4> S{}, T{};
-    for (size_t i = 0; i < 4; ++i) {
-        high[i] = fu[i] > midU;
-        low[i] = fv[i] > midV;
-        S[i] = high[i] ? 1.f : 0.f;
-        T[i] = low[i] ? 1.f : 0.f;
-        corner[(high[i] ? 1 : 0) + (low[i] ? 2 : 0)] = positions[src + i];
-        if (hasColors) cornerColor[i] = colors[src + i];
-        for (size_t set = 0; set < 2; ++set)
-            if (hasLight[set]) cornerLight[set][i] = (*tessellator.mMeshData->mTextureUVs[set + 1])[src + i];
-    }
-    for (size_t i = 0; i < 4; ++i) {
-        size_t v = dst + i;
-        float s = high[i] ? c.s1 : c.s0, t = low[i] ? c.t1 : c.t0;
-        std::array<float, 4> p{(1 - s) * (1 - t), s * (1 - t), (1 - s) * t, s * t};
-        positions[v] = corner[0] * p[0] + corner[1] * p[1] + corner[2] * p[2] + corner[3] * p[3];
-        auto w = triangleWeights(S, T, s, t);
-        if (hasColors) {
-            std::uint32_t out = 0;
-            for (int shift = 0; shift < 32; shift += 8) {
-                float channel = 0;
-                for (size_t k = 0; k < 4; ++k) channel += w[k] * static_cast<float>((cornerColor[k] >> shift) & 0xFFu);
-                out |= static_cast<std::uint32_t>(std::clamp(std::lround(channel), 0L, 255L)) << shift;
-            }
-            colors[v] = out;
-        }
-        for (size_t set = 0; set < 2; ++set)
-            if (hasLight[set]) {
-                auto const& l = cornerLight[set];
-                (*tessellator.mMeshData->mTextureUVs[set + 1])[v] = l[0] * w[0] + l[1] * w[1] + l[2] * w[2] + l[3] * w[3];
-            }
-        uvs[v].x = tex.u0 + du * (high[i] ? c.su1 : c.su0);
-        uvs[v].y = tex.v0 + dv * (low[i] ? c.tv1 : c.tv0);
-    }
-    // Everything else per vertex comes from the first draw as well: a repeat
-    // call need not write the same normal or material data (dark patches on
-    // split faces at night, 2026-10-11).
-    if (dst == src) return;
-    auto& mesh = *tessellator.mMeshData;
-    auto copyFrom = [&](auto& values) {
-        if (values.size() >= dst + 4 && values.size() >= src + 4)
-            for (size_t i = 0; i < 4; ++i) values[dst + i] = values[src + i];
-    };
-    copyFrom(*mesh.mNormals);
-    copyFrom(*mesh.mTangents);
-    copyFrom(*mesh.mBoneId0s);
-    copyFrom(*mesh.mPBRTextureIndices);
-    copyFrom(*mesh.mMERS);
-    copyFrom(*mesh.mGeoType);
-    // The quad info follows too, center included: translucent faces are drawn
-    // sorted by their centers, and a pane's front and back are 2 texels apart,
-    // so cells with their own centers swapped order with the view direction
-    // and blended dark on one half (2026-10-11). Every cell sorts as its face.
-    auto& quads = *tessellator.mQuadInfoList;
-    if (src % 4 == 0 && dst % 4 == 0 && quads.size() > dst / 4 && quads.size() > src / 4) quads[dst / 4] = quads[src / 4];
-}
-// After a block face was drawn once per cell, give each copy its cell; the
-// first copy is the source, so it goes last.
-void shapeCells(Tessellator& tessellator, TextureUVCoordinateSet const& tex, size_t before, std::vector<Cell> const& cells) {
-    TexRect rect{tex._u0, tex._v0, tex._u1, tex._v1};
-    for (size_t k = cells.size(); k-- > 0;) reshape(tessellator, before, before + 4 * k, cells[k], rect);
-}
 #define LAMIUM_CONNECTED_FACE(Name, Function, FaceId)                                                                        \
     LL_TYPE_INSTANCE_HOOK(Name, ll::memory::HookPriority::Normal, BlockTessellator, &BlockTessellator::Function, void,     \
         Tessellator& tessellator, Block const& block, Vec3 const& p, TextureUVCoordinateSet const& tex) {                   \
-        if (current.block != &block) return origin(tessellator, block, p, tex);                                                     if (auto sprite = spriteFace(FaceId, block)) return origin(tessellator, block, p, *sprite);                          \
-        std::vector<Cell> cells;                                                                                            \
-        try { cells = faceCells(FaceId, block); } catch (...) {}                                                            \
-        if (cells.size() > 1) {                                                                                             \
-            size_t before = tessellator.mMeshData->mPositions->size();                                                     \
-            origin(tessellator, block, p, tex);                                                                             \
-            /* Only a plain four-corner face can be split. */                                                               \
-            if (tessellator.mMeshData->mPositions->size() != before + 4) return;                                           \
-            for (size_t k = 1; k < cells.size(); ++k) origin(tessellator, block, p, tex);                                  \
-            try { shapeCells(tessellator, tex, before, cells); } catch (...) {}                                             \
-            return;                                                                                                         \
-        }                                                                                                                   \
+        if (current.block != &block) return origin(tessellator, block, p, tex);                                             \
         TextureUVCoordinateSet copy = tex;                                                                                  \
         try { copy = faceTexture(FaceId, block, tex); } catch (...) {}                                                      \
         origin(tessellator, block, p, copy);                                                                                \
@@ -248,11 +115,10 @@ Parts partsAt(Block const& block, BlockPos at) {
 bool paneAt(Block const& block, int dx, int dz) {
     return &pane.region->getBlock({pane.pos.x + dx, pane.pos.y, pane.pos.z + dz}).getBlockType() == &block.getBlockType();
 }
-// Panes keep vanilla's quads and move the glass texture inward on joined
-// edges (a slight stretch). Drawing them split like glass blocks needed extra
-// quads, and translucent panes then blended dark on the half of each block to
-// the viewer's right (sorting of translucent faces; not found yet, 2026-10-11).
-// Adjusts the quads vanilla just added for this pane (positions from `before`).
+// Panes keep vanilla's quads: each glass quad moves onto the glass sprite for
+// the tile edges it has on joined block edges (an arm shows part of the tile;
+// its joined edge is a tile edge). Adjusts the quads vanilla just added for
+// this pane (positions from `before`).
 void adjustPane(Tessellator& tessellator, Block const& block, size_t before) {
     auto& positions = *tessellator.mMeshData->mPositions;
     auto& uvs = *tessellator.mMeshData->mTextureUVs[0];
@@ -272,7 +138,8 @@ void adjustPane(Tessellator& tessellator, Block const& block, size_t before) {
     auto below = partsAt(block, {pane.pos.x, pane.pos.y - 1, pane.pos.z});
     bool east = paneAt(block, 1, 0), west = paneAt(block, -1, 0), south = paneAt(block, 0, 1), north = paneAt(block, 0, -1);
     auto const& g = pane.glass;
-    float du = (g.u1 - g.u0) / g.width, dv = (g.v1 - g.v0) / g.height;
+    float uLow = std::min(g.u0, g.u1), uHigh = std::max(g.u0, g.u1), vLow = std::min(g.v0, g.v1), vHigh = std::max(g.v0, g.v1);
+    float du = (uHigh - uLow) / g.width, dv = (vHigh - vLow) / g.height;
     constexpr float e = 1e-5f;
     for (size_t q = before; q < after; q += 4) {
         float x0 = 2, x1 = -1, y0 = 2, y1 = -1, z0 = 2, z1 = -1;
@@ -290,19 +157,20 @@ void adjustPane(Tessellator& tessellator, Block const& block, size_t before) {
                 for (size_t i = q + 1; i < q + 4; ++i) positions[i] = positions[q];
             continue;
         }
-        bool glass = uvs[q].x >= std::min(g.u0, g.u1) - e && uvs[q].x <= std::max(g.u0, g.u1) + e
-            && uvs[q].y >= std::min(g.v0, g.v1) - e && uvs[q].y <= std::max(g.v0, g.v1) + e;
+        bool glass = uvs[q].x >= uLow - e && uvs[q].x <= uHigh + e && uvs[q].y >= vLow - e && uvs[q].y <= vHigh + e;
         if (!glass) continue;
-        float uMin = uvs[q].x, uMax = uMin, vMin = uvs[q].y, vMax = vMin;
-        for (size_t i = q; i < q + 4; ++i) {
-            uMin = std::min(uMin, uvs[i].x); uMax = std::max(uMax, uvs[i].x);
-            vMin = std::min(vMin, uvs[i].y); vMax = std::max(vMax, uvs[i].y);
-        }
+        Mask mask = 0;
         for (size_t i = q; i < q + 4; ++i) {
             float x = positions[i].x - bx, y = positions[i].y - by, z = positions[i].z - bz;
             if ((x > 0.99f && east) || (x < 0.01f && west) || (z > 0.99f && south) || (z < 0.01f && north))
-                uvs[i].x = inward(uvs[i].x, uMin, uMax, du);
-            if ((y > 0.9f && above.has(part)) || (y < 0.1f && below.has(part))) uvs[i].y = inward(uvs[i].y, vMin, vMax, dv);
+                mask |= edgeSide(uvs[i].x, uLow, uHigh, du, Left, Right);
+            if ((y > 0.9f && above.has(part)) || (y < 0.1f && below.has(part))) mask |= edgeSide(uvs[i].y, vLow, vHigh, dv, Top, Bottom);
+        }
+        auto moved = sprites::shift(uLow, vLow, mask & ruleSides(glassRule()));
+        if (!moved) continue;
+        for (size_t i = q; i < q + 4; ++i) {
+            uvs[i].x += moved->u;
+            uvs[i].y += moved->v;
         }
     }
 }
@@ -335,17 +203,21 @@ LL_TYPE_INSTANCE_HOOK(ConnectedPaneGlass, ll::memory::HookPriority::Normal, Bloc
 // its last state differs from the switch, and once when first seen while the
 // switch is on: chunks built before that first tick (joining a world) may
 // have missed it, and far ones were only rebuilt when approached (2026-10-11).
+// A new sprite lookup (after the terrain atlas was rebuilt) rebuilds them too.
 // Client thread only.
-std::unordered_map<RenderChunkCoordinator const*, bool> built;
+struct Built { bool on = false; int sprites = 0; };
+std::unordered_map<RenderChunkCoordinator const*, Built> built;
+int spriteVersion = 0;
 LL_TYPE_INSTANCE_HOOK(ConnectedRebuild, ll::memory::HookPriority::Normal, RenderChunkCoordinator,
     &RenderChunkCoordinator::tick, void) {
     origin();
     try {
+        if (sprites::refresh()) ++spriteVersion;
         bool want = wanted();
         active = want;
-        auto [state, first] = built.try_emplace(this, false);
-        if (first ? want : state->second != want) {
-            state->second = want;
+        auto [state, first] = built.try_emplace(this, Built{false, spriteVersion});
+        if (first ? want : (state->second.on != want || (want && state->second.sprites != spriteVersion))) {
+            state->second = {want, spriteVersion};
             _setAllDirty(false, false);
         }
     } catch (...) {}
@@ -359,17 +231,22 @@ Hook hooks[] = {{ConnectedBlock::hook, ConnectedBlock::unhook}, {ConnectedDown::
 }
 bool start() {
     if (installed) return true;
-    // Chunk meshes are version-sensitive: on an unverified game, stay vanilla.
+    // Chunk meshes and the terrain atlas are version-sensitive: on an
+    // unverified game, stay vanilla.
     supported = versionSensitiveAllowed("Connected Textures (chunk mesh vertices)");
     if (!supported) return true;
-#ifdef LAMIUM_CTSPRITE_TRACE
-    sprites::start();
-#endif
     // Chunks built on joining a world already follow the switch.
     try { active = Runtime::instance().snapshot()->visuals.connectedTextures; } catch (...) {}
+    // Sprites are added whenever the game is verified, so the switch only
+    // rebuilds chunks; they must be in place before the terrain atlas is built.
+    if (!sprites::start()) {
+        supported = false;
+        return false;
+    }
     for (auto& hook : hooks)
         if (hook.install(true) != 0) {
             for (auto& undo : hooks) undo.remove(true);
+            sprites::stop();
             supported = false;
             return false;
         }
@@ -380,6 +257,7 @@ void stop() {
     if (!installed) return;
     active = false;
     for (auto& hook : hooks) hook.remove(true);
+    sprites::stop();
     built.clear();
     installed = false;
 }

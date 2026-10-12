@@ -117,12 +117,6 @@ option("shape_trace")
     set_description("Enable bounded local shape world-identity diagnostics")
 option_end()
 
-option("ctsprite_trace")
-    set_default(false)
-    set_showmenu(true)
-    set_description("L-164 spike: one generated glass sprite in the terrain atlas, drawn as one quad")
-option_end()
-
 option("effects_trace")
     set_default(false)
     set_showmenu(true)
@@ -185,7 +179,6 @@ end
 
 target("Lamium")
     if has_config("effects_trace") then add_defines("LAMIUM_EFFECTS_TRACE") end
-    if has_config("ctsprite_trace") then add_defines("LAMIUM_CTSPRITE_TRACE") end
     if has_config("automation_trace") then add_defines("LAMIUM_AUTOMATION_TRACE") end
     if has_config("restock_trace") then add_defines("LAMIUM_RESTOCK_TRACE") end
     if has_config("camera_trace") or has_config("camera_probe") or has_config("camera_position_probe") then add_defines("LAMIUM_CAMERA_TRACE") end

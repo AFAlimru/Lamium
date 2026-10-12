@@ -1,5 +1,5 @@
 #include "features/visuals/ConnectedTextures.h"
-#include <cmath>
+#include <cstdint>
 #include <vector>
 void check(bool, char const*);
 void connectedTexturesTests() {
@@ -16,63 +16,60 @@ void connectedTexturesTests() {
     }
     check(sides(Face::North).top.y == 1 && sides(Face::East).top.y == 1 && sides(Face::Up).top.y == 0,
           "side faces have the block above at their top; horizontal faces stay in their plane");
-    auto near = [](float a, float b) { return std::abs(a - b) < 1e-6f; };
-    Uv glass{0.25f, 0.5f, 0.5f, 0.75f};
-    auto all = trim(glass, 16, 16, {true, true, true, true});
-    check(near(all.u0, 0.25f + 0.25f / 16) && near(all.u1, 0.5f - 0.25f / 16) && near(all.v0, 0.5f + 0.25f / 16)
-              && near(all.v1, 0.75f - 0.25f / 16),
-          "a fully joined face loses one texel on each side");
-    auto none = trim(glass, 16, 16, {});
-    check(none.u0 == glass.u0 && none.u1 == glass.u1 && none.v0 == glass.v0 && none.v1 == glass.v1, "a lone face is unchanged");
-    auto mirrored = trim({0.5f, 0.75f, 0.25f, 0.5f}, 16, 16, {true, false, true, false});
-    check(near(mirrored.u0, 0.5f - 0.25f / 16) && near(mirrored.v0, 0.75f - 0.25f / 16), "a reversed rectangle is cut inward");
-    auto big = trim(glass, 32, 32, {true, false, false, false});
-    check(near(big.u0, 0.25f + 0.25f / 32 * 2), "a 32-pixel texture loses the same share of the face");
     check(ruleFor("minecraft:glass") && !ruleFor("minecraft:glass")->sidesOnly && ruleFor("minecraft:bookshelf")
               && ruleFor("minecraft:bookshelf")->sidesOnly && ruleFor("minecraft:bookshelf")->top == 0
               && ruleFor("minecraft:sandstone")->top == 4 && ruleFor("minecraft:sandstone")->left == 0
               && !ruleFor("minecraft:stone") && !ruleFor("minecraft:chiseled_sandstone"),
           "rules per block");
-    auto shelf = trim(glass, 16, 16, {true, true, true, true}, *ruleFor("minecraft:bookshelf"));
-    check(near(shelf.u0, 0.25f + 0.25f / 16) && near(shelf.v0, 0.5f) && near(shelf.v1, 0.75f), "bookshelves only lose side columns");
-    check(ruleFor("minecraft:sandstone")->split && ruleFor("minecraft:bookshelf")->split && ruleFor("minecraft:glass")->split,
-          "every rule is drawn split");
-    auto lone = splitCells({}, *ruleFor("minecraft:sandstone"));
-    check(lone.size() == 1 && lone[0].s0 == 0 && lone[0].t1 == 1 && lone[0].tv0 == 0 && lone[0].tv1 == 1,
-          "a face with nothing joined stays one cell with its own texels");
-    auto stacked = splitCells({false, false, true, true}, *ruleFor("minecraft:sandstone"));
-    check(stacked.size() == 2 && near(stacked[0].t0, 0) && near(stacked[0].t1, 0.25f) && near(stacked[0].tv0, 0.5f)
-              && near(stacked[0].tv1, 0.75f) && near(stacked[1].t0, 0.25f) && near(stacked[1].t1, 1) && near(stacked[1].tv0, 0.25f)
-              && near(stacked[1].tv1, 1),
-          "under another sandstone the band strip shows rock from the middle, at the same scale");
-    auto glassCells = splitCells({true, false, false, false}, *ruleFor("minecraft:glass"));
-    check(glassCells.size() == 2 && near(glassCells[0].s1, 2 / 16.f) && near(glassCells[0].su0, 7 / 16.f)
-              && near(glassCells[0].su1, 9 / 16.f) && near(glassCells[1].s0, 2 / 16.f) && near(glassCells[1].su0, 2 / 16.f),
-          "glass fills a two-texel strip from the middle, away from the frame");
-    auto framed = splitCells({true, true, true, true}, Rule{1, 1, 1, 1, false, true});
-    check(framed.size() == 9 && near(framed[0].s1, 1 / 16.f) && near(framed[0].su0, 1 / 16.f) && near(framed[0].su1, 2 / 16.f)
-              && near(framed[8].s0, 15 / 16.f) && near(framed[8].su0, 14 / 16.f) && near(framed[8].su1, 15 / 16.f),
-          "a face joined all round becomes nine cells, each the size of what it shows");
-    // A pane arm shows the texture from about its middle (0.53) to its edge;
-    // joined at the edge, only that part's spans remain, relative to the arm.
-    auto arm = clip(spans(false, 2, true, 2, 7, 7), 0.53f, 1.f);
-    check(arm.size() == 2 && near(arm[0].at0, 0) && near(arm[0].from0, 0.53f) && near(arm[1].at1, 1)
-              && near(arm[1].from0, 7 / 16.f) && near(arm[1].from1, 9 / 16.f)
-              && near(arm[1].at0, (14 / 16.f - 0.53f) / 0.47f),
-          "a pane arm keeps the spans on its part of the texture");
-    check(clip(spans(false, 2, false, 2), 0.2f, 0.2f).empty(), "a quad with no width has no spans");
-    // Corners emitted around the square: (0,0) (1,0) (1,1) (0,1); the
-    // diagonal 0-2 splits it.
-    std::array<float, 4> S{0, 1, 1, 0}, T{0, 0, 1, 1};
-    auto atCorner = triangleWeights(S, T, 1, 0);
-    check(near(atCorner[1], 1) && near(atCorner[0] + atCorner[2] + atCorner[3], 0), "a corner takes its own shading");
-    auto onDiagonal = triangleWeights(S, T, 0.5f, 0.5f);
-    check(near(onDiagonal[0], 0.5f) && near(onDiagonal[2], 0.5f) && near(onDiagonal[1], 0) && near(onDiagonal[3], 0),
-          "the middle lies on the drawn diagonal, between its two corners only");
-    auto lower = triangleWeights(S, T, 0.75f, 0.25f), upper = triangleWeights(S, T, 0.25f, 0.75f);
-    check(near(lower[3], 0) && near(upper[1], 0) && near(lower[0] + lower[1] + lower[2], 1), "each half blends only its triangle");
-    for (auto const& cell : framed)
-        check(near(cell.s1 - cell.s0, cell.su1 - cell.su0) && near(cell.t1 - cell.t0, cell.tv1 - cell.tv0), "cells never stretch"); 
+    // Textures that get sprites, by file name.
+    check(ruleForTexture("textures/blocks/glass") && ruleForTexture("textures/blocks/glass_light_blue")
+              && ruleForTexture("textures/blocks/tinted_glass") && ruleForTexture("textures/blocks/bookshelf")
+              && ruleForTexture("textures/blocks/sandstone_normal") && ruleForTexture("textures/blocks/red_sandstone_normal"),
+          "the rule blocks' textures get sprites");
+    check(!ruleForTexture("textures/blocks/glass_pane_top") && !ruleForTexture("textures/blocks/glass_pane_top_red")
+              && !ruleForTexture("textures/blocks/hard_glass") && !ruleForTexture("textures/blocks/sandstone_top")
+              && !ruleForTexture("textures/blocks/chiseled_bookshelf_empty") && !ruleForTexture("textures/blocks/stone"),
+          "pane edges, tops and other textures do not");
+    check(ruleForTexture("textures/blocks/bookshelf")->left == ruleFor("minecraft:bookshelf")->left
+              && ruleForTexture("textures/blocks/sandstone_normal")->top == ruleFor("minecraft:sandstone")->top,
+          "a texture is baked with its block's rule");
+    check(variantMasks(glassRule()).size() == 15 && variantMasks(bookshelfRule()).size() == 3
+              && variantMasks(sandstoneRule()).size() == 1 && variantMasks(sandstoneRule())[0] == Top,
+          "one sprite per joined combination a rule can show");
+    check(spriteName("textures/blocks/glass_red", Left | Top) == "lamium_ct_glass_red_5"
+              && spritePath("textures/blocks/glass", 15) == "textures/blocks/lamium_ct_glass_15"
+              && spriteName("textures/blocks/bookshelf", 0) == "lamium_ct_bookshelf_0",
+          "sprite names carry the file and the joined sides");
+    check(bakeable(16, 16) && bakeable(64, 64) && !bakeable(128, 128) && !bakeable(16, 32) && !bakeable(8, 8),
+          "only square textures up to 64 px get sprites");
+    // Baking: a 16x16 image whose texel is its own column/row number.
+    std::vector<std::uint32_t> image(16 * 16);
+    for (int y = 0; y < 16; ++y)
+        for (int x = 0; x < 16; ++x) image[y * 16 + x] = static_cast<std::uint32_t>(y * 100 + x);
+    auto at = [](std::vector<std::uint32_t> const& pixels, int x, int y) { return pixels[y * 16 + x]; };
+    auto glass = bake(image.data(), 16, 16, glassRule(), Left | Right | Top | Bottom);
+    check(at(glass, 0, 5) == 507 && at(glass, 1, 5) == 508 && at(glass, 14, 5) == 507 && at(glass, 15, 5) == 508
+              && at(glass, 5, 5) == 505,
+          "joined glass refills two texels on each side from the middle (7-8)");
+    check(at(glass, 0, 0) == 707 && at(glass, 15, 15) == 808, "corners take the middle on both axes");
+    auto leftOnly = bake(image.data(), 16, 16, glassRule(), Left);
+    check(at(leftOnly, 0, 0) == 7 && at(leftOnly, 15, 0) == 15 && at(leftOnly, 15, 15) == 1515,
+          "only the joined side changes");
+    auto shelf = bake(image.data(), 16, 16, bookshelfRule(), Left | Right);
+    check(at(shelf, 0, 3) == 301 && at(shelf, 15, 3) == 314 && at(shelf, 1, 3) == 301 && at(shelf, 14, 3) == 314,
+          "bookshelves copy the column next to the dropped one");
+    auto sandstone = bake(image.data(), 16, 16, sandstoneRule(), Top);
+    check(at(sandstone, 4, 0) == 804 && at(sandstone, 4, 3) == 1104 && at(sandstone, 4, 4) == 404,
+          "sandstone under another shows rock rows 8-11 for its band");
+    check(sourceTexel(1, 32, true, 2, 7, false, 0, -1) == 15 && sourceTexel(4, 32, true, 2, 7, false, 0, -1) == 4,
+          "larger textures scale the strips");
+    // Orientation.
+    check(imageMask(true, false, true, false, false, false) == (Left | Top)
+              && imageMask(true, false, true, false, true, true) == (Right | Bottom),
+          "a face whose texture runs backwards joins the image's other side");
+    check(edgeSide(0.25f, 0.25f, 0.5f, 0.25f / 16, Left, Right) == Left && edgeSide(0.5f, 0.25f, 0.5f, 0.25f / 16, Left, Right) == Right
+              && edgeSide(0.375f, 0.25f, 0.5f, 0.25f / 16, Left, Right) == 0,
+          "a pane vertex on a joined edge names the tile edge it shows");
     // Panes (geometry dumped in game 2026-10-11).
     check(connectsPane("minecraft:glass_pane") && connectsPane("minecraft:lime_stained_glass_pane") && !connectsPane("minecraft:glass"),
           "panes take the pane path");
@@ -89,7 +86,4 @@ void connectedTexturesTests() {
     auto straight = partsOf(std::vector<Box>{{0.f, 1.f, 0.438f, 0.562f}});
     check(straight.has(Part::East) && straight.has(Part::West), "a straight pane has both arms");
     check(!Parts{}.has(Part::Center), "no pane, no parts");
-    check(near(inward(0.5f, 0.5f, 0.6f, 0.01f), 0.51f) && near(inward(0.6f, 0.5f, 0.6f, -0.01f), 0.59f)
-              && near(inward(0.55f, 0.5f, 0.6f, 0.01f), 0.55f),
-          "border coordinates move inward, inner ones stay");
 }
