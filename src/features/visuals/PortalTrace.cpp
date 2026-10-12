@@ -21,10 +21,13 @@
 #include "ll/api/memory/Symbol.h"
 #include <format>
 #include <string>
+#include <vector>
 
 namespace lamium::visuals::portalTrace {
 namespace {
 int lines = 0;
+std::vector<std::string> pendingChains;
+void pollChains();
 // Experiment 5 (trace builds only): the client tick of the last
 // handleInsidePortal, to tell "in a portal" by recent contact.
 uint64_t ticks = 0, lastPortalTick = 0;
@@ -222,7 +225,6 @@ LL_TYPE_INSTANCE_HOOK(PortalCraftingScreenValid, ll::memory::HookPriority::Norma
 // with the bytes at each hop, so the function can be read from the game file.
 // Names are bound on first call: until then the chain ends in the binder.
 // Re-read each tick and log once the first hop leads into the game module.
-std::vector<std::string> pendingChains;
 void pollChains() {
     auto base = reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));
     std::erase_if(pendingChains, [&](std::string const& name) {
