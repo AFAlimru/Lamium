@@ -474,7 +474,12 @@ and movable through the existing HUD Layout Editor.
   Japanese font. Changed: icons from a table of the vanilla pack's
   `textures/ui/<name>_effect` by effect id (instant health/damage and
   saturation have none), and infinite effects read "Infinite" / "無期限" /
-  "无限". Unchecked.
+  "无限". Checked in game 2026-10-12 (`c670147`): icons and the word show.
+- Maintainer: levels looked mixed (V, then 11) and the names-off rows did
+  not line up. Decided 2026-10-12: Arabic numerals (level 1 blank) in a
+  column of their own; columns laid out by width with no separators: icon,
+  name (left), level and time (right-aligned); an unused column takes no
+  room; per-line bands span the table. Built, unchecked.
 
 ### L-150 Arrow-count HUD
 Kind: Design (small), then Ready after counting and visibility are agreed.
@@ -539,7 +544,8 @@ Goal: show the arrows available to the player without opening inventory.
   same 4-unit gap before the count as the tools. Maintainer: split armor
   and elytra instead of a gliding row: "Armor" covers helmet, chestplate,
   leggings, boots; "Elytra" (default on) shows a worn elytra at the chest
-  position. Unchecked.
+  position. Checked in game 2026-10-12 (`bc3e830`): same size as the tools,
+  the gap, and the separate switches work.
 
 ### L-146 Layer switches on the world map (with the next integration review)
 Kind: Design. Raised by the maintainer 2026-10-11 before the 0.2.0 release;

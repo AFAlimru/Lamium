@@ -40,16 +40,10 @@ inline std::string timeText(int ticks) {
     if (hours > 0) return std::to_string(hours) + ":" + two(minutes % 60) + ":" + two(seconds % 60);
     return std::to_string(minutes) + ":" + two(seconds % 60);
 }
-// Level I is not written, as in the game; II to X in Roman numerals.
+// Level I is not written; others in Arabic numerals, in a column of their
+// own (Roman to X then numbers looked mixed, maintainer 2026-10-12).
 inline std::string levelText(int amplifier) {
-    static constexpr char const* roman[]{"", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"};
-    if (amplifier <= 0) return {};
-    if (amplifier < 10) return roman[amplifier];
-    return std::to_string(amplifier + 1);
-}
-inline std::string label(Effect const& effect) {
-    auto level = levelText(effect.amplifier);
-    return level.empty() ? effect.name : effect.name + " " + level;
+    return amplifier <= 0 ? std::string{} : std::to_string(amplifier + 1);
 }
 // The vanilla pack's effect icons, textures/ui/<name>_effect, by effect id
 // (MobEffectIds). The effect's own icon name drew nothing (2026-10-12).

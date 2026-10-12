@@ -601,15 +601,22 @@ std::optional<ui::hud_editor::Box> drawStatusEffects(MinecraftUIRenderContext& c
     float icon = 16 * z, gap = 4 * z, timeGap = 8 * z, rowH = 18 * z;
     // Names on: name and level, then the time in its own right-aligned column.
     // Names off: the level before the time.
-    std::vector<std::string> names, times;
-    float nameW = 0, timeW = 0;
+    // Columns laid out by width, no separators: icon, name (left), level and
+    // time (right-aligned). A column nobody uses takes no room.
+    float levelGap = 6 * z;
+    std::vector<std::string> names, levels, times;
+    float nameW = 0, levelW = 0, timeW = 0;
     for (auto const& effect : effects) {
-        names.push_back(settings.effectsNames ? fx::label(effect) : fx::levelText(effect.amplifier));
+        names.push_back(settings.effectsNames ? effect.name : std::string{});
+        levels.push_back(fx::levelText(effect.amplifier));
         times.push_back(fx::infinite(effect) ? ui::translated("effectsInfinite") : fx::timeText(effect.ticks));
         nameW = std::max(nameW, ui::textWidthScaled(context, names.back(), z));
+        levelW = std::max(levelW, ui::textWidthScaled(context, levels.back(), z));
         timeW = std::max(timeW, ui::textWidthScaled(context, times.back(), z));
     }
-    float rowW = icon + gap + (nameW > 0 ? nameW + (settings.effectsNames ? timeGap : gap) : 0) + timeW;
+    float nameX = icon + gap, levelX = nameX + (nameW > 0 ? nameW + levelGap : 0);
+    float timeX = levelX + (levelW > 0 ? levelW + timeGap : 0);
+    float rowW = timeX + timeW;
     float boxW = rowW + 2 * padX, boxH = effects.size() * rowH + 2 * padY;
     auto placement = ui::placeElement(width, height, boxW, boxH, element);
     if (card) ui::card(context, placement.x, placement.y, boxW, boxH, cardOpacity);
@@ -623,14 +630,15 @@ std::optional<ui::hud_editor::Box> drawStatusEffects(MinecraftUIRenderContext& c
         }
         if (auto path = fx::iconPath(effect.id); !path.empty())
             ui::imageUv(context, path, {std::round(x), std::round(y + z), icon, icon}, 0, 0, 1, 1);
-        float tx = x + icon + gap;
-        if (nameW > 0)
-            ui::labelScaled(context, tx, textY, nameW, names[i], z,
-                            settings.effectsNames && effect.harmful ? ui::palette::heart : ui::palette::text,
-                            ui::Align::Left, element.shadow);
+        if (!names[i].empty())
+            ui::labelScaled(context, x + nameX, textY, nameW, names[i], z,
+                            effect.harmful ? ui::palette::heart : ui::palette::text, ui::Align::Left, element.shadow);
+        if (!levels[i].empty())
+            ui::labelScaled(context, x + levelX, textY, levelW, levels[i], z, ui::palette::text, ui::Align::Right,
+                            element.shadow);
         bool warn = settings.effectsWarning && fx::runningOut(effect);
-        ui::labelScaled(context, x + rowW - timeW, textY, timeW, times[i], z, warn ? ui::palette::warning : ui::palette::text,
-                        settings.effectsNames ? ui::Align::Right : ui::Align::Left, element.shadow);
+        ui::labelScaled(context, x + timeX, textY, timeW, times[i], z, warn ? ui::palette::warning : ui::palette::text,
+                        ui::Align::Right, element.shadow);
     }
     context.flushText(0, std::nullopt);
     return ui::hud_editor::Box{placement.x, placement.y, boxW, boxH};

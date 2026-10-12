@@ -19,10 +19,9 @@ void statusEffectsTests() {
     check(runningOut(poison) && runningOut(Effect{1, 199}) && !runningOut(Effect{1, 200}),
           "under 10 seconds is running out");
     check(!runningOut(beacon) && !runningOut(vision), "beacon and infinite effects never look like they run out");
-    check(levelText(0).empty() && levelText(1) == "II" && levelText(4) == "V" && levelText(9) == "X"
+    check(levelText(0).empty() && levelText(-1).empty() && levelText(1) == "2" && levelText(4) == "5"
               && levelText(10) == "11",
-          "levels show from II in Roman numerals, then as numbers");
-    check(label(speed) == "Speed II" && label(poison) == "Poison", "the label adds the level after the name");
+          "levels show from 2 in Arabic numerals; level 1 is blank");
     check(iconPath(1) == "textures/ui/speed_effect" && iconPath(25) == "textures/ui/poison_effect"
               && iconPath(37) == "textures/ui/breath_of_the_nautilus_effect" && iconPath(6).empty() && iconPath(0).empty()
               && iconPath(38).empty(),
