@@ -28,7 +28,8 @@ inline std::vector<std::string_view> inUse(Settings const& s) {
     if (s.interaction.edgeGuard) out.push_back("edgeGuard");
     if (s.visuals.connectedTextures) out.push_back("connectedTextures");
     auto const& v = s.visuals;
-    if (v.hideEffects && (v.hideWater || v.hideLava || v.hidePowderSnow || v.hideDistanceFog || v.hideWeather || v.hideNausea))
+    if (v.hideEffects && (v.hideWater || v.hideLava || v.hidePowderSnow || v.hideDistanceFog || v.hideWeather || v.hideNausea
+                          || v.hidePortal))
         out.push_back("hideEffects");
     if (s.schematic.enabled) out.push_back("schematic");
     return out;

@@ -181,6 +181,7 @@ struct Settings {
         bool hideLava = true;
         bool hidePowderSnow = true;
         bool hideDistanceFog = true;
+        bool hidePortal = true; // The Nether portal's purple screen (L-148)
     } visuals;
     struct Information {
         bool debug = false;

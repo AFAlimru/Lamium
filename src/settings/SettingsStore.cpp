@@ -133,7 +133,8 @@ Json encode(Settings const& settings) {
                      {"hideBossBars", settings.visuals.hideBossBars}, {"hideNausea", settings.visuals.hideNausea},
                      {"hideWater", settings.visuals.hideWater}, {"hideLava", settings.visuals.hideLava},
                      {"hidePowderSnow", settings.visuals.hidePowderSnow},
-                     {"hideDistanceFog", settings.visuals.hideDistanceFog}}},
+                     {"hideDistanceFog", settings.visuals.hideDistanceFog},
+                     {"hidePortal", settings.visuals.hidePortal}}},
         {"overlays", {{"chunkBorders", settings.overlays.chunkBorders}, {"hitboxes", settings.overlays.hitboxes}, {"shapes", settings.overlays.shapes},
                       {"light", settings.overlays.light},
                       {"lightValue", overlay::lightValueNames[static_cast<size_t>(settings.overlays.lightValue)]},
@@ -345,6 +346,7 @@ Settings decodeSettings(std::string_view text) {
         value.visuals.hideLava = visuals.value("hideLava", value.visuals.hideLava);
         value.visuals.hidePowderSnow = visuals.value("hidePowderSnow", value.visuals.hidePowderSnow);
         value.visuals.hideDistanceFog = visuals.value("hideDistanceFog", value.visuals.hideDistanceFog);
+        value.visuals.hidePortal = visuals.value("hidePortal", value.visuals.hidePortal);
     }
     if (data.contains("overlays")) {
         auto const& overlays = data.at("overlays");

@@ -305,6 +305,7 @@ inline constexpr auto options = std::to_array<Option>({
     toggle<&Settings::visuals, &Settings::Visuals::hideLava>("visuals.hideLava", "hideEffects", "hideLava"),
     toggle<&Settings::visuals, &Settings::Visuals::hidePowderSnow>("visuals.hidePowderSnow", "hideEffects", "hidePowderSnow"),
     toggle<&Settings::visuals, &Settings::Visuals::hideDistanceFog>("visuals.hideDistanceFog", "hideEffects", "hideDistanceFog"),
+    toggle<&Settings::visuals, &Settings::Visuals::hidePortal>("visuals.hidePortal", "hideEffects", "hidePortal"),
     toggle<&Settings::interaction, &Settings::Interaction::edgeGuard>("interaction.edgeGuard", "edgeGuard", "edgeGuard"),
     {"interaction.edgeMargin", "edgeGuard", "edgeMargin",
         [](Settings const& s) -> OptionValue { return s.interaction.edgeMargin; },

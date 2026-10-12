@@ -48,6 +48,7 @@ use. A new gate gets its feature there as well.
 | Edge Guard (movement request) | `EdgeGuard.cpp` (movement request and move vector) | vanilla movement | the setting (no effect) |
 | Hide effects (fog and camera medium) | `HideEffects.cpp` `MediumFogVisibility` | water/lava/powder snow fog, distance fog | the other hide effects |
 | Hide effects (weather densities) | `HideEffects.cpp` `WeatherVisibility` | rain and snow drawn | the other hide effects |
+| Hide effects (portal screen) | `HideEffects.cpp` `PortalScreenVisibility` | the purple Nether portal screen | the other hide effects |
 | Hide nausea (overlay mesh) | `HideEffects.cpp` nausea hooks | nausea swirl drawn | the effect icon and the rest |
 | Schematic ghost blocks (block tessellation) | `GhostRenderer.cpp` | no ghost blocks or block actors, no in-world mistake outlines (built with the sections) | frames, the Check list, materials, saving, map marks |
 | Schematic entity models (actor renderers) | `GhostMarks.cpp` | missing entities as dashed frames | everything else |
@@ -291,8 +292,9 @@ Hooks: `EffectSpriteTrace`, `EffectTextTrace`, `EffectCustomTrace`, `EffectFogTr
 Trace.
 
 ### `src/features/visuals/HideEffects.cpp`
-Hooks: `EffectLocalScreen`, `NauseaMeshVisibility`, `NauseaMetadataVisibility`, `BossBarSpriteVisibility`, `BossBarTextVisibility`, `LegacyParticleVisibility`, `DataParticleVisibility`, `RainParticleVisibility`, `RainEffectMapping`, `RainEmitterVisibility`, `MediumFogVisibility`, `WeatherVisibility`
-Meaning: the nausea overlay's material and texture, the boss bar's control
+Hooks: `EffectLocalScreen`, `NauseaMeshVisibility`, `NauseaMetadataVisibility`, `BossBarSpriteVisibility`, `BossBarTextVisibility`, `LegacyParticleVisibility`, `DataParticleVisibility`, `RainParticleVisibility`, `RainEffectMapping`, `RainEmitterVisibility`, `MediumFogVisibility`, `WeatherVisibility`, `PortalScreenVisibility`
+Meaning: the local player's portal effect time (`mPortalEffectTime`, 0 to 1 in
+a portal; the purple screen follows it); the nausea overlay's material and texture, the boss bar's control
 names, particle effect names, the camera medium flags and fog values that
 `setupFog` reads, and the weather density fields. Gated: fog and camera
 medium, weather densities, the nausea mesh.

@@ -126,6 +126,7 @@ inline std::optional<input::Action> optionAction(std::string_view option) {
     if (option == "visuals.hideLava") return input::Action::HideLava;
     if (option == "visuals.hidePowderSnow") return input::Action::HidePowderSnow;
     if (option == "visuals.hideDistanceFog") return input::Action::HideDistanceFog;
+    if (option == "visuals.hidePortal") return input::Action::HidePortal;
     if (option == "interaction.breaking") return input::Action::BreakingRestriction;
     if (option == "interaction.attackMode") return input::Action::CycleAttackMode;
     if (option == "interaction.useMode") return input::Action::CycleUseMode;
@@ -208,6 +209,7 @@ inline std::string_view toggleToastKey(input::Action action) {
     case Action::HideLava: return "toast.hideLava";
     case Action::HidePowderSnow: return "toast.hidePowderSnow";
     case Action::HideDistanceFog: return "toast.hideDistanceFog";
+    case Action::HidePortal: return "toast.hidePortal";
     default: return featureNameKey(input::actions[static_cast<size_t>(action)].feature);
     }
 }

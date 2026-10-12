@@ -410,6 +410,9 @@ includes rain-derived splashes. Particles hides all particles, including rain
 splashes, but does not hide falling precipitation. Other water splashes stay
 visible with only Rain and snow selected. Sound, weather state and particle
 emission/ticking stay vanilla.
+- (Decided 2026-10-12, L-148) "Nether portal screen" is another child, on by
+  default like the others: it removes the purple screen in a Nether portal.
+  The portal transfer, its timing and sounds stay vanilla.
 
 ## Automatic attack and use (Decided 2026-09-25, revised the same day)
 

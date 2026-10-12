@@ -5,6 +5,7 @@
 #include "ll/api/memory/Hook.h"
 #include "ll/api/service/TargetedBedrock.h"
 #include "mc/client/game/ClientInstance.h"
+#include "mc/client/player/LocalPlayer.h"
 #include "mc/client/options/IOptionRegistry.h"
 #include "mc/options/GraphicsMode.h"
 #include "mc/client/gui/controls/SpriteComponent.h"
@@ -48,7 +49,11 @@ bool weatherInstalled = false, legacyInstalled = false, dataInstalled = false;
 bool rainLegacyInstalled = false, rainMappingInstalled = false, rainDataInstalled = false;
 bool bossSpriteInstalled = false, bossTextInstalled = false;
 bool screenInstalled = false, nauseaMeshInstalled = false, nauseaMetadataInstalled = false;
-bool fogInstalled = false;
+bool fogInstalled = false, portalInstalled = false;
+// L-148: the Nether portal's purple screen follows the local player's portal
+// effect time (0 to 1 over about 4 s in a portal). The value is client-only;
+// the transfer is decided elsewhere (checked in game, 2026-10-12).
+std::atomic<bool> portalHidden = false;
 // One log line the first time each effect's draw route is hidden: runtime
 // evidence of which observed route a switch actually reached.
 std::atomic<unsigned> reported{0};
@@ -279,8 +284,18 @@ LL_TYPE_INSTANCE_HOOK(WeatherVisibility, ll::memory::HookPriority::Normal, Level
     return view;
 }
 }
+// Back to 0 after every tick, both the value and the previous one the screen
+// is interpolated from.
+LL_TYPE_INSTANCE_HOOK(PortalScreenVisibility, ll::memory::HookPriority::Normal, LocalPlayer, &LocalPlayer::$normalTick, void) {
+    origin();
+    if (!portalHidden || (mPortalEffectTime == 0.f && mOPortalEffectTime == 0.f)) return;
+    if (!versionSensitiveAllowed("Hide effects (portal screen)")) return;
+    mPortalEffectTime = 0.f;
+    mOPortalEffectTime = 0.f;
+}
 void configure(Settings const& settings) {
     auto const& v = settings.visuals;
+    portalHidden = v.hideEffects && v.hidePortal;
     configured = effectMask(v.hideEffects, EffectSelection{v.hideWeather, v.hideParticles, v.hideBossBars,
         v.hideNausea, v.hideWater, v.hideLava, v.hidePowderSnow, v.hideDistanceFog});
 }
@@ -298,6 +313,7 @@ void start() noexcept {
         if (!nauseaMeshInstalled) nauseaMeshInstalled = NauseaMeshVisibility::hook(true) == 0;
         if (!nauseaMetadataInstalled) nauseaMetadataInstalled = NauseaMetadataVisibility::hook(true) == 0;
         if (!fogInstalled) fogInstalled = MediumFogVisibility::hook(true) == 0;
+        if (!portalInstalled) portalInstalled = PortalScreenVisibility::hook(true) == 0;
         bool weatherReady = weatherInstalled && rainLegacyInstalled && rainMappingInstalled && rainDataInstalled;
         bool nauseaReady = screenInstalled && nauseaMeshInstalled && nauseaMetadataInstalled;
         available = (weatherReady ? weatherBit : 0)
@@ -316,6 +332,7 @@ void stop() {
     available = 0;
     rainEffectName.store(nullptr);
     heldFog = {};
+    if (portalInstalled && PortalScreenVisibility::unhook(true)) portalInstalled = false;
     if (fogInstalled && MediumFogVisibility::unhook(true)) fogInstalled = false;
     if (nauseaMetadataInstalled && NauseaMetadataVisibility::unhook(true)) nauseaMetadataInstalled = false;
     if (nauseaMeshInstalled && NauseaMeshVisibility::unhook(true)) nauseaMeshInstalled = false;

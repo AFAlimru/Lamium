@@ -54,6 +54,7 @@ bool toggleState(IClientInstance& client, Settings const& value, input::Action a
     if (action == input::Action::HideLava) return value.visuals.hideLava;
     if (action == input::Action::HidePowderSnow) return value.visuals.hidePowderSnow;
     if (action == input::Action::HideDistanceFog) return value.visuals.hideDistanceFog;
+    if (action == input::Action::HidePortal) return value.visuals.hidePortal;
     if (action == input::Action::PermanentSneak) return interaction::sneak::armed();
     if (action == input::Action::PermanentSprint) return interaction::sprint::armed();
     if (action == input::Action::Zoom) return CameraSessions::instance().wanted(CameraSessions::Session::Zoom);

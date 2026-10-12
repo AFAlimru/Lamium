@@ -349,6 +349,7 @@ void settingsStoreTests() {
         s.lighting.nightVision = true;
         s.visuals.hideEffects = true;
         s.visuals.hideWater = s.visuals.hideLava = s.visuals.hidePowderSnow = s.visuals.hideDistanceFog = false;
+        s.visuals.hidePortal = false;
         s.visuals.hideWeather = s.visuals.hideNausea = false;
         auto used = lamium::paused::inUse(s);
         check(used.size() == 1 && used[0] == "nightVision", "the join toast names switched-on gated features, not particles alone");

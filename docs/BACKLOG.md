@@ -85,8 +85,8 @@ L-item wins. Every entry names what the task is, not only its number.
    - Paused: L-132 move while the inventory screen is open (research
      paused after eight trial rounds).
    - New design/research candidates imported from the maintainer's notes
-     on 2026-10-12: L-147 Status Effects HUD, L-148 portal overlay hiding,
-     L-149 inventory access in portals and L-150 arrow-count HUD.
+     on 2026-10-12: L-147 Status Effects HUD, L-148 portal overlay hiding (built),
+     L-149 inventory access in portals (parked) and L-150 arrow-count HUD.
      Choose the next item with the maintainer; this list does not approve
      an implementation or set a release target. L-151 to L-154 stay later.
 2. **Schematic — L-93 follow-ups:** the screen review and the 0.1.8
@@ -446,6 +446,10 @@ contact, the time in the portal or dimension transfer.
 - Checks when built: hiding/restoration with child and master, other effects,
   portal entry/exit and dimension transitions, supported graphics modes and
   resource packs. Unsupported routes retain vanilla drawing.
+- Built 2026-10-12: Hide effects child "Nether portal screen" (default on,
+  key unbound); after `LocalPlayer::normalTick` the portal effect time and its
+  previous value go back to 0 (gate "Hide effects (portal screen)"). In-game
+  check of the normal build pending.
 - Leads (SDK, 2026-10-12, unverified): `LocalPlayer::mPortalEffectTime` /
   `mOPortalEffectTime` (likely the overlay's strength), `mEnablePortalEffect`,
   and `LocalPlayer::handleInsidePortal`. Trace build `--portal_trace=y`
@@ -463,84 +467,6 @@ contact, the time in the portal or dimension transfer.
   inventory is still closed on entry and cannot be opened inside. So hiding
   the overlay is feasible this way (a client-only value; writing it needs a
   version gate). The closing is separate (L-149).
-
-### L-149 Allow inventory access in portals
-Kind: Research, with Design if screen behavior choices remain.
-Status: imported from the maintainer's notes on 2026-10-12; not implemented.
-Goal: open and use the ordinary inventory while inside a Nether portal.
-- First reproduce the current restriction and distinguish input suppression,
-  refusal to open, forced closing and server constraints. Screen tracking
-  and inventory controllers are leads, not proof of feasibility.
-- Proposed: an independent Inventory setting, default off. Never fake or
-  alter portal contact, transfer state or packets to bypass server authority.
-  Accept only a local client UI/input change that preserves game semantics.
-- On dimension transfer safely close/discard the old screen and outstanding
-  operations. Do not leave ghost items or stale controller state.
-- Checks when built: local worlds and BDS, opening and keeping the screen,
-  authoritative item movement/swaps/crafting, before/during transfer,
-  return through the portal, disable and restoration after leaving it.
-  Defer if feasibility requires deep invasive hooks or state divergence.
-- 2026-10-12: the L-148 portal trace also logs the top screen around
-  `handleInsidePortal`, to see where and when the inventory is closed.
-- The inventory closed after `handleInsidePortal` returned (still open there)
-  and before the next `normalTick`; zeroing the effect time did not stop it.
-  Next trace: `mEnablePortalEffect` cleared right after `handleInsidePortal`.
-- Result (maintainer, 2026-10-12): still closed on entry and refused inside;
-  transfer time unchanged. At the close the log showed the flag off and
-  "inside" false, so neither drives it. Next trace: `Player::
-  canOpenContainerScreen` logged when it refuses and answered yes for the
-  local player (a likely check for both opening and closing).
-- Result: it was never called in a portal; still closed and refused. Next
-  trace: `SceneStack::_schedulePopScreen` with the caller stack (offsets in
-  the game module, beside the offsets of candidate functions), the
-  inventory key handler and `LocalPlayer::openInventory`.
-- Result (2026-10-12): in a portal the inventory key handler runs but never
-  reaches `LocalPlayer::openInventory` (outside it does), so the refusal is
-  inside `ClientInputCallbacks::handleInventoryButtonPress`. The close comes
-  from a UI tick path (`_schedulePopScreen` via game offsets +22415a0,
-  +4df8519, +4e17616), not from player code; a chat close took another path.
-  Next trace names those offsets against 143 candidate functions (every
-  screen controller `$tick`, `ClientInputCallbacks`, `LocalPlayer`).
-- Naming failed twice: Lamium's game-function pointers and LeviLamina's
-  symbol lookup both return stubs, not game addresses. Next trace follows
-  the stubs and also tries a fix (trace builds only): when the inventory
-  key changes nothing near a portal, call `LocalPlayer::openInventory`; and
-  near a portal refuse `_schedulePopScreen` on the inventory screen unless
-  Esc or E is down.
-- Result (maintainer, 2026-10-12): with the close refused the inventory
-  stays open in the portal and Esc/E still close it, but items cannot be
-  moved; E opened it for an instant and it closed again (the opening E press
-  still counted as the player closing); on transfer it closed; no items lost
-  or duplicated. Naming still failed (only stubs resolved). Next trace: the
-  container model's `isValid` (base and crafting) logged and answered valid
-  near a portal, the likely check behind both the close and the refused
-  moves; E ignored as a close for 500 ms after Lamium opens the screen.
-- Result: the screen stays open (E and entry) and Esc/E close it, but items
-  and the 2x2 crafting still do not move; the model's `isValid` never said
-  no; 466 closes were refused, i.e. the screen kept asking to close every
-  frame. Auto Elytra swapped items in the portal, so the server accepts
-  moves there: the block is client UI. Next trace: the screens' own
-  `_isStillValid` (container and crafting controllers), answered valid near
-  a portal.
-- Result: answering `CraftingScreenController::_isStillValid` valid keeps the
-  inventory open in the portal and items and 2x2 crafting work when it was
-  opened before entering; opened inside with Lamium's direct
-  `openInventory` it stays but items do not move (the server likely never
-  opened it). Read from the game file via the open screen's vtable (slot
-  39, rva 4e18b20): it says no when the player's `InsideBlockComponent`
-  block is one of two block types (rva 1a1fd40; likely Nether and End
-  portal, likely `Actor::isInsidePortal`). Next trace: `Actor::isInsidePortal`
-  answered false for the local player on the client tick thread, with the
-  other workarounds off, to see whether the vanilla E key then opens a
-  usable inventory that stays open.
-- Result (maintainer, 2026-10-12): with only `isInsidePortal` answered
-  false, an inventory opened before entering stays open in the portal and
-  items and 2x2 crafting work; Esc/E close it; transfer still works and
-  closes it; nothing lost or duplicated. The E key inside still opens
-  nothing. Hypothesis: the server opens the inventory (the client's
-  `openInventory` came from another tick path, not the key handler) and
-  refuses while its copy of the player is in the portal. Next trace logs
-  what the client sends after the key, inside and outside a portal.
 
 ### L-150 Arrow-count HUD
 Kind: Design (small), then Ready after counting and visibility are agreed.
