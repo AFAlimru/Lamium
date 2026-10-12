@@ -1,0 +1,379 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Calculator Layout</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Noto+Sans+JP:wght@400;500;700&display=swap">
+<style>
+:root{
+  color-scheme: dark;
+  --ground:#15181a; --ground-2:#1c2124; --line:#2c3337; --ink:#e6ebe8; --ink-2:#a6b0ab; --ink-3:#77827c;
+  --accent:#6cc349; --accent-deep:#3c8527;
+  /* In-game tokens (src/ui/Widgets.h palette). */
+  --mc-panel:16,17,19; --mc-edge:rgba(255,255,255,.14); --mc-hover:rgba(255,255,255,.07);
+  --mc-text:#ffffff; --mc-dim:#b4b8b6; --mc-faint:#7f8583; --mc-key:#2b2c2d; --mc-key-edge:#5a5b5c;
+  --mc-warn:#ffc24a; --mc-on:#3c8527; --mc-on-edge:#6cc349;
+  --mc-font:"DotGothic16","MS Gothic","Osaka-Mono",monospace;
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font:15px/1.65 "Noto Sans JP",system-ui,sans-serif;margin:0}
+.wrap{max-width:1120px;margin:0 auto;padding:28px 16px 64px;display:grid;gap:22px}
+h1{font:700 26px/1.25 "Noto Sans JP",sans-serif;margin:0;text-wrap:balance}
+h2{font:700 18px/1.4 "Noto Sans JP",sans-serif;margin:0 0 8px}
+p{margin:0}
+.lede{color:var(--ink-2);max-width:72ch;margin-top:8px}
+.eyebrow{font:500 12px/1 "Noto Sans JP",sans-serif;letter-spacing:.12em;color:var(--accent);margin-bottom:10px}
+.controls{display:flex;flex-wrap:wrap;gap:14px 28px;align-items:start}
+.cgroup{display:grid;gap:6px}
+.cgroup > span{font-size:12px;color:var(--ink-3);letter-spacing:.04em}
+.seg{display:inline-flex;flex-wrap:wrap;border:1px solid var(--line);background:var(--ground-2);max-width:100%}
+.seg button{all:unset;cursor:pointer;padding:7px 12px;color:var(--ink-2);font:500 13px/1.2 "Noto Sans JP",sans-serif;border-right:1px solid var(--line)}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--accent-deep);color:#fff}
+.seg button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.note{color:var(--ink-2);font-size:14px;max-width:80ch}
+.note b{color:var(--ink)}
+/* ---- Stage: the screen in GUI units (640 x 360), scaled to the page ---- */
+.stage-outer{border:1px solid var(--line);background:linear-gradient(#5b86b8,#8fb3d6 45%,#5f8a3e 46%,#4c6f31);overflow:hidden;position:relative}
+.stage{position:absolute;left:0;top:0;width:640px;height:360px;transform-origin:0 0;font:8px/1 var(--mc-font);color:var(--mc-text);user-select:none}
+.abs{position:absolute}
+.t{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dim{color:var(--mc-dim)} .faint{color:var(--mc-faint)} .warn{color:var(--mc-warn)}
+.card{background:rgba(var(--mc-panel),.88);box-shadow:inset 0 0 0 1px var(--mc-edge)}
+.hline{height:1px;background:var(--mc-edge)}
+.vline{width:1px;background:var(--mc-edge)}
+.field{height:14px;background:rgba(0,0,0,.45);box-shadow:inset 0 0 0 1px var(--mc-on-edge);padding:3px 4px}
+.caret{display:inline-block;width:1px;height:8px;background:#fff;vertical-align:-1px;animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.big{font-size:14px;line-height:1}
+.key{background:var(--mc-key);box-shadow:inset 0 0 0 1px var(--mc-key-edge);text-align:center;color:var(--mc-text);cursor:pointer;display:flex;align-items:center;justify-content:center}
+.key:hover{background:#3b3b3d}
+.key.op{color:#d7f2c9}
+.key.unit{color:#ffd88a}
+.key.var{color:#a9d3ff}
+.key.eq{background:var(--mc-on);box-shadow:inset 0 0 0 1px var(--mc-on-edge)}
+.key.eq:hover{background:#4a9a33}
+.key.fn{color:#e3c4ff}
+.key.on{box-shadow:inset 0 0 0 1px var(--mc-on-edge);background:rgba(108,195,73,.25)}
+.btn{height:12px;background:var(--mc-key);box-shadow:inset 0 0 0 1px var(--mc-key-edge);text-align:center;padding-top:2px;color:var(--mc-text);cursor:pointer}
+.btn:hover{background:#3b3b3d}
+.btn.off{opacity:.4;cursor:default}
+.hcard{background:rgba(255,255,255,.04);box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);cursor:pointer}
+.hcard:hover{background:rgba(255,255,255,.08)}
+.hcard.cur{box-shadow:inset 0 0 0 1px var(--mc-on-edge);background:rgba(108,195,73,.14)}
+.mini{height:10px;padding:1px 3px 0;background:var(--mc-key);box-shadow:inset 0 0 0 1px var(--mc-key-edge);font-size:7px;cursor:pointer}
+.mini:hover{background:#3b3b3d}
+.tip{background:rgba(var(--mc-panel),.97);box-shadow:inset 0 0 0 1px var(--mc-key-edge);padding:2px 4px;white-space:nowrap;color:var(--mc-dim)}
+.help{background:rgba(var(--mc-panel),.98);box-shadow:inset 0 0 0 1px var(--mc-on-edge),0 2px 8px rgba(0,0,0,.6);padding:6px;line-height:10px;color:var(--mc-dim);white-space:normal}
+.help b{color:#fff;font-weight:normal}
+.slot{width:16px;height:16px;background:#8b8b8b;box-shadow:inset 1px 1px 0 #373737,inset -1px -1px 0 #fff}
+.box{border:1px solid var(--line);background:var(--ground-2);padding:14px 18px}
+.box ul{margin:6px 0 0;padding-left:20px}
+.box li{margin:3px 0;color:var(--ink-2)}
+code{font:13px ui-monospace,Consolas,monospace;color:var(--ink)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div>
+    <div class="eyebrow">L-171 · 2026-10-13 · 3 案目</div>
+    <h1>計算機（左右 2 列・ボタン付き）</h1>
+    <p class="lede">2026-10-13 に決めた形：左に入力欄・結果・チェスト換算・コピー・ボタン、右に履歴のカード（下が最新、スクロール、20 件、ゲームを閉じるまで）。ボタンは画面の中で押せる（入力位置に文字が入る）。fn で数字の部分が関数に変わる。履歴のカードはクリックで入力欄に戻り、マウスを乗せるとコピーのボタンが出る。? で使い方が開く。キーボードでも打てる：下の欄をクリックしてから入力し、Enter で計算、上下キーで履歴。</p>
+  </div>
+
+  <div class="controls">
+    <div class="cgroup"><span>言語</span>
+      <div class="seg" id="lang">
+        <button data-v="ja" aria-pressed="true">日本語</button>
+        <button data-v="en" aria-pressed="false">English</button>
+      </div></div>
+    <div class="cgroup"><span>画面</span>
+      <div class="seg" id="size">
+        <button data-v="normal" aria-pressed="true">640 x 360（GUI 単位）</button>
+        <button data-v="small" aria-pressed="false">狭い 480 x 270</button>
+      </div></div>
+  </div>
+
+  <div class="stage-outer" id="outer" tabindex="0"><div class="stage" id="stage"></div></div>
+  <p class="note">ステージをクリックしてからキーボードで打てる（Enter・Backspace・上下キー・Esc で ? を閉じる）。</p>
+
+  <div class="box">
+    <h2>確認したいこと</h2>
+    <ul>
+      <li>全体の大きさ（幅 460、高さ 300）と、左右の配分。狭い画面では、左右の幅を縮めて履歴のカードを短くする（文字は小さくしない）。</li>
+      <li>ボタンの並び（C ⌫ ( ) ÷ ／ 7 8 9 × ^ ／ 4 5 6 − % ／ 1 2 3 + ans ／ 0 . = ／ st ch lc x y z）と、色分け（演算・単位・座標・関数）。</li>
+      <li>fn に切り替えたときの関数の並び（sqrt abs floor ceil round min max nether ow ticks secs と「,」）。関数のボタンは「sqrt(」まで入る。</li>
+      <li>コピーのボタンの名前「値」「式 = 値」「換算」。換算は 64 以上のときだけ押せる。</li>
+      <li>履歴のカードに乗せたときのボタン（値・式・換算）。カードの数は 20（古いものから消える）。</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+const POS = {x:-85, y:71, z:52};
+const state = {lang:'ja', size:'normal', fn:false, help:false, recalled:-1, draft:'', text:'20 lc - 1234', caret:12, hover:-1, tip:null,
+  history:[{e:'27 * 64', r:1728}, {e:'nether(-2380)', r:-297.5}, {e:'4 st + 13', r:269}, {e:'x * y * z', r:-319940}, {e:'3 sb / 7', r:740.571429}, {e:'x', r:-85}, {e:'ticks(90)', r:1800}, {e:'ans / 2', r:900}, {e:'2 lc + 5 st', r:7232}]};
+const T = {
+  ja:{title:'計算機', esc:'Esc: 閉じる', hist:'履歴', copyValue:'値', copyLine:'式 = 値', copyAmount:'換算', st:'スタック', ch:'チェスト',
+      err:'式が途中です', unk:'知らない名前: ', copied:'コピーしました',
+      tips:{st:'1 スタック（64 個）', ch:'チェスト・シュルカーボックス 1 つ分（1,728 個）', lc:'ラージチェスト 1 つ分（3,456 個）', x:'今の X 座標', y:'今の Y 座標', z:'今の Z 座標', ans:'前の結果', fn:'関数のボタンに切り替え', '^':'べき乗', '%':'割った余り', nether:'オーバーワールドの座標をネザーへ（÷8）', ow:'ネザーの座標をオーバーワールドへ（×8）', ticks:'秒を tick に（×20）', secs:'tick を秒に（÷20）'},
+      help:'<b>Enter</b> または <b>=</b>: 計算して履歴に残す<br><b>上下キー</b>: 履歴をさかのぼる<br><b>Ctrl+C</b>: 値をコピー　<b>Ctrl+Shift+C</b>: 式 = 値をコピー<br><b>Esc</b>: 閉じる<br><br><b>単位</b> st = 64　ch・sb = 1,728　lc = 3,456<br><b>変数</b> ans = 前の結果　x y z = 今の座標<br><b>関数</b> sqrt abs floor ceil round min max<br>nether(x) = x÷8　ow(x) = x×8　ticks(秒)　secs(tick)<br><br>入力した内容はチャットやサーバーに送られません。'},
+  en:{title:'Calculator', esc:'Esc: close', hist:'History', copyValue:'Value', copyLine:'Line', copyAmount:'Chests', st:'stack', sts:'stacks', ch:'chest', chs:'chests',
+      err:'Incomplete expression', unk:'Unknown name: ', copied:'Copied',
+      tips:{st:'A stack (64)', ch:'A chest or shulker box (1,728)', lc:'A large chest (3,456)', x:'Your X', y:'Your Y', z:'Your Z', ans:'Last result', fn:'Switch to functions', '^':'Power', '%':'Remainder', nether:'Overworld to Nether (/8)', ow:'Nether to Overworld (x8)', ticks:'Seconds to ticks (x20)', secs:'Ticks to seconds (/20)'},
+      help:'<b>Enter</b> or <b>=</b>: calculate and keep in history<br><b>Up/Down</b>: go back through history<br><b>Ctrl+C</b>: copy value   <b>Ctrl+Shift+C</b>: copy the line<br><b>Esc</b>: close<br><br><b>Units</b> st = 64   ch, sb = 1,728   lc = 3,456<br><b>Variables</b> ans = last result   x y z = your position<br><b>Functions</b> sqrt abs floor ceil round min max<br>nether(x) = x/8   ow(x) = x*8   ticks(s)   secs(t)<br><br>Nothing typed is sent to chat or the server.'},
+};
+const DIGITS = [
+  [['C','clear','op'],['⌫','back','op'],['(','(','op'],[')',')','op'],['÷','/','op']],
+  [['7','7'],['8','8'],['9','9'],['×','*','op'],['^','^','op']],
+  [['4','4'],['5','5'],['6','6'],['−','-','op'],['%','%','op']],
+  [['1','1'],['2','2'],['3','3'],['+','+','op'],['ans','ans','var']],
+  [['0','0'],['.','.'],['=','eq','eq',3]],
+];
+const FUNCS = [
+  [['C','clear','op'],['⌫','back','op'],['(','(','op'],[')',')','op'],[',',', ','op']],
+  [['sqrt','sqrt(','fn'],['abs','abs(','fn'],['round','round(','fn'],['floor','floor(','fn'],['ceil','ceil(','fn']],
+  [['min','min(','fn'],['max','max(','fn'],['nether','nether(','fn'],['ow','ow(','fn'],['^','^','op']],
+  [['ticks','ticks(','fn'],['secs','secs(','fn'],['pi','pi','var'],['+','+','op'],['ans','ans','var']],
+  [['0','0'],['.','.'],['=','eq','eq',3]],
+];
+const BOTTOM = [['st','st','unit'],['ch','ch','unit'],['lc','lc','unit'],['x','x','var'],['y','y','var'],['z','z','var'],['fn','fn','fn']];
+
+function evaluate(src){
+  const toks = []; const re = /\s*(?:(\d+(?:\.\d+)?|\.\d+)|([A-Za-z_]+)|(\S))/y; let m;
+  re.lastIndex = 0;
+  while (re.lastIndex < src.length && (m = re.exec(src))) {
+    if (m[1]) toks.push({k:'n', v:parseFloat(m[1])}); else if (m[2]) toks.push({k:'w', v:m[2].toLowerCase()}); else if (m[3]) toks.push({k:'o', v:m[3]});
+  }
+  let i = 0; const peek = () => toks[i], take = () => toks[i++];
+  const UNITS = {st:64, ch:1728, sb:1728, lc:3456};
+  const FN = {sqrt:Math.sqrt, abs:Math.abs, floor:Math.floor, ceil:Math.ceil, round:Math.round, min:Math.min, max:Math.max, nether:v=>v/8, ow:v=>v*8, ticks:v=>v*20, secs:v=>v/20};
+  function expr(){ let v = term(); while (peek() && peek().k==='o' && '+-'.includes(peek().v)) { const o = take().v, r = term(); v = o==='+' ? v+r : v-r; } return v; }
+  function term(){ let v = power(); while (peek() && peek().k==='o' && '*/%'.includes(peek().v)) { const o = take().v, r = power(); v = o==='*' ? v*r : o==='/' ? v/r : v%r; } return v; }
+  function power(){ const b = unary(); if (peek() && peek().k==='o' && peek().v==='^') { take(); return Math.pow(b, power()); } return b; }
+  function unary(){ if (peek() && peek().k==='o' && peek().v==='-') { take(); return -unary(); } return atom(); }
+  function atom(){
+    const t = take(); if (!t) throw {inc:true};
+    if (t.k==='n') { let v = t.v; if (peek() && peek().k==='w' && UNITS[peek().v]) v *= UNITS[take().v]; return v; }
+    if (t.k==='o' && t.v==='(') { const v = expr(); const c = take(); if (!c || c.v!==')') throw {inc:true}; return v; }
+    if (t.k==='w') {
+      if (UNITS[t.v]) return UNITS[t.v];
+      if (t.v==='pi') return Math.PI;
+      if (t.v==='ans') return state.history.length ? state.history[state.history.length-1].r : 0;
+      if (t.v in POS) return POS[t.v];
+      if (FN[t.v]) { const o = take(); if (!o || o.v!=='(') throw {inc:true}; const args = [expr()];
+        while (peek() && peek().v===',') { take(); args.push(expr()); } const c = take(); if (!c || c.v!==')') throw {inc:true}; return FN[t.v](...args); }
+      throw {unk:t.v};
+    }
+    throw {inc:true};
+  }
+  if (!toks.length) return {empty:true};
+  try { const v = expr(); if (i < toks.length) throw {inc:true}; return isFinite(v) ? {v} : {inc:true}; } catch (e) { return e.unk ? {unk:e.unk} : {inc:true}; }
+}
+const fmt = v => (Math.round(v*1e6)/1e6).toLocaleString('en-US', {maximumFractionDigits:6});
+function amount(v, L){
+  v = Math.round(v*1e6)/1e6;
+  if (!Number.isInteger(v) || Math.abs(v) < 64) return '';
+  const a = Math.abs(v), c = Math.floor(a/1728), st = Math.floor((a%1728)/64), it = a%64, ja = state.lang === 'ja', parts = [];
+  if (c) parts.push(ja ? `${c} ${L.ch}` : `${c} ${c===1?L.ch:L.chs}`);
+  if (st) parts.push(ja ? `${st} ${L.st}` : `${st} ${st===1?L.st:L.sts}`);
+  if (it) parts.push(String(it));
+  return (v < 0 ? '-' : '') + parts.join(' + ');
+}
+function el(cls, x, y, w, h, html, extra){
+  const d = document.createElement('div');
+  d.className = 'abs ' + (cls||'');
+  d.style.left = x+'px'; d.style.top = y+'px';
+  if (w != null) d.style.width = w+'px';
+  if (h != null) d.style.height = h+'px';
+  if (html != null) d.innerHTML = html;
+  if (extra) Object.assign(d.style, extra);
+  return d;
+}
+const esc = s => s.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+let toast = '';
+function copied(){ toast = T[state.lang].copied; render(); setTimeout(() => { toast = ''; render(); }, 900); }
+
+function press(code){
+  if (code === 'clear') { state.text = ''; state.caret = 0; }
+  else if (code === 'back') { if (state.caret > 0) { state.text = state.text.slice(0, state.caret-1) + state.text.slice(state.caret); state.caret--; } }
+  else if (code === 'eq') { enter(); return; }
+  else if (code === 'fn') { state.fn = !state.fn; }
+  else {
+    const spaced = /^[+\-*/%^]$/.test(code) ? ` ${code} ` : (/^(st|ch|lc)$/.test(code) ? ` ${code}` : code);
+    state.text = state.text.slice(0, state.caret) + spaced + state.text.slice(state.caret);
+    state.caret += spaced.length;
+  }
+  state.recalled = -1;
+  render();
+}
+function enter(){
+  const r = evaluate(state.text);
+  if (r.v === undefined) return;
+  const h = state.history;
+  if (!h.length || h[h.length-1].e !== state.text) h.push({e:state.text, r:r.v});
+  while (h.length > 20) h.shift();
+  state.recalled = -1;
+  render();
+}
+function recall(dir){
+  const h = state.history;
+  if (dir < 0 && state.recalled + 1 < h.length) { if (state.recalled < 0) state.draft = state.text; state.recalled++; }
+  else if (dir > 0 && state.recalled >= 0) state.recalled--;
+  else return;
+  state.text = state.recalled >= 0 ? h[h.length-1-state.recalled].e : state.draft;
+  state.caret = state.text.length;
+  render();
+}
+
+function render(){
+  const s = document.getElementById('stage');
+  s.innerHTML = '';
+  const L = T[state.lang];
+  const small = state.size === 'small';
+  const SW = small ? 480 : 640, SH = small ? 270 : 360;
+  s.style.width = SW + 'px'; s.style.height = SH + 'px';
+  const hx = SW/2-91;
+  s.appendChild(el('', hx, SH-24, 182, 22, '', {background:'rgba(0,0,0,.35)', boxShadow:'inset 0 0 0 1px #000'}));
+  for (let k=0;k<9;k++) s.appendChild(el('slot', hx+3+k*20, SH-21, 16, 16));
+
+  const W = small ? 420 : 460, H = small ? 250 : 300;
+  const X = (SW - W)/2, Y = Math.max(4, (SH - H)/2 - (small ? 6 : 14)), pad = 7;
+  const leftW = small ? 196 : 216;
+  s.appendChild(el('card', X, Y, W, H));
+  s.appendChild(el('t', X+pad, Y+6, 120, 9, L.title));
+  const helpBtn = el('btn', X+W-pad-74-16, Y+4, 12, 12, '?');
+  helpBtn.onclick = () => { state.help = !state.help; render(); };
+  s.appendChild(helpBtn);
+  s.appendChild(el('t faint', X+W-pad-70, Y+6, 70, 9, L.esc, {textAlign:'right'}));
+  s.appendChild(el('hline', X, Y+18, W, 1));
+
+  // ---- Left: field, result, copy, keys ----
+  const lx = X + pad;
+  let y = Y + 23;
+  const before = esc(state.text.slice(0, state.caret)), after = esc(state.text.slice(state.caret));
+  s.appendChild(el('field t', lx, y, leftW, 14, before + '<span class="caret"></span>' + after));
+  y += 19;
+  const res = evaluate(state.text), ok = res.v !== undefined, am = ok ? amount(res.v, L) : '';
+  if (ok) s.appendChild(el('t big', lx, y, leftW, 15, '= ' + fmt(res.v)));
+  else if (!res.empty) s.appendChild(el('t warn', lx, y + 3, leftW, 9, res.unk ? L.unk + res.unk : L.err));
+  y += 17;
+  s.appendChild(el('t dim', lx, y, leftW, 9, am || '&nbsp;'));
+  y += 12;
+  const cw = (leftW - 8) / 3;
+  [[L.copyValue, ok], [L.copyLine, ok], [L.copyAmount, !!am]].forEach(([t, on], k) => {
+    const b = el('btn t' + (on ? '' : ' off'), lx + k*(cw+4), y, cw, 12, t);
+    if (on) b.onclick = copied;
+    s.appendChild(b);
+  });
+  y += 18;
+  const grid = state.fn ? FUNCS : DIGITS;
+  const gap = 3, kw = (leftW - 4*gap) / 5, kh = small ? 14 : 18;
+  grid.forEach((row, r) => {
+    let col = 0;
+    row.forEach(([label, code, kind, span]) => {
+      const w = kw * (span || 1) + gap * ((span || 1) - 1);
+      const k = el('key ' + (kind || ''), lx + col*(kw+gap), y + r*(kh+gap), w, kh, label);
+      k.onclick = () => press(code);
+      const tip = L.tips[code.replace('(','')] || L.tips[label];
+      if (tip) { k.onmouseenter = () => { state.tip = {text:tip, x:lx + col*(kw+gap), y:y + r*(kh+gap) - 12}; renderTip(); }; k.onmouseleave = () => { state.tip = null; renderTip(); }; }
+      s.appendChild(k);
+      col += span || 1;
+    });
+  });
+  y += 5*(kh+gap) + 2;
+  const bw = (leftW - 6*gap) / 7;
+  BOTTOM.forEach(([label, code, kind], c) => {
+    const k = el('key ' + kind + (code === 'fn' && state.fn ? ' on' : ''), lx + c*(bw+gap), y, bw, kh, label);
+    k.onclick = () => press(code);
+    const tip = L.tips[code];
+    if (tip) { k.onmouseenter = () => { state.tip = {text:tip, x:lx + c*(bw+gap), y:y - 12}; renderTip(); }; k.onmouseleave = () => { state.tip = null; renderTip(); }; }
+    s.appendChild(k);
+  });
+
+  // ---- Right: history cards ----
+  const rx = X + pad + leftW + 10, rw = W - leftW - 2*pad - 10;
+  s.appendChild(el('vline', rx - 5, Y+19, 1, H-19));
+  s.appendChild(el('t faint', rx, Y+23, rw, 9, `${L.hist}  (${state.history.length}/20)`));
+  const top = Y + 34, bottom = Y + H - 6, ch = 30, cgap = 3;
+  const visible = Math.floor((bottom - top + cgap) / (ch + cgap));
+  const h = state.history;
+  const shown = h.slice(Math.max(0, h.length - visible));
+  const startY = bottom - shown.length * (ch + cgap) + cgap;
+  shown.forEach((line, k) => {
+    const index = h.length - shown.length + k;
+    const cy = startY + k*(ch+cgap);
+    const cur = state.recalled >= 0 && index === h.length - 1 - state.recalled;
+    const card = el('hcard' + (cur ? ' cur' : ''), rx, cy, rw - 5, ch);
+    card.appendChild(el('t dim', 4, 3, rw - 13, 9, esc(line.e)));
+    card.appendChild(el('t', 4, 12, rw - 13, 9, '= ' + fmt(line.r)));
+    const a = amount(line.r, L);
+    card.appendChild(el('t faint', 4, 21, rw - 13, 8, a || '&nbsp;', {fontSize:'7px'}));
+    if (state.hover === index) {
+      [[L.copyValue, true], [L.copyLine, true], [L.copyAmount, !!a]].forEach(([t, on], j) => {
+        const m = el('mini t' + (on ? '' : ' off'), rw - 5 - 4 - (3-j)*30 + 2, 3, 28, 10, t, on ? null : {opacity:.4});
+        if (on) m.onclick = (e) => { e.stopPropagation(); copied(); };
+        card.appendChild(m);
+      });
+    }
+    card.onmouseenter = () => { if (state.hover !== index) { state.hover = index; render(); } };
+    card.onmouseleave = () => { if (state.hover === index) { state.hover = -1; render(); } };
+    card.onclick = () => { state.text = line.e; state.caret = line.e.length; state.recalled = -1; render(); };
+    s.appendChild(card);
+  });
+  // Scrollbar: more history above.
+  if (h.length > visible) {
+    const track = bottom - top, thumb = Math.max(10, track * visible / h.length);
+    s.appendChild(el('', rx + rw - 3, top, 2, track, '', {background:'rgba(255,255,255,.08)'}));
+    s.appendChild(el('', rx + rw - 3, bottom - thumb, 2, thumb, '', {background:'var(--mc-key-edge)'}));
+  }
+  if (state.help) {
+    const box = el('help', rx - 2, Y + 22, rw + 4, H - 28, L.help);
+    box.onclick = () => { state.help = false; render(); };
+    s.appendChild(box);
+  }
+  if (toast) s.appendChild(el('tip', X + W/2 - 40, Y + H + 4, 80, 12, toast, {textAlign:'center', color:'#fff'}));
+  s.appendChild(el('', 0, 0, 0, 0, '', {id:'tiplayer'}));
+  renderTip();
+  fit();
+}
+function renderTip(){
+  const s = document.getElementById('stage');
+  s.querySelectorAll('.tipnow').forEach(n => n.remove());
+  if (state.tip) s.appendChild(el('tip tipnow', state.tip.x, state.tip.y, null, 11, state.tip.text));
+}
+function fit(){
+  const outer = document.getElementById('outer');
+  const stage = document.getElementById('stage');
+  const SW = parseFloat(stage.style.width) || 640, SH = parseFloat(stage.style.height) || 360;
+  const scale = outer.clientWidth / SW;
+  stage.style.transform = `scale(${scale})`;
+  outer.style.height = (SH*scale) + 'px';
+}
+for (const id of ['lang','size']) {
+  document.getElementById(id).addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    state[id] = b.dataset.v;
+    for (const x of e.currentTarget.querySelectorAll('button')) x.setAttribute('aria-pressed', String(x === b));
+    render();
+  });
+}
+const outer = document.getElementById('outer');
+outer.addEventListener('keydown', e => {
+  if (e.key === 'Enter') { enter(); e.preventDefault(); }
+  else if (e.key === 'Backspace') { press('back'); e.preventDefault(); }
+  else if (e.key === 'ArrowUp') { recall(-1); e.preventDefault(); }
+  else if (e.key === 'ArrowDown') { recall(1); e.preventDefault(); }
+  else if (e.key === 'ArrowLeft') { state.caret = Math.max(0, state.caret-1); render(); e.preventDefault(); }
+  else if (e.key === 'ArrowRight') { state.caret = Math.min(state.text.length, state.caret+1); render(); e.preventDefault(); }
+  else if (e.key === 'Escape') { state.help = false; render(); }
+  else if (e.key.length === 1) { state.text = state.text.slice(0, state.caret) + e.key + state.text.slice(state.caret); state.caret++; state.recalled = -1; render(); e.preventDefault(); }
+});
+window.addEventListener('resize', fit);
+render();
+</script>
+</body>
+</html>

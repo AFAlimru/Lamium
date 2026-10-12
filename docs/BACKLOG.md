@@ -428,6 +428,19 @@ value is not enough (the line and the chest amount too); the history lists
 newest first while Up goes back, which reads upside down; only three lines
 are visible; with the chest-side placement moot, the panel can be larger.
 Second mockup: [demos/calculator-v2.html](demos/calculator-v2.html).
+Decided (maintainer 2026-10-13, after that mockup): container screens are
+out of scope (the second step is dropped); make an ordinary, easy
+calculator and use as much of the screen as it needs. Layout 2, two
+columns: left the field, the result with its chest amount, copy buttons
+(value / "expression = value" / chest amount; Ctrl+C value, Ctrl+Shift+C
+the line) and buttons: digits, + - * / ( ) ^ % ans, C, backspace, = (Enter),
+a row of st ch lc and x y z, and "fn" switching the digit block to sqrt abs
+floor ceil round min max nether ow ticks secs; buttons insert at the caret.
+Right the history as cards (expression, = value, chest amount), newest at
+the bottom, scrolled, 20 cards for the session only; a click loads a card,
+hovering shows its copy buttons; Up goes up through them. Help behind a ?
+button, with short tips on the buttons. Third mockup:
+[demos/calculator-v3.html](demos/calculator-v3.html).
 
 ### L-170 Enchantment order planner
 Kind: Design, then Research (strong model). Requested by the maintainer
