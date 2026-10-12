@@ -75,8 +75,10 @@ L-item wins. Every entry names what the task is, not only its number.
      action in search, L-156 dark bookshelves above glass under Vibrant
      Visuals, L-157 intermittently hard-to-see Chunk Borders. Fix/research
      these before new features; L-155 and L-158 done 2026-10-12; L-159
-     Find by key in Hotkeys done; L-160 Edge Guard fails on BDS (new); L-156 is linked to L-133 (same look, split faces,
-     research together; past attempts on L-133 failed).
+     Find by key in Hotkeys done; L-160 Edge Guard on BDS done; L-161
+     Edge Guard refusing slab merges that push the player off built (check
+     pending); L-156 is linked to L-133 (same look, split faces, research
+     together; past attempts on L-133 failed).
    - Bugs: L-123 elytra stretched on the inventory model after FreeCamera
      (parked 2026-10-10 after two rounds); L-91 shield
      glint in Lamium's icons (parked after one round; leather fixed).
@@ -315,52 +317,20 @@ found later are handled as bugs.
 
 ## Bugs
 
-### L-160 Edge Guard lets the player fall on BDS
-Kind: Bug, Research (strong model).
-Status: open. Maintainer's report, 2026-10-12 (0.2.0-era builds): in a
-local world Edge Guard holds the player at edges; on BDS the player stops
-for a moment at the edge, then falls within a second. Expected since L-40:
-the guard shortens the move request in `MoveCollisionSystem` on the client
-(and on the integrated server's copy in a local world, `910d2eb`); a
-dedicated server simulates movement itself from the client's input and
-corrects the client, so the client-only guard is undone.
-Next: confirm with the log/trace on BDS (correction packets after the stop);
-then look for a client-side change the server also honors, such as changing
-the movement input the client sends (the input vector before it is packed
-into the auth-input packet) near an edge, rather than the client's resulting
-speed. Sending real sneak input is not acceptable (L-40: no sneak pose,
-speed loss or network sneak state). Fail open on an unverified version.
-Record the server's movement settings if they are visible.
-Built 2026-10-12, in-game check pending: a second hook on
-`PlayerMovement::calculateMoveVector` (the vector the client simulates and
-sends; move x positive to the left, per L-132) guards the local player's own
-input states on the client thread. Pure `guardInput` (EdgeGuardPlan.h,
-tested against a simulated server) keeps input on an axis only if the feet
-stay supported along the slide that follows when it stops (ordinary friction
-0.546), drops it otherwise, and reverses it when the slide alone would leave.
-Jump input passes. Ice and other slippery blocks slide further than assumed.
-The client-side movement-request guard stays. Test server: official BDS
-1.26.51.1 at C:/Users/kenke/Documents/Lamina/bds-1.26.51.1 (outside the repo;
-local, players are operators, world `lamium-edge`).
-That build stopped locally but still fell on BDS: the trace showed the server
-rebuilding the vector from the sent input state (direction keys, raw and
-analog move), not from the packet's move (VALIDATION-LOG). Next build: when
-the guard changes the vector it also rewrites the local player's input state
-(direction keys cleared, the guarded vector as the analog and raw move). Not
-yet checked; sprinting may end when the forward key is cleared at an edge.
-Checked 2026-10-12 (`68d2211`): stops on BDS and locally; bridging was
-sometimes pulled slightly back. Next build: keep the largest safe share of
-the input instead of dropping it, and brake only as hard as needed.
-Checked (`1870ca1`): no pull back; still fell on BDS after sneaking to an
-edge and letting go (the box only touches the block, which the server treats
-as no support). Next build: the input guard also runs while sneaking and keeps
-0.02 block of overlap; feet only touching an edge step back onto the block;
-the sent analog input undoes sneaking's 0.3 scale. Slab bridging unverified.
-Checked (`c73fc16`): sneak release and slab bridging hold on BDS and locally;
-sliding along a wall into a block corner still fell (box only touching the
-corner, step back blocked by the wall). Next build: the movement-request
-clamp keeps the same margin and runs while sneaking; step back only goes
-where the body is free.
+### L-161 Edge Guard: refuse slab merges that push the player off an edge
+Kind: Bug follow-up of L-160 (strong model). Decided with the maintainer
+2026-10-12 (DESIGN.md, Edge Guard).
+Found on BDS while bridging with slabs: walking with Edge Guard at an edge,
+a slab placed onto the slab the player barely stands on merges into a full
+block in the player's own cell, and the game pushes the player out sideways
+(the shallowest way out), off the edge. Sneaking refuses placements into the
+player's own cell, so vanilla sneaking never hits this.
+Built 2026-10-12, in-game check pending: `GameMode`/`SurvivalMode`
+`useItemOn` hooks refuse a slab when the target cell (the clicked slab through
+its top or bottom face, or the neighbor cell when it holds a slab) overlaps
+the player's box while the box's center lies outside that cell (pure
+`mergePushesOff`, tested). Under the center the merge lifts the player and
+stays allowed. Only while Edge Guard is on and walking (not sneaking).
 
 ### L-156 Low bookshelves above glass become dark under Vibrant Visuals
 Kind: Bug, Research (strong model).

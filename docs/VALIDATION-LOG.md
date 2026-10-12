@@ -12,6 +12,18 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-160 slab merge push-out; vanilla sneak check (2026-10-12)
+
+By the maintainer, trace build of `3c5d202` (DLL `fa261000...b0ea917d`), BDS,
+four slab-bridging falls: each time the player stood on a bottom slab with a
+tiny overlap (e.g. 0.03 block in x, feet 67.5), the cell's shape changed from
+y 67.0..67.5 to 67.0..68.0 (a slab merged into a full block in the player's
+own cell), and the next tick the player moved outward and fell, with no
+server correction. With Edge Guard off and sneaking at the edge, the
+maintainer could not place a slab into their own cell at all (vanilla
+sneaking refuses it), so vanilla sneaking does not hit this. Movement fixes
+of L-160 held in this session; the merge case went to L-161.
+
 ## L-160 slab bridging falls (2026-10-12)
 
 By the maintainer, trace build of `29bf8ad` (DLL `d86012bb...50d47c972`), BDS:

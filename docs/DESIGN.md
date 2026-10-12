@@ -535,6 +535,17 @@ exactly one switch, one mode and one set of keys:
   A sweep also stops if a source count changes before its request runs.
   Mouse release stops gathering slots but lets already visited ones finish.
 
+## Edge Guard (Decided 2026-10-12, L-160/L-161)
+
+- Stops walking off edges like sneaking, without sneaking, also on servers:
+  the move input the server reads is guarded, not only the client's motion.
+- Stops with the box at least 0.02 block over the block, also while sneaking
+  (a box that only touches an edge is no support on a server).
+- A slab that would merge with the slab the player stands on and push them
+  out sideways (their center beside that cell) is not placed; with the
+  center over the cell the merge lifts the player and is allowed.
+- Slippery blocks slide further than the guard expects (known limit).
+
 ## Keys
 
 - (Decided) There is no general default-key policy to design now; defaults are
