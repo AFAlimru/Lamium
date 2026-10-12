@@ -68,6 +68,7 @@ LL_TYPE_INSTANCE_HOOK(PortalTick, ll::memory::HookPriority::Normal, LocalPlayer,
     try { before = screen(); } catch (...) {}
     ++ticks;
     origin();
+    try { if (!pendingChains.empty()) pollChains(); } catch (...) {}
     // Experiment (trace builds only): the effect time back to 0 after each
     // tick. Does the purple overlay go, does the inventory stay open, does
     // the transfer still happen?
@@ -219,6 +220,20 @@ LL_TYPE_INSTANCE_HOOK(PortalCraftingScreenValid, ll::memory::HookPriority::Norma
 }
 // Step 8 (trace builds only): the stub chain from a symbol to the game code,
 // with the bytes at each hop, so the function can be read from the game file.
+// Names are bound on first call: until then the chain ends in the binder.
+// Re-read each tick and log once the first hop leads into the game module.
+std::vector<std::string> pendingChains;
+void pollChains() {
+    auto base = reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));
+    std::erase_if(pendingChains, [&](std::string const& name) {
+        auto* p = static_cast<unsigned char*>(ll::memory::SymbolView{name}.resolve(true));
+        if (!p || p[0] != 0xFF || p[1] != 0x25) return false;
+        auto target = *reinterpret_cast<uintptr_t*>(p + 6 + *reinterpret_cast<int32_t*>(p + 2));
+        if (target < base || target >= base + 0x13000000) return false;
+        log(std::format("bound {} at rva {:x}", name, target - base));
+        return true;
+    });
+}
 void logChain(char const* name) {
     auto base = reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));
     auto* p = static_cast<unsigned char*>(ll::memory::SymbolView{name}.resolve(true));
@@ -243,7 +258,7 @@ void start() {
         for (char const* name : {"?$_isStillValid@CraftingScreenController@@QEBA_NXZ", "?$_isStillValid@ContainerScreenController@@QEBA_NXZ",
                                  "?handleInventoryButtonPress@ClientInputCallbacks@@SAXAEAVIClientInstance@@W4CraftingType@@@Z",
                                  "?$tick@ContainerScreenController@@QEAA?AW4DirtyFlag@ui@@XZ"})
-            logChain(name);
+            logChain(name), pendingChains.emplace_back(name);
     } catch (...) {}
     // Unhooked in this build so the chains above lead to unpatched code.
     // PortalScreenValid::hook(); PortalCraftingScreenValid::hook();
