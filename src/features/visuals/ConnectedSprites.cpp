@@ -19,10 +19,15 @@
 #define STB_IMAGE_WRITE_STATIC
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include <stb_image_write.h>
+#define STB_IMAGE_STATIC
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
+#include <nlohmann/json.hpp>
 #include <algorithm>
 #include <array>
 #include <atomic>
 #include <cmath>
+#include <cstring>
 #include <format>
 #include <memory>
 #include <mutex>
@@ -47,6 +52,10 @@ struct Baked {
     std::vector<Source> sources;
     std::unordered_map<std::string, std::string> png;      // sprite path -> PNG file
     std::unordered_map<std::string, std::string> basePath; // sprite path -> base texture path
+    // Vibrant Visuals: a sprite's texture set, naming the sprite as its color
+    // and the base's MER/normal/height maps baked the same way (L-164,
+    // 2026-10-12: without them sprite faces caught light flatly).
+    std::unordered_map<std::string, std::string> textureSet; // sprite path -> .texture_set.json
 };
 std::mutex mutex;
 Baked baked;                              // guarded by mutex
@@ -88,13 +97,65 @@ std::string encode(std::vector<std::uint32_t> const& pixels, int width, int heig
                            &png, width, height, 4, pixels.data(), width * 4);
     return png;
 }
+std::array<std::string, 4> const imageExtensions{".png", ".tga", ".jpg", ".jpeg"};
+std::array<std::string, 1> const textureSetExtension{".texture_set.json"};
+struct Pixels { std::vector<std::uint32_t> data; int width = 0, height = 0; };
+// A map image named by a texture set, read through the packs like the atlas.
+std::optional<Pixels> readImage(ResourcePackManager& packs, std::string const& path) {
+    std::string bytes;
+    if (!packs.load(ResourceLocation(Core::PathView(path)), bytes, imageExtensions) || bytes.empty()) return std::nullopt;
+    int width = 0, height = 0, channels = 0;
+    auto* decoded = stbi_load_from_memory(reinterpret_cast<stbi_uc const*>(bytes.data()), static_cast<int>(bytes.size()), &width,
+                                          &height, &channels, 4);
+    if (!decoded) return std::nullopt;
+    Pixels out{std::vector<std::uint32_t>(static_cast<size_t>(width) * height), width, height};
+    std::memcpy(out.data.data(), decoded, out.data.size() * 4);
+    stbi_image_free(decoded);
+    return out;
+}
+// Gives every sprite of `source` a texture set derived from the base's, with
+// its maps baked like the color. Without a base texture set nothing is added.
+int bakeTextureSets(ResourcePackManager& packs, Source const& source, Baked& next, bool sample) {
+    std::string text;
+    if (!packs.load(ResourceLocation(Core::PathView(source.path)), text, textureSetExtension) || text.empty()) return 0;
+    if (sample) log(std::format("texture set of {}: {}", source.path, text.substr(0, 240)));
+    auto json = nlohmann::json::parse(text, nullptr, false, true);
+    if (json.is_discarded() || !json.contains("minecraft:texture_set") || !json["minecraft:texture_set"].is_object()) return 0;
+    std::string directory(directoryOf(source.path));
+    auto inDirectory = [&](std::string const& name) { return directory.empty() ? name : directory + "/" + name; };
+    std::unordered_map<std::string, std::optional<Pixels>> maps;
+    int layers = 0;
+    for (auto mask : source.masks) {
+        auto derived = json;
+        auto& set = derived["minecraft:texture_set"];
+        auto name = spriteName(source.path, mask);
+        set["color"] = name;
+        for (auto& [layer, value] : set.items()) {
+            if (layer == "color" || !value.is_string()) continue;
+            auto file = inDirectory(value.get<std::string>());
+            auto [found, fresh] = maps.try_emplace(file);
+            if (fresh) found->second = readImage(packs, file);
+            auto const& image = found->second;
+            if (!image || !bakeable(image->width, image->height)) continue; // keeps the base's map
+            auto layerName = name + "_" + layer;
+            auto layerPath = inDirectory(layerName);
+            next.png[layerPath] = encode(bake(image->data.data(), image->width, image->height, source.rule, mask), image->width,
+                                         image->height);
+            next.basePath[layerPath] = file;
+            value = layerName;
+            ++layers;
+        }
+        next.textureSet[spritePath(source.path, mask)] = derived.dump();
+    }
+    return layers;
+}
 // Bakes the sprites of every covered texture and names them in `copy`.
-void prepare(Json::Value const& root, Json::Value& copy, mce::TextureGroup& group) {
+void prepare(Json::Value const& root, Json::Value& copy, mce::TextureGroup& group, ResourcePackManager& packs) {
     std::set<std::string> paths;
     auto const& data = root["texture_data"];
     for (auto const& name : data.getMemberNames()) textures(data[name], paths);
     Baked next;
-    int skipped = 0;
+    int skipped = 0, layers = 0;
     for (auto const& path : paths) {
         auto rule = ruleForTexture(path);
         if (!rule) continue;
@@ -117,10 +178,12 @@ void prepare(Json::Value const& root, Json::Value& copy, mce::TextureGroup& grou
         // An entry for the base itself: the atlas places a file once, so its
         // place is the tile vanilla faces use (checked against "glass" below).
         copy["texture_data"][spriteName(path, 0)]["textures"] = Json::Value(path);
+        try { layers += bakeTextureSets(packs, source, next, fileName(path) == "bookshelf"); } catch (...) {}
         next.sources.push_back(std::move(source));
     }
-    log(std::format("terrain atlas: {} sprites for {} textures ({} skipped: missing, not RGBA or larger than 64 px)",
-                    next.png.size(), next.sources.size(), skipped));
+    log(std::format("terrain atlas: {} sprites for {} textures, {} texture sets with {} baked maps ({} skipped: missing, "
+                    "not RGBA or larger than 64 px)",
+                    next.png.size() - layers, next.sources.size(), next.textureSet.size(), layers, skipped));
     std::lock_guard lock(mutex);
     baked = std::move(next);
     served.clear();
@@ -136,7 +199,7 @@ LL_TYPE_INSTANCE_HOOK(SpriteAtlas, ll::memory::HookPriority::Normal, TextureAtla
     if (!terrain)
         return origin(root, std::move(status), finished, std::move(group), mip, packs, std::move(outFinal), std::move(outSources));
     Json::Value copy(root);
-    try { prepare(root, copy, *group); } catch (...) {
+    try { prepare(root, copy, *group, packs); } catch (...) {
         log("preparing sprites failed; the atlas is built as vanilla");
         copy = root;
         std::lock_guard lock(mutex);
@@ -153,12 +216,17 @@ std::string const* pngExtension(gsl::span<std::string const> extensions) {
     for (auto const& e : extensions) if (e == ".png") return &e;
     return nullptr;
 }
+std::string const* setExtension(gsl::span<std::string const> extensions) {
+    for (auto const& e : extensions) if (e == ".texture_set.json") return &e;
+    return nullptr;
+}
 std::string withoutPng(std::string path) {
-    if (path.ends_with(".png")) path.resize(path.size() - 4);
+    for (std::string_view end : {std::string_view(".png"), std::string_view(".texture_set.json")})
+        if (path.ends_with(end)) path.resize(path.size() - end.size());
     return path;
 }
-// Image lookups for a sprite answer with its base texture's pack; texture set
-// lookups stay -1, so sprites carry no PBR maps (none needed so far).
+// Lookups for a sprite or a baked map answer with the base file's pack; a
+// texture set is preferred where the caller accepts one, as for vanilla.
 using PackIndex = std::pair<int, std::string_view>;
 LL_TYPE_INSTANCE_HOOK(SpritePackIndex, ll::memory::HookPriority::Normal, ResourcePackManager,
     &ResourcePackManager::$getPackStackIndexOfResource, PackIndex, ResourceLocation const& location,
@@ -166,31 +234,47 @@ LL_TYPE_INSTANCE_HOOK(SpritePackIndex, ll::memory::HookPriority::Normal, Resourc
     auto result = origin(location, extensions);
     if (result.first >= 0) return result;
     auto const* png = pngExtension(extensions);
-    if (!png) return result;
+    auto const* set = setExtension(extensions);
+    if (!png && !set) return result;
     std::string base;
+    bool hasSet = false;
     {
         std::lock_guard lock(mutex);
-        auto found = baked.basePath.find(withoutPng(pathOf(location)));
+        auto path = withoutPng(pathOf(location));
+        auto found = baked.basePath.find(path);
         if (found == baked.basePath.end()) return result;
         base = found->second;
+        hasSet = baked.textureSet.contains(path);
     }
-    auto answer = origin(ResourceLocation(Core::PathView(base)), extensions);
     // The view must outlive the call: point it at the caller's own entry.
-    if (answer.first >= 0) result = {answer.first, std::string_view(*png)};
+    std::string const* matched = set && hasSet ? set : png;
+    if (!matched) return result;
+    auto answer = origin(ResourceLocation(Core::PathView(base)), extensions);
+    if (answer.first >= 0) result = {answer.first, std::string_view(*matched)};
     return result;
 }
 using LoadPair = bool (ResourcePackManager::*)(ResourceLocationPair const&, std::string&, gsl::span<std::string const>) const;
 LL_TYPE_INSTANCE_HOOK(SpritePackLoad, ll::memory::HookPriority::Normal, ResourcePackManager,
     static_cast<LoadPair>(&ResourcePackManager::$load), bool, ResourceLocationPair const& pair, std::string& stream,
     gsl::span<std::string const> extensions) {
-    if (pngExtension(extensions)) {
+    bool png = pngExtension(extensions) != nullptr, set = setExtension(extensions) != nullptr;
+    if (png || set) {
         auto path = withoutPng(pathOf(*pair.mResourceLocation));
         std::lock_guard lock(mutex);
-        auto found = baked.png.find(path);
-        if (found != baked.png.end()) {
-            stream = found->second;
-            served.insert(path);
-            return true;
+        if (set) {
+            auto found = baked.textureSet.find(path);
+            if (found != baked.textureSet.end()) {
+                stream = found->second;
+                return true;
+            }
+        }
+        if (png) {
+            auto found = baked.png.find(path);
+            if (found != baked.png.end()) {
+                stream = found->second;
+                served.insert(path);
+                return true;
+            }
         }
     }
     return origin(pair, stream, extensions);
