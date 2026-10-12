@@ -22,4 +22,38 @@ void edgeGuardTests() {
     check(nx == 0 && nz == 0, "no support anywhere stops horizontal movement");
     auto [bad, badZ] = guardEdge(NAN, 0.1, ground);
     check(std::isnan(bad) && badZ == 0.1, "non-finite input is passed through");
+
+    using lamium::interaction::guardInput, lamium::interaction::worldMove, lamium::interaction::inputMove;
+    auto [fx, fz] = worldMove(0, 1, 0);
+    auto [wx, wz] = worldMove(0, 1, 90);
+    auto [lx, lz] = worldMove(1, 0, 0);
+    check(std::abs(fx) < 1e-9 && std::abs(fz - 1) < 1e-9 && std::abs(wx + 1) < 1e-9 && std::abs(wz) < 1e-9
+          && std::abs(lx - 1) < 1e-9, "forward faces +z at yaw 0 and -x at yaw 90; strafe left is +x at yaw 0");
+    auto [bs, bf] = inputMove(worldMove(.3, -.7, 37).first, worldMove(.3, -.7, 37).second, 37);
+    check(std::abs(bs - .3) < 1e-9 && std::abs(bf + .7) < 1e-9, "input and world directions convert back");
+    constexpr double f = .546, a = .1;
+    // Simulate the server: velocity keeps `f`, input adds `a`; the feet must
+    // never leave the ground while the input walks into the edge.
+    auto walk = [&](double start, double vx, double input, int ticks) {
+        double x = start;
+        for (int t = 0; t < ticks; ++t) {
+            auto at = x;
+            auto [gx, gz] = guardInput(input, 0, vx, 0, a, f, [&](double dx, double) { return 0.2 + at + dx < 1.0; });
+            (void)gz;
+            vx = vx * f + gx * a;
+            x += vx;
+            if (0.2 + x >= 1.0) return x;
+        }
+        return x;
+    };
+    double end = walk(-3, .216, 1, 80);
+    check(0.2 + end < 1.0 && 0.2 + end > .6, "walking into an edge stops on the ground, near the edge");
+    double sprint = walk(-3, .28, 1.3, 80);
+    check(0.2 + sprint < 1.0, "a faster approach still stops on the ground");
+    auto [awayX, awayZ] = guardInput(-1, 0, -.2, 0, a, f, ground);
+    check(awayX == -1 && awayZ == 0, "walking away from the edge keeps the input");
+    auto [alongX, alongZ] = guardInput(1, 1, .2, 0, a, f, [](double dx, double) { return 0.6 + dx < 1.0; });
+    check(alongX <= 0 && alongZ > 0, "walking diagonally at an edge keeps the parallel input");
+    auto [stillX, stillZ] = guardInput(0, 0, 0, 0, a, f, ground);
+    check(stillX == 0 && stillZ == 0, "standing still stays still");
 }

@@ -331,6 +331,17 @@ into the auth-input packet) near an edge, rather than the client's resulting
 speed. Sending real sneak input is not acceptable (L-40: no sneak pose,
 speed loss or network sneak state). Fail open on an unverified version.
 Record the server's movement settings if they are visible.
+Built 2026-10-12, in-game check pending: a second hook on
+`PlayerMovement::calculateMoveVector` (the vector the client simulates and
+sends; move x positive to the left, per L-132) guards the local player's own
+input states on the client thread. Pure `guardInput` (EdgeGuardPlan.h,
+tested against a simulated server) keeps input on an axis only if the feet
+stay supported along the slide that follows when it stops (ordinary friction
+0.546), drops it otherwise, and reverses it when the slide alone would leave.
+Jump input passes. Ice and other slippery blocks slide further than assumed.
+The client-side movement-request guard stays. Test server: official BDS
+1.26.51.1 at C:/Users/kenke/Documents/Lamina/bds-1.26.51.1 (outside the repo;
+local, players are operators, world `lamium-edge`).
 
 ### L-156 Low bookshelves above glass become dark under Vibrant Visuals
 Kind: Bug, Research (strong model).

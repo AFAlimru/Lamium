@@ -45,7 +45,7 @@ use. A new gate gets its feature there as well.
 | FreeCamera terrain (native culler request) | `FreeCameraCulling.cpp` | underground terrain hidden as vanilla culls it | FreeCamera itself |
 | Connected Textures (chunk mesh vertices) | `ConnectedTexturesHooks.cpp` | glass with borders | the setting (no effect) |
 | Night Vision (light texture data) | `NightVision.cpp` | vanilla light | the key and setting (no effect) |
-| Edge Guard (movement request) | `EdgeGuard.cpp` | vanilla movement | the setting (no effect) |
+| Edge Guard (movement request) | `EdgeGuard.cpp` (movement request and move vector) | vanilla movement | the setting (no effect) |
 | Hide effects (fog and camera medium) | `HideEffects.cpp` `MediumFogVisibility` | water/lava/powder snow fog, distance fog | the other hide effects |
 | Hide effects (weather densities) | `HideEffects.cpp` `WeatherVisibility` | rain and snow drawn | the other hide effects |
 | Hide nausea (overlay mesh) | `HideEffects.cpp` nausea hooks | nausea swirl drawn | the effect icon and the rest |
@@ -151,9 +151,11 @@ Hooks: `FinishBreak`, `StopBreak`, `ChangeDimension`
 Meaning: breaking goes through `GameMode::destroyBlock` once per block.
 
 ### `src/features/interaction/EdgeGuard.cpp`
-Hooks: `EdgeGuardHook`
+Hooks: `EdgeGuardHook`, `EdgeGuardInputHook`
 Meaning: the movement request's fields and collision shapes in
-`fetchCollisionShapes`. Gated (Edge Guard).
+`fetchCollisionShapes`; `PlayerMovement::calculateMoveVector` giving the move
+vector the client both simulates and sends (move x positive to the left), called
+with the local player's own input states. Gated (Edge Guard).
 
 ### `src/features/interaction/InventoryMoveTrace.cpp`
 Hooks: `InventoryMoveExtract`, `InventoryMoveClear`, `InventoryMoveLocks`, `InventoryMoveCalc`, `InventoryMoveUpdate`, `InventoryMoveSend`, `InventoryMoveCorrection`, `InventoryMoveAbsorb`, `InventoryMoveMapping`
