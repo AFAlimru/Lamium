@@ -22,6 +22,15 @@
 #include "mc/world/level/BlockSource.h"
 #include "mc/world/phys/AABB.h"
 #include <cmath>
+#ifdef LAMIUM_EDGE_TRACE
+#include "mc/client/network/ClientNetworkHandler.h"
+#include "mc/network/LoopbackPacketSender.h"
+#include "mc/network/MinecraftPacketIds.h"
+#include "mc/network/packet/CorrectPlayerMovePredictionPacket.h"
+#include "mc/network/packet/PlayerAuthInputPacket.h"
+#include <format>
+#include <string>
+#endif
 #include <atomic>
 #include <stdexcept>
 #include <thread>
@@ -41,6 +50,32 @@ bool reportedInput = false;
 // A local world's server computes move vectors on its own thread; only the
 // client's are guarded there, and client state is read only on its thread.
 std::atomic<std::thread::id> clientThread;
+#ifdef LAMIUM_EDGE_TRACE
+// L-160 trace: bounded lines while the guard is acting (and shortly after).
+int traceLines = 0, traceQuiet = 1000;
+void trace(std::string const& text) {
+    if (traceLines >= 600) return;
+    ++traceLines;
+    Runtime::instance().self().getLogger().info("L-160 {}", text);
+}
+char const* stateName(MoveInputState const& state, LocalPlayer& player) {
+    auto& context = player.getEntityContext();
+    auto raw = context.tryGetComponent<RawMoveInputComponent>();
+    auto input = context.tryGetComponent<MoveInputComponent>();
+    if (raw && &state == &*raw->mRawInput) return "raw";
+    if (input && &state == &*input->mInputState) return "input";
+    if (input && &state == &*input->mRawInputState) return "inputRaw";
+    return "other";
+}
+std::string flagText(MoveInputState const& state) {
+    using F = MoveInputState::Flag;
+    std::string out;
+    for (auto [flag, name] : {std::pair{F::Up, "U"}, {F::Down, "D"}, {F::Left, "L"}, {F::Right, "R"}, {F::UpLeft, "UL"},
+                              {F::UpRight, "UR"}, {F::JumpDown, "J"}, {F::SprintDown, "S"}})
+        if (state.mFlagValues->test(static_cast<size_t>(flag))) { out += name; out += ' '; }
+    return out;
+}
+#endif
 
 bool isLocal(StrictEntityContext const& entity, LocalPlayer& player) {
     auto const& own = player.getEntityContext();
@@ -96,6 +131,27 @@ void guard(StrictEntityContext const& entity, AABBShapeComponent const& shape, M
 // (sent and simulated alike). Only the local player's own states are touched.
 void guardMoveVector(MoveInputState const& state, Vec2& move) {
     if (std::this_thread::get_id() != clientThread.load() || (move.x == 0 && move.z == 0)) return;
+#ifdef LAMIUM_EDGE_TRACE
+    Vec2 before = move;
+    struct Report {
+        MoveInputState const& state; Vec2 const& before; Vec2& move;
+        ~Report() {
+            try {
+                auto client = ll::service::getClientInstance();
+                auto* player = client ? client->getLocalPlayer() : nullptr;
+                if (!player) return;
+                bool changed = before.x != move.x || before.z != move.z;
+                if (changed) traceQuiet = 0;
+                if (traceQuiet > 40) return;
+                auto const& pos = player->getPosition();
+                auto const& delta = player->getPosDelta();
+                trace(std::format("calc {} flags [{}] analog {:.2f},{:.2f} move {:.2f},{:.2f} -> {:.2f},{:.2f} pos {:.3f},{:.3f} v {:.3f},{:.3f} ground {}",
+                    stateName(state, *player), flagText(state), state.mAnalogMoveVector->x, state.mAnalogMoveVector->z,
+                    before.x, before.z, move.x, move.z, pos.x, pos.z, delta.x, delta.z, player->isOnGround()));
+            } catch (...) {}
+        }
+    } report{state, before, move};
+#endif
     auto& runtime = Runtime::instance();
     if (!runtime.enabled() || !runtime.snapshot()->interaction.edgeGuard) return;
     auto client = ll::service::getClientInstance();
@@ -159,8 +215,46 @@ LL_STATIC_HOOK(EdgeGuardHook, ll::memory::HookPriority::Normal, &MoveCollisionSy
         region, fetcher, collisionShape, tempCollisionShapes, scratchCollisionShapes, tempShapes);
 }
 }
+#ifdef LAMIUM_EDGE_TRACE
+using AuthInput = PlayerAuthInputPacketPayload::InputData;
+LL_TYPE_INSTANCE_HOOK(EdgeTraceSend, ll::memory::HookPriority::Normal, LoopbackPacketSender,
+    &LoopbackPacketSender::$sendToServer, void, Packet& packet) {
+    try {
+        if (packet.getId() == MinecraftPacketIds::PlayerAuthInputPacket && traceQuiet <= 40) {
+            ++traceQuiet;
+            auto& auth = static_cast<PlayerAuthInputPacket&>(packet);
+            auto& data = *auth.mInputData;
+            std::string flags;
+            for (auto [flag, name] : {std::pair{AuthInput::Up, "U"}, {AuthInput::Down, "D"}, {AuthInput::Left, "L"},
+                                      {AuthInput::Right, "R"}, {AuthInput::UpLeft, "UL"}, {AuthInput::UpRight, "UR"},
+                                      {AuthInput::Sprinting, "S"}, {AuthInput::Sneaking, "Sn"}, {AuthInput::HorizontalCollision, "HC"}})
+                if (data.contains(flag)) { flags += name; flags += ' '; }
+            trace(std::format("send move {:.2f},{:.2f} raw {:.2f},{:.2f} analog {:.2f},{:.2f} pos {:.3f},{:.3f},{:.3f} delta {:.3f},{:.3f} flags [{}]",
+                auth.mMove->x, auth.mMove->z, auth.mRawMoveVector->x, auth.mRawMoveVector->z, auth.mAnalogMoveVector->x,
+                auth.mAnalogMoveVector->z, auth.mPos->x, auth.mPos->y, auth.mPos->z, auth.mPosDelta->x, auth.mPosDelta->z, flags));
+        }
+    } catch (...) {}
+    origin(packet);
+}
+LL_TYPE_INSTANCE_HOOK(EdgeTraceCorrection, ll::memory::HookPriority::Normal, ClientNetworkHandler,
+    static_cast<void (ClientNetworkHandler::*)(NetworkIdentifier const&, CorrectPlayerMovePredictionPacket const&)>(
+        &ClientNetworkHandler::$handle),
+    void, NetworkIdentifier const& source, CorrectPlayerMovePredictionPacket const& packet) {
+    try {
+        if (traceQuiet <= 80)
+            trace(std::format("correction pos {:.3f},{:.3f},{:.3f} delta {:.3f},{:.3f},{:.3f} ground {}", packet.mPos->x,
+                packet.mPos->y, packet.mPos->z, packet.mPosDelta->x, packet.mPosDelta->y, packet.mPosDelta->z, static_cast<bool>(packet.mOnGround)));
+    } catch (...) {}
+    origin(source, packet);
+}
+#endif
 void start() {
     if (installed) return;
+#ifdef LAMIUM_EDGE_TRACE
+    EdgeTraceSend::hook();
+    EdgeTraceCorrection::hook();
+    Runtime::instance().self().getLogger().warn("Edge Guard diagnostics enabled (L-160)");
+#endif
     ll::thread::ClientThreadExecutor::getDefault().execute([] { clientThread.store(std::this_thread::get_id()); });
     if (EdgeGuardHook::hook(true) != 0) throw std::runtime_error("Could not install the edge guard hook");
     if (EdgeGuardInputHook::hook(true) != 0) {

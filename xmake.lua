@@ -57,6 +57,12 @@ option("unverified_game")
     set_description("L-137 test build: treat the game as unverified so every version-sensitive path stays vanilla")
 option_end()
 
+option("edge_trace")
+    set_default(false)
+    set_showmenu(true)
+    set_description("Log Edge Guard's move vectors, sent auth input and server corrections (L-160)")
+option_end()
+
 option("inventorymove_trace")
     set_default(false)
     set_showmenu(true)
@@ -187,6 +193,7 @@ target("Lamium")
     if has_config("trade_trace") then add_defines("LAMIUM_TRADE_TRACE") end
     if has_config("playerlist_trace") then add_defines("LAMIUM_PLAYERLIST_TRACE") end
     if has_config("inventorymove_trace") then add_defines("LAMIUM_INVENTORYMOVE_TRACE") end
+    if has_config("edge_trace") then add_defines("LAMIUM_EDGE_TRACE") end
     if has_config("feature_skip") then add_defines("LAMIUM_FEATURE_SKIP") end
     if has_config("unverified_game") then add_defines("LAMIUM_UNVERIFIED_GAME") end
     add_rules("@levibuildscript/linkrule")
