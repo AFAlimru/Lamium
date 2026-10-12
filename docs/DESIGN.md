@@ -140,6 +140,12 @@ at most 640×380 and centered. New screens reuse these numbers.
   Labels with `shadow` false draw no copy at all.
 - Labels with a value use one translation string with `{}`
   ("Radius: {}"), split by `splitLabel` for table display.
+- (Decided 2026-10-12) Feature names and action labels may remain separate:
+  commands need wording that describes their operation, and a child label may
+  be shorter than its standalone Hotkeys name. Accidental naming drift and
+  missing action translations need systemic prevention (BACKLOG L-158), not
+  removal of this distinction. Search and display should resolve the same
+  intended label for a given context; additional search aliases remain valid.
 
 ## HUD (Decided — see [demos/hud-editor.html](demos/hud-editor.html))
 

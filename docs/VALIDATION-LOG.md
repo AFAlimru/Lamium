@@ -12,6 +12,42 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## 0.2.0 actual-play bug reports: L-155, L-156, L-157 (2026-10-12)
+
+Reported by the maintainer with three screenshot attachments, all on the
+latest Lamium 0.2.0. The repository's `v0.2.0` tag is
+`b8fa42994e9c95b9684d8675c0e1b4f951731577`; the release checkpoint names
+build source `6f77159` and release-ZIP DLL digest `71db2f0f...ae49c`.
+The installed DLL's SHA-256, exact Minecraft/loader versions, trace options,
+resource packs and local/server context were not supplied for these reports.
+Do not substitute the release checkpoint digest for the reported DLL's hash.
+
+- L-155: searching settings for `connected` displayed
+  `key.Lamium.connectedtextures` literally. Attachment:
+  `スクリーンショット 2026-10-12 013700.png`. Static source inspection
+  confirms the action ID exists and its action translation key is absent
+  from the English/Japanese and Simplified Chinese tables.
+- L-156: with Vibrant Visuals enabled and glass below, lower bookshelves
+  became dark. Attachment: `スクリーンショット 2026-10-12 014000.png`.
+  The maintainer compared the look with the existing darkening issue
+  (L-133); a common cause is not established. No same-scene Connected
+  Textures on/off or other-graphics comparison was reported.
+- L-157: Chunk Borders were sometimes hard to see. Attachment:
+  `スクリーンショット 2026-10-12 015458.png`. Lines are visible, with some
+  much less distinct over terrain than sky. Trigger and graphics mode were
+  not specified; no agent runtime reproduction or cause is established.
+
+Follow-up from the maintainer the same day:
+- L-156: compared Connected Textures on and off; the dark vertical bands on
+  bookshelf walls appear only with Vibrant Visuals and Connected Textures
+  both on. Not seen with Connected Textures off under Vibrant Visuals, nor
+  with Connected Textures on in the other graphics mode checked.
+- L-157: the screenshot was taken under Fancy graphics, at night; other
+  video settings were not checked.
+
+These are observed failures, not successful regression checks. No fixes,
+new DLL, post-fix validation or additional server coverage in this entry.
+
 ## Paused features shown to players (2026-10-11)
 
 By the maintainer, local, `--unverified_game=y` builds. `1da4316` (DLL

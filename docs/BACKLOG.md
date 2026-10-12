@@ -71,11 +71,20 @@ L-item wins. Every entry names what the task is, not only its number.
 
 1. **Small and medium features and fixes** (maintainer 2026-10-10: these
    come before large features and L-111 integration for now):
+   - New 0.2.0 reports (2026-10-12): L-155 untranslated Connected Textures
+     action in search, L-156 dark bookshelves above glass under Vibrant
+     Visuals, L-157 intermittently hard-to-see Chunk Borders. Fix/research
+     these before new features; L-156's relation to L-133 is unconfirmed.
    - Bugs: L-123 elytra stretched on the inventory model after FreeCamera
      (parked 2026-10-10 after two rounds); L-91 shield
      glint in Lamium's icons (parked after one round; leather fixed).
    - Paused: L-132 move while the inventory screen is open (research
      paused after eight trial rounds).
+   - New design/research candidates imported from the maintainer's notes
+     on 2026-10-12: L-147 Status Effects HUD, L-148 portal overlay hiding,
+     L-149 inventory access in portals and L-150 arrow-count HUD.
+     Choose the next item with the maintainer; this list does not approve
+     an implementation or set a release target. L-151 to L-154 stay later.
 2. **Schematic — L-93 follow-ups:** the screen review and the 0.1.8
    rendering work shipped in 0.1.8. Open: L-114 the Check tab preview's
    mistake look and see-through emphasis, L-115 entity models beyond the
@@ -115,9 +124,10 @@ L-item wins. Every entry names what the task is, not only its number.
    on 2026-10-11; server checks stay listed below as known gaps (Release policy does not require a full
    regression).
 
-Ideas that are not yet chosen (for example more inventory transfer gestures,
-an arrow-count HUD line, a fall-rescue elytra, Mass Craft) stay
-in the maintainer's notes and enter this file once chosen.
+Ideas that are not yet chosen (for example a fall-rescue elytra and
+Mass Craft) stay in the maintainer's notes and enter
+this file once chosen. The candidates imported on 2026-10-12 are now
+tracked here for design/research; their open choices remain open.
 Mass Craft ranks below Map because resource packs already cover part of it.
 
 Task-picking rule: bugs first; otherwise work on what the execution order
@@ -303,6 +313,65 @@ found later are handled as bugs.
 
 ## Bugs
 
+### L-155 Connected Textures action shows its translation key in search
+Kind: Bug, Ready (small).
+Status: open. Maintainer's actual-play report, 2026-10-12, Lamium 0.2.0.
+Reproduction: search settings for `connected`; an action row displays
+`key.Lamium.connectedtextures` instead of a translated label. Screenshot:
+`スクリーンショット 2026-10-12 013700.png` (report attachment).
+Static check: Binding.h declares action ID `connectedtextures`;
+SettingsRows.h forms its `key.Lamium.` translation key, but that exact key
+is absent from Translations.h and TranslationsZhCN.h. The translated feature
+name is present, which does not cover the action label.
+Next: add the English/Japanese/Simplified Chinese action label in matching
+table order; check all registered actions for the same omission and extend
+translation coverage tests if needed. Keep saved action IDs unchanged.
+When built, verify search and Hotkeys in all three languages, with and
+without a binding; labels must show words rather than raw translation keys.
+No fix or post-fix runtime check yet.
+The immediate missing-label fix stays here; L-158 owns systemic prevention.
+
+### L-156 Low bookshelves above glass become dark under Vibrant Visuals
+Kind: Bug, Research (strong model).
+Status: open. Maintainer's actual-play report, 2026-10-12, Lamium 0.2.0.
+Reported conditions: Vibrant Visuals enabled, glass below, lower bookshelves
+become dark. Screenshot: `スクリーンショット 2026-10-12 014000.png`
+(report attachment), showing dark vertical areas in the bookshelf faces.
+The maintainer says the appearance closely resembles the existing darkening
+issue (L-133). This is a comparison of symptoms, not evidence of a shared
+cause. L-133 concerns split translucent panes; bookshelves also use split
+Connected Textures geometry but are a separate reproduction.
+Maintainer follow-up, 2026-10-12: Connected Textures on/off compared; the
+dark vertical bands appear only with Vibrant Visuals and Connected Textures
+both on, so Lamium's split bookshelf geometry is implicated under Vibrant
+Visuals (shadows/normals of the split faces are the first suspects).
+Next: glass present/absent, bookshelf height/view direction, time of day
+(sun shadow direction), and sandstone (also split) under the same setup. Record
+lighting, Night Vision and resource packs. Separate vanilla lighting from
+Lamium tessellation or renderer-state effects before changing the path.
+Do not treat old pane experiments as a proven fix or cause for this report.
+Keep investigation bounded; native render changes must fail open.
+Exact reproduction, affected extent and cause remain unverified by an agent;
+no fix or post-fix runtime check yet.
+
+### L-157 Chunk Borders are intermittently hard to see
+Kind: Bug, Research; Design only if a visibility policy change is needed.
+Status: open. Maintainer's actual-play report, 2026-10-12, Lamium 0.2.0.
+Reported symptom: Chunk Borders sometimes become difficult to see.
+Screenshot: `スクリーンショット 2026-10-12 015458.png` (report attachment).
+Lines remain visible in the image; some are much less distinct against
+terrain than against the sky. The report does not establish missing geometry,
+a change from earlier releases, or the trigger. Maintainer follow-up,
+2026-10-12: taken under Fancy graphics at night; other video settings not
+checked.
+Next: compare the same scene/view with different lighting and graphics
+modes, camera distance and direction, near/behind terrain, and other overlay
+combinations. Inspect the shared line material/depth path in WorldOverlay
+and record whether geometry, depth, color/alpha or contrast is responsible.
+Preserve existing colors and grid structure until evidence justifies a
+change. Check Chunk Borders and Hitboxes together if shared rendering changes.
+See OVERLAYS.md for the current contract. No fix or post-fix check yet.
+
 ### L-123 FreeCamera stretches the worn elytra on the inventory player model
 Kind: Bug, low priority. Reported from use 2026-10-09 (maintainer's notes).
 Parked 2026-10-10 (maintainer) after two culling rounds; resume from the next ideas below.
@@ -342,6 +411,74 @@ type 3, scale 1.333, with the font's own material).
 ---
 
 ## Feature work and research
+
+### L-147 Status Effects HUD
+Kind: Design, with Research for native data and vanilla HUD visibility.
+Status: imported from the maintainer's notes on 2026-10-12; not implemented.
+Goal: make active effect names, levels and remaining time readable in play
+and movable through the existing HUD Layout Editor.
+- Proposed: replace only vanilla effect HUD drawing with a compact list of
+  vanilla icons, names, levels and M:SS times. An icons-and-time style is an
+  alternative; infinite effects and short-time warning presentation need a
+  design decision. Do not change effect application or time progression.
+- Reuse the editor's anchors, dragging, scale, background, shadow and saved
+  layout. Show sample effects when editing without active effects. Append
+  a new HUD element ID; never reorder existing IDs.
+- Research safe local-player effect enumeration, amplifier, remaining ticks
+  and infinite duration, then suppression of only the vanilla effect HUD.
+  `mob_effects_renderer` is an investigation lead, not a verified hook.
+  Leave vanilla visible if data or the replacement path cannot be verified.
+- Open: default switch, initial position, list versus icons, ordering,
+  overflow, long names and refresh behavior on effect renewal. Review a
+  mockup before implementation; keep the first version small.
+- Checks when built: all three languages, GUI scales, Desktop/Pocket UI,
+  editor preview/save, F1, Debug View, inventory screens, renewal/removal,
+  world/dimension exit, resource packs and servers. No runtime evidence yet.
+
+### L-148 Hide the Nether portal overlay
+Kind: Research, then Design/Ready once the drawing route is established.
+Status: imported from the maintainer's notes on 2026-10-12; not implemented.
+Goal: optionally hide the purple screen overlay without changing portal
+contact, the time in the portal or dimension transfer.
+- Proposed home: a child of Hide effects, independent of L-149. Its proposed
+  default is off; settle this explicitly against the existing rule that
+  Hide effects children default selected before implementation.
+- Identify the purple overlay's draw route; existing nausea hiding does not
+  establish portal support. L-79's unresolved frame routes are a caution.
+- Leave distortion control to vanilla accessibility settings unless a
+  separate need is established. Do not change portal or server state.
+- Checks when built: hiding/restoration with child and master, other effects,
+  portal entry/exit and dimension transitions, supported graphics modes and
+  resource packs. Unsupported routes retain vanilla drawing.
+
+### L-149 Allow inventory access in portals
+Kind: Research, with Design if screen behavior choices remain.
+Status: imported from the maintainer's notes on 2026-10-12; not implemented.
+Goal: open and use the ordinary inventory while inside a Nether portal.
+- First reproduce the current restriction and distinguish input suppression,
+  refusal to open, forced closing and server constraints. Screen tracking
+  and inventory controllers are leads, not proof of feasibility.
+- Proposed: an independent Inventory setting, default off. Never fake or
+  alter portal contact, transfer state or packets to bypass server authority.
+  Accept only a local client UI/input change that preserves game semantics.
+- On dimension transfer safely close/discard the old screen and outstanding
+  operations. Do not leave ghost items or stale controller state.
+- Checks when built: local worlds and BDS, opening and keeping the screen,
+  authoritative item movement/swaps/crafting, before/during transfer,
+  return through the portal, disable and restoration after leaving it.
+  Defer if feasibility requires deep invasive hooks or state divergence.
+
+### L-150 Arrow-count HUD
+Kind: Design (small), then Ready after counting and visibility are agreed.
+Status: imported from the maintainer's notes on 2026-10-12; not implemented.
+Goal: show the arrows available to the player without opening inventory.
+- Proposed: an inventory-wide total, perhaps visible only while holding a
+  bow or crossbow. This is a display feature, not offhand replenishment.
+- Open: ordinary/tipped arrow grouping, offhand and loaded-crossbow contents,
+  visibility condition, and a line in an existing HUD versus a new element.
+  Review overlap with Inventory HUD before choosing presentation.
+- Keep counting bounded; show only client-observed contents. Test the agreed
+  pure counting rules and later verify consumption/refill and HUD behavior.
 
 ### L-146 Layer switches on the world map (with the next integration review)
 Kind: Design. Raised by the maintainer 2026-10-11 before the 0.2.0 release;
@@ -1021,6 +1158,77 @@ micro-optimizations.
 ---
 
 ## Later / parked
+
+### L-158 Prevent missing and inconsistent settings/action labels
+Kind: Refactor (strong model), with Design for any user-visible wording change.
+Status: future follow-up requested by the maintainer 2026-10-12; not started.
+Keep separate feature and action labels: a feature name and commands such as
+increase speed, rotate or open a view have different purposes. Do not merge
+all labels or mechanically construct every action name from the feature name.
+The goal is to prevent missing required translations and accidental wording
+drift between settings, search results and Hotkeys, while retaining deliberate
+context differences (for example a short child label versus a standalone name).
+- Audit the feature/option/action metadata and every place that resolves their
+  names. Use a shared name-resolution policy for displayed and searchable
+  labels, with explicit context where needed. Search may still include IDs,
+  descriptions and other aliases; those are not replacements for display names.
+- Check required keys from the registered UI/action catalogs in English,
+  Japanese and Simplified Chinese, rather than checking only entries already
+  present in the translation tables. Cover active actions, primary actions and
+  action labels attached to option rows; explicitly exclude retired actions.
+- Add regression coverage that fails when a new active action lacks its label
+  and exercises the real label resolution in settings/search/Hotkeys. Preserve
+  intended context-specific names rather than requiring all strings to match.
+- Consider reuse or shared references for repeated feature names in simple
+  toggle labels, without assuming one grammatical template works in all three
+  languages. Choose the implementation after the audit; avoid a broad rewrite.
+- Preserve saved action IDs, settings format and binding behavior. Fix L-155
+  independently; this later work must not delay the immediate missing-key fix.
+Acceptance: a missing required label fails automated checks, supported UI
+paths do not show raw keys, and shared naming changes reach search/display
+consistently. Validate any changed wording in all three languages in game.
+
+The following notes were imported on 2026-10-12 for later consideration.
+Documentation tracking does not approve implementation or a release target.
+Fake Offhand reserved-slot protection is excluded from this import; the
+undecided historical idea remains in L-94's record.
+
+### L-151 Show the player's body in first person
+Kind: Research, with Design before implementation. Low priority.
+Goal: optionally show the body when looking down; proposed default off.
+Investigate whether the detached camera's player-model component can be
+applied locally without a deeper renderer change. Check head/face clipping,
+duplicate vanilla arms/items, armor and elytra animations, perspective and
+FreeCamera transitions, and restoration. L-123 is a related unresolved
+rendering risk. Defer if many special cases or deep hooks are needed.
+No implementation or runtime evidence; not required for integration work.
+
+### L-152 Preview held map items in inventory
+Kind: Design, then Research for client-observed map data and rendering.
+Goal: make a map item easier to inspect from inventory without equipping it.
+Open: hover preview versus explicit action, preview size and zoom, empty or
+unreceived map data, and supported screens. Keep this distinct from the
+world map; never infer unexplored contents. No implementation commitment.
+
+### L-153 Prefer the last pressed opposing movement key
+Kind: Design, then Research for the native input boundary.
+Goal: optionally resolve simultaneous W/S or A/D input to the last pressed
+direction. Open: default, release/resume semantics and interaction with
+remapped keys, controllers, permanent movement and detached cameras.
+Model event sequences in pure logic before touching gameplay input; menus
+and focus changes must not leave stale held inputs. Not implemented.
+
+### L-154 Additional inventory transfer gestures
+Kind: Design; choose a concrete gesture before implementation.
+Candidates: matching-item bulk transfer, leaving one item behind, modified
+clicks, dragging to drop items and keyboard-directed moves. Do not assign
+chords or change existing gestures yet. Clarify source/destination, cursor
+ownership, modifier conflicts and authoritative completion for each chosen
+operation. Dropping needs an explicit user-facing design. Trading support
+and Mass Craft remain separate workflows, not implicit scope of this item.
+Not implemented; preserve the current storage and inventory-screen behavior.
+
+### Previously parked work
 
 - L-19 Freelook in multiplayer, riding, dimension change, controller: runtime
   checks only, no code expected.
