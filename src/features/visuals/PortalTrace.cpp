@@ -9,6 +9,9 @@
 #include "mc/world/actor/player/Player.h"
 #include "mc/client/game/ClientInputCallbacks.h"
 #include "mc/client/gui/screens/SceneStack.h"
+#include "mc/network/LoopbackPacketSender.h"
+#include "mc/network/MinecraftPacketIds.h"
+#include "mc/network/Packet.h"
 #include "mc/world/containers/managers/models/ContainerManagerModel.h"
 #include "features/inventory/game/ScreenTracker.h"
 #include "ll/api/memory/Memory.h"
@@ -168,9 +171,21 @@ LL_TYPE_INSTANCE_HOOK(PortalSchedulePop, ll::memory::HookPriority::Normal, Scene
     } catch (...) {}
     origin(total, std::move(route), expected);
 }
+// Step 10: what the client sends right after the inventory key, in and out
+// of a portal (all but the per-tick auth input), and what comes back.
+uint64_t keyTick = 0;
+LL_TYPE_INSTANCE_HOOK(PortalPackets, ll::memory::HookPriority::Normal, LoopbackPacketSender,
+    &LoopbackPacketSender::$sendToServer, void, Packet& packet) {
+    try {
+        if (keyTick && ticks - keyTick <= 20 && packet.getId() != MinecraftPacketIds::PlayerAuthInputPacket)
+            log(std::format("sent {} ({} ticks after the key, near portal {})", packet.getName(), ticks - keyTick, nearPortal()));
+    } catch (...) {}
+    origin(packet);
+}
 LL_TYPE_STATIC_HOOK(PortalInventoryKey, ll::memory::HookPriority::Normal, ClientInputCallbacks,
     &ClientInputCallbacks::handleInventoryButtonPress, void, IClientInstance& client, CraftingType craft) {
-    try { log(std::format("handleInventoryButtonPress screen {} stack{}", screen(), stack())); } catch (...) {}
+    keyTick = ticks;
+    try { log(std::format("handleInventoryButtonPress screen {} near portal {}", screen(), nearPortal())); } catch (...) {}
     std::string before;
     try { before = screen(); } catch (...) {}
     origin(client, craft);
@@ -324,7 +339,8 @@ void start() {
         for (auto const& c : candidates) log(std::format("candidate +{:x} {}", c.address - base, c.name));
     } catch (...) {}
     PortalSchedulePop::hook();
-    // PortalInventoryKey::hook();
+    PortalInventoryKey::hook();
+    PortalPackets::hook();
     PortalOpenInventory::hook();
     PortalCanOpen::hook();
     PortalInside::hook();
@@ -337,6 +353,7 @@ void stop() {
     PortalInsideCheck::unhook(true);
     PortalModelValid::unhook(true);
     PortalCraftingValid::unhook(true);
+    PortalPackets::unhook(true);
     PortalSchedulePop::unhook(true);
     PortalInventoryKey::unhook(true);
     PortalOpenInventory::unhook(true);

@@ -533,6 +533,14 @@ Goal: open and use the ordinary inventory while inside a Nether portal.
   answered false for the local player on the client tick thread, with the
   other workarounds off, to see whether the vanilla E key then opens a
   usable inventory that stays open.
+- Result (maintainer, 2026-10-12): with only `isInsidePortal` answered
+  false, an inventory opened before entering stays open in the portal and
+  items and 2x2 crafting work; Esc/E close it; transfer still works and
+  closes it; nothing lost or duplicated. The E key inside still opens
+  nothing. Hypothesis: the server opens the inventory (the client's
+  `openInventory` came from another tick path, not the key handler) and
+  refuses while its copy of the player is in the portal. Next trace logs
+  what the client sends after the key, inside and outside a portal.
 
 ### L-150 Arrow-count HUD
 Kind: Design (small), then Ready after counting and visibility are agreed.
