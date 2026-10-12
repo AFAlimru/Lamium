@@ -79,7 +79,7 @@ code{font:13px ui-monospace,Consolas,monospace;color:var(--ink)}
 <body>
 <div class="wrap">
   <div>
-    <div class="eyebrow">L-171 · 2026-10-13 · 3 案目</div>
+    <div class="eyebrow">L-171 · 2026-10-13 · 3 案目（コピーと座標を反映）</div>
     <h1>計算機（左右 2 列・ボタン付き）</h1>
     <p class="lede">2026-10-13 に決めた形：左に入力欄・結果・チェスト換算・コピー・ボタン、右に履歴のカード（下が最新、スクロール、20 件、ゲームを閉じるまで）。ボタンは画面の中で押せる（入力位置に文字が入る）。fn で数字の部分が関数に変わる。履歴のカードはクリックで入力欄に戻り、マウスを乗せるとコピーのボタンが出る。? で使い方が開く。キーボードでも打てる：下の欄をクリックしてから入力し、Enter で計算、上下キーで履歴。</p>
   </div>
@@ -89,6 +89,11 @@ code{font:13px ui-monospace,Consolas,monospace;color:var(--ink)}
       <div class="seg" id="lang">
         <button data-v="ja" aria-pressed="true">日本語</button>
         <button data-v="en" aria-pressed="false">English</button>
+      </div></div>
+    <div class="cgroup"><span>いる場所</span>
+      <div class="seg" id="dimension">
+        <button data-v="overworld" aria-pressed="true">オーバーワールド</button>
+        <button data-v="nether" aria-pressed="false">ネザー</button>
       </div></div>
     <div class="cgroup"><span>画面</span>
       <div class="seg" id="size">
@@ -106,23 +111,25 @@ code{font:13px ui-monospace,Consolas,monospace;color:var(--ink)}
       <li>全体の大きさ（幅 460、高さ 300）と、左右の配分。狭い画面では、左右の幅を縮めて履歴のカードを短くする（文字は小さくしない）。</li>
       <li>ボタンの並び（C ⌫ ( ) ÷ ／ 7 8 9 × ^ ／ 4 5 6 − % ／ 1 2 3 + ans ／ 0 . = ／ st ch lc x y z）と、色分け（演算・単位・座標・関数）。</li>
       <li>fn に切り替えたときの関数の並び（sqrt abs floor ceil round min max nether ow ticks secs と「,」）。関数のボタンは「sqrt(」まで入る。</li>
-      <li>コピーのボタンの名前「値」「式 = 値」「換算」。換算は 64 以上のときだけ押せる。</li>
-      <li>履歴のカードに乗せたときのボタン（値・式・換算）。カードの数は 20（古いものから消える）。</li>
+      <li>コピー（決定: 各行の横）。入力欄の横の「式ごとコピー」は「20 lc - 1234 = 67,886」、結果の横の「コピー」は値、換算の横の「コピー」は換算の文。押すと下に「コピーしました: …」。履歴のカードは乗せると同じ並びで出る。</li>
+      <li>左下の座標（決定）: 今の場所と、もう一方の世界での座標（ネザーは ÷8 の切り捨て、オーバーワールドは ×8）。数字をクリックすると入力欄に入る。エンドでは今の場所だけ出す。</li>
     </ul>
   </div>
 </div>
 
 <script>
 const POS = {x:-85, y:71, z:52};
-const state = {lang:'ja', size:'normal', fn:false, help:false, recalled:-1, draft:'', text:'20 lc - 1234', caret:12, hover:-1, tip:null,
+const state = {lang:'ja', size:'normal', dimension:'overworld', fn:false, help:false, recalled:-1, draft:'', text:'20 lc - 1234', caret:12, hover:-1, tip:null,
   history:[{e:'27 * 64', r:1728}, {e:'nether(-2380)', r:-297.5}, {e:'4 st + 13', r:269}, {e:'x * y * z', r:-319940}, {e:'3 sb / 7', r:740.571429}, {e:'x', r:-85}, {e:'ticks(90)', r:1800}, {e:'ans / 2', r:900}, {e:'2 lc + 5 st', r:7232}]};
 const T = {
-  ja:{title:'計算機', esc:'Esc: 閉じる', hist:'履歴', copyValue:'値', copyLine:'式 = 値', copyAmount:'換算', st:'スタック', ch:'チェスト',
-      err:'式が途中です', unk:'知らない名前: ', copied:'コピーしました',
+  ja:{title:'計算機', esc:'Esc: 閉じる', hist:'履歴', copy:'コピー', copyLine:'式ごとコピー', st:'スタック', ch:'チェスト',
+      err:'式が途中です', unk:'知らない名前: ', copied:'コピーしました: ', coords:'座標', here:'今の場所', ow:'オーバーワールド', nether:'ネザー',
+      asNether:'ネザーでは（÷8）', asOw:'オーバーワールドでは（×8）', insert:'クリックで入力欄へ',
       tips:{st:'1 スタック（64 個）', ch:'チェスト・シュルカーボックス 1 つ分（1,728 個）', lc:'ラージチェスト 1 つ分（3,456 個）', x:'今の X 座標', y:'今の Y 座標', z:'今の Z 座標', ans:'前の結果', fn:'関数のボタンに切り替え', '^':'べき乗', '%':'割った余り', nether:'オーバーワールドの座標をネザーへ（÷8）', ow:'ネザーの座標をオーバーワールドへ（×8）', ticks:'秒を tick に（×20）', secs:'tick を秒に（÷20）'},
       help:'<b>Enter</b> または <b>=</b>: 計算して履歴に残す<br><b>上下キー</b>: 履歴をさかのぼる<br><b>Ctrl+C</b>: 値をコピー　<b>Ctrl+Shift+C</b>: 式 = 値をコピー<br><b>Esc</b>: 閉じる<br><br><b>単位</b> st = 64　ch・sb = 1,728　lc = 3,456<br><b>変数</b> ans = 前の結果　x y z = 今の座標<br><b>関数</b> sqrt abs floor ceil round min max<br>nether(x) = x÷8　ow(x) = x×8　ticks(秒)　secs(tick)<br><br>入力した内容はチャットやサーバーに送られません。'},
-  en:{title:'Calculator', esc:'Esc: close', hist:'History', copyValue:'Value', copyLine:'Line', copyAmount:'Chests', st:'stack', sts:'stacks', ch:'chest', chs:'chests',
-      err:'Incomplete expression', unk:'Unknown name: ', copied:'Copied',
+  en:{title:'Calculator', esc:'Esc: close', hist:'History', copy:'Copy', copyLine:'Copy line', st:'stack', sts:'stacks', ch:'chest', chs:'chests',
+      err:'Incomplete expression', unk:'Unknown name: ', copied:'Copied: ', coords:'Coordinates', here:'Here', ow:'Overworld', nether:'Nether',
+      asNether:'In the Nether (/8)', asOw:'In the Overworld (x8)', insert:'Click to insert',
       tips:{st:'A stack (64)', ch:'A chest or shulker box (1,728)', lc:'A large chest (3,456)', x:'Your X', y:'Your Y', z:'Your Z', ans:'Last result', fn:'Switch to functions', '^':'Power', '%':'Remainder', nether:'Overworld to Nether (/8)', ow:'Nether to Overworld (x8)', ticks:'Seconds to ticks (x20)', secs:'Ticks to seconds (/20)'},
       help:'<b>Enter</b> or <b>=</b>: calculate and keep in history<br><b>Up/Down</b>: go back through history<br><b>Ctrl+C</b>: copy value   <b>Ctrl+Shift+C</b>: copy the line<br><b>Esc</b>: close<br><br><b>Units</b> st = 64   ch, sb = 1,728   lc = 3,456<br><b>Variables</b> ans = last result   x y z = your position<br><b>Functions</b> sqrt abs floor ceil round min max<br>nether(x) = x/8   ow(x) = x*8   ticks(s)   secs(t)<br><br>Nothing typed is sent to chat or the server.'},
 };
@@ -195,7 +202,8 @@ function el(cls, x, y, w, h, html, extra){
 }
 const esc = s => s.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
 let toast = '';
-function copied(){ toast = T[state.lang].copied; render(); setTimeout(() => { toast = ''; render(); }, 900); }
+function copied(text){ toast = T[state.lang].copied + text; render(); setTimeout(() => { toast = ''; render(); }, 1200); }
+function insert(text){ state.text = state.text.slice(0, state.caret) + text + state.text.slice(state.caret); state.caret += text.length; state.recalled = -1; render(); }
 
 function press(code){
   if (code === 'clear') { state.text = ''; state.caret = 0; }
@@ -255,20 +263,26 @@ function render(){
   const lx = X + pad;
   let y = Y + 23;
   const before = esc(state.text.slice(0, state.caret)), after = esc(state.text.slice(state.caret));
-  s.appendChild(el('field t', lx, y, leftW, 14, before + '<span class="caret"></span>' + after));
-  y += 19;
   const res = evaluate(state.text), ok = res.v !== undefined, am = ok ? amount(res.v, L) : '';
-  if (ok) s.appendChild(el('t big', lx, y, leftW, 15, '= ' + fmt(res.v)));
-  else if (!res.empty) s.appendChild(el('t warn', lx, y + 3, leftW, 9, res.unk ? L.unk + res.unk : L.err));
-  y += 17;
-  s.appendChild(el('t dim', lx, y, leftW, 9, am || '&nbsp;'));
-  y += 12;
-  const cw = (leftW - 8) / 3;
-  [[L.copyValue, ok], [L.copyLine, ok], [L.copyAmount, !!am]].forEach(([t, on], k) => {
-    const b = el('btn t' + (on ? '' : ' off'), lx + k*(cw+4), y, cw, 12, t);
-    if (on) b.onclick = copied;
+  const lineW = 56, copyW = 34;
+  s.appendChild(el('field t', lx, y, leftW - lineW - 4, 14, before + '<span class="caret"></span>' + after));
+  const lineBtn = el('btn t ring' + (ok ? '' : ' off'), lx + leftW - lineW, y + 1, lineW, 12, L.copyLine);
+  if (ok) lineBtn.onclick = () => copied(`${state.text} = ${fmt(res.v)}`);
+  s.appendChild(lineBtn);
+  y += 19;
+  if (ok) {
+    s.appendChild(el('t big', lx, y, leftW - copyW - 4, 15, '= ' + fmt(res.v)));
+    const b = el('btn t ring', lx + leftW - copyW, y + 1, copyW, 12, L.copy);
+    b.onclick = () => copied(fmt(res.v));
     s.appendChild(b);
-  });
+  } else if (!res.empty) s.appendChild(el('t warn', lx, y + 3, leftW, 9, res.unk ? L.unk + res.unk : L.err));
+  y += 17;
+  s.appendChild(el('t dim', lx, y + 1, leftW - copyW - 4, 9, am || '&nbsp;'));
+  if (am) {
+    const b = el('btn t ring', lx + leftW - copyW, y, copyW, 12, L.copy);
+    b.onclick = () => copied(am);
+    s.appendChild(b);
+  }
   y += 18;
   const grid = state.fn ? FUNCS : DIGITS;
   const gap = 3, kw = (leftW - 4*gap) / 5, kh = small ? 14 : 18;
@@ -293,6 +307,28 @@ function render(){
     if (tip) { k.onmouseenter = () => { state.tip = {text:tip, x:lx + c*(bw+gap), y:y - 12}; renderTip(); }; k.onmouseleave = () => { state.tip = null; renderTip(); }; }
     s.appendChild(k);
   });
+  // Coordinates (decided 2026-10-13): here, and the other dimension's place (Nether /8, Overworld x8).
+  y += kh + 6;
+  const bottomY = Y + H - 6;
+  if (bottomY - y >= 30) {
+    s.appendChild(el('hline', lx, y, leftW, 1));
+    y += 4;
+    const inNether = state.dimension === 'nether';
+    s.appendChild(el('t faint ring', lx, y, leftW, 9, `${L.coords}: ${inNether ? L.nether : L.ow}  <span class="faint">(${L.insert})</span>`));
+    y += 11;
+    const rows = [[L.here, POS.x, POS.y, POS.z],
+                  [inNether ? L.asOw : L.asNether, inNether ? POS.x*8 : Math.floor(POS.x/8), POS.y, inNether ? POS.z*8 : Math.floor(POS.z/8)]];
+    rows.forEach(([name, cx, cy, cz], r) => {
+      const ry = y + r * 12;
+      s.appendChild(el('t dim ring', lx, ry + 1, 84, 9, name));
+      [['X', cx], ['Y', cy], ['Z', cz]].forEach(([axis, v], j) => {
+        const w = (leftW - 88 - 2*gap) / 3;
+        const b = el('key var', lx + 88 + j*(w+gap), ry, w, 11, `${axis} ${v}`);
+        b.onclick = () => insert(String(v));
+        s.appendChild(b);
+      });
+    });
+  }
 
   // ---- Right: history cards ----
   const rx = X + pad + leftW + 10, rw = W - leftW - 2*pad - 10;
@@ -313,9 +349,12 @@ function render(){
     const a = amount(line.r, L);
     card.appendChild(el('t faint', 4, 21, rw - 13, 8, a || '&nbsp;', {fontSize:'7px'}));
     if (state.hover === index) {
-      [[L.copyValue, true], [L.copyLine, true], [L.copyAmount, !!a]].forEach(([t, on], j) => {
-        const m = el('mini t' + (on ? '' : ' off'), rw - 5 - 4 - (3-j)*30 + 2, 3, 28, 10, t, on ? null : {opacity:.4});
-        if (on) m.onclick = (e) => { e.stopPropagation(); copied(); };
+      // Beside the line each one copies, as on the left.
+      const buttons = [[L.copyLine, 2, `${line.e} = ${fmt(line.r)}`, 52], [L.copy, 11, fmt(line.r), 30]];
+      if (a) buttons.push([L.copy, 20, a, 30]);
+      buttons.forEach(([t, top, text, w]) => {
+        const m = el('mini t', rw - 5 - 4 - w, top, w, 9, t);
+        m.onclick = (e) => { e.stopPropagation(); copied(text); };
         card.appendChild(m);
       });
     }
@@ -335,7 +374,7 @@ function render(){
     box.onclick = () => { state.help = false; render(); };
     s.appendChild(box);
   }
-  if (toast) s.appendChild(el('tip', X + W/2 - 40, Y + H + 4, 80, 12, toast, {textAlign:'center', color:'#fff'}));
+  if (toast) s.appendChild(el('tip t', X + W/2 - 110, Y + H + 4, 220, 12, esc(toast), {textAlign:'center', color:'#fff'}));
   s.appendChild(el('', 0, 0, 0, 0, '', {id:'tiplayer'}));
   renderTip();
   fit();
@@ -353,7 +392,7 @@ function fit(){
   stage.style.transform = `scale(${scale})`;
   outer.style.height = (SH*scale) + 'px';
 }
-for (const id of ['lang','size']) {
+for (const id of ['lang','size','dimension']) {
   document.getElementById(id).addEventListener('click', e => {
     const b = e.target.closest('button'); if (!b) return;
     state[id] = b.dataset.v;

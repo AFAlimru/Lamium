@@ -441,6 +441,14 @@ the bottom, scrolled, 20 cards for the session only; a click loads a card,
 hovering shows its copy buttons; Up goes up through them. Help behind a ?
 button, with short tips on the buttons. Third mockup:
 [demos/calculator-v3.html](demos/calculator-v3.html).
+Decided (maintainer 2026-10-13, on the third mockup): copying sits beside
+what it copies, each button saying "Copy": "Copy line" by the field
+("20 lc - 1234 = 67,886"), "Copy" by the result (the value) and by the
+chest amount (its text); a note "Copied: ..." follows; history cards show
+the same buttons on hover. The space under the buttons shows coordinates:
+here, and the other dimension's place (Nether: /8 rounded down; Overworld:
+x8; the End: here only); a click inserts a number. No item list, no
+reference table.
 
 ### L-170 Enchantment order planner
 Kind: Design, then Research (strong model). Requested by the maintainer
