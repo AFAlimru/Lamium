@@ -12,6 +12,26 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-171 Calculator (2026-10-13)
+
+By the maintainer, local, screenshots.
+- `e664562` (DLL `1ffc66f7...c9c7f35bb`): the panel opened but showed no
+  text (no text flush). `bef8059` (`f4e523f4...efbc98736`): text, the
+  sidebar item, `20 lc - 1234` = 67,886 with "39 chests + 7 stacks + 46",
+  Enter and `ans / 2`, Up/Down, `x`, copying, Esc, no gameplay input
+  while typing. OK; review led to calculator-v2/v3.
+- `a2fd612` (`5b11a983...ca6ae870`): the two-column panel, keys, results,
+  history cards, copy button and menu, copy notes. OK. Help showed the
+  history through it; "v" did not read as a menu; the history did not
+  scroll; "×" sat left.
+- `4eb9978` (`3a2fbff0...ba16de9f6`): help covers the history, wheel and
+  scrollbar scroll, the menu triangle, shaped × − backspace, "nether"
+  fits. OK; Japanese checked too, no squashed text. The scrollbar moved
+  in card steps and backspace left the operator spaces.
+- `de9792d` (`3b0b6718...e3013a3`): smooth scrolling with cards clipped at
+  the column's edges; backspace removes "2 × sqrt(" piece by piece. OK.
+Not seen: narrow windows, Simplified Chinese, a resource reload while open.
+
 ## L-172 Text fields: caret, paste and click (2026-10-13)
 
 By the maintainer, local.
