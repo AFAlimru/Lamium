@@ -20,6 +20,15 @@
 namespace lamium::visuals::portalTrace {
 namespace {
 int lines = 0;
+// Experiment 5 (trace builds only): the client tick of the last
+// handleInsidePortal, to tell "in a portal" by recent contact.
+uint64_t ticks = 0, lastPortalTick = 0;
+bool nearPortal() { return lastPortalTick && ticks - lastPortalTick <= 2; }
+// Esc or E pressed within the last 300 ms: the player closing the screen.
+bool playerClosing() {
+    return (GetAsyncKeyState(VK_ESCAPE) & 0x8000) || (GetAsyncKeyState('E') & 0x8000) || (GetAsyncKeyState(VK_ESCAPE) & 1)
+        || (GetAsyncKeyState('E') & 1);
+}
 std::string lastScreen;
 void log(std::string const& text) {
     if (lines >= 2000) return;
@@ -41,6 +50,7 @@ LL_TYPE_INSTANCE_HOOK(PortalInside, ll::memory::HookPriority::Normal, LocalPlaye
     std::string before;
     try { before = fields(*this) + " screen " + screen(); } catch (...) {}
     origin(portal);
+    lastPortalTick = ticks;
     try { log(std::format("handleInsidePortal {},{},{}: {} -> {} screen {}", portal.x, portal.y, portal.z, before, fields(*this), screen())); }
     catch (...) {}
 }
@@ -48,6 +58,7 @@ LL_TYPE_INSTANCE_HOOK(PortalInside, ll::memory::HookPriority::Normal, LocalPlaye
 LL_TYPE_INSTANCE_HOOK(PortalTick, ll::memory::HookPriority::Normal, LocalPlayer, &LocalPlayer::$normalTick, void) {
     std::string before;
     try { before = screen(); } catch (...) {}
+    ++ticks;
     origin();
     // Experiment (trace builds only): the effect time back to 0 after each
     // tick. Does the purple overlay go, does the inventory stay open, does
@@ -83,13 +94,28 @@ LL_TYPE_INSTANCE_HOOK(PortalCanOpen, ll::memory::HookPriority::Normal, Player, &
 // Experiment 4 (trace builds only): who closes the inventory in a portal,
 // and does the inventory key reach the player? Caller stacks as offsets from
 // the game module, with the offsets of candidate functions logged at start.
+// Follow jump stubs to the function they lead to: jmp [rip+d], jmp rel32,
+// mov rax, imm64 + jmp rax.
+uintptr_t follow(void* p, std::string* bytes = nullptr) {
+    auto* b = static_cast<unsigned char*>(p);
+    for (int i = 0; i < 6 && b; ++i) {
+        if (bytes && i == 0) for (int k = 0; k < 14; ++k) *bytes += std::format("{:02x}", b[k]);
+        if (b[0] == 0xFF && b[1] == 0x25) b = *reinterpret_cast<unsigned char**>(b + 6 + *reinterpret_cast<int32_t*>(b + 2));
+        else if (b[0] == 0x48 && b[1] == 0xFF && b[2] == 0x25) b = *reinterpret_cast<unsigned char**>(b + 7 + *reinterpret_cast<int32_t*>(b + 3));
+        else if (b[0] == 0xE9) b = b + 5 + *reinterpret_cast<int32_t*>(b + 1);
+        else if (b[0] == 0x48 && b[1] == 0xB8 && b[10] == 0xFF && b[11] == 0xE0) b = *reinterpret_cast<unsigned char**>(b + 2);
+        else if (b[0] == 0x49 && b[1] == 0xBB && b[10] == 0x41 && b[11] == 0xFF && b[12] == 0xE3) b = *reinterpret_cast<unsigned char**>(b + 2);
+        else break;
+    }
+    return reinterpret_cast<uintptr_t>(b);
+}
 struct Candidate { std::string name; uintptr_t address; };
 std::vector<Candidate> candidates;
 // Game functions by mangled name; the stubs Lamium calls through are filled
 // at load, so their pointers do not give the addresses.
 void loadCandidates() {
     for (char const* name : {LAMIUM_PORTAL_CANDIDATES})
-        if (auto* p = ll::memory::SymbolView{name}.resolve(true)) candidates.push_back({name, reinterpret_cast<uintptr_t>(p)});
+        if (auto* p = ll::memory::SymbolView{name}.resolve(true)) candidates.push_back({name, follow(p)});
     std::sort(candidates.begin(), candidates.end(), [](auto const& a, auto const& b) { return a.address < b.address; });
 }
 // The nearest candidate function starting at or below an address, if close.
@@ -112,14 +138,31 @@ std::string stack() {
 }
 LL_TYPE_INSTANCE_HOOK(PortalSchedulePop, ll::memory::HookPriority::Normal, SceneStack, &SceneStack::_schedulePopScreen, void,
     int total, std::optional<OreUI::RouteAction> route, std::vector<std::string> const& expected) {
-    try { log(std::format("schedulePopScreen {} screen {} stack{}", total, screen(), stack())); } catch (...) {}
+    try {
+        auto top = screen();
+        log(std::format("schedulePopScreen {} screen {} stack{}", total, top, stack()));
+        if (nearPortal() && top.starts_with("inventory_screen") && !playerClosing()) {
+            log("  pop blocked: inventory in a portal, no Esc/E");
+            return;
+        }
+    } catch (...) {}
     origin(total, std::move(route), expected);
 }
 LL_TYPE_STATIC_HOOK(PortalInventoryKey, ll::memory::HookPriority::Normal, ClientInputCallbacks,
     &ClientInputCallbacks::handleInventoryButtonPress, void, IClientInstance& client, CraftingType craft) {
     try { log(std::format("handleInventoryButtonPress screen {} stack{}", screen(), stack())); } catch (...) {}
+    std::string before;
+    try { before = screen(); } catch (...) {}
     origin(client, craft);
-    try { log(std::format("after handleInventoryButtonPress screen {}", screen())); } catch (...) {}
+    try {
+        auto after = screen();
+        log(std::format("after handleInventoryButtonPress screen {}", after));
+        auto* player = client.getLocalPlayer();
+        if (player && nearPortal() && after == before && after.starts_with("hud_screen")) {
+            log("  refused in a portal: calling openInventory");
+            player->openInventory();
+        }
+    } catch (...) {}
 }
 LL_TYPE_INSTANCE_HOOK(PortalOpenInventory, ll::memory::HookPriority::Normal, LocalPlayer, &LocalPlayer::$openInventory, void) {
     try { log(std::format("openInventory ({}) stack{}", fields(*this), stack())); } catch (...) {}
@@ -130,6 +173,12 @@ void start() {
         loadCandidates();
         auto base = reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));
         log(std::format("{} candidate functions resolved", candidates.size()));
+        if (auto* p = ll::memory::SymbolView{"?$handleInsidePortal@LocalPlayer@@QEAAXAEBVBlockPos@@@Z"}.resolve(true)) {
+            std::string bytes;
+            auto real = follow(p, &bytes);
+            log(std::format("handleInsidePortal symbol {:x} first bytes {} -> {:x} (game base {:x})", reinterpret_cast<uintptr_t>(p), bytes,
+                real, base));
+        }
         for (auto const& c : candidates) log(std::format("candidate +{:x} {}", c.address - base, c.name));
     } catch (...) {}
     PortalSchedulePop::hook();

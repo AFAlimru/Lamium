@@ -501,6 +501,12 @@ Goal: open and use the ordinary inventory while inside a Nether portal.
   +4df8519, +4e17616), not from player code; a chat close took another path.
   Next trace names those offsets against 143 candidate functions (every
   screen controller `$tick`, `ClientInputCallbacks`, `LocalPlayer`).
+- Naming failed twice: Lamium's game-function pointers and LeviLamina's
+  symbol lookup both return stubs, not game addresses. Next trace follows
+  the stubs and also tries a fix (trace builds only): when the inventory
+  key changes nothing near a portal, call `LocalPlayer::openInventory`; and
+  near a portal refuse `_schedulePopScreen` on the inventory screen unless
+  Esc or E is down.
 
 ### L-150 Arrow-count HUD
 Kind: Design (small), then Ready after counting and visibility are agreed.
