@@ -348,6 +348,9 @@ analog move), not from the packet's move (VALIDATION-LOG). Next build: when
 the guard changes the vector it also rewrites the local player's input state
 (direction keys cleared, the guarded vector as the analog and raw move). Not
 yet checked; sprinting may end when the forward key is cleared at an edge.
+Checked 2026-10-12 (`68d2211`): stops on BDS and locally; bridging was
+sometimes pulled slightly back. Next build: keep the largest safe share of
+the input instead of dropping it, and brake only as hard as needed.
 
 ### L-156 Low bookshelves above glass become dark under Vibrant Visuals
 Kind: Bug, Research (strong model).

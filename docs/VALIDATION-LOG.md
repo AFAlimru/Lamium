@@ -12,6 +12,17 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-160 input state rewrite (2026-10-12)
+
+By the maintainer, trace build of `68d2211` (DLL `f7580692...15edea76`), test
+BDS and a local world: walking and sprinting into an edge stop, walking
+diagonally along an edge works, jumping off works. Bridging (placing blocks
+while walking backward in one direction) sometimes reached the true edge and
+sometimes was pulled slightly back, on BDS and locally. Trace: a full reverse
+brake (move 0,1 -> -0.04,-1.00 at 0.046 blocks/tick) pushed the player back
+about 0.1 block; and all-or-nothing input left slow approaches short of the
+edge.
+
 ## L-160 Edge Guard on BDS, trace (2026-10-12)
 
 By the maintainer on the local test BDS 1.26.51.1 (official, at

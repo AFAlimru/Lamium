@@ -47,13 +47,28 @@ void edgeGuardTests() {
         return x;
     };
     double end = walk(-3, .216, 1, 80);
-    check(0.2 + end < 1.0 && 0.2 + end > .6, "walking into an edge stops on the ground, near the edge");
+    check(0.2 + end < 1.0 && 0.2 + end > .9, "walking into an edge stops on the ground, at the edge");
+    double slow = walk(-.5, .02, 1, 120);
+    check(0.2 + slow < 1.0 && 0.2 + slow > .95, "creeping toward an edge reaches it");
+    // Braking: right at the limit and still sliding (as seen while bridging
+    // on BDS), the brake must not push the player back.
+    double furthest = -10, px = .76, v = .05;
+    for (int t = 0; t < 60; ++t) {
+        auto at = px;
+        auto [gx, gz] = guardInput(0, 0, v, 0, a, f, [&](double dx, double) { return 0.2 + at + dx < 1.0; });
+        (void)gz;
+        v = v * f + gx * a;
+        px += v;
+        furthest = std::max(furthest, px);
+    }
+    check(0.2 + furthest < 1.0 && furthest - px < .02, "braking at an edge does not push the player back");
     double sprint = walk(-3, .28, 1.3, 80);
     check(0.2 + sprint < 1.0, "a faster approach still stops on the ground");
     auto [awayX, awayZ] = guardInput(-1, 0, -.2, 0, a, f, ground);
     check(awayX == -1 && awayZ == 0, "walking away from the edge keeps the input");
     auto [alongX, alongZ] = guardInput(1, 1, .2, 0, a, f, [](double dx, double) { return 0.6 + dx < 1.0; });
-    check(alongX <= 0 && alongZ > 0, "walking diagonally at an edge keeps the parallel input");
+    check(0.6 + (.2 * f + alongX * a) / (1 - f) < 1.0 && alongX < 1 && alongZ > .5,
+          "walking diagonally at an edge keeps the parallel input and only a safe share toward the edge");
     auto [stillX, stillZ] = guardInput(0, 0, 0, 0, a, f, ground);
     check(stillX == 0 && stillZ == 0, "standing still stays still");
 }

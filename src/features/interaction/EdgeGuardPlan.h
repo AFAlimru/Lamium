@@ -39,9 +39,10 @@ inline std::pair<double, double> inputMove(double x, double z, double yawDegrees
 // the move input, so the input itself must not lead over an edge. (x, z) is
 // the input's world direction, (vx, vz) the current horizontal velocity per
 // tick, `accel` the ground acceleration per tick of full input and `friction`
-// the velocity kept per tick. An input is kept on an axis only if the feet
-// stay supported along the whole slide that follows when it stops next tick;
-// otherwise it is dropped, and reversed when the slide alone would leave.
+// the velocity kept per tick. On each axis the input keeps as much of itself
+// as leaves the feet supported along the whole slide that follows when it
+// stops next tick; when even the slide alone would leave, the input brakes,
+// only as hard as needed (a full reverse pushed the player back off the edge).
 template <class Supported>
 std::pair<double, double> guardInput(double x, double z, double vx, double vz, double accel, double friction,
                                      Supported&& supported, double step = 0.1) {
@@ -60,8 +61,20 @@ std::pair<double, double> guardInput(double x, double z, double vx, double vz, d
             return alongX ? clear(d, 0) : clear(0, d);
         };
         if (reach(input)) return input;
-        if (reach(0)) return 0.0;
-        return velocity == 0 ? 0.0 : -std::copysign(1.0, velocity);
+        // The largest share of `to` that still reaches safely, given that
+        // `from` does (or `to` if none is found).
+        auto most = [&](double from, double to) {
+            double good = from, bad = to;
+            for (int i = 0; i < 8; ++i) {
+                double mid = (good + bad) / 2;
+                (reach(mid) ? good : bad) = mid;
+            }
+            return good;
+        };
+        if (reach(0)) return input == 0 ? 0.0 : most(0, input);
+        if (velocity == 0) return 0.0;
+        double brake = -std::copysign(1.0, velocity);
+        return reach(brake) ? most(brake, 0) : brake;
     };
     double gx = axis(x, vx, true), gz = axis(z, vz, false);
     if (gx != 0 && gz != 0 && !clear((vx * friction + gx * accel) * slide, (vz * friction + gz * accel) * slide)) {
