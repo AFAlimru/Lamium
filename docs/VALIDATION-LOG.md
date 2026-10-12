@@ -12,6 +12,30 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-164 spike: a generated glass sprite in the terrain atlas (2026-10-12)
+
+By the maintainer, local, trace builds (`ctsprite_trace`), three rounds. A
+3x3 plain glass wall with Connected Textures on; the middle face (joined on
+all four sides) drawn as vanilla's single quad with a sprite Lamium
+composed from the loaded glass texture.
+- Round 1 (`e94426b`, DLL `c246c2ec...02e1d367`): the middle face showed the
+  missing texture, also under Vibrant Visuals. Log: the terrain atlas took
+  the added `texture_data` entry and gave the sprite its own place, but
+  never asked the texture group cache for the image.
+- Round 2 (`4cb9ffe`, DLL `4e1fbdf0...dfaef44639`): still the missing
+  texture. Log: the atlas first asks `getPackStackIndexOfResource` and gave
+  up on -1; no load followed.
+- Round 3 (`67e9f26`, DLL `786d5601...5b77a4e9`): the middle face looks like
+  the rest of the joined wall, also under Vibrant Visuals. Log: the lookup
+  answered with plain glass's pack for image extensions, the atlas then
+  loaded the PNG through `load(ResourceLocationPair, ..., extensions)`;
+  `.texture_set.json` lookups stay -1 (no PBR data for the sprite). OK.
+Seen in the log: the string half of the borrowed lookup answer printed as
+garbage; a real build must return a view of the matching entry of the
+caller's extension list. Not seen: blocks with PBR texture sets, the L-156
+bookshelf case, resource packs, a resource reload while in a world,
+mipmapped distance views beyond a short step back.
+
 ## L-147 Status effects HUD and L-150 ammo in the Durability HUD (2026-10-12)
 
 By the maintainer, local, over `95a34d5`, `c670147`, `bc3e830`, `cd738e5`

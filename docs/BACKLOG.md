@@ -753,6 +753,14 @@ Vibrant Visuals, a resource pack, a resource reload, and the game's mips.
 Vibrant Visuals also needs the texture set (normal/MER maps) of a variant;
 find whether `PBRTextureDataManager` / `TextureAtlasItemTextureSetTranslation`
 gives generated sprites one, or the variant must copy the base texture's.
+Spike status (2026-10-12, VALIDATION-LOG): a generated sprite works for
+plain glass, also under Vibrant Visuals (round 3, `67e9f26`). How: add a
+`texture_data` entry in `TextureAtlas::_createAtlas` for the terrain atlas,
+answer `ResourcePackManager::getPackStackIndexOfResource` for the sprite's
+image extensions with the base texture's pack, and serve a PNG from
+`load(ResourceLocationPair, ..., extensions)`; the texture group cache is
+not used by the atlas. Next: a bookshelf side variant under Vibrant
+Visuals (PBR texture sets, and the L-156 question).
 If generated sprites cannot be added safely: keep split cells only where
 the dark shading has not been seen, and use the stretch under Vibrant
 Visuals (choice for the maintainer then).
