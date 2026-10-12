@@ -160,7 +160,7 @@ with the local player's own input states; `startBuildBlock`, `buildBlock` and
 and face (the held item read from the building hand). Gated (Edge Guard).
 
 ### `src/features/visuals/PortalTrace.cpp`
-Hooks: `PortalInside`, `PortalTick`
+Hooks: `PortalCanOpen`, `PortalInside`, `PortalTick`
 Trace.
 
 ### `src/features/interaction/InventoryMoveTrace.cpp`

@@ -6,6 +6,7 @@
 #include "mc/client/game/ClientInstance.h"
 #include "mc/client/game/IClientInstance.h"
 #include "mc/client/player/LocalPlayer.h"
+#include "mc/world/actor/player/Player.h"
 #include <format>
 #include <string>
 
@@ -33,9 +34,6 @@ LL_TYPE_INSTANCE_HOOK(PortalInside, ll::memory::HookPriority::Normal, LocalPlaye
     std::string before;
     try { before = fields(*this) + " screen " + screen(); } catch (...) {}
     origin(portal);
-    // Experiment 2 (trace builds only): the portal effect flag back off right
-    // after it is set. Does the inventory then stay open (L-149)?
-    mEnablePortalEffect = false;
     try { log(std::format("handleInsidePortal {},{},{}: {} -> {} screen {}", portal.x, portal.y, portal.z, before, fields(*this), screen())); }
     catch (...) {}
 }
@@ -61,12 +59,28 @@ LL_TYPE_INSTANCE_HOOK(PortalTick, ll::memory::HookPriority::Normal, LocalPlayer,
         if (now != lastScreen) { log(std::format("screen changed {} -> {} ({})", lastScreen, now, fields(*this))); lastScreen = now; }
     } catch (...) {}
 }
+// Experiment 3 (trace builds only): who refuses container screens near a
+// portal? Logged when it says no; answered yes for the local player.
+LL_TYPE_INSTANCE_HOOK(PortalCanOpen, ll::memory::HookPriority::Normal, Player, &Player::canOpenContainerScreen, bool) {
+    bool result = origin();
+    try {
+        auto client = ll::service::getClientInstance();
+        auto* local = client ? client->getLocalPlayer() : nullptr;
+        if (!result && local && static_cast<Player*>(local) == this) {
+            log(std::format("canOpenContainerScreen -> false ({}, screen {}); answering true", fields(*local), screen()));
+            return true;
+        }
+    } catch (...) {}
+    return result;
+}
 void start() {
+    PortalCanOpen::hook();
     PortalInside::hook();
     PortalTick::hook();
     Runtime::instance().self().getLogger().warn("Portal diagnostics enabled (L-148/L-149)");
 }
 void stop() {
+    PortalCanOpen::unhook(true);
     PortalInside::unhook(true);
     PortalTick::unhook(true);
 }

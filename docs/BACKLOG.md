@@ -485,6 +485,11 @@ Goal: open and use the ordinary inventory while inside a Nether portal.
 - The inventory closed after `handleInsidePortal` returned (still open there)
   and before the next `normalTick`; zeroing the effect time did not stop it.
   Next trace: `mEnablePortalEffect` cleared right after `handleInsidePortal`.
+- Result (maintainer, 2026-10-12): still closed on entry and refused inside;
+  transfer time unchanged. At the close the log showed the flag off and
+  "inside" false, so neither drives it. Next trace: `Player::
+  canOpenContainerScreen` logged when it refuses and answered yes for the
+  local player (a likely check for both opening and closing).
 
 ### L-150 Arrow-count HUD
 Kind: Design (small), then Ready after counting and visibility are agreed.
@@ -520,6 +525,10 @@ Goal: show the arrows available to the player without opening inventory.
   armor rows off, a "Show ammo" child of Durability HUD (default on). The
   mockup showed a crossbow row reaching the hotbar at the bottom-left
   default; keep the ammo text compact and check the overlap when built.
+- Maintainer after checking in game: the real HUD has more room than the
+  mockup; no need to shrink the text. Also asked for a per-line background
+  for the Durability HUD (only card and none so far); built 2026-10-12
+  (band per row, right-aligned on the right side, as the Info HUD).
 
 ### L-146 Layer switches on the world map (with the next integration review)
 Kind: Design. Raised by the maintainer 2026-10-11 before the 0.2.0 release;

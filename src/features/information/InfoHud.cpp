@@ -438,23 +438,35 @@ std::optional<ui::hud_editor::Box> drawDurability(MinecraftUIRenderContext& cont
     if (rows.empty()) return std::nullopt;
     float z = elementZoom(element);
     bool card = element.background == ui::ElementBackground::Card;
-    float padX = card ? 5 * z : 0, padY = card ? 3 * z : 0;
+    // Per line: a band behind each row, as long as that row (maintainer,
+    // 2026-10-12: rows differ more once ammo counts join them).
+    bool band = element.background == ui::ElementBackground::Line;
+    float padX = card ? 5 * z : band ? ui::lineSidePadding * z : 0, padY = card ? 3 * z : 0;
     float icon = 16 * z, gap = 4 * z, barW = 32 * z, barH = 3 * z, rowH = 18 * z;
     std::vector<std::string> texts;
+    std::vector<float> rowWidths;
     float contentW = 0;
     for (auto const& row : rows) {
         texts.push_back(dur::showsNumber(look, row) ? dur::numberText(look, row) : std::string{});
         float w = icon + (dur::showsBar(look) ? gap + barW : 0);
         if (!texts.back().empty()) w += gap + ui::textWidthScaled(context, texts.back(), z);
+        rowWidths.push_back(w + 2 * z);
         contentW = std::max(contentW, w + 2 * z);
     }
     float boxW = contentW + 2 * padX, boxH = rows.size() * rowH + 2 * padY;
     auto placement = ui::placeElement(width, height, boxW, boxH, element);
     if (card) ui::card(context, placement.x, placement.y, boxW, boxH, cardOpacity);
+    // Bands on the right side of the screen line up on the right edge.
+    bool alignRight = band && ui::anchorFactors(element.anchor).x == 1;
     auto* renderer = context.mClient.getItemRenderer();
     for (size_t i = 0; i < rows.size(); ++i) {
         auto const& row = rows[i];
-        float x = placement.x + padX + z, y = placement.y + padY + i * rowH;
+        float left = alignRight ? placement.x + boxW - padX - rowWidths[i] : placement.x + padX;
+        float x = left + z, y = placement.y + padY + i * rowH;
+        if (band) {
+            auto line = ui::lineBox(left, y, rowWidths[i], rowH, z);
+            ui::fill(context, line.x, line.y, line.width, line.height, ui::palette::panel, cardOpacity);
+        }
         // Whole GUI units, as in inventory slots: layered icons (dyed
         // leather) show seams between their layers at fractional positions.
         if (renderer)

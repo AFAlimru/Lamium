@@ -72,7 +72,7 @@ inline constexpr std::array<std::string_view,3> worldMarkerLabels{
     "worldMarkers.always", "worldMarkers.whileHeld", "worldMarkers.off"};
 inline constexpr auto elementBackgroundLabels = std::to_array<std::string_view>(
     {"hudBackgroundNone", "hudBackgroundCard"});
-// Info, Status and the player list also offer a background behind each line (L-98, L-128).
+// Info, Status, the player list and Durability also offer a background behind each line (L-98, L-128).
 inline constexpr auto lineBackgroundLabels = std::to_array<std::string_view>(
     {"hudBackgroundNone", "hudBackgroundCard", "hudBackgroundLine"});
 inline constexpr std::array<std::string_view,2> debugBackgroundLabels{"hudBackgroundNone","hudBackgroundLine"};
@@ -390,7 +390,7 @@ inline constexpr auto options = std::to_array<Option>({
     hudChoice<ui::HudElementId::Magnification, &ui::HudElement::background, elementBackgroundLabels>("hud.magnification.background", "zoom", "hudBackground"),
     hudToggle<ui::HudElementId::Magnification, &ui::HudElement::shadow>("hud.magnification.shadow", "zoom", "hudShadow"),
     hudNumeric<ui::HudElementId::Durability, &ui::HudElement::scale, 25>("hud.durability.scale", "durabilityHud", "hudScale", 75, 150),
-    hudChoice<ui::HudElementId::Durability, &ui::HudElement::background, elementBackgroundLabels>("hud.durability.background", "durabilityHud", "hudBackground"),
+    hudChoice<ui::HudElementId::Durability, &ui::HudElement::background, lineBackgroundLabels>("hud.durability.background", "durabilityHud", "hudBackground"),
     hudToggle<ui::HudElementId::Durability, &ui::HudElement::shadow>("hud.durability.shadow", "durabilityHud", "hudShadow"),
     toggle<&Settings::map, &Settings::Map::minimap>("map.minimap", "minimap", "minimap"),
     choice<&Settings::map, &Settings::Map::zoom, mapZoomLabels>("map.zoom", "minimap", "mapZoom"),
