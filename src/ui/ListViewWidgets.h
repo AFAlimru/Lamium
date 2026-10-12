@@ -26,9 +26,16 @@ void drawSwatchRow(MinecraftUIRenderContext& context, ShapesLayout const& l, flo
     }
 }
 // Text being typed in a field of `height` from `top`: the selection as a
-// highlight, otherwise a blinking bar after the text, so a typed "_" never
-// looks like the caret. Both keep the same margin above and below.
-void drawEditText(MinecraftUIRenderContext& context, float x, float top, float height, float width, SearchQuery const& input);
+// highlight, otherwise a blinking bar at the caret, so a typed "_" never looks
+// like the caret. Both keep the same margin above and below. Long text
+// scrolls to keep the caret inside. The field is remembered for clicks.
+void drawEditField(MinecraftUIRenderContext& context, float x, float top, float height, float width, TextEdit const& input,
+                   Align align = Align::Left, Rgb color = palette::text);
+// A click inside the field drawn last for `field` puts its caret at the
+// nearest character boundary; false when the click was elsewhere.
+bool placeCaret(MinecraftUIRenderContext& context, TextEdit& field, float x, float y);
+// Called when no field is being edited, so an old place cannot take clicks.
+void forgetEditField();
 // The scrollbar of a view's list when it does not fit.
 void drawListScrollbar(MinecraftUIRenderContext& context, ShapesLayout const& l);
 }

@@ -538,9 +538,8 @@ void drawStepper(MinecraftUIRenderContext& context, float y, settings::Option co
         arrow(context,x+4,cy+3,true);
         arrow(context,x+w-aw+4,cy+3,false);
     }
-    std::string text = editing
-        ? (screen::number().selectedAll() ? "[" + screen::number().value() + "]" : screen::number().value() + "_") : value;
-    label(context,x+aw+1,cy+1+boxTextInset(),w-2*aw-2,std::move(text),warn ? palette::warning : palette::text,Align::Center);
+    if (editing) drawEditField(context,x+aw+1,cy,h,w-2*aw-2,screen::number(),Align::Center,warn ? palette::warning : palette::text);
+    else label(context,x+aw+1,cy+1+boxTextInset(),w-2*aw-2,value,warn ? palette::warning : palette::text,Align::Center);
 }
 void drawGuide(MinecraftUIRenderContext& context, float y, bool last) {
     float x = displayed.nameX + 3;
@@ -764,15 +763,14 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
     if (!shapesView() && !waypointsView() && !schematicsView()) {
     fill(context,t.searchX,t.top+4,t.searchWidth,12,Rgb{0,0,0},.45f);
     frame(context,t.searchX,t.top+4,t.searchWidth,12,searchFocused_() || (findingKey && hotkeysView()) ? palette::accent : palette::keyEdge);
-    if (searchFocused_() && query.selectedAll() && !query.value().empty())
-        fill(context,t.searchX+3,t.top+5,std::min(t.searchWidth-6,textWidth(context,query.value())),10,palette::accent,.35f);
     if (findingKey && hotkeysView())
         label(context,t.searchX+4,t.top+5+boxTextInset(),t.searchWidth-8,translated("captureBox"),palette::accent);
     else if (keyQuery && hotkeysView())
         label(context,t.searchX+4,t.top+5+boxTextInset(),t.searchWidth-8,translated("keyFind.query", keyQueryName) + (searchFocused_() ? "_" : ""));
     else if (query.value().empty() && !searchFocused_())
         label(context,t.searchX+4,t.top+5+boxTextInset(),t.searchWidth-8,translated("searchPlaceholder") + "  Ctrl+F",palette::faint);
-    else label(context,t.searchX+4,t.top+5+boxTextInset(),t.searchWidth-8,query.value() + (searchFocused_() ? "_" : ""));
+    else if (searchFocused_()) drawEditField(context,t.searchX+4,t.top+4,12,t.searchWidth-8,query);
+    else label(context,t.searchX+4,t.top+5+boxTextInset(),t.searchWidth-8,query.value());
     }
     bool closeHover = hover.zone == Zone::Close;
     if (closeHover) fill(context,t.closeX,t.top+4,SettingsTable::closeWidth,12,palette::white,.07f);
@@ -1032,6 +1030,8 @@ void unfocusSearch() { searchFocused_() = false; }
 void typeSearch(std::string const& text) {
     if (!capturing_ && searchFocused_() && query.type(text)) { keyQuery.reset(); queryChanged(); }
 }
+TextEdit* searchField() { return !capturing_ && searchFocused_() && !keyQuery ? &query : nullptr; }
+void searchEdited() { queryChanged(); }
 bool editingNumber() { return editingNumber_ != nullptr; }
 void applyNumber() {
     if (!editingNumber_) return;

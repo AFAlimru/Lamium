@@ -19,6 +19,7 @@
 #include "app/Runtime.h"
 #include "ui/Localization.h"
 #include "ui/SearchQuery.h"
+#include "ui/ListViewWidgets.h"
 #include "ui/Widgets.h"
 #include "mc/client/game/IClientInstance.h"
 #include "mc/client/gui/GuiData.h"
@@ -1079,8 +1080,8 @@ void drawPanel(MinecraftUIRenderContext& context, glm::vec2 size) {
     // Name: click to type; Enter or a click elsewhere keeps it, Esc drops it.
     ui::fill(context, x, y, inner, 12, Rgb{0, 0, 0}, .4f);
     ui::frame(context, x, y, inner, 12, state.editingName ? ui::palette::accent : ui::palette::keyEdge);
-    std::string shown = !state.editingName ? p.name : state.name.selectedAll() ? "[" + state.name.value() + "]" : state.name.value() + "_";
-    ui::label(context, x + 3, y + 1 + inset, inner - 6, std::move(shown));
+    if (state.editingName) ui::drawEditField(context, x + 3, y, 12, inner - 6, state.name);
+    else ui::label(context, x + 3, y + 1 + inset, inner - 6, p.name);
     state.hits.push_back({x, y, inner, 12, Target::Name});
     state.namePosition = {x + 3, y};
     y += 14;
@@ -1256,6 +1257,7 @@ void wheel(int direction) {
     state.view.zoomAt(p.x, p.y, direction);
 }
 bool editingName() { return state.open && state.editingName; }
+ui::TextEdit* nameField() { return editingName() ? &state.name : nullptr; }
 void typeText(std::string const& text) { if (state.editingName) state.name.type(text); }
 void backspace() { if (state.editingName) state.name.backspace(); }
 void selectAllName() { if (state.editingName) state.name.selectAll(); }

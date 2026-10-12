@@ -41,6 +41,8 @@ int main() try {
     inventoryHudTests();
     extern void connectedTexturesTests();
     connectedTexturesTests();
+    extern void textEditTests();
+    textEditTests();
     extern void toolChoiceTests();
     toolChoiceTests();
     extern void weaponChoiceTests();

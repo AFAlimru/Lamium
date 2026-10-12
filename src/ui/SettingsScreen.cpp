@@ -154,6 +154,37 @@ int schematicMenuClosedAt = -1; // the level shown when it last closed
 // World map (L-60): replaces the whole panel; the add prompt opened from it
 // returns to it.
 bool worldMapOpen = false, promptOnMap = false;
+// The text field the keyboard edits now and what tells its owner it changed
+// (L-172), in the order text events are routed.
+struct FocusedText { TextEdit* field = nullptr; void (*changed)() = nullptr; };
+FocusedText focusedText() {
+    if (table_view::capturing()) return {};
+    if (prompt) return {&prompt->name, [] {}};
+    if (savePrompt) return {&savePrompt->name, [] { savePrompt->overwrite = false; }};
+    if (worldMapOpen)
+        if (auto* field = map::world::nameField()) return {field, [] {}};
+    if (auto* field = waypoints_view::nameField()) return {field, waypoints_view::nameEdited};
+    if (auto* field = shapes_view::nameField()) return {field, shapes_view::nameEdited};
+    if (numericEditing()) return {&numberInput, [] { numberDirty = true; }};
+    if (auto* field = table_view::searchField()) return {field, table_view::searchEdited};
+    return {};
+}
+// Caret keys, Delete and Ctrl+V/C act on the focused field (L-172).
+bool textEditKey(int key, bool ctrl) {
+    return key == 0x25 || key == 0x27 || key == 0x24 || key == 0x23 || key == 0x2e || (ctrl && (key == 0x56 || key == 0x43));
+}
+bool editText(TextEdit& field, int key, bool ctrl) {
+    switch (key) {
+    case 0x25: field.left(ctrl); return false;
+    case 0x27: field.right(ctrl); return false;
+    case 0x24: field.home(); return false;
+    case 0x23: field.end(); return false;
+    case 0x2e: return field.erase();
+    case 0x56: return field.paste(clipboardText());
+    case 0x43: copyText(field.value()); return false;
+    default: return false;
+    }
+}
 bool mapFromSettings = false;  // Closing the map returns to the settings.
 void enterWorldMap(bool fromSettings, bool resume);
 struct Wheel { float x, y; int direction; };
@@ -455,7 +486,7 @@ void renderPrompt(MinecraftUIRenderContext& context, glm::vec2 size, glm::vec2 p
     label(context, x, l.whereY(), l.inner(), std::format("{}, {}, {}  {}", d.x, d.y, d.z, translated(dimension)), palette::dim);
     fill(context, x, l.fieldY(), l.inner(), L::fieldHeight, Rgb{0, 0, 0}, .4f);
     frame(context, x, l.fieldY(), l.inner(), L::fieldHeight, palette::accent);
-    drawEditText(context, x + 3, l.fieldY(), L::fieldHeight, l.inner() - 6, prompt->name);
+    drawEditField(context, x + 3, l.fieldY(), L::fieldHeight, l.inner() - 6, prompt->name);
     for (int i = 0; i < L::swatches; ++i) {
         auto c = map::waypointColors[static_cast<size_t>(i)];
         float sx = l.swatchX(i), sy = l.swatchY();
@@ -778,7 +809,7 @@ void renderSavePrompt(MinecraftUIRenderContext& context, glm::vec2 size, glm::ve
     label(context, x, l.sizeY(), l.inner(), translated("schematic.save.size", s.x, s.y, s.z, p.area.cells()), palette::dim);
     fill(context, x, l.fieldY(), l.inner(), L::fieldHeight, Rgb{0, 0, 0}, .4f);
     frame(context, x, l.fieldY(), l.inner(), L::fieldHeight, palette::accent);
-    drawEditText(context, x + 3, l.fieldY(), L::fieldHeight, l.inner() - 6, p.name);
+    drawEditField(context, x + 3, l.fieldY(), L::fieldHeight, l.inner() - 6, p.name);
     auto file = schematic::schematicFileName(p.name.value());
     label(context, x, l.whereY(), l.inner(), translated("schematic.save.where", file.empty() ? std::string("-") : file), palette::faint);
     label(context, x, l.entitiesY() + boxTextInset(), l.inner() - L::switchWidth - 4, translated("schematic.save.entities"),
@@ -903,6 +934,11 @@ void render(ll::event::UIRenderEvent& event) {
     applyNumber();
     shapes_view::applyName();
     table_view::applyBinding();
+    // A click inside the field being edited moves its caret (L-172).
+    if (auto target = focusedText(); target.field) {
+        if (pendingClick && !pendingClick->right && placeCaret(context, *target.field, pendingClick->x, pendingClick->y))
+            pendingClick.reset();
+    } else forgetEditField();
     if (worldMapOpen && !prompt) {
         // Press before release: a quick click delivers both between two
         // frames and must not leave a drag running.
@@ -1281,6 +1317,11 @@ void start() {
         }
         // Let key-up through so keys pressed before opening cannot stick.
         if (!event.isDown()) return;
+        if (auto target = focusedText(); target.field && textEditKey(event.keyCode(), heldCtrl())) {
+            event.cancel();
+            if (editText(*target.field, event.keyCode(), heldCtrl())) target.changed();
+            return;
+        }
         if (prompt) {
             // Text goes through the native keyboard; editing keys act at once,
             // the rest (Enter, Esc, Tab) run with the next frame.

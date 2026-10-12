@@ -9,6 +9,7 @@
 #include <optional>
 #include <string>
 class MinecraftUIRenderContext;
+#include "ui/TextEdit.h"
 namespace lamium::ui::waypoints_view {
 // The waypoints as they are now; before each frame's input.
 void refresh();
@@ -19,6 +20,9 @@ void key(int key);
 void wheel(int step, glm::vec2 pointer);
 
 bool editingName();
+// The name being typed (null when none) and the mark that it changed (L-172).
+TextEdit* nameField();
+void nameEdited();
 bool editingNumber();
 void type(std::string const& text);
 void applyNumber();

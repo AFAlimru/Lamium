@@ -1,4 +1,5 @@
 #pragma once
+#include "ui/TextEdit.h"
 #include <string>
 #include <string_view>
 
@@ -6,49 +7,10 @@ namespace lamium::ui {
 // Native text events supply UTF-8. Keep codepoints intact when deleting and
 // never truncate an event at an arbitrary byte boundary. ASCII case folding
 // leaves Japanese and other UTF-8 text available for exact substring matching.
-class SearchQuery {
-    std::string text;
-    bool replace = false;
+// Also the name fields' editor (any printable text up to 128 bytes).
+class SearchQuery : public TextEdit {
 public:
-    std::string const& value() const { return text; }
-    bool selectedAll() const { return replace; }
-    void selectAll() { replace = true; }
-    void clear() { text.clear(); replace = false; }
-    bool append(std::string_view input) {
-        if (input.empty() || (replace ? 0 : text.size()) + input.size() > 128) return false;
-        for (unsigned char ch : input) if (ch < 32 || ch == 127) return false;
-        if (replace) text.clear();
-        text.append(input);
-        replace = false;
-        return true;
-    }
-    // A native text event as the game sends it. An IME rewriting its
-    // composition sends a backspace (0x08) for each character it takes back
-    // before the new ones; other control characters are dropped.
-    bool type(std::string_view input) {
-        bool changed = false;
-        size_t start = 0;
-        auto flush = [&](size_t end) {
-            if (end > start) changed = append(input.substr(start, end - start)) || changed;
-        };
-        for (size_t i = 0; i < input.size(); ++i) {
-            auto ch = static_cast<unsigned char>(input[i]);
-            if (ch >= 32 && ch != 127) continue;
-            flush(i);
-            if (ch == 8) changed = backspace() || changed;
-            start = i + 1;
-        }
-        flush(input.size());
-        return changed;
-    }
-    bool backspace() {
-        if (text.empty()) return false;
-        if (replace) { clear(); return true; }
-        auto start = text.size() - 1;
-        while (start > 0 && (static_cast<unsigned char>(text[start]) & 0xc0) == 0x80) --start;
-        text.resize(start);
-        return true;
-    }
+    SearchQuery() : TextEdit(128) {}
     static std::string folded(std::string_view input) {
         std::string result(input);
         for (auto& ch : result) if (ch >= 'A' && ch <= 'Z') ch += 'a' - 'A';

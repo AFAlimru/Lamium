@@ -405,6 +405,13 @@ Scope (maintainer: movement, paste and click):
   digit rules on top of it.
 Later: selections (Shift + arrows, Shift + Home/End, drag) and replacing a
 selection.
+Built 2026-10-13: `TextEdit` (`src/ui/TextEdit.h`) under `SearchQuery` and
+`NumberInput`; the settings screen routes the caret keys, Delete and
+Ctrl+V/C to the focused field and a click inside it to `placeCaret`; one
+`drawEditField` draws every field (selection highlight instead of the old
+"[...]" brackets and "_" markers). Not possible: moving the IME window with
+the caret (the SDK's keyboard takes a position only when it is enabled), so
+it stays at the field's left edge.
 Tests: insert/delete around multi-byte characters, word jumps over spaces
 and punctuation, paste limits, IME backspace sequences at a middle caret.
 

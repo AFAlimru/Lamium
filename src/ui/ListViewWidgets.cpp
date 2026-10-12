@@ -2,6 +2,7 @@
 #include "mc/client/renderer/screen/MinecraftUIRenderContext.h"
 #include <algorithm>
 #include <chrono>
+#include <cmath>
 
 namespace lamium::ui {
 void drawSmallButton(MinecraftUIRenderContext& context, float x, float y, float w, float h, std::string text,
@@ -24,18 +25,56 @@ void drawShapeStepper(MinecraftUIRenderContext& context, ShapesLayout const& l, 
         arrow(context,x+4,y+4,true);
         arrow(context,x+w-aw+4,y+4,false);
     }
-    if (editing) text = editing->selectedAll() ? "[" + editing->value() + "]" : editing->value() + "_";
-    label(context,x+aw+1,y+2+boxTextInset(),w-2*aw-2,std::move(text),palette::text,Align::Center);
+    if (editing) drawEditField(context,x+aw+1,y+1,h,w-2*aw-2,*editing,Align::Center);
+    else label(context,x+aw+1,y+2+boxTextInset(),w-2*aw-2,std::move(text),palette::text,Align::Center);
 }
-void drawEditText(MinecraftUIRenderContext& context, float x, float top, float height, float width, SearchQuery const& input) {
+namespace {
+// Where the field being edited was drawn last, for clicks (L-172).
+struct EditFieldPlace {
+    TextEdit const* field = nullptr;
+    float x = 0, top = 0, width = 0, height = 0, origin = 0;
+    std::size_t start = 0;
+} lastField;
+}
+void drawEditField(MinecraftUIRenderContext& context, float x, float top, float height, float width, TextEdit const& input,
+                   Align align, Rgb color) {
     auto const& value = input.value();
-    float w = std::min(textWidth(context, value), width - 2);
+    float room = width - 3;
+    // Long text scrolls so the caret stays in the field.
+    std::size_t start = 0, caret = input.selectedAll() ? value.size() : input.caret();
+    while (start < caret && textWidth(context, std::string_view(value).substr(start, caret - start)) > room) {
+        ++start;
+        while (start < value.size() && (static_cast<unsigned char>(value[start]) & 0xc0) == 0x80) ++start;
+    }
+    std::string shown = value.substr(start);
+    float shownWidth = std::min(textWidth(context, shown), room);
+    float origin = align == Align::Center ? x + std::max(0.f, (width - shownWidth) / 2) : x;
     float markTop = top + 2, markHeight = height - 4;
-    if (input.selectedAll() && !value.empty()) fill(context, x - 1, markTop, w + 2, markHeight, palette::accentDeep);
-    label(context, x, top + 1 + boxTextInset(), width, value);
+    if (input.selectedAll() && !value.empty()) fill(context, origin - 1, markTop, shownWidth + 2, markHeight, palette::accentDeep);
+    label(context, origin, top + 1 + boxTextInset(), width - (origin - x), shown, color);
     auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
-    if (!input.selectedAll() && ms / 530 % 2 == 0) fill(context, x + w + 1, markTop, 1, markHeight, palette::text);
+    if (!input.selectedAll() && ms / 530 % 2 == 0) {
+        float caretX = origin + std::min(textWidth(context, std::string_view(value).substr(start, caret - start)), room);
+        fill(context, caretX + (caret == start ? 0.f : 1.f), markTop, 1, markHeight, palette::text);
+    }
+    lastField = {&input, x, top, width, height, origin, start};
 }
+bool placeCaret(MinecraftUIRenderContext& context, TextEdit& field, float x, float y) {
+    auto const& place = lastField;
+    if (place.field != &field || x < place.x || x > place.x + place.width || y < place.top || y > place.top + place.height) return false;
+    auto const& value = field.value();
+    std::size_t best = place.start;
+    float bestDistance = std::abs(x - place.origin);
+    for (std::size_t at = place.start; at < value.size();) {
+        ++at;
+        while (at < value.size() && (static_cast<unsigned char>(value[at]) & 0xc0) == 0x80) ++at;
+        float distance = std::abs(x - (place.origin + textWidth(context, std::string_view(value).substr(place.start, at - place.start))));
+        if (distance < bestDistance) { best = at; bestDistance = distance; }
+    }
+    field.place(best);
+    return true;
+}
+void forgetEditField() { lastField = {}; }
 void drawListScrollbar(MinecraftUIRenderContext& context, ShapesLayout const& l) {
     if (l.listCount <= l.listVisible) return;
     float listRight = l.listLeft + l.listWidth;

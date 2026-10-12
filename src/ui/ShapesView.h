@@ -9,6 +9,7 @@
 #include <optional>
 #include <string>
 class MinecraftUIRenderContext;
+#include "ui/TextEdit.h"
 namespace lamium::ui::shapes_view {
 // The list as it is now; before each frame's input.
 void refresh();
@@ -21,6 +22,9 @@ void wheel(int step, glm::vec2 pointer);
 
 // Typing: the shape's name, or a numeric field (screen::number()).
 bool editingName();
+// The name being typed (null when none) and the mark that it changed (L-172).
+TextEdit* nameField();
+void nameEdited();
 bool editingNumber();
 void type(std::string const& text);
 void applyNumber();

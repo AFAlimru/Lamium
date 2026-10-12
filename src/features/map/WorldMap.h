@@ -7,6 +7,7 @@
 #include <string>
 class IClientInstance;
 class MinecraftUIRenderContext;
+namespace lamium::ui { class TextEdit; }
 namespace lamium::map::world {
 // The world map screen (BACKLOG L-60 world map, docs/demos/worldmap.html and
 // worldmap-review.html). The settings screen's scene owns focus and the
@@ -28,6 +29,8 @@ Request key(int key, bool openKey);
 // The waypoint name typed in the side panel; text arrives from the native
 // keyboard, editing keys from key().
 bool editingName();
+// The waypoint name being typed, null when none (L-172).
+ui::TextEdit* nameField();
 void typeText(std::string const& text);
 void backspace();
 void selectAllName();

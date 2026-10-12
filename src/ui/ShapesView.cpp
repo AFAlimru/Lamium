@@ -453,7 +453,7 @@ void drawShapesBody(MinecraftUIRenderContext& context, ShapesLayout const& l, gl
         fill(context,dx,l.nameY,dw,ShapesLayout::rowHeight-1,Rgb{0,0,0},.4f);
         frame(context,dx,l.nameY,dw,ShapesLayout::rowHeight-1,editingShapeName ? palette::accent : palette::keyEdge);
         drawTypeIcon(context,dx+3,l.nameY+1.5f,shape::typeIndex(*definition),shapeDraft ? draftRgb : shapeRgb(definition->color));
-        if (editingShapeName) drawEditText(context,dx+17,l.nameY,ShapesLayout::rowHeight-1,dw-20,shapeNameInput);
+        if (editingShapeName) drawEditField(context,dx+17,l.nameY,ShapesLayout::rowHeight-1,dw-20,shapeNameInput);
         else label(context,dx+17,l.nameY+1+boxTextInset(),dw-20,definition->name);
         // Preview: one layer seen from above; plane seen along its normal.
         float px = dx, py = l.previewY, size = ShapesLayout::previewSize;
@@ -614,6 +614,8 @@ void wheel(int step, glm::vec2 pointer) {
     else shapeFieldFirst = std::max(0, shapeFieldFirst + step);
 }
 bool editingName() { return editingShapeName; }
+TextEdit* nameField() { return editingShapeName ? &shapeNameInput : nullptr; }
+void nameEdited() { shapeNameDirty = true; }
 bool editingNumber() { return editingShapeField >= 0; }
 void type(std::string const& text) { if (shapeNameInput.type(text)) shapeNameDirty = true; }
 void applyNumber() {

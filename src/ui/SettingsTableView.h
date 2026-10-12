@@ -11,6 +11,7 @@
 #include <string_view>
 class IClientInstance;
 class MinecraftUIRenderContext;
+#include "ui/TextEdit.h"
 namespace lamium::ui::table_view {
 // The screen opens again: search, typing and capture end; rows are rebuilt
 // keeping the selection.
@@ -28,6 +29,10 @@ bool searchFocused();
 void focusSearch();
 // Text from the native keyboard for the search field.
 void typeSearch(std::string const& text);
+// The search text while it is being typed (null otherwise, also while a key
+// is the query) and the mark that it changed (L-172).
+TextEdit* searchField();
+void searchEdited();
 void unfocusSearch();
 
 // A number typed into an option row (screen::number()).

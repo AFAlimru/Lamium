@@ -40,4 +40,19 @@ bool copyText(std::string const& text) {
     CloseClipboard();
     return done;
 }
+std::string clipboardText() {
+    if (!OpenClipboard(nullptr)) return {};
+    std::string out;
+    if (HANDLE data = GetClipboardData(CF_UNICODETEXT)) {
+        if (auto const* text = static_cast<wchar_t const*>(GlobalLock(data))) {
+            int length = static_cast<int>(wcslen(text));
+            int size = WideCharToMultiByte(CP_UTF8, 0, text, length, nullptr, 0, nullptr, nullptr);
+            out.resize(static_cast<size_t>(size));
+            WideCharToMultiByte(CP_UTF8, 0, text, length, out.data(), size, nullptr, nullptr);
+            GlobalUnlock(data);
+        }
+    }
+    CloseClipboard();
+    return out;
+}
 }

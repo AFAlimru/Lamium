@@ -395,7 +395,7 @@ void drawWaypointsBody(MinecraftUIRenderContext& context, ShapesLayout const& l,
         fill(context,dx,l.nameY,dw,ShapesLayout::rowHeight-1,Rgb{0,0,0},.4f);
         frame(context,dx,l.nameY,dw,ShapesLayout::rowHeight-1,editingWaypointName ? palette::accent : palette::keyEdge);
         drawDiamondGlyph(context, dx + 7, l.nameY + 6.5f, 7, waypointRgb(w->color));
-        if (editingWaypointName) drawEditText(context,dx+17,l.nameY,ShapesLayout::rowHeight-1,dw-20,waypointNameInput);
+        if (editingWaypointName) drawEditField(context,dx+17,l.nameY,ShapesLayout::rowHeight-1,dw-20,waypointNameInput);
         else label(context,dx+17,l.nameY+1+boxTextInset(),dw-20,w->name);
         // The preview area: a large diamond and where the waypoint is.
         float size = ShapesLayout::previewSize;
@@ -503,6 +503,8 @@ void wheel(int step, glm::vec2 pointer) {
     else waypointFieldFirst = std::max(0, waypointFieldFirst + step);
 }
 bool editingName() { return editingWaypointName; }
+TextEdit* nameField() { return editingWaypointName ? &waypointNameInput : nullptr; }
+void nameEdited() { waypointNameDirty = true; }
 bool editingNumber() { return editingWaypointField >= 0; }
 void type(std::string const& text) { if (waypointNameInput.type(text)) waypointNameDirty = true; }
 void applyNumber() {
