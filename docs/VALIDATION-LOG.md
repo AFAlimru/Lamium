@@ -12,6 +12,20 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-172 Text fields: caret, paste and click (2026-10-13)
+
+By the maintainer, local.
+- `94e48b5` (DLL `e8c43c16...5d3976d`): settings search with Left/Right,
+  Home/End and typing in the middle, Delete; a Shapes or Waypoints name
+  typed and converted with the Japanese IME in the middle of the text;
+  Ctrl+V into a name field; a click inside a name field moves the caret;
+  a number field (zoom magnification) edited at a moved caret. OK. The
+  caret bar sat on the next letter (a "t" hid it).
+- `ed4a4e7` (DLL `6c40d457...b4d955b6`): the caret bar no longer covers
+  letters; world map waypoint X typed into its new number field moves the
+  waypoint with Enter, Esc keeps the old value. OK.
+Not seen: Ctrl+C, word jumps, very long text scrolling, the save prompt.
+
 ## L-164 Connected Textures with generated sprites (2026-10-13)
 
 By the maintainer, local, screenshots.

@@ -382,42 +382,10 @@ type 3, scale 1.333, with the font's own material).
 
 ## Feature work and research
 
-### L-172 Text fields: caret movement, paste and click
-Kind: Ready (strong model), decided with the maintainer 2026-10-12.
-Problem: every Lamium text field (settings search, number fields, Shapes,
-Waypoints and Schematics names, save prompts, the world map search) only
-appends at the end; Backspace removes the last character and select-all
-replaces everything. There is no caret position, no Left/Right, Home/End or
-Delete, and no paste (`SearchQuery` and `NumberInput` in `src/ui/`).
-Scope (maintainer: movement, paste and click):
-- One shared pure editor (header, tested) with a caret kept on UTF-8
-  codepoint boundaries: insert at the caret, Backspace before it, Delete
-  after it, Left/Right by codepoint, Ctrl+Left/Right by word, Home/End,
-  Ctrl+V paste (control characters dropped, length limits kept), Ctrl+C
-  copy of the whole field (`app/Desktop` already writes the clipboard;
-  reading it is new), select-all kept as today.
-- IME: a composition's backspaces act before the caret, and the native
-  keyboard's caret position (`syncTextKeyboard`) follows the caret.
-- Click inside a field puts the caret at the nearest character boundary
-  (text width from the same measure the widgets use).
-- The caret is drawn at its position; long text scrolls to keep it visible.
-- Every existing field moves to the shared editor; `NumberInput` keeps its
-  digit rules on top of it.
-Later: selections (Shift + arrows, Shift + Home/End, drag) and replacing a
-selection.
-Built 2026-10-13: `TextEdit` (`src/ui/TextEdit.h`) under `SearchQuery` and
-`NumberInput`; the settings screen routes the caret keys, Delete and
-Ctrl+V/C to the focused field and a click inside it to `placeCaret`; one
-`drawEditField` draws every field (selection highlight instead of the old
-"[...]" brackets and "_" markers). Not possible: moving the IME window with
-the caret (the SDK's keyboard takes a position only when it is enabled), so
-it stays at the field's left edge.
-Tests: insert/delete around multi-byte characters, word jumps over spaces
-and punctuation, paste limits, IME backspace sequences at a middle caret.
-
 ### L-171 Calculator
-Kind: Ready (strong model) after L-172; designed with the maintainer
-2026-10-12 (demos/calculator.html). Not scheduled, no release.
+Kind: Ready (strong model); designed with the maintainer 2026-10-12
+(demos/calculator.html). L-172's text editing is in (2026-10-13). Not
+scheduled, no release.
 Goal: a quick calculator inside the game; playing often needs arithmetic
 (stacks, coordinates, farm rates) and there is no way to do it in game now.
 Agent's proposal (not decided):
