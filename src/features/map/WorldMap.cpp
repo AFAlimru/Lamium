@@ -18,6 +18,7 @@
 #include "features/information/InfoHud.h"
 #include "app/Runtime.h"
 #include "ui/Localization.h"
+#include "ui/NumberInput.h"
 #include "ui/SearchQuery.h"
 #include "ui/ListViewWidgets.h"
 #include "ui/Widgets.h"
@@ -109,7 +110,7 @@ void unload(IClientInstance& client, ResourceLocation const& location) {
 enum class Target {
     None, Overworld, Nether, End, BandDown, BandUp, Center, Waypoints, Close, Menu,
     // The side panel: its background, header buttons, list and editor.
-    Panel, PanelAdd, PanelClose, Row, RowVisible, Name, Step, MoveHere, Swatch, Keep, Delete, OpenScreen
+    Panel, PanelAdd, PanelClose, Row, RowVisible, Name, Step, Coordinate, MoveHere, Swatch, Keep, Delete, OpenScreen
 };
 struct Hit {
     float x, y, w, h;
@@ -169,6 +170,9 @@ struct State {
     bool deleteArmed = false;
     bool editingName = false;
     ui::SearchQuery name;
+    // A coordinate typed into its field (0-2 for X, Y, Z; -1 when none).
+    int editingAxis = -1;
+    ui::NumberInput coordinate;
     glm::vec2 namePosition{};
     float listTop = 0, listBottom = 0;
     float arrowAngle = NAN;
@@ -252,7 +256,17 @@ void setPanelOpen(bool open) {
     value.map.worldMapPanel = open;
     if (!Runtime::instance().save(value)) log("could not save the side panel state");
 }
+bool changeSelected(std::function<void(Waypoint&)> const& apply);
+void commitCoordinate() {
+    int axis = std::exchange(state.editingAxis, -1);
+    if (axis < 0) return;
+    auto value = state.coordinate.parsedPrecise(-coordinateLimit, coordinateLimit, true);
+    if (!value) return; // Incomplete or out of range: the waypoint keeps its place.
+    changeSelected([&](Waypoint& w) { (axis == 0 ? w.x : axis == 1 ? w.y : w.z) = static_cast<int>(*value); });
+}
+// Ends whatever is being typed in the side panel, keeping it.
 void commitName() {
+    commitCoordinate();
     if (!std::exchange(state.editingName, false)) return;
     auto text = state.name.value();
     auto mark = state.selected;
@@ -327,7 +341,9 @@ bool deleteMark(MarkKey mark) {
 }
 Request panelAction(Hit const& hit) {
     Request request;
-    if (hit.target != Target::Name) commitName();
+    // A click on the field being typed in keeps typing (L-172 moves the caret).
+    bool sameField = (hit.target == Target::Name && state.editingName) || (hit.target == Target::Coordinate && hit.item == state.editingAxis);
+    if (!sameField) commitName();
     if (hit.target != Target::Delete) state.deleteArmed = false;
     auto set = waypoints::current();
     switch (hit.target) {
@@ -357,6 +373,12 @@ Request panelAction(Hit const& hit) {
             state.name.clear();
             state.name.append(w->name);
             state.name.selectAll();
+        }
+        break;
+    case Target::Coordinate:
+        if (auto const* w = state.selected ? waypointOf(set, *state.selected) : nullptr; w && state.editingAxis != hit.item) {
+            state.editingAxis = hit.item;
+            state.coordinate.begin(static_cast<float>(hit.item == 0 ? w->x : hit.item == 1 ? w->y : w->z));
         }
         break;
     case Target::Step: {
@@ -1102,7 +1124,12 @@ void drawPanel(MinecraftUIRenderContext& context, glm::vec2 size) {
             ui::label(context, bx2, y + inset, 9, side ? "+" : "-", ui::palette::text, ui::Align::Center);
             state.hits.push_back({bx2, y, 9, buttonHeight, Target::Step, axis * 2 + side});
         }
-        ui::label(context, sx + 9, y + inset, 52, std::to_string(value), ui::palette::text, ui::Align::Center);
+        // The value: click to type it (L-172 follow-up, 2026-10-13).
+        if (state.editingAxis == axis) {
+            ui::frame(context, sx + 9, y, 52, buttonHeight, ui::palette::accent);
+            ui::drawEditField(context, sx + 10, y, buttonHeight, 50, state.coordinate, ui::Align::Center);
+        } else ui::label(context, sx + 9, y + inset, 52, std::to_string(value), ui::palette::text, ui::Align::Center);
+        state.hits.push_back({sx + 9, y, 52, buttonHeight, Target::Coordinate, axis});
         y += 12;
     }
     if (y + 12 < bottom) { small(x, y, inner, ui::translated("waypoint.moveHere"), Target::MoveHere, 0); y += 13; }
@@ -1182,6 +1209,7 @@ void open(IClientInstance& client, bool resume) {
     state.markers.clear();
     state.notice.clear();
     state.editingName = false;
+    state.editingAxis = -1;
     state.openedAt = now();
     if (resume) return;
     state.selected.reset();
@@ -1256,17 +1284,20 @@ void wheel(int direction) {
     // zoom about the pointer as last drawn.
     state.view.zoomAt(p.x, p.y, direction);
 }
-bool editingName() { return state.open && state.editingName; }
-ui::TextEdit* nameField() { return editingName() ? &state.name : nullptr; }
-void typeText(std::string const& text) { if (state.editingName) state.name.type(text); }
-void backspace() { if (state.editingName) state.name.backspace(); }
-void selectAllName() { if (state.editingName) state.name.selectAll(); }
+bool editingName() { return state.open && (state.editingName || state.editingAxis >= 0); }
+ui::TextEdit* nameField() {
+    if (!editingName()) return nullptr;
+    return state.editingAxis >= 0 ? static_cast<ui::TextEdit*>(&state.coordinate) : &state.name;
+}
+void typeText(std::string const& text) { if (auto* field = nameField()) field->type(text); }
+void backspace() { if (auto* field = nameField()) field->backspace(); }
+void selectAllName() { if (auto* field = nameField()) field->selectAll(); }
 glm::vec2 namePosition() { return state.namePosition; }
 Request key(int key, bool openKey) {
     Request request;
-    if (state.editingName) {
+    if (state.editingName || state.editingAxis >= 0) {
         if (key == 0x0d || key == 0x09) commitName();
-        else if (key == 0x1b) state.editingName = false;
+        else if (key == 0x1b) { state.editingName = false; state.editingAxis = -1; }
         return request;
     }
     if (key == 0x1b) {

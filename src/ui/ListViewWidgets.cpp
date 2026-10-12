@@ -54,8 +54,10 @@ void drawEditField(MinecraftUIRenderContext& context, float x, float top, float 
     label(context, origin, top + 1 + boxTextInset(), width - (origin - x), shown, color);
     auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
     if (!input.selectedAll() && ms / 530 % 2 == 0) {
+        // Each glyph's advance ends in a blank spacing column: the bar goes
+        // there, not onto the next glyph (a "t" hid it, 2026-10-13).
         float caretX = origin + std::min(textWidth(context, std::string_view(value).substr(start, caret - start)), room);
-        fill(context, caretX + (caret == start ? 0.f : 1.f), markTop, 1, markHeight, palette::text);
+        fill(context, caretX - 1, markTop, 1, markHeight, palette::text);
     }
     lastField = {&input, x, top, width, height, origin, start};
 }
