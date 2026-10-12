@@ -410,10 +410,13 @@ Built 2026-10-12: `chordUses` (Binding.h) and a `KeyFilter` for
 the found inputs with the next frame, outside input events. Vanilla
 bindings are not searched. Tests cover matching, default bindings and the
 button's place. Checked in game 2026-10-12 (`c4ac083`): all OK.
-Follow-up under discussion with the maintainer (2026-10-12): place the
-button nearer the key column; focus the search field after a find so
-Backspace clears it; and the binding editor's Clear/Reset/Cancel sit in the
-footer, far from the key cell being edited. Not decided; do not build yet.
+Follow-up decided 2026-10-12 (DESIGN.md): swap the buttons so Find by key
+sits next to the key column and Reset all keys left of it; after a find the
+search field takes focus with "Key: Z" as one unit (Backspace clears it,
+typing starts a text search, Esc clears, Down/Enter go to results). Not
+built yet. Still open: the binding editor's Clear/Reset/Cancel sit in the
+footer, far from the key cell being edited; three placements in
+[demos/binding-editor.html](demos/binding-editor.html), under review.
 
 ### L-147 Status Effects HUD
 Kind: Design, with Research for native data and vanilla HUD visibility.

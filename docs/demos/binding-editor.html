@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Binding Editor Buttons</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Noto+Sans+JP:wght@400;500;700&display=swap">
+<style>
+:root{
+  color-scheme: dark;
+  --ground:#15181a; --ground-2:#1c2124; --line:#2c3337; --ink:#e6ebe8; --ink-2:#a6b0ab; --ink-3:#77827c;
+  --accent:#6cc349; --accent-deep:#3c8527;
+  /* In-game tokens (src/ui/Widgets.h palette). */
+  --mc-panel:16,17,19; --mc-edge:rgba(255,255,255,.14); --mc-hover:rgba(255,255,255,.07);
+  --mc-text:#ffffff; --mc-dim:#b4b8b6; --mc-faint:#7f8583; --mc-key:#2b2c2d; --mc-key-edge:#5a5b5c;
+  --mc-exp:#b98bff; --mc-warn:#ffc24a; --mc-on:#3c8527; --mc-on-edge:#6cc349; --mc-off:#48494a;
+  --mc-font:"DotGothic16","MS Gothic","Osaka-Mono",monospace;
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font:15px/1.65 "Noto Sans JP",system-ui,sans-serif;margin:0}
+.wrap{max-width:1120px;margin:0 auto;padding:28px 16px 64px;display:grid;gap:22px}
+h1{font:700 26px/1.25 "Noto Sans JP",sans-serif;margin:0;text-wrap:balance}
+h2{font:700 18px/1.4 "Noto Sans JP",sans-serif;margin:0 0 8px}
+p{margin:0}
+.lede{color:var(--ink-2);max-width:72ch;margin-top:8px}
+.eyebrow{font:500 12px/1 "Noto Sans JP",sans-serif;letter-spacing:.12em;color:var(--accent);margin-bottom:10px}
+.controls{display:flex;flex-wrap:wrap;gap:14px 28px;align-items:start}
+.cgroup{display:grid;gap:6px}
+.cgroup > span{font-size:12px;color:var(--ink-3);letter-spacing:.04em}
+.seg{display:inline-flex;flex-wrap:wrap;border:1px solid var(--line);background:var(--ground-2);max-width:100%}
+.seg button{all:unset;cursor:pointer;padding:7px 12px;color:var(--ink-2);font:500 13px/1.2 "Noto Sans JP",sans-serif;border-right:1px solid var(--line)}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--accent-deep);color:#fff}
+.seg button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.note{color:var(--ink-2);font-size:14px;max-width:80ch}
+.note b{color:var(--ink)}
+
+/* ---- Stage: the screen in GUI units (640 x 360), scaled to the page ---- */
+.stage-outer{border:1px solid var(--line);background:linear-gradient(#26313a,#2f3a2c 60%,#3a332b);overflow:hidden;position:relative}
+.stage{position:absolute;left:0;top:0;width:640px;height:360px;transform-origin:0 0;font:8px/1 var(--mc-font);color:var(--mc-text);user-select:none}
+.abs{position:absolute}
+.panel{left:8px;top:6px;width:624px;height:348px;background:rgba(var(--mc-panel),.8);box-shadow:inset 0 0 0 1px var(--mc-edge)}
+.hline{height:1px;background:var(--mc-edge)}
+.vline{width:1px;background:var(--mc-edge)}
+.t{white-space:nowrap;overflow:hidden}
+.dim{color:var(--mc-dim)} .faint{color:var(--mc-faint)}
+.field{height:12px;background:rgba(0,0,0,.45);box-shadow:inset 0 0 0 1px var(--mc-key-edge);padding:2px 4px}
+.btn{height:11px;background:var(--mc-key);box-shadow:inset 0 0 0 1px var(--mc-key-edge);text-align:center;padding-top:1.5px;color:var(--mc-dim);cursor:pointer}
+.btn.text{color:var(--mc-text)}
+.btn:hover{background:#3b3b3d}
+.nav{left:9px;width:110px;height:14px;padding:3px 7px;color:var(--mc-dim)}
+.nav.on{background:rgba(108,195,73,.16);box-shadow:inset 2px 0 0 var(--mc-on-edge);color:#fff}
+.nav .n{position:absolute;right:6px;top:3px;color:var(--mc-faint)}
+.row{left:123px;width:507px;height:14px}
+.row.sel{background:rgba(108,195,73,.16);box-shadow:inset 0 0 0 1px var(--mc-on-edge)}
+.row.edit{background:rgba(108,195,73,.10)}
+.chev{display:inline-block;width:0;height:0;border-left:3px solid var(--mc-dim);border-top:3px solid transparent;border-bottom:3px solid transparent;margin-right:5px;vertical-align:1px}
+.cnt{color:var(--mc-faint);margin-left:4px}
+.exp{color:var(--mc-exp);box-shadow:inset 0 0 0 1px var(--mc-exp);padding:1px 2px;margin-left:5px}
+.sw{width:18px;height:8px;background:var(--mc-off)}
+.sw::after{content:"";position:absolute;left:1px;top:1px;width:7px;height:6px;background:#d0d1d4}
+.sw.on{background:var(--mc-on)} .sw.on::after{left:10px;background:#fff}
+.cap{height:10px;padding:1.5px 3px;background:var(--mc-key);box-shadow:inset 0 0 0 1px var(--mc-key-edge);display:inline-block}
+.cap.warn{box-shadow:inset 0 0 0 1px var(--mc-warn);color:var(--mc-warn)}
+.keys{display:flex;gap:2px;align-items:center}
+.plus{color:var(--mc-faint)}
+.capturing{height:12px;background:rgba(108,195,73,.25);box-shadow:inset 0 0 0 1px var(--mc-on-edge);padding:2px 3px}
+.pop{background:rgba(var(--mc-panel),.97);box-shadow:inset 0 0 0 1px var(--mc-on-edge),0 2px 6px rgba(0,0,0,.6);padding:3px}
+.ring{box-shadow:0 0 0 1.5px #ff5aa0;border-radius:1px}
+.legend{display:flex;gap:18px;flex-wrap:wrap;font-size:13px;color:var(--ink-2)}
+.legend i{display:inline-block;width:12px;height:12px;box-shadow:0 0 0 2px #ff5aa0;margin-right:6px;vertical-align:-1px}
+.box{border:1px solid var(--line);background:var(--ground-2);padding:14px 18px}
+.box ul{margin:6px 0 0;padding-left:20px}
+.box li{margin:3px 0;color:var(--ink-2)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div>
+    <div class="eyebrow">L-159 フォローアップ · 2026-10-12 · 提案</div>
+    <h1>キー割り当て中の「解除・リセット・取消」の置き場所</h1>
+    <p class="lede">今は割り当て中のボタンが画面の左下（説明欄）にあり、編集中のキー欄（右端）から遠い。3 つの置き方を同じ画面で比べる。画面はメンテナーのスクショ（カメラ・見た目、2026-10-12）を元にしたもので、暗視のキーを割り当て中の状態。</p>
+  </div>
+
+  <div class="controls">
+    <div class="cgroup"><span>案</span>
+      <div class="seg" id="variant">
+        <button data-v="now" aria-pressed="false">今</button>
+        <button data-v="A" aria-pressed="true">A 行に並べる</button>
+        <button data-v="B" aria-pressed="false">B キー欄の下</button>
+        <button data-v="C" aria-pressed="false">C 説明欄の右</button>
+      </div></div>
+    <div class="cgroup"><span>画面</span>
+      <div class="seg" id="view">
+        <button data-v="features" aria-pressed="true">機能（カテゴリ）</button>
+        <button data-v="hotkeys" aria-pressed="false">ホットキー</button>
+      </div></div>
+    <div class="cgroup"><span>入力の状態</span>
+      <div class="seg" id="input">
+        <button data-v="wait" aria-pressed="true">押す前</button>
+        <button data-v="held" aria-pressed="false">押している途中</button>
+      </div></div>
+    <div class="cgroup"><span>ウィンドウ</span>
+      <div class="seg" id="width">
+        <button data-v="wide" aria-pressed="true">広い</button>
+        <button data-v="narrow" aria-pressed="false">狭い</button>
+      </div></div>
+  </div>
+
+  <div class="stage-outer" id="outer"><div class="stage" id="stage"></div></div>
+  <div class="legend"><span><i></i>ピンクの枠 = その案で動くもの（実際の画面には出ない）</span></div>
+  <p class="note" id="explain"></p>
+
+  <div class="box">
+    <h2>確認したいこと</h2>
+    <ul>
+      <li>A / B / C のどれにするか（今のままも選べる）。</li>
+      <li>A と B では、説明欄の「キーやマウスを押して離すと割り当て | Esc: 取り消し」の案内を残すか。</li>
+      <li>A で行の名前とスイッチが隠れる（狭いウィンドウでは名前が短くなる）のは許容できるか。</li>
+      <li>ホットキー画面の見出しの行は決定済み（「キーを初期化」が左、「キーで探す」がキー列の隣）。この画面でも確認できる。</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+const state = {variant:'A', view:'features', input:'wait', width:'wide'};
+const FEATURES = [
+  {name:'ズーム', cnt:5, sw:false, keys:[['C キー','warn']]},
+  {name:'フリールック', cnt:2, sw:false, keys:[['V']]},
+  {name:'フリーカメラ', cnt:6, exp:true, sw:false, keys:[['マウス 4','warn'],['C キー','warn']]},
+  {name:'暗視', cnt:1, sw:true, keys:[['N キー']], edit:true},
+  {name:'オフハンドを非表示', sw:true, keys:null, leaf:true},
+  {name:'視覚効果を隠す', cnt:8, exp:true, sw:true, keys:[['マウス 4'],['E キー']]},
+  {name:'つながるテクスチャ', exp:true, sw:true, keys:[['マウス 4'],['(=) キー']], leaf:true},
+];
+const HOTKEYS = [
+  {sec:'カメラ・見た目'},
+  {name:'長押しでズーム', keys:[['C キー','warn']]},
+  {name:'フリールック', keys:[['V']]},
+  {name:'フリーカメラ', exp:true, keys:[['マウス 4','warn'],['C キー','warn']]},
+  {name:'フリーカメラの速度を上げる', exp:true, keys:null},
+  {name:'暗視の切り替え', keys:[['N キー']], edit:true},
+  {name:'オフハンド表示の切り替え', keys:null},
+  {name:'つながるテクスチャを切り替え', exp:true, keys:[['マウス 4'],['(=) キー']]},
+];
+const NAV = [['すべて',''],['カメラ・見た目','4/4'],['情報・オーバー…','9/13'],['マップ','4/4'],['設計図','1/2'],['インベントリ','13/13'],['操作','2/5'],['全般','']];
+const PINNED = [['ホットキー',''],['形状','1'],['ウェイポイント','2'],['設計図','25'],['ワールドマップ',''],['HUD レイアウト','']];
+const EXPLAIN = {
+  now:'<b>今：</b>ボタンは説明欄の 1 行目、画面の左端。キー欄（右端）からいちばん遠い。',
+  A:'<b>A 行に並べる：</b>割り当て中だけ、その行のキー欄のすぐ左に [解除][リセット][取消] が出る。行の名前の右側とスイッチは隠れるが、説明欄に「暗視の切り替え - 押すたびに…」が出るので何を編集中かは分かる。目線の移動がいちばん少ない。',
+  B:'<b>B キー欄の下：</b>キー欄の真下に小さな枠が出て、その中にボタンが並ぶ。キー欄にいちばん近いが、下の行（ここではオフハンドを非表示）に重なる。一番下の行を編集するときは上に出す必要がある。',
+  C:'<b>C 説明欄の右：</b>ボタンは説明欄のままで、右端（キー列の真下）に寄せる。左右の距離は縮むが、上下は今と同じく遠い。作りの変更はいちばん小さい。',
+};
+
+function el(cls, x, y, w, h, html, extra){
+  const d = document.createElement('div');
+  d.className = 'abs ' + (cls||'');
+  d.style.left = x+'px'; d.style.top = y+'px';
+  if (w != null) d.style.width = w+'px';
+  if (h != null) d.style.height = h+'px';
+  if (html != null) d.innerHTML = html;
+  if (extra) Object.assign(d.style, extra);
+  return d;
+}
+function capsHtml(keys){
+  if (!keys) return '<span class="faint">未割り当て</span>';
+  return '<div class="keys">' + keys.map((k,i)=>(i?'<span class="plus">+</span>':'') + `<span class="cap ${k[1]||''}">${k[0]}</span>`).join('') + '</div>';
+}
+function render(){
+  const s = document.getElementById('stage');
+  s.innerHTML = '';
+  const narrow = state.width === 'narrow';
+  const W = narrow ? 420 : 624;
+  const panel = el('panel', 8, 6, W, 348);
+  s.appendChild(panel);
+  const L = 8, R = 8 + W;
+  const sidebar = narrow ? 0 : 114;
+  const tableLeft = L + sidebar + 1;
+  const keyW = narrow ? 70 : 88, pad = 6;
+  const keyX = R - pad - keyW;
+  const stateX = keyX - 8 - 24;
+  const hot = state.view === 'hotkeys';
+  const footerTop = 312;
+  // Header
+  s.appendChild(el('t', L+6, 12, 80, 10, 'Lamium <span class="faint">0.2.0</span>'));
+  const closeX = R - 6 - 58, searchW = Math.min(170, W*.4), searchX = closeX - 6 - searchW;
+  s.appendChild(el('field faint t', searchX, 10, searchW, 12, '検索&nbsp;&nbsp;Ctrl+F'));
+  s.appendChild(el('btn', closeX, 10, 58, 12, '閉じる (Esc)'));
+  s.appendChild(el('hline', L, 26, W, 1));
+  // Navigation
+  if (!narrow) {
+    s.appendChild(el('vline', tableLeft-1, 27, 1, footerTop-27));
+    NAV.forEach((n,i)=>{ const on = (!hot && i===1);
+      const d = el('nav t'+(on?' on':''), 9, 31+i*14, 110, 14, n[0] + (n[1]?`<span class="n">${n[1]}</span>`:'')); s.appendChild(d); });
+    s.appendChild(el('hline', 15, 214, 98, 1));
+    PINNED.forEach((n,i)=>{ const on = (hot && i===0);
+      s.appendChild(el('nav t'+(on?' on':''), 9, 220+i*14, 110, 14, n[0] + (n[1]?`<span class="n">${n[1]}</span>`:''))); });
+  } else {
+    const tabs = ['すべて','カメラ','情報','マップ','設計図','インベ…','操作','全般','キー'];
+    const tw = (W-4)/tabs.length;
+    tabs.forEach((n,i)=>{ const on = hot ? i===8 : i===1;
+      s.appendChild(el('t '+(on?'':'dim'), L+2+i*tw, 30, tw, 12, n, {textAlign:'center'}));
+      if (on) s.appendChild(el('', L+2+i*tw+2, 40, tw-4, 2, '', {background:'var(--mc-on-edge)'})); });
+    s.appendChild(el('hline', L, 42, W, 1));
+  }
+  const top = narrow ? 44 : 28;
+  const nameX = tableLeft + 6;
+  // Column headings
+  const theadY = top + 2;
+  if (hot) {
+    s.appendChild(el('faint t', nameX, theadY+1, 60, 9, '操作'));
+    // Decided: reset left, find next to the key column.
+    const findW = 64, resetW = 84;
+    s.appendChild(el('btn', keyX - 6 - findW, top, findW, 11, 'キーで探す'));
+    s.appendChild(el('btn', keyX - 6 - findW - 6 - resetW, top, resetW, 11, 'キーを初期化'));
+  } else {
+    s.appendChild(el('faint t', nameX, theadY+1, 60, 9, '機能'));
+    s.appendChild(el('btn', stateX - 6 - 6 - 84, top, 84, 11, 'この分類を初期化'));
+    s.appendChild(el('faint', stateX-6, theadY+1, 36, 9, '状態', {textAlign:'center'}));
+  }
+  s.appendChild(el('faint', keyX, theadY+1, keyW, 9, 'キー'));
+  s.appendChild(el('hline', tableLeft, top+13, R-tableLeft, 1));
+  // Rows
+  const rowsTop = top + 14;
+  const list = hot ? HOTKEYS : FEATURES;
+  let editY = 0, editRowName = '';
+  list.forEach((r,i)=>{
+    const y = rowsTop + i*14;
+    if (r.sec) { s.appendChild(el('t', nameX, y+4, 200, 9, r.sec, {color:'var(--mc-on-edge)'})); return; }
+    const row = el('row'+(r.edit?' sel':''), tableLeft+2, y, R-tableLeft-4, 14);
+    s.appendChild(row);
+    const editing = r.edit && state.variant !== 'none';
+    if (r.edit) { editY = y; editRowName = r.name; }
+    let name = (hot||r.leaf ? '' : '<span class="chev"></span>') + r.name + (r.cnt?`<span class="cnt">${r.cnt}</span>`:'') + (r.exp?'<span class="exp">試験的</span>':'');
+    let nameRight = hot ? keyX - 6 : stateX - 6;
+    if (editing && state.variant === 'A') nameRight = keyX - 6 - 108 - 6;
+    s.appendChild(el('t', nameX + (hot||r.leaf?8:0), y+3, nameRight - nameX - (hot||r.leaf?8:0), 10, name));
+    if (!hot && !(editing && state.variant === 'A')) s.appendChild(el('sw'+(r.sw?' on':''), stateX+3, y+3, 18, 8));
+    if (editing) {
+      const txt = state.input === 'wait' ? 'キーを押す…' : '<span>マウス 4 + …</span>';
+      s.appendChild(el('capturing t', keyX, y+1, keyW, 12, txt));
+    } else {
+      s.appendChild(el('t', keyX, y+2, keyW, 11, capsHtml(r.keys)));
+    }
+  });
+  // Variant buttons
+  const labels = ['解除','リセット','取消'];
+  const bw = 34, gap = 3;
+  const group = (x, y, ringPad) => {
+    labels.forEach((t,i)=> s.appendChild(el('btn text', x + i*(bw+gap), y, bw, 11, t)));
+    s.appendChild(el('ring', x-ringPad, y-ringPad, 3*bw+2*gap+2*ringPad, 11+2*ringPad, '', {pointerEvents:'none'}));
+  };
+  if (state.variant === 'A') group(keyX - 6 - (3*bw+2*gap), editY + 1.5, 1);
+  if (state.variant === 'B') {
+    const pw = 3*bw+2*gap+6, px = keyX + keyW - pw, py = editY + 14;
+    s.appendChild(el('pop', px, py, pw, 17));
+    group(px+3, py+3, 3);
+  }
+  // Footer
+  s.appendChild(el('hline', L, footerTop, W, 1));
+  const desc = (hot ? '暗視の切り替え' : '暗視の切り替え') + ' - 押すたびに ON / OFF を切り替えます。';
+  if (state.variant === 'now') {
+    labels.forEach((t,i)=> s.appendChild(el('btn text', L+6+i*54, footerTop+3, 50, 11, t)));
+    s.appendChild(el('ring', L+5, footerTop+2, 3*54-2, 13, '', {pointerEvents:'none'}));
+    s.appendChild(el('dim t', L+6+3*54, footerTop+5, W-12-3*54, 10, desc));
+  } else if (state.variant === 'C') {
+    const gx = R - 6 - (3*54-4);
+    labels.forEach((t,i)=> s.appendChild(el('btn text', gx+i*54, footerTop+3, 50, 11, t)));
+    s.appendChild(el('ring', gx-1, footerTop+2, 3*54-2, 13, '', {pointerEvents:'none'}));
+    s.appendChild(el('dim t', L+6, footerTop+5, gx - L - 12, 10, desc));
+  } else {
+    s.appendChild(el('dim t', L+6, footerTop+5, W-12, 10, desc));
+  }
+  s.appendChild(el('faint t', L+6, footerTop+30, W-12, 10, 'キーやマウスを押して離すと割り当て | Esc: 取り消し'));
+  document.getElementById('explain').innerHTML = EXPLAIN[state.variant];
+  fit();
+}
+function fit(){
+  const outer = document.getElementById('outer'), s = document.getElementById('stage');
+  const k = outer.clientWidth / 640;
+  s.style.transform = `scale(${k})`;
+  outer.style.height = (360*k) + 'px';
+}
+for (const id of ['variant','view','input','width']) {
+  document.getElementById(id).addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    state[id] = b.dataset.v;
+    for (const x of b.parentElement.children) x.setAttribute('aria-pressed', x === b ? 'true' : 'false');
+    render();
+  });
+}
+window.addEventListener('resize', fit);
+render();
+</script>
+</body>
+</html>
