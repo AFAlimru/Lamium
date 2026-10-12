@@ -468,6 +468,13 @@ and movable through the existing HUD Layout Editor.
   times in the warning color. To check: names/levels/times, ∞ glyph in the
   game font, beacon effects, renewal/removal, vanilla icons gone only while
   on, inventory screen effects untouched, Pocket UI, editor sample, F1.
+- First check 2026-10-12 (`95a34d5`): names, levels, order, times and the
+  vanilla icons hidden work; no icons drew (the effect's `mIconName` did
+  not resolve to a texture) and the infinity sign is missing from the
+  Japanese font. Changed: icons from a table of the vanilla pack's
+  `textures/ui/<name>_effect` by effect id (instant health/damage and
+  saturation have none), and infinite effects read "Infinite" / "無期限" /
+  "无限". Unchecked.
 
 ### L-150 Arrow-count HUD
 Kind: Design (small), then Ready after counting and visibility are agreed.
@@ -518,7 +525,13 @@ Goal: show the arrows available to the player without opening inventory.
   a half-size icon on the lower right of its icon (not counted). The elytra
   row also shows while gliding with armor rows off (only with ammo on).
   Counting is pure (`DurabilityHud.h`, tested) and runs over 37 slots only
-  while a row needs it. Not checked in game yet.
+  while a row needs it.
+- Checked in game 2026-10-12 (`95a34d5`): counts, crossbow mark and gliding
+  row work. Maintainer: ammo icons looked larger than the tools, the red zero
+  did not match the yellow full used-slot counter, and the gliding elytra
+  row deserves its own switch. Changed: ammo icons at three quarters, zero
+  in the warning color, a "Elytra while gliding" child (default on) instead
+  of tying the gliding row to "Show ammo". Unchecked.
 
 ### L-146 Layer switches on the world map (with the next integration review)
 Kind: Design. Raised by the maintainer 2026-10-11 before the 0.2.0 release;

@@ -39,7 +39,7 @@ inline Row row(Slot slot, Sample const& sample) {
     return {slot, sample.max - std::clamp(sample.damage, 0, sample.max), sample.max};
 }
 // An elytra is an ordinary chest row. While gliding it shows even with armor
-// rows off, for its fireworks (L-150, maintainer 2026-10-12).
+// rows off, for its fireworks (L-150; its own switch, maintainer 2026-10-12).
 inline std::vector<Row> rows(Samples const& samples, bool offhand, bool armor, bool gliding = false) {
     std::vector<Row> out;
     auto add = [&](Slot slot) {

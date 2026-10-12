@@ -441,7 +441,7 @@ std::optional<ui::hud_editor::Box> drawDurability(MinecraftUIRenderContext& cont
         sample(dur::Slot::Chest, player->getArmor(ArmorSlot::Torso));
         sample(dur::Slot::Legs, player->getArmor(ArmorSlot::Legs));
         sample(dur::Slot::Feet, player->getArmor(ArmorSlot::Feet));
-        gliding = settings.durabilityAmmo && player->isGliding();
+        gliding = settings.durabilityElytra && player->isGliding();
     }
     auto rows = dur::rows(samples, settings.durabilityOffhand, settings.durabilityArmor, gliding);
     auto ammoOf = [&](dur::Row const& row) {
@@ -478,7 +478,9 @@ std::optional<ui::hud_editor::Box> drawDurability(MinecraftUIRenderContext& cont
     std::vector<float> rowWidths;
     // Ammo sits right of the durability: more space before it, the item icon
     // and its total close together.
-    float ammoGap = 8 * z, ammoIconGap = z;
+    // Ammo icons are three quarters of the item icons: the arrow and rocket
+    // fill their squares and looked larger than the tools (2026-10-12).
+    float ammoGap = 8 * z, ammoIconGap = z, ammoSize = 12 * z;
     std::array<ItemStack, 2> ammoIcons;
     auto ammoIcon = [&](dur::Ammo kind) -> ItemStack const& {
         auto& stack = ammoIcons[static_cast<size_t>(kind)];
@@ -494,7 +496,7 @@ std::optional<ui::hud_editor::Box> drawDurability(MinecraftUIRenderContext& cont
         float w = icon + (dur::showsBar(look) ? gap + barW : 0);
         if (!texts.back().empty()) w += gap + ui::textWidthScaled(context, texts.back(), z);
         for (auto kind : ammoOf(row))
-            w += ammoGap + icon + ammoIconGap + ui::textWidthScaled(context, std::to_string(ammo.of(kind)), z);
+            w += ammoGap + ammoSize + ammoIconGap + ui::textWidthScaled(context, std::to_string(ammo.of(kind)), z);
         rowWidths.push_back(w + 2 * z);
         contentW = std::max(contentW, w + 2 * z);
     }
@@ -539,14 +541,15 @@ std::optional<ui::hud_editor::Box> drawDurability(MinecraftUIRenderContext& cont
             cx += ammoGap;
             if (renderer) {
                 auto const& stack = ammoIcon(kind);
-                if (!stack.isNull()) inspection::render::drawItemIcon(context, {&stack, std::round(cx), std::round(y + z), z}, 17);
+                if (!stack.isNull())
+                    inspection::render::drawItemIcon(context, {&stack, std::round(cx), std::round(y + (rowH - ammoSize) / 2), z * .75f}, 17);
             }
-            cx += icon + ammoIconGap;
+            cx += ammoSize + ammoIconGap;
             int total = ammo.of(kind);
-            auto empty = inspection::render::durabilityColor(0);
             auto text = std::to_string(total);
+            // None left: the warning color, as a full used-slot counter.
             ui::labelScaled(context, cx, y + (rowH - 10 * z) / 2, contentW, text, z,
-                            total == 0 ? ui::Rgb{empty.r, empty.g, empty.b} : ui::palette::text, ui::Align::Left, element.shadow);
+                            total == 0 ? ui::palette::warning : ui::palette::text, ui::Align::Left, element.shadow);
             cx += ui::textWidthScaled(context, text, z);
         }
     }
@@ -560,7 +563,6 @@ std::optional<statusEffects::Effect> effectFor(unsigned id, int ticks, int ampli
     if (!type) return std::nullopt;
     statusEffects::Effect effect{id, ticks, amplifier, ambient, type->mIsHarmful};
     effect.name = getI18n().get(*type->mDescriptionId, getI18n().getCurrentLanguage());
-    effect.icon = *type->mIconName;
     return effect;
 }
 // The local player's effects as the client holds them; nullopt when the
@@ -601,7 +603,7 @@ std::optional<ui::hud_editor::Box> drawStatusEffects(MinecraftUIRenderContext& c
     float nameW = 0, timeW = 0;
     for (auto const& effect : effects) {
         names.push_back(settings.effectsNames ? fx::label(effect) : fx::levelText(effect.amplifier));
-        times.push_back(fx::timeText(effect.ticks));
+        times.push_back(fx::infinite(effect) ? ui::translated("effectsInfinite") : fx::timeText(effect.ticks));
         nameW = std::max(nameW, ui::textWidthScaled(context, names.back(), z));
         timeW = std::max(timeW, ui::textWidthScaled(context, times.back(), z));
     }
@@ -617,7 +619,7 @@ std::optional<ui::hud_editor::Box> drawStatusEffects(MinecraftUIRenderContext& c
             auto line = ui::lineBox(x, y, rowW, rowH, z);
             ui::fill(context, line.x, line.y, line.width, line.height, ui::palette::panel, cardOpacity);
         }
-        if (auto path = fx::iconPath(effect.icon); !path.empty())
+        if (auto path = fx::iconPath(effect.id); !path.empty())
             ui::imageUv(context, path, {std::round(x), std::round(y + z), icon, icon}, 0, 0, 1, 1);
         float tx = x + icon + gap;
         if (nameW > 0)

@@ -15,7 +15,7 @@ void statusEffectsTests() {
     check(timeText(3300) == "2:45" && timeText(80) == "0:04" && timeText(1) == "0:01" && timeText(0) == "0:00",
           "times read M:SS and round up while active");
     check(timeText(20 * 3725) == "1:02:05", "an hour or more reads H:MM:SS");
-    check(timeText(-1) == "\xE2\x88\x9E", "an infinite effect reads as the infinity sign");
+    check(timeText(-1).empty(), "an infinite effect has no time text (the HUD writes a word)");
     check(runningOut(poison) && runningOut(Effect{1, 199}) && !runningOut(Effect{1, 200}),
           "under 10 seconds is running out");
     check(!runningOut(beacon) && !runningOut(vision), "beacon and infinite effects never look like they run out");
@@ -23,9 +23,10 @@ void statusEffectsTests() {
               && levelText(10) == "11",
           "levels show from II in Roman numerals, then as numbers");
     check(label(speed) == "Speed II" && label(poison) == "Poison", "the label adds the level after the name");
-    check(iconPath("speed_effect") == "textures/ui/speed_effect"
-              && iconPath("textures/ui/poison_effect.png") == "textures/ui/poison_effect" && iconPath("").empty(),
-          "icon names resolve to textures/ui paths");
+    check(iconPath(1) == "textures/ui/speed_effect" && iconPath(25) == "textures/ui/poison_effect"
+              && iconPath(37) == "textures/ui/breath_of_the_nautilus_effect" && iconPath(6).empty() && iconPath(0).empty()
+              && iconPath(38).empty(),
+          "effect ids resolve to the vanilla icons; instant effects and unknown ids have none");
 
     using namespace lamium;
     Settings defaults;

@@ -97,6 +97,7 @@ Json encode(Settings const& settings) {
                          {"durabilityOffhand", settings.information.durabilityOffhand},
                          {"durabilityArmor", settings.information.durabilityArmor},
                          {"durabilityAmmo", settings.information.durabilityAmmo},
+                         {"durabilityElytra", settings.information.durabilityElytra},
                          {"offhandSlot", settings.information.offhandSlot},
                          {"offhandSlotEmpty", settings.information.offhandSlotEmpty},
                          {"playerListPlatform", settings.information.playerListPlatform},
@@ -295,6 +296,7 @@ Settings decodeSettings(std::string_view text) {
         value.information.durabilityOffhand = info.value("durabilityOffhand", value.information.durabilityOffhand);
         value.information.durabilityArmor = info.value("durabilityArmor", value.information.durabilityArmor);
         value.information.durabilityAmmo = info.value("durabilityAmmo", value.information.durabilityAmmo);
+        value.information.durabilityElytra = info.value("durabilityElytra", value.information.durabilityElytra);
         value.information.offhandSlot = info.value("offhandSlot", value.information.offhandSlot);
         value.information.offhandSlotEmpty = info.value("offhandSlotEmpty", value.information.offhandSlotEmpty);
         value.information.playerListPlatform = info.value("playerListPlatform", value.information.playerListPlatform);

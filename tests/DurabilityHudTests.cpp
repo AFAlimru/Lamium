@@ -79,9 +79,10 @@ void durabilityHudTests() {
               && loaded.information.durabilityOffhand && loaded.information.durabilityArmor
               && loaded.hud.durability.anchor == ui::Anchor::TopRight && loaded.hud.durability.dy == 20,
           "durability HUD options load");
-    check(defaults.information.durabilityAmmo
-              && !decodeSettings(R"({"information":{"durabilityAmmo":false}})").information.durabilityAmmo,
-          "ammo shows by default and the switch loads");
+    check(defaults.information.durabilityAmmo && defaults.information.durabilityElytra
+              && !decodeSettings(R"({"information":{"durabilityAmmo":false}})").information.durabilityAmmo
+              && !decodeSettings(R"({"information":{"durabilityElytra":false}})").information.durabilityElytra,
+          "ammo and the gliding elytra row show by default and their switches load");
     check(decodeSettings(R"({"information":{"durabilityLook":9}})").information.durabilityLook == 2,
           "an unknown look is clamped");
     auto* look = settings::find("information.durabilityLook");
