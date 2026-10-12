@@ -12,6 +12,25 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-147 Status effects HUD and L-150 ammo in the Durability HUD (2026-10-12)
+
+By the maintainer, local, over `95a34d5`, `c670147`, `bc3e830`, `cd738e5`
+and `ee84063` (last DLL `6c72ab47...2e2c27`):
+- Status effects HUD: names in Japanese, levels, shortest-first order,
+  times counting down, the warning color under 10 s and the vanilla icons
+  hidden while on (`95a34d5`). Icons by effect id and the infinite word
+  "無期限" (`c670147`; the effect's own icon name drew nothing and the
+  infinity sign was missing from the Japanese font). Level column in
+  Arabic numerals, right-aligned with the times, with names on and off
+  (`cd738e5`); level 1 shown as "1" (`ee84063`). OK.
+- Durability HUD: arrows beside a bow, arrows and fireworks beside a
+  crossbow, fireworks beside an elytra, the loaded crossbow mark (`95a34d5`);
+  zero in the warning color (`c670147`); ammo icons the same size as the
+  tools after clearing the pickup pop, the 4-unit gap before the count, and
+  separate Armor and Elytra switches (`bc3e830`); 6 units between a
+  crossbow's two kinds (`ee84063`). OK.
+Not seen: beacon effects, servers, Pocket UI.
+
 ## L-148 Nether portal screen hidden (2026-10-12)
 
 By the maintainer, local, `cd47a29` (DLL `78c1f9c4...c3ff37ad`): with Hide

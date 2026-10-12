@@ -85,8 +85,9 @@ L-item wins. Every entry names what the task is, not only its number.
    - Paused: L-132 move while the inventory screen is open (research
      paused after eight trial rounds).
    - New design/research candidates imported from the maintainer's notes
-     on 2026-10-12: L-147 Status Effects HUD, L-148 portal overlay hiding (done),
-     L-149 inventory access in portals (parked) and L-150 arrow-count HUD.
+     on 2026-10-12: L-147 Status Effects HUD (done), L-148 portal overlay
+     hiding (done), L-149 inventory access in portals (parked) and L-150
+     arrow-count HUD (done).
      Choose the next item with the maintainer; this list does not approve
      an implementation or set a release target. L-151 to L-154 stay later.
 2. **Schematic — L-93 follow-ups:** the screen review and the 0.1.8
@@ -148,6 +149,13 @@ Remaining coverage to consider for the next changed-feature smoke test. These
 include trace-only and local-only results; VALIDATION.md owns the per-feature
 gaps. The Release policy above does not require a full regression or closing
 every server gap before a release.
+
+### L-147 and L-150 (2026-10-12, local only)
+
+- Status effects HUD: beacon effects (no warning color), a server's
+  effect updates (does the time count down between updates), Pocket UI,
+  the layout editor sample, F1 and the inventory screen's own effect list.
+- Durability HUD ammo: counts on a server after shooting and picking up.
 
 ### Released builds and registry follow-up
 
@@ -417,139 +425,6 @@ Suggested order: (1) a spike moving one item from a Lamium screen in a
 portal and while walking, locally and on BDS; (2) if it holds, a minimal
 screen (main inventory, hotbar, armor, offhand; click and shift click; no
 crafting); (3) a mockup agreed before the real build.
-
-### L-147 Status Effects HUD
-Kind: Design, with Research for native data and vanilla HUD visibility.
-Status: imported from the maintainer's notes on 2026-10-12; not implemented.
-Goal: make active effect names, levels and remaining time readable in play
-and movable through the existing HUD Layout Editor.
-- Proposed: replace only vanilla effect HUD drawing with a compact list of
-  vanilla icons, names, levels and M:SS times. An icons-and-time style is an
-  alternative; infinite effects and short-time warning presentation need a
-  design decision. Do not change effect application or time progression.
-- Reuse the editor's anchors, dragging, scale, background, shadow and saved
-  layout. Show sample effects when editing without active effects. Append
-  a new HUD element ID; never reorder existing IDs.
-- Research safe local-player effect enumeration, amplifier, remaining ticks
-  and infinite duration, then suppression of only the vanilla effect HUD.
-  `mob_effects_renderer` is an investigation lead, not a verified hook.
-  Leave vanilla visible if data or the replacement path cannot be verified.
-- Open: default switch, initial position, list versus icons, ordering,
-  overflow, long names and refresh behavior on effect renewal. Review a
-  mockup before implementation; keep the first version small.
-- Checks when built: all three languages, GUI scales, Desktop/Pocket UI,
-  editor preview/save, F1, Debug View, inventory screens, renewal/removal,
-  world/dimension exit, resource packs and servers. No runtime evidence yet.
-- 2026-10-12: mockup [demos/status-effects-hud.html](demos/status-effects-hud.html)
-  (A list, B icons with times, C icon-and-time column; backgrounds, position,
-  short-time warning, order, overflow, language) under review.
-- Maintainer 2026-10-12: default position right middle (top right and left
-  middle already hold Lamium HUDs; vanilla shows effects at the right
-  middle). Asked for the settings rows, vanilla HUD suppression and the
-  agent's picks in the mockup; added (A list with a "Show names" child that
-  gives C, hide vanilla icons while on, color-only warning under 10 s except
-  beacon effects, shortest first with infinite last, show all, default off).
-  Maintainer: the picks are fine (decided 2026-10-12). Next: research the
-  local player's effect list (amplifier, remaining ticks, infinite, beacon
-  ambient flag) and how to hide only vanilla's effect icons; then build.
-- Research and first build 2026-10-12 (not checked in game). Data: the
-  local player's `MobEffectsComponent` (id, duration ticks, amplifier,
-  ambient), names from `MobEffect::mDescriptionId` through the game's
-  language, icons from `mIconName` (resolved to `textures/ui/<name>`, where
-  the vanilla pack keeps `*_effect` icons; a missing texture draws no icon).
-  Infinite is assumed to be a negative duration and shows as the infinity
-  sign; whether the client counts the time down between server updates is
-  unverified. Vanilla icons: `HudMobEffectsRenderer::render` (the hud
-  screen's `mob_effects_renderer`) is skipped only in frames where the HUD
-  read the component; not gated (skipping a draw writes nothing). New
-  element `StatusEffects` (appended), right middle 48 below center (under
-  the automation status), card, per-line allowed; `Toggle the Status effects
-  HUD` action appended, unbound. Harmful names in the heart red, running-out
-  times in the warning color. To check: names/levels/times, ∞ glyph in the
-  game font, beacon effects, renewal/removal, vanilla icons gone only while
-  on, inventory screen effects untouched, Pocket UI, editor sample, F1.
-- First check 2026-10-12 (`95a34d5`): names, levels, order, times and the
-  vanilla icons hidden work; no icons drew (the effect's `mIconName` did
-  not resolve to a texture) and the infinity sign is missing from the
-  Japanese font. Changed: icons from a table of the vanilla pack's
-  `textures/ui/<name>_effect` by effect id (instant health/damage and
-  saturation have none), and infinite effects read "Infinite" / "無期限" /
-  "无限". Checked in game 2026-10-12 (`c670147`): icons and the word show.
-- Maintainer: levels looked mixed (V, then 11) and the names-off rows did
-  not line up. Decided 2026-10-12: Arabic numerals (level 1 blank) in a
-  column of their own; columns laid out by width with no separators: icon,
-  name (left), level and time (right-aligned); an unused column takes no
-  room; per-line bands span the table. Checked in game 2026-10-12
-  (`cd738e5`). Then decided: level 1 shows "1" too. Unchecked.
-
-### L-150 Arrow-count HUD
-Kind: Design (small), then Ready after counting and visibility are agreed.
-Status: imported from the maintainer's notes on 2026-10-12; not implemented.
-Goal: show the arrows available to the player without opening inventory.
-- Proposed: an inventory-wide total, perhaps visible only while holding a
-  bow or crossbow. This is a display feature, not offhand replenishment.
-- Open: ordinary/tipped arrow grouping, offhand and loaded-crossbow contents,
-  visibility condition, and a line in an existing HUD versus a new element.
-  Review overlap with Inventory HUD before choosing presentation.
-- Keep counting bounded; show only client-observed contents. Test the agreed
-  pure counting rules and later verify consumption/refill and HUD behavior.
-- Scope survey (2026-10-12, maintainer asked to consider more than arrows):
-  bows use arrows and tipped arrows (Bedrock has no spectral arrows);
-  crossbows also load firework rockets; rockets boost elytra flight;
-  throwables are their own ammo (snowballs, eggs, ender pearls, wind
-  charges, splash and lingering potions, bottles o' enchanting), where the
-  hotbar shows only the held stack's count; tridents need no ammo. Options
-  under discussion: what to count per held item, and where to show it (the
-  Durability HUD's held-item row, beside the hotbar slot, or a new element).
-- Maintainer 2026-10-12: extend the Durability HUD rather than a new element:
-  with a bow the arrows, with a crossbow arrows and fireworks, with elytra the
-  fireworks. Tipped arrows count with plain arrows (showing them separately
-  is wanted if feasible; a later mockup may settle it).
-- Mockup [demos/durability-ammo.html](demos/durability-ammo.html): ammo on a
-  small line under the weapon row (on the same row it ran into the hotbar at
-  the bottom-left default), tipped arrows as total / total with tipped /
-  per kind, a mark on a loaded crossbow, the elytra row while gliding even
-  with armor rows off. Under review.
-- Decided 2026-10-12 (maintainer): the picks, except the ammo goes on the
-  same row, right of the durability. Total only for tipped arrows, red 0,
-  a mark on a loaded crossbow's icon, the elytra row while gliding even with
-  armor rows off, a "Show ammo" child of Durability HUD (default on). The
-  mockup showed a crossbow row reaching the hotbar at the bottom-left
-  default; keep the ammo text compact and check the overlap when built.
-- Maintainer after checking in game: the real HUD has more room than the
-  mockup; no need to shrink the text. Also asked for a per-line background
-  for the Durability HUD (only card and none so far); built 2026-10-12
-  (band per row, right-aligned on the right side, as the Info HUD).
-  First build: "Per line" could not be chosen (settings normalization still
-  limited Durability to card/none); fixed, with a test that every offered
-  choice survives normalization. Checked in game 2026-10-12: per line works,
-  bands line up on the right edge when moved to the right.
-- Built 2026-10-12: a "Show ammo" child (default on). Bow rows show the
-  inventory-wide arrow total (offhand included, tipped arrows counted with
-  plain ones), crossbow rows arrows and fireworks, elytra rows fireworks; a
-  zero is drawn in the bar's empty red. A loaded crossbow gets its charge as
-  a half-size icon on the lower right of its icon (not counted). The elytra
-  row also shows while gliding with armor rows off (only with ammo on).
-  Counting is pure (`DurabilityHud.h`, tested) and runs over 37 slots only
-  while a row needs it.
-- Checked in game 2026-10-12 (`95a34d5`): counts, crossbow mark and gliding
-  row work. Maintainer: ammo icons looked larger than the tools, the red zero
-  did not match the yellow full used-slot counter, and the gliding elytra
-  row deserves its own switch. Changed: ammo icons at three quarters, zero
-  in the warning color, a "Elytra while gliding" child (default on) instead
-  of tying the gliding row to "Show ammo". Unchecked.
-- Checked 2026-10-12 (`c670147`). Measured on the earlier screenshot, the
-  ammo icons were about 1.2 times the tools though drawn at the same scale:
-  the freshly made icon stacks kept the pickup pop the HUD clears on its
-  copies. Now cleared (also on the crossbow mark) and drawn 1:1, with the
-  same 4-unit gap before the count as the tools. Maintainer: split armor
-  and elytra instead of a gliding row: "Armor" covers helmet, chestplate,
-  leggings, boots; "Elytra" (default on) shows a worn elytra at the chest
-  position. Checked in game 2026-10-12 (`bc3e830`): same size as the tools,
-  the gap, and the separate switches work.
-- Maintainer 2026-10-12: the gap between a crossbow's arrows and fireworks
-  was too wide (8 units); now 6 between kinds, 8 after the durability.
-  Unchecked.
 
 ### L-146 Layer switches on the world map (with the next integration review)
 Kind: Design. Raised by the maintainer 2026-10-11 before the 0.2.0 release;
