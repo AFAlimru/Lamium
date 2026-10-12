@@ -12,6 +12,13 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-159 Find by key in Hotkeys (2026-10-12)
+
+By the maintainer, local, `c4ac083` (DLL SHA-256 `99f5dce8...b71734c`).
+Find by key with C lists Zoom, F3+G lists Chunk Borders, an unused key shows
+the no-match line and Esc shows all again; the button does not overlap the
+Action heading in a narrow window. All reported OK.
+
 ## L-158 shared label resolution (2026-10-12)
 
 By the maintainer, local, `be0b1f1` (DLL SHA-256 `5b285364...0eec2eee`).
