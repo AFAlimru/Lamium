@@ -92,6 +92,15 @@ std::shared_ptr<cg::ImageBuffer> compose(cg::ImageBuffer const& source) {
     log(std::format("png {} bytes", png.size()));
     return std::make_shared<cg::ImageBuffer>(std::move(image));
 }
+std::string listOf(gsl::span<std::string const> extensions) {
+    std::string out;
+    for (auto const& e : extensions) out += (out.empty() ? "" : ",") + e;
+    return out;
+}
+bool imageExtensions(gsl::span<std::string const> extensions) {
+    for (auto const& e : extensions) if (e == ".png") return true;
+    return false;
+}
 bool isSprite(ResourceLocation const& location) {
     auto path = pathOf(location);
     return path == spritePath || path == spritePath + ".png";
@@ -183,8 +192,8 @@ LL_TYPE_INSTANCE_HOOK(SpritePackLoadExt, ll::memory::HookPriority::Normal, Resou
     static_cast<LoadExt>(&ResourcePackManager::$load), bool, ResourceLocation const& location, std::string& stream,
     gsl::span<std::string const> extensions) {
     if (isSprite(location)) {
-        auto png = pngCopy();
-        packLog(std::format("load+ext({})", extensions.size()), location, !png.empty());
+        auto png = imageExtensions(extensions) ? pngCopy() : std::string{};
+        packLog(std::format("load+ext[{}]", listOf(extensions)), location, !png.empty());
         if (!png.empty()) { stream = std::move(png); return true; }
     }
     return origin(location, stream, extensions);
@@ -195,8 +204,8 @@ LL_TYPE_INSTANCE_HOOK(SpritePackLoadPair, ll::memory::HookPriority::Normal, Reso
     gsl::span<std::string const> extensions) {
     auto const& location = *pair.mResourceLocation;
     if (isSprite(location)) {
-        auto png = pngCopy();
-        packLog("load pair", location, !png.empty());
+        auto png = imageExtensions(extensions) ? pngCopy() : std::string{};
+        packLog(std::format("load pair[{}]", listOf(extensions)), location, !png.empty());
         if (!png.empty()) { stream = std::move(png); return true; }
     }
     return origin(pair, stream, extensions);
@@ -221,7 +230,32 @@ LL_TYPE_INSTANCE_HOOK(SpritePackIndex, ll::memory::HookPriority::Normal, Resourc
     &ResourcePackManager::$getPackStackIndexOfResource, PackIndex, ResourceLocation const& location,
     gsl::span<std::string const> extensions) {
     auto result = origin(location, extensions);
-    if (isSprite(location)) packLog(std::format("packStackIndex = {} '{}'", result.first, result.second), location, false);
+    // Round 2: the atlas asks where the image is first and gives up on -1.
+    // Answer with plain glass's place for image lookups only (no PBR files).
+    if (isSprite(location)) {
+        bool answered = false;
+        if (result.first < 0 && imageExtensions(extensions) && !pngCopy().empty()) {
+            result = origin(ResourceLocation(Core::PathView("textures/blocks/glass")), extensions);
+            answered = result.first >= 0;
+        }
+        packLog(std::format("packStackIndex[{}] = {} '{}'", listOf(extensions), result.first, result.second), location, answered);
+    }
+    return result;
+}
+using PathExt = Core::PathBuffer<std::string> (ResourcePackManager::*)(ResourceLocation const&, gsl::span<std::string const>) const;
+LL_TYPE_INSTANCE_HOOK(SpritePackPath, ll::memory::HookPriority::Normal, ResourcePackManager,
+    static_cast<PathExt>(&ResourcePackManager::$getPath), Core::PathBuffer<std::string>, ResourceLocation const& location,
+    gsl::span<std::string const> extensions) {
+    auto result = origin(location, extensions);
+    if (isSprite(location)) packLog(std::format("getPath[{}] = '{}'", listOf(extensions), result.value), location, false);
+    return result;
+}
+using StreamExt = bool (ResourcePackManager::*)(ResourceLocation const&, gsl::span<std::string const>) const;
+LL_TYPE_INSTANCE_HOOK(SpritePackStream, ll::memory::HookPriority::Normal, ResourcePackManager,
+    static_cast<StreamExt>(&ResourcePackManager::$isInStreamableLocation), bool, ResourceLocation const& location,
+    gsl::span<std::string const> extensions) {
+    auto result = origin(location, extensions);
+    if (isSprite(location)) packLog(std::format("streamable[{}] = {}", listOf(extensions), result), location, false);
     return result;
 }
 bool installed = false;
@@ -250,7 +284,9 @@ std::optional<TextureUVCoordinateSet> joinedGlass() {
 bool start() {
     if (installed) return true;
     if (SpriteAtlas::hook() != 0 || SpriteImageSync::hook() != 0 || SpritePackLoad::hook() != 0 || SpritePackLoadExt::hook() != 0
-        || SpritePackLoadPair::hook() != 0 || SpritePackTexture::hook() != 0 || SpritePackIndex::hook() != 0) {
+        || SpritePackLoadPair::hook() != 0 || SpritePackTexture::hook() != 0 || SpritePackIndex::hook() != 0
+        || SpritePackPath::hook() != 0 || SpritePackStream::hook() != 0) {
+        SpritePackPath::unhook(); SpritePackStream::unhook();
         SpriteAtlas::unhook(); SpriteImageSync::unhook(); SpritePackLoad::unhook(); SpritePackLoadExt::unhook();
         SpritePackLoadPair::unhook(); SpritePackTexture::unhook(); SpritePackIndex::unhook();
         log("hooks failed");
