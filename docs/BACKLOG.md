@@ -449,6 +449,13 @@ the same buttons on hover. The space under the buttons shows coordinates:
 here, and the other dimension's place (Nether: /8 rounded down; Overworld:
 x8; the End: here only); a click inserts a number. No item list, no
 reference table.
+Revised the same day (maintainer, superseding the two points above and
+"fn"): one copy button per result, split: the body copies the value, its
+arrow offers "Copy the line" and "Copy the chests" (history cards show the
+same button on hover). No coordinates block and no variables list; the
+function buttons fill that space on the same page (sqrt abs round floor
+ceil / min max nether ow , / ticks secs pi), so there is no fn switch;
+x y z stay in the row with st ch lc.
 
 ### L-170 Enchantment order planner
 Kind: Design, then Research (strong model). Requested by the maintainer
