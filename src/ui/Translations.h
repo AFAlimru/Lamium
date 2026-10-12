@@ -1283,6 +1283,7 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"help.edgeGuard", "Stop at block edges like sneaking, without slowing down or crouching. Drops up to about half a block stay walkable.",
         "スニークのようにブロックの端で止まります。遅くならず、しゃがみもしません。半ブロック程度の段差は下りられます。"},
     {"key.Lamium.edgeguard", "Lamium: Toggle Edge Guard", "Lamium: 落下防止の切り替え"},
+    {"edgeMargin", "Stop inside the edge by: {:.2f} blocks", "端の手前で止まる幅: {:.2f} ブロック"},
     {"feature.toolGuard", "Tool Protection", "道具の保護"},
     {"toolGuard", "Tool Protection: {}", "道具の保護: {}"},
     {"help.toolGuard", "At 1 durability, swap in the same item from the inventory; without one, stop mining. Covers a worn elytra.", "耐久が残り1で、インベントリの同じアイテムと入れ替えます。なければ採掘を止めます。着ているエリトラも対象。"},

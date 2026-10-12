@@ -70,7 +70,7 @@ void translationTests() {
                 check(rendered.find("123 / 1561") != std::string::npos);
             }
             else if (entry.key == "shape.x" || entry.key == "shape.y" || entry.key == "shape.z"
-                || entry.key == "magnification" || entry.key == "hitboxDistance" || entry.key == "freeCameraSpeed"
+                || entry.key == "magnification" || entry.key == "hitboxDistance" || entry.key == "freeCameraSpeed" || entry.key == "edgeMargin"
                 || entry.key == "mapSize" || entry.key == "mapWaypointDistance" || entry.key == "schematicOutlineDistance")
                 rendered = std::vformat(pattern, std::make_format_args(number));
             else if (pattern.find("{}") != std::string_view::npos)

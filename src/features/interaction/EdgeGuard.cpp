@@ -55,9 +55,10 @@ constexpr double groundFriction = 0.546;
 // The move-input guard keeps the feet this far over the block, not touching
 // its edge: released from sneaking right at an edge, a server drops a player
 // whose box only touches the block (seen on BDS, L-160).
-// 0.1, not 0.02: on BDS the server's position drifted 0.04 further out than
-// the client's at an edge and the player fell after its correction (L-161).
-constexpr float overlapMargin = 0.1f;
+// The margin is a setting (default 0.1, at least 0.02): on BDS the server's
+// position drifted 0.04 further out than the client's at an edge and the
+// player fell after its correction with 0.02 (L-161).
+float overlapMargin() { return Runtime::instance().snapshot()->interaction.edgeMargin; }
 bool installed = false;
 bool reportedServerCopy = false;
 bool reportedInput = false;
@@ -150,13 +151,14 @@ void guard(StrictEntityContext const& entity, AABBShapeComponent const& shape, M
     if (speed.y > 0) return; // A jump may leave the edge on purpose.
     AABB const& box = shape.mAABB;
     std::vector<AABB> shapes;
+    float const margin = overlapMargin();
     auto supported = [&](double dx, double dz) {
         // The margin keeps the box over the block: sliding along a wall into
         // a corner left it only touching, and the client then fell (L-160).
-        AABB probe{Vec3{box.min.x + overlapMargin + static_cast<float>(dx), box.min.y - stepHeight,
-                        box.min.z + overlapMargin + static_cast<float>(dz)},
-                   Vec3{box.max.x - overlapMargin + static_cast<float>(dx), box.min.y,
-                        box.max.z - overlapMargin + static_cast<float>(dz)}};
+        AABB probe{Vec3{box.min.x + margin + static_cast<float>(dx), box.min.y - stepHeight,
+                        box.min.z + margin + static_cast<float>(dz)},
+                   Vec3{box.max.x - margin + static_cast<float>(dx), box.min.y,
+                        box.max.z - margin + static_cast<float>(dz)}};
         shapes.clear();
         region.fetchCollisionShapes(shapes, probe, false, collisionShape, nullptr);
         return !shapes.empty();
@@ -223,11 +225,12 @@ void guardMoveVector(MoveInputState const& state, Vec2& move) {
     auto const& box = player->getAABB();
     auto const& region = player->getDimensionBlockSourceConst();
     std::vector<AABB> shapes;
+    float const margin = overlapMargin();
     auto supported = [&](double dx, double dz) {
-        AABB probe{Vec3{box.min.x + overlapMargin + static_cast<float>(dx), box.min.y - stepHeight,
-                        box.min.z + overlapMargin + static_cast<float>(dz)},
-                   Vec3{box.max.x - overlapMargin + static_cast<float>(dx), box.min.y,
-                        box.max.z - overlapMargin + static_cast<float>(dz)}};
+        AABB probe{Vec3{box.min.x + margin + static_cast<float>(dx), box.min.y - stepHeight,
+                        box.min.z + margin + static_cast<float>(dz)},
+                   Vec3{box.max.x - margin + static_cast<float>(dx), box.min.y,
+                        box.max.z - margin + static_cast<float>(dz)}};
         shapes.clear();
         region.fetchCollisionShapes(shapes, probe, false, nullptr, nullptr);
         return !shapes.empty();

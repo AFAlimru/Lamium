@@ -1257,6 +1257,7 @@ inline constexpr auto simplifiedChinese = std::to_array<Text>({
     {"edgeGuard", "边缘保护: {}"},
     {"help.edgeGuard", "像潜行一样在方块边缘停下，但不会减速或蹲下。大约半格以内的落差仍可走下。"},
     {"key.Lamium.edgeguard", "Lamium: 切换边缘保护"},
+    {"edgeMargin", "在边缘内侧停下的距离: {:.2f} 格"},
     {"feature.toolGuard", "工具保护"},
     {"toolGuard", "工具保护: {}"},
     {"help.toolGuard", "耐久度剩 1 时，从物品栏换上相同的物品；没有时停止挖掘。也适用于穿戴中的鞘翅。"},

@@ -65,6 +65,7 @@ Json encode(Settings const& settings) {
                          {"useMode", interaction::autoModeNames[static_cast<size_t>(settings.interaction.useMode)]},
                          {"attackHeldOnly", settings.interaction.attackHeldOnly}, {"useHeldOnly", settings.interaction.useHeldOnly},
                          {"breaking", settings.interaction.breaking}, {"edgeGuard", settings.interaction.edgeGuard},
+                         {"edgeMargin", settings.interaction.edgeMargin},
                          {"toolGuard", settings.interaction.toolGuard}, {"elytraSwap", settings.interaction.elytraSwap},
                          {"toolGuardStrict", settings.interaction.toolGuardStrict},
                          {"elytraReturnSeconds", settings.interaction.elytraReturnSeconds},
@@ -245,6 +246,7 @@ Settings decodeSettings(std::string_view text) {
         value.interaction.useHeldOnly = heldOnly("useHeldOnly", "useTrigger");
         value.interaction.breaking = options.value("breaking", value.interaction.breaking);
         value.interaction.edgeGuard = options.value("edgeGuard", value.interaction.edgeGuard);
+        value.interaction.edgeMargin = options.value("edgeMargin", value.interaction.edgeMargin);
         value.interaction.toolGuard = options.value("toolGuard", value.interaction.toolGuard);
         value.interaction.toolGuardStrict = options.value("toolGuardStrict", value.interaction.toolGuardStrict);
         value.interaction.elytraSwap = options.value("elytraSwap", value.interaction.elytraSwap);

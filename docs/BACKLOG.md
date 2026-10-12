@@ -341,6 +341,11 @@ server correction 0.04 further out than the client at 0.026 overlap, the
 other from a merge whose check was not logged. Next build: the overlap margin
 grows to 0.1 block and the merge check also runs in `startBuildBlock` and
 `buildBlock`, before the client may ask the server to place.
+Checked 2026-10-12 (`2dc7e45` trace build): no falls on BDS or locally
+except one. That one: after a small server correction the client re-ran its
+recent ticks and moved 0.17 block outward in one tick, off the block; the
+guard seems not to apply while the client replays inputs (open, rare).
+Next build: the margin becomes a setting (DESIGN.md), default 0.10.
 
 ### L-156 Low bookshelves above glass become dark under Vibrant Visuals
 Kind: Bug, Research (strong model).

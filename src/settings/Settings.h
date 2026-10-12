@@ -31,6 +31,7 @@ struct Settings {
         bool autoAttack = false, autoUse = false;
         bool breaking = false;
         bool edgeGuard = false; // Stop at block edges without sneaking.
+        float edgeMargin = 0.1f; // Blocks the box stays over the block (L-161): safety vs reach.
         bool toolGuard = true; // Swap or stop before a held tool breaks (L-62).
         bool toolGuardStrict = true; // A new press does not mine on with it either.
         bool elytraSwap = false; // Put on an elytra by key or a firework jump (L-70).
@@ -277,6 +278,8 @@ struct Settings {
         information.targetGrowth = std::clamp(information.targetGrowth, 0, 1);
         if (!std::isfinite(information.targetDistance)) information.targetDistance = 6;
         information.targetDistance = std::clamp(std::round(information.targetDistance), 2.f, 64.f);
+        if (!std::isfinite(interaction.edgeMargin)) interaction.edgeMargin = 0.1f;
+        interaction.edgeMargin = std::clamp(interaction.edgeMargin, .02f, .3f);
         normalizeMode(interaction.placementMode, lamium::interaction::placementLabels.size());
         if (inventory.fakeOffhandSlot < 1 || inventory.fakeOffhandSlot > 9) inventory.fakeOffhandSlot = 9;
         inventory.toolSwitchSlot = std::clamp(inventory.toolSwitchSlot, 0, 9);

@@ -12,6 +12,16 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-161 margin 0.1 and build-start refusal (2026-10-12)
+
+By the maintainer, trace build of `2dc7e45` (DLL `5f17de3b...2802c818`), BDS
+and a local world: slab bridging no longer fell except once on BDS. Trace of
+that fall: a server correction (+0.047 block) arrived with 0.139 block of
+overlap left, then the client's next position was 0.17 block further out
+(as if its re-run of recent ticks used unguarded input), with no overlap,
+and it fell. The maintainer finds stopping 0.1 block inside slightly less
+convenient for placing blocks and asked for the margin as a setting.
+
 ## L-161 slab merge refusal on BDS (2026-10-12)
 
 By the maintainer, normal build `b36cf7b` (DLL `f7c89965...51084cc6`): on

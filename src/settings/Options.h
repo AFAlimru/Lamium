@@ -306,6 +306,13 @@ inline constexpr auto options = std::to_array<Option>({
     toggle<&Settings::visuals, &Settings::Visuals::hidePowderSnow>("visuals.hidePowderSnow", "hideEffects", "hidePowderSnow"),
     toggle<&Settings::visuals, &Settings::Visuals::hideDistanceFog>("visuals.hideDistanceFog", "hideEffects", "hideDistanceFog"),
     toggle<&Settings::interaction, &Settings::Interaction::edgeGuard>("interaction.edgeGuard", "edgeGuard", "edgeGuard"),
+    {"interaction.edgeMargin", "edgeGuard", "edgeMargin",
+        [](Settings const& s) -> OptionValue { return s.interaction.edgeMargin; },
+        [](Settings& s, int direction) {
+            s.interaction.edgeMargin = std::round((s.interaction.edgeMargin + direction * .01f) * 100) / 100;
+            s.normalize();
+        },
+        NumericOption{.02f, .3f, [](Settings& s, float v) { s.interaction.edgeMargin = v; s.normalize(); }, .01f}},
     toggle<&Settings::interaction, &Settings::Interaction::toolGuard>("interaction.toolGuard", "toolGuard", "toolGuard"),
     toggle<&Settings::interaction, &Settings::Interaction::toolGuardStrict>("interaction.toolGuardStrict", "toolGuard", "toolGuardStrict"),
     toggle<&Settings::interaction, &Settings::Interaction::elytraSwap>("interaction.elytraSwap", "elytraSwap", "elytraSwap"),
