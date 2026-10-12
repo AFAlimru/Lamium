@@ -12,6 +12,13 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-155 action labels (2026-10-12)
+
+By the maintainer, local, `3767542` (DLL SHA-256 `12ef4e1a...a01194`).
+Settings search for Connected Textures, Inventory HUD and Used slots shows
+translated action labels instead of `key.Lamium.*` in English, Japanese and
+Simplified Chinese. Hotkeys screen not reported separately.
+
 ## 0.2.0 actual-play bug reports: L-155, L-156, L-157 (2026-10-12)
 
 Reported by the maintainer with three screenshot attachments, all on the

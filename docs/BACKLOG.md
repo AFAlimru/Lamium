@@ -74,8 +74,9 @@ L-item wins. Every entry names what the task is, not only its number.
    - New 0.2.0 reports (2026-10-12): L-155 untranslated Connected Textures
      action in search, L-156 dark bookshelves above glass under Vibrant
      Visuals, L-157 intermittently hard-to-see Chunk Borders. Fix/research
-     these before new features; L-155 fixed, awaiting the in-game check;
-     L-156 is linked to L-133 (same look, split faces, research together).
+     these before new features; L-155 done 2026-10-12 (L-158 next, the
+     maintainer's choice); L-156 is linked to L-133 (same look, split faces,
+     research together; past attempts on L-133 failed).
    - Bugs: L-123 elytra stretched on the inventory model after FreeCamera
      (parked 2026-10-10 after two rounds); L-91 shield
      glint in Lamium's icons (parked after one round; leather fixed).
@@ -313,27 +314,6 @@ found later are handled as bugs.
 ---
 
 ## Bugs
-
-### L-155 Connected Textures action shows its translation key in search
-Kind: Bug, Ready (small).
-Status: open. Maintainer's actual-play report, 2026-10-12, Lamium 0.2.0.
-Reproduction: search settings for `connected`; an action row displays
-`key.Lamium.connectedtextures` instead of a translated label. Screenshot:
-`スクリーンショット 2026-10-12 013700.png` (report attachment).
-Static check: Binding.h declares action ID `connectedtextures`;
-SettingsRows.h forms its `key.Lamium.` translation key, but that exact key
-is absent from Translations.h and TranslationsZhCN.h. The translated feature
-name is present, which does not cover the action label.
-Next: add the English/Japanese/Simplified Chinese action label in matching
-table order; check all registered actions for the same omission and extend
-translation coverage tests if needed. Keep saved action IDs unchanged.
-When built, verify search and Hotkeys in all three languages, with and
-without a binding; labels must show words rather than raw translation keys.
-Fixed 2026-10-12 (source): labels added for connectedtextures and, found by
-the same check, inventoryhud and usedslots; SettingsRowsTests now requires an
-English, Japanese and Simplified Chinese label for every non-retired action.
-Post-fix runtime check pending.
-The immediate missing-label fix stays here; L-158 owns systemic prevention.
 
 ### L-156 Low bookshelves above glass become dark under Vibrant Visuals
 Kind: Bug, Research (strong model).

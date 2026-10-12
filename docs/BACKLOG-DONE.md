@@ -10,6 +10,28 @@ Runtime status is in [VALIDATION.md](VALIDATION.md), the evidence in
 
 ## Bugs
 
+### L-155 Connected Textures action shows its translation key in search
+Done 2026-10-12: labels for connectedtextures, inventoryhud and usedslots (`3767542`); checked in game in English, Japanese and Simplified Chinese.
+Kind: Bug, Ready (small).
+Status: open. Maintainer's actual-play report, 2026-10-12, Lamium 0.2.0.
+Reproduction: search settings for `connected`; an action row displays
+`key.Lamium.connectedtextures` instead of a translated label. Screenshot:
+`スクリーンショット 2026-10-12 013700.png` (report attachment).
+Static check: Binding.h declares action ID `connectedtextures`;
+SettingsRows.h forms its `key.Lamium.` translation key, but that exact key
+is absent from Translations.h and TranslationsZhCN.h. The translated feature
+name is present, which does not cover the action label.
+Next: add the English/Japanese/Simplified Chinese action label in matching
+table order; check all registered actions for the same omission and extend
+translation coverage tests if needed. Keep saved action IDs unchanged.
+When built, verify search and Hotkeys in all three languages, with and
+without a binding; labels must show words rather than raw translation keys.
+Fixed 2026-10-12 (source): labels added for connectedtextures and, found by
+the same check, inventoryhud and usedslots; SettingsRowsTests now requires an
+English, Japanese and Simplified Chinese label for every non-retired action.
+Post-fix runtime check pending.
+The immediate missing-label fix stays here; L-158 owns systemic prevention.
+
 ### L-142 Enchanted items lost their glint in Lamium's icons (0.1.9)
 Done 2026-10-11: glinting items drawn on the direct path before any batch, glint right after the icon (`70590f6`, checked on `df79b8d`). Enchanted leather's undyeable parts see-through: recorded under L-91.
 Kind: Bug. Reported on Discord after 0.1.9 (maintainer's notes,
