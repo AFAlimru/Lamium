@@ -12,6 +12,14 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-161 edge margin setting (2026-10-12)
+
+By the maintainer, normal build `bd65aae` (DLL `1ce35b49...debb12e0`): "Stop
+inside the edge by" appears under Edge Guard showing 0.10 blocks; at 0.02 the
+player gets closer to the edge than at 0.10, at 0.30 stops further inside;
+the value survives rejoining; English and Simplified Chinese labels display.
+All reported OK.
+
 ## L-161 margin 0.1 and build-start refusal (2026-10-12)
 
 By the maintainer, trace build of `2dc7e45` (DLL `5f17de3b...2802c818`), BDS

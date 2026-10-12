@@ -76,8 +76,8 @@ L-item wins. Every entry names what the task is, not only its number.
      Visuals, L-157 intermittently hard-to-see Chunk Borders. Fix/research
      these before new features; L-155 and L-158 done 2026-10-12; L-159
      Find by key in Hotkeys done; L-160 Edge Guard on BDS done; L-161
-     Edge Guard refusing slab merges that push the player off built (check
-     pending); L-156 is linked to L-133 (same look, split faces, research
+     slab merges and the edge margin setting done; L-162 rare fall after a
+     server correction (research); L-156 is linked to L-133 (same look, split faces, research
      together; past attempts on L-133 failed).
    - Bugs: L-123 elytra stretched on the inventory model after FreeCamera
      (parked 2026-10-10 after two rounds); L-91 shield
@@ -317,35 +317,16 @@ found later are handled as bugs.
 
 ## Bugs
 
-### L-161 Edge Guard: refuse slab merges that push the player off an edge
-Kind: Bug follow-up of L-160 (strong model). Decided with the maintainer
-2026-10-12 (DESIGN.md, Edge Guard).
-Found on BDS while bridging with slabs: walking with Edge Guard at an edge,
-a slab placed onto the slab the player barely stands on merges into a full
-block in the player's own cell, and the game pushes the player out sideways
-(the shallowest way out), off the edge. Sneaking refuses placements into the
-player's own cell, so vanilla sneaking never hits this.
-Built 2026-10-12, in-game check pending: `GameMode`/`SurvivalMode`
-`useItemOn` hooks refuse a slab when the target cell (the clicked slab through
-its top or bottom face, or the neighbor cell when it holds a slab) overlaps
-the player's box while the box's center lies outside that cell (pure
-`mergePushesOff`, tested). Under the center the merge lifts the player and
-stays allowed. Only while Edge Guard is on and walking (not sneaking).
-Checked 2026-10-12 (`b36cf7b`, normal build): on BDS the slab still went into
-the player's own cell and they fell; not seen locally. The maintainer
-suspects the BDS-only fall predates this change. Next: a trace build logging
-`useItemOn` decisions and `buildBlock` calls, to see whether BDS placement
-reaches the hook and what it decides.
-Trace (VALIDATION-LOG): the check runs and refuses; one BDS fall came from a
-server correction 0.04 further out than the client at 0.026 overlap, the
-other from a merge whose check was not logged. Next build: the overlap margin
-grows to 0.1 block and the merge check also runs in `startBuildBlock` and
-`buildBlock`, before the client may ask the server to place.
-Checked 2026-10-12 (`2dc7e45` trace build): no falls on BDS or locally
-except one. That one: after a small server correction the client re-ran its
-recent ticks and moved 0.17 block outward in one tick, off the block; the
-guard seems not to apply while the client replays inputs (open, rare).
-Next build: the margin becomes a setting (DESIGN.md), default 0.10.
+### L-162 Edge Guard: fall after a server correction re-runs recent ticks
+Kind: Bug, Research (strong model). Split from L-161, 2026-10-12; rare.
+Seen once on the local test BDS (trace of `2dc7e45`, VALIDATION-LOG "L-161
+margin 0.1"): after a +0.047 block server correction, the client's next
+position was 0.17 block further out, off the block, and it fell. The client
+re-runs its recent ticks after a correction (`ReplayableActorInput` captures
+`MoveInputComponent`; `preApplyInput` restores it); Edge Guard seems not to
+apply during that re-run. Next: trace `calculateMoveVector` calls during the
+re-run (which state, which position) and whether the captured input is the
+guarded one; fail open if the replay path cannot be told apart.
 
 ### L-156 Low bookshelves above glass become dark under Vibrant Visuals
 Kind: Bug, Research (strong model).
