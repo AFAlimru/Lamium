@@ -33,6 +33,9 @@ LL_TYPE_INSTANCE_HOOK(PortalInside, ll::memory::HookPriority::Normal, LocalPlaye
     std::string before;
     try { before = fields(*this) + " screen " + screen(); } catch (...) {}
     origin(portal);
+    // Experiment 2 (trace builds only): the portal effect flag back off right
+    // after it is set. Does the inventory then stay open (L-149)?
+    mEnablePortalEffect = false;
     try { log(std::format("handleInsidePortal {},{},{}: {} -> {} screen {}", portal.x, portal.y, portal.z, before, fields(*this), screen())); }
     catch (...) {}
 }

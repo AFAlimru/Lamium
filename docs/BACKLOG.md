@@ -427,6 +427,9 @@ and movable through the existing HUD Layout Editor.
   agent's picks in the mockup; added (A list with a "Show names" child that
   gives C, hide vanilla icons while on, color-only warning under 10 s except
   beacon effects, shortest first with infinite last, show all, default off).
+  Maintainer: the picks are fine (decided 2026-10-12). Next: research the
+  local player's effect list (amplifier, remaining ticks, infinite, beacon
+  ambient flag) and how to hide only vanilla's effect icons; then build.
 
 ### L-148 Hide the Nether portal overlay
 Kind: Research, then Design/Ready once the drawing route is established.
@@ -455,6 +458,11 @@ contact, the time in the portal or dimension transfer.
   (inventory_screen -> hud_screen). Next trace build: the effect time is set
   back to 0 after every tick, to see whether the overlay goes, the inventory
   stays open and the transfer still happens.
+- Result 2026-10-12 (maintainer, survival): with the effect time zeroed after
+  every tick the purple overlay is gone and the transfer works as before; the
+  inventory is still closed on entry and cannot be opened inside. So hiding
+  the overlay is feasible this way (a client-only value; writing it needs a
+  version gate). The closing is separate (L-149).
 
 ### L-149 Allow inventory access in portals
 Kind: Research, with Design if screen behavior choices remain.
@@ -474,6 +482,9 @@ Goal: open and use the ordinary inventory while inside a Nether portal.
   Defer if feasibility requires deep invasive hooks or state divergence.
 - 2026-10-12: the L-148 portal trace also logs the top screen around
   `handleInsidePortal`, to see where and when the inventory is closed.
+- The inventory closed after `handleInsidePortal` returned (still open there)
+  and before the next `normalTick`; zeroing the effect time did not stop it.
+  Next trace: `mEnablePortalEffect` cleared right after `handleInsidePortal`.
 
 ### L-150 Arrow-count HUD
 Kind: Design (small), then Ready after counting and visibility are agreed.
@@ -498,6 +509,11 @@ Goal: show the arrows available to the player without opening inventory.
   with a bow the arrows, with a crossbow arrows and fireworks, with elytra the
   fireworks. Tipped arrows count with plain arrows (showing them separately
   is wanted if feasible; a later mockup may settle it).
+- Mockup [demos/durability-ammo.html](demos/durability-ammo.html): ammo on a
+  small line under the weapon row (on the same row it ran into the hotbar at
+  the bottom-left default), tipped arrows as total / total with tipped /
+  per kind, a mark on a loaded crossbow, the elytra row while gliding even
+  with armor rows off. Under review.
 
 ### L-146 Layer switches on the world map (with the next integration review)
 Kind: Design. Raised by the maintainer 2026-10-11 before the 0.2.0 release;
