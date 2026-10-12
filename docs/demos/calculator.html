@@ -99,7 +99,7 @@ code{font:13px ui-monospace,Consolas,monospace;color:var(--ink)}
   </div>
 
   <div class="try">
-    <input id="expr" value="20 dc - 1234" spellcheck="false" autocomplete="off" aria-label="式">
+    <input id="expr" value="20 lc - 1234" spellcheck="false" autocomplete="off" aria-label="式">
     <div class="ex">
       <button>12 st + 40</button><button>nether(1520)</button><button>sqrt(2)*16</button><button>3 sb / 7</button><button>72000 / 20 / 60</button><button>(x - 100)^2 + (z + 40)^2</button><button>5 *</button>
     </div>
@@ -112,7 +112,8 @@ code{font:13px ui-monospace,Consolas,monospace;color:var(--ink)}
   <div class="box">
     <h2>決定事項（2026-10-12）と確認したいこと</h2>
     <ul>
-      <li>決定: 結果の言い換えは 64 以上のときだけ、スタックと箱。単位は英字の <code>st</code> <code>sb</code> <code>dc</code>。今の座標 <code>x y z</code> を変数に使える。履歴は 10 件、ゲームを閉じたら消える。</li>
+      <li>決定: 結果の言い換えは 64 以上のときだけ、Schematic の材料と同じ書き方（「39 チェスト + 7 スタック + 46」、1 チェスト = 27 スタック = シュルカーボックス 1 個）。</li>
+      <li>決定: 打つ単位は <code>st</code>（64）、<code>ch</code>（チェスト、27 スタック）、<code>sb</code>（<code>ch</code> と同じ）、<code>lc</code>（ラージチェスト、54 スタック）。今の座標 <code>x y z</code> を変数に使える。履歴は 10 件、ゲームを閉じたら消える。</li>
       <li>決定: チェストなどの画面の上で開くのは第 2 段階（バニラの画面に E・Esc・数字キー・Q が届かないようにする方法を調べてから）。</li>
       <li>単体では A が有力。確認したいこと: 画面を開いているときに A をその画面の左横に寄せる形でよいか（「チェストを開いている」で確認できる）。</li>
     </ul>
@@ -124,10 +125,10 @@ const state = {variant:'A', scene:'play', lang:'ja', history:[
   {e:'27 * 64', r:1728}, {e:'nether(-2380)', r:-297.5}, {e:'4 st + 13', r:269}]};
 const POS = {x:152, y:64, z:-320};
 const T = {
-  ja:{title:'計算機', esc:'Esc: 閉じる', hint:'Enter: 履歴に残す  ↑↓: 履歴  Ctrl+C: 結果をコピー', units:'単位 st sb dc · sqrt abs floor round min max · nether() ow() · x y z = 今の座標',
-      err:'式が途中です', st:'スタック', sb:'シュルカー箱', dc:'ラージチェスト', copy:'コピー', hist:'履歴', unk:'知らない名前: '},
-  en:{title:'Calculator', esc:'Esc: close', hint:'Enter: keep in history  ↑↓: history  Ctrl+C: copy result', units:'Units st sb dc · sqrt abs floor round min max · nether() ow() · x y z = your position',
-      err:'Incomplete expression', st:'stacks', sb:'shulker boxes', dc:'double chests', copy:'Copy', hist:'History', unk:'Unknown name: '},
+  ja:{title:'計算機', esc:'Esc: 閉じる', hint:'Enter: 履歴に残す  ↑↓: 履歴  Ctrl+C: 結果をコピー', units:'単位 st ch(sb) lc · sqrt abs floor round min max · nether() ow() · x y z = 今の座標',
+      err:'式が途中です', st:'スタック', ch:'チェスト', copy:'コピー', hist:'履歴', unk:'知らない名前: '},
+  en:{title:'Calculator', esc:'Esc: close', hint:'Enter: keep in history  ↑↓: history  Ctrl+C: copy result', units:'Units st ch(sb) lc · sqrt abs floor round min max · nether() ow() · x y z = your position',
+      err:'Incomplete expression', st:'stack', sts:'stacks', ch:'chest', chs:'chests', copy:'Copy', hist:'History', unk:'Unknown name: '},
 };
 const EXPLAIN = {
   A:'<b>A 中央の小窓：</b>画面の上寄り中央に開く。結果を大きく、言い換えと履歴 3 件を下に。マウスはパネルが受け取り、後ろのゲームは見えたまま（歩けない）。チェストなどの画面を開いているときは、その画面の左横に寄せて重ならないようにする（画面の上で開くのは第 2 段階）。',
@@ -143,7 +144,7 @@ function evaluate(src){
     if (m[1]) toks.push({k:'n', v:parseFloat(m[1])}); else if (m[2]) toks.push({k:'w', v:m[2].toLowerCase()}); else if (m[3]) toks.push({k:'o', v:m[3]});
   }
   let i = 0; const peek = () => toks[i], take = () => toks[i++];
-  const UNITS = {st:64, sb:1728, dc:3456};
+  const UNITS = {st:64, ch:1728, sb:1728, lc:3456};
   const FN = {sqrt:Math.sqrt, abs:Math.abs, floor:Math.floor, ceil:Math.ceil, round:Math.round, min:Math.min, max:Math.max,
               nether:v=>v/8, ow:v=>v*8};
   function expr(){ let v = term(); while (peek() && peek().k==='o' && '+-'.includes(peek().v)) { const o = take().v, r = term(); v = o==='+' ? v+r : v-r; } return v; }
@@ -172,12 +173,14 @@ function fmt(v){
   return r.toLocaleString('en-US', {maximumFractionDigits:6});
 }
 function restate(v, L){
+  // Same split as Schematic's material amounts: chests of 27 stacks, stacks, items.
   if (!Number.isInteger(v) || Math.abs(v) < 64) return [];
-  const a = Math.abs(v), s = Math.floor(a/64), rem = a%64;
-  const out = [`${s} ${L.st}${rem?` + ${rem}`:''}`];
-  out.push(`${(a/1728).toFixed(2).replace(/\.00$/,'')} ${L.sb}`);
-  if (a >= 3456) out.push(`${(a/3456).toFixed(2).replace(/\.00$/,'')} ${L.dc}`);
-  return out;
+  const a = Math.abs(v), c = Math.floor(a/1728), st = Math.floor((a%1728)/64), it = a%64;
+  const ja = state.lang === 'ja', parts = [];
+  if (c) parts.push(ja ? `${c} ${L.ch}` : `${c} ${c===1?L.ch:L.chs}`);
+  if (st) parts.push(ja ? `${st} ${L.st}` : `${st} ${st===1?L.st:L.sts}`);
+  if (it) parts.push(String(it));
+  return [(v < 0 ? '-' : '') + parts.join(' + ')];
 }
 
 function el(cls, x, y, w, h, html, extra){

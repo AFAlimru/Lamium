@@ -453,10 +453,12 @@ Agent's proposal (not decided):
   ever sent to chat or the server.
 - Arithmetic: + - * / % ^, parentheses, decimals, `ans` for the last
   result; functions sqrt, abs, floor, ceil, round, min, max.
-- Minecraft units as words after a number: `st` (64), `sb` (a shulker box,
-  27 stacks), `dc` (a double chest, 54 stacks); item counts are also shown
-  as "19 st + 18" and in shulker boxes. Ticks and seconds (20 per second).
-  Overworld/Nether coordinates (x8, /8) as functions.
+- Minecraft units as words after a number: `st` (64), `ch` (a chest, 27
+  stacks), `sb` (a shulker box, the same as `ch`), `lc` (a large chest, 54
+  stacks). Results of 64 or more are restated the way Schematic's material
+  amounts are ("39 chests + 7 stacks + 46"), through the same pure helper
+  (`MaterialAmount.h`, moved somewhere shared). Ticks and seconds (20 per
+  second). Overworld/Nether coordinates (x8, /8) as functions.
 - Optional: the player's `x y z` as variables.
 - Pure expression parser and unit formatting in a header with tests; the
   panel uses the existing text field (IME already works, L-84).
@@ -465,8 +467,10 @@ needs an agreed mockup first: [demos/calculator.html](demos/calculator.html)
 (A centered window, B tall panel on the right, C one line at the bottom;
 over gameplay and over a chest screen).
 Decided (maintainer 2026-10-12): restatements only for results of 64 or
-more (stacks and shulker boxes), ASCII unit words `st` `sb` `dc`, `x y z`
-as the player's position, 10 history lines kept for the session only.
+more, written like Schematic's materials (chests of 27 stacks, stacks,
+items; the hint says a chest holds as much as a shulker box); ASCII unit
+words `st` `ch` `sb` `lc` (no `dc`); `x y z` as the player's position; 10
+history lines kept for the session only.
 Opening over container screens is wanted but is a second step: first find
 how to keep E, Esc, number keys and the drop key from reaching the vanilla
 screen while the panel has the keyboard. A (the centered window) is the
