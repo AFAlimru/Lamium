@@ -10,6 +10,8 @@
 #include "mc/client/game/ClientInputCallbacks.h"
 #include "mc/client/gui/screens/SceneStack.h"
 #include "mc/world/containers/managers/models/ContainerManagerModel.h"
+#include "features/inventory/game/ScreenTracker.h"
+#include "ll/api/memory/Memory.h"
 #include "mc/client/gui/screens/controllers/ContainerScreenController.h"
 #include "mc/client/gui/screens/controllers/CraftingScreenController.h"
 #include "mc/world/containers/managers/models/CraftingContainerManagerModel.h"
@@ -25,6 +27,7 @@
 
 namespace lamium::visuals::portalTrace {
 void pollChains();
+void logVtable();
 namespace {
 int lines = 0;
 std::vector<std::string> pendingChains;
@@ -72,7 +75,7 @@ LL_TYPE_INSTANCE_HOOK(PortalTick, ll::memory::HookPriority::Normal, LocalPlayer,
     try { before = screen(); } catch (...) {}
     ++ticks;
     origin();
-    try { if (!pendingChains.empty()) pollChains(); } catch (...) {}
+    try { if (!pendingChains.empty()) pollChains(); logVtable(); } catch (...) {}
     // Experiment (trace builds only): the effect time back to 0 after each
     // tick. Does the purple overlay go, does the inventory stay open, does
     // the transfer still happen?
@@ -226,6 +229,24 @@ LL_TYPE_INSTANCE_HOOK(PortalCraftingScreenValid, ll::memory::HookPriority::Norma
 // with the bytes at each hop, so the function can be read from the game file.
 // Names are bound on first call: until then the chain ends in the binder.
 // Re-read each tick and log once the first hop leads into the game module.
+// Step 9: the open inventory screen's vtable gives the real addresses of
+// its virtual validity checks (logged once).
+bool vtableLogged = false;
+void logVtable() {
+    if (vtableLogged) return;
+    auto controller = inventory::game::ScreenTracker::getInstance().current();
+    if (!controller) return;
+    vtableLogged = true;
+    auto base = reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));
+    auto** table = *reinterpret_cast<void***>(controller.get());
+    auto rva = [&](void* p) { return reinterpret_cast<uintptr_t>(p) - base; };
+    auto container = ll::memory::getVtableIndex(ll::memory::toFuncPtr(&ContainerScreenController::_isStillValid));
+    auto crafting = ll::memory::getVtableIndex(ll::memory::toFuncPtr(&CraftingScreenController::_isStillValid));
+    log(std::format("vtable rva {:x}; _isStillValid index container {} crafting {}", rva(table), container ? int(*container) : -1,
+        crafting ? int(*crafting) : -1));
+    if (crafting) log(std::format("open screen's _isStillValid at rva {:x}", rva(table[*crafting])));
+    if (container && container != crafting) log(std::format("container slot {} at rva {:x}", *container, rva(table[*container])));
+}
 void pollChains() {
     auto base = reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));
     std::erase_if(pendingChains, [&](std::string const& name) {
