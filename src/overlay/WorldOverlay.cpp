@@ -192,7 +192,8 @@ void drawLines(BaseActorRenderContext& context, std::span<LineBatch const> batch
     batch.begin({}, mce::PrimitiveMode::LineList, static_cast<int>(count * 2), false);
     Vec3 const camera = context.mImpl->mCameraPosition;
     // Pulled toward the eye (Depth.h rule 2): chunk walls lie on block faces,
-    // and unpulled lines there broke up into dashes against the terrain (L-157).
+    // and unpulled lines there broke up into dashes against the terrain (L-157);
+    // the pull also keeps them over the vanilla selection outline.
     constexpr float pull = depth::worldLinePull;
     for (auto const& group : batches) {
         batch.color(group.r, group.g, group.b, group.a);

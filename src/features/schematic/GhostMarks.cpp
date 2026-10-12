@@ -94,7 +94,7 @@ void drawSelection(ScreenContext& screen, Vec3 const& camera, int dimension, ove
         auto outline = overlay::boxOutline(cell(low), {low.x + size.x - 1, low.y + size.y - 1, low.z + size.z - 1});
         overlay::buildCellMesh(screen, areaMesh, {}, outline, white, material, selectionRevision);
     }
-    overlay::drawCellMesh(screen, camera, areaMesh, material, overlay::depth::facePull);
+    overlay::drawCellMesh(screen, camera, areaMesh, material, overlay::depth::markPull);
     constexpr float cornerColors[2][3]{{1.f, .25f, .2f}, {.25f, .5f, 1.f}};
     for (int i = 0; i < 2; ++i) {
         auto const& corner = i == 0 ? state.first : state.second;
@@ -105,7 +105,7 @@ void drawSelection(ScreenContext& screen, Vec3 const& camera, int dimension, ove
             auto surface = overlay::cellSurface({cell(*corner)});
             overlay::buildCellMesh(screen, mesh, surface.faces, surface.lines, style, material, selectionRevision);
         }
-        overlay::drawCellMesh(screen, camera, mesh, material, overlay::depth::markPull);
+        overlay::drawCellMesh(screen, camera, mesh, material, overlay::depth::cornerPull);
     }
 }
 

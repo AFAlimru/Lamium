@@ -21,9 +21,12 @@
 namespace lamium::overlay::depth {
 inline constexpr float ghostPull = .998f;
 inline constexpr float facePull = .997f;   // Shapes, restriction faces, light tints
-inline constexpr float worldLinePull = .996f; // Chunk Borders and Hitboxes, over shape faces (L-157)
+// Chunk Borders and Hitboxes: over shape faces (L-157) and over the vanilla
+// block selection outline, which beats .996 but not .995 (decided 2026-10-12).
+inline constexpr float worldLinePull = .994f;
 inline constexpr float digitPull = .995f;  // Light digits over their tint
-inline constexpr float markPull = .995f;   // A cell mark over another overlay's outline (save-area corners)
+inline constexpr float markPull = .995f;   // Marks over the vanilla selection outline (the save area)
+inline constexpr float cornerPull = .9945f; // Save-area corners over the area's outline
 inline constexpr float linePull = .993f;   // Light digit lines over both
 // Where a point is drawn after the pull toward `eye`.
 inline Point pulled(Point p, Point eye, float pull) {

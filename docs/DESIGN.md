@@ -301,6 +301,13 @@ Contents:
 
 ## World overlays (Decided unless noted)
 
+- (Decided 2026-10-12) Against the vanilla block selection outline (the black
+  frame on the targeted block): position markers win, building guides yield.
+  Chunk Borders, Hitboxes and the schematic corners and save area draw over
+  it; Shapes and the light overlay let it show over them; the breaking
+  restriction leaves the targeted block out (unchanged). Depth.h holds the
+  pulls that set this order.
+
 - Block-grid shapes show the blocks that form the shape rather than smooth
   wireframes. Wireframes are for chunk borders and hitboxes.
 - Shape style: faces (default, faint outline) or lines. Faces are unlit,
