@@ -24,10 +24,11 @@
 #include <vector>
 
 namespace lamium::visuals::portalTrace {
+void pollChains();
 namespace {
 int lines = 0;
 std::vector<std::string> pendingChains;
-void pollChains();
+
 // Experiment 5 (trace builds only): the client tick of the last
 // handleInsidePortal, to tell "in a portal" by recent contact.
 uint64_t ticks = 0, lastPortalTick = 0;
