@@ -331,6 +331,11 @@ its top or bottom face, or the neighbor cell when it holds a slab) overlaps
 the player's box while the box's center lies outside that cell (pure
 `mergePushesOff`, tested). Under the center the merge lifts the player and
 stays allowed. Only while Edge Guard is on and walking (not sneaking).
+Checked 2026-10-12 (`b36cf7b`, normal build): on BDS the slab still went into
+the player's own cell and they fell; not seen locally. The maintainer
+suspects the BDS-only fall predates this change. Next: a trace build logging
+`useItemOn` decisions and `buildBlock` calls, to see whether BDS placement
+reaches the hook and what it decides.
 
 ### L-156 Low bookshelves above glass become dark under Vibrant Visuals
 Kind: Bug, Research (strong model).

@@ -151,7 +151,7 @@ Hooks: `FinishBreak`, `StopBreak`, `ChangeDimension`
 Meaning: breaking goes through `GameMode::destroyBlock` once per block.
 
 ### `src/features/interaction/EdgeGuard.cpp`
-Hooks: `EdgeGuardHook`, `EdgeGuardInputHook`, `EdgeGuardPlaceHook`, `EdgeGuardSurvivalPlaceHook`, `EdgeTraceSend`, `EdgeTraceCorrection`
+Hooks: `EdgeGuardHook`, `EdgeGuardInputHook`, `EdgeGuardPlaceHook`, `EdgeGuardSurvivalPlaceHook`, `EdgeTraceSend`, `EdgeTraceCorrection`, `EdgeTraceBuild`, `EdgeTraceSurvivalBuild`
 Meaning: the movement request's fields and collision shapes in
 `fetchCollisionShapes`; `PlayerMovement::calculateMoveVector` giving the move
 vector the client both simulates and sends (move x positive to the left), called

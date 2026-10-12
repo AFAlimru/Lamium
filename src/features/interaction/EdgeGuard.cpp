@@ -73,6 +73,13 @@ void trace(std::string text) {
     traceRing.push_back(std::format("#{} {}", traceSends, std::move(text)));
     if (traceRing.size() > 200) traceRing.pop_front();
 }
+// Placement lines are rare: written at once, bounded.
+int tracePlaceLines = 0;
+void traceNow(std::string const& text) {
+    if (tracePlaceLines >= 300) return;
+    ++tracePlaceLines;
+    Runtime::instance().self().getLogger().info("L-161 {}", text);
+}
 void traceFall(float y, bool ground) {
     if (ground) { traceGroundY = y; traceFalling = false; return; }
     if (traceFalling || y > traceGroundY - 1.2f) return;
@@ -275,6 +282,11 @@ bool refusesMerge(Player& actor, ItemStack const& item, BlockPos const& pos, uch
     if (!runtime.enabled() || !runtime.snapshot()->interaction.edgeGuard) return false;
     auto client = ll::service::getClientInstance();
     auto* player = client ? client->getLocalPlayer() : nullptr;
+#ifdef LAMIUM_EDGE_TRACE
+    traceNow(std::format("useItemOn called: local {} walking {} sneaking {} held block {} slab {}",
+        player && static_cast<Player*>(player) == &actor, player && walking(*player), player && player->isSneaking(),
+        item.mBlock != nullptr, item.mBlock && item.mBlock->getBlockType().isSlabBlock()));
+#endif
     if (!player || static_cast<Player*>(player) != &actor || !walking(*player)) return false;
     Block const* held = item.mBlock;
     if (!held || !held->getBlockType().isSlabBlock()) return false;
@@ -295,7 +307,14 @@ bool refusesMerge(Player& actor, ItemStack const& item, BlockPos const& pos, uch
     default: return false;
     }
     // The clicked slab merges only through its top or bottom face.
-    return ((face == 0 || face == 1) && pushes(pos)) || pushes(next);
+    bool refused = ((face == 0 || face == 1) && pushes(pos)) || pushes(next);
+#ifdef LAMIUM_EDGE_TRACE
+    traceNow(std::format("useItemOn pos {},{},{} face {} slab here {} next {},{},{} slab {} box x {:.3f}..{:.3f} y {:.3f} z {:.3f}..{:.3f} -> {}",
+        pos.x, pos.y, pos.z, face, region.getBlock(pos).getBlockType().isSlabBlock(), next.x, next.y, next.z,
+        region.getBlock(next).getBlockType().isSlabBlock(), box.min.x, box.max.x, box.min.y, box.min.z, box.max.z,
+        refused ? "refused" : "allowed"));
+#endif
+    return refused;
 }
 bool refuses(Player& actor, ItemStack const& item, BlockPos const& pos, uchar face) {
     try {
@@ -342,6 +361,18 @@ LL_STATIC_HOOK(EdgeGuardHook, ll::memory::HookPriority::Normal, &MoveCollisionSy
 }
 }
 #ifdef LAMIUM_EDGE_TRACE
+LL_TYPE_INSTANCE_HOOK(EdgeTraceBuild, ll::memory::HookPriority::Normal, GameMode,
+    &GameMode::$buildBlock, bool, BlockPos const& pos, uchar face, HandSlot hand, bool simTick) {
+    bool result = origin(pos, face, hand, simTick);
+    traceNow(std::format("GameMode::buildBlock pos {},{},{} face {} simTick {} -> {}", pos.x, pos.y, pos.z, face, simTick, result));
+    return result;
+}
+LL_TYPE_INSTANCE_HOOK(EdgeTraceSurvivalBuild, ll::memory::HookPriority::Normal, SurvivalMode,
+    &SurvivalMode::$buildBlock, bool, BlockPos const& pos, uchar face, HandSlot hand, bool simTick) {
+    bool result = origin(pos, face, hand, simTick);
+    traceNow(std::format("SurvivalMode::buildBlock pos {},{},{} face {} simTick {} -> {}", pos.x, pos.y, pos.z, face, simTick, result));
+    return result;
+}
 using AuthInput = PlayerAuthInputPacketPayload::InputData;
 LL_TYPE_INSTANCE_HOOK(EdgeTraceSend, ll::memory::HookPriority::Normal, LoopbackPacketSender,
     &LoopbackPacketSender::$sendToServer, void, Packet& packet) {
@@ -387,6 +418,8 @@ void start() {
 #ifdef LAMIUM_EDGE_TRACE
     EdgeTraceSend::hook();
     EdgeTraceCorrection::hook();
+    EdgeTraceBuild::hook();
+    EdgeTraceSurvivalBuild::hook();
     Runtime::instance().self().getLogger().warn("Edge Guard diagnostics enabled (L-160)");
 #endif
     ll::thread::ClientThreadExecutor::getDefault().execute([] { clientThread.store(std::this_thread::get_id()); });
