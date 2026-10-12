@@ -29,6 +29,7 @@
 #include "features/schematic/SchematicActions.h"
 #include "mc/world/item/ItemStack.h"
 #include "mc/world/item/Item.h"
+#include "mc/world/item/ItemInstance.h"
 #include "mc/deps/shared_types/legacy/actor/ArmorSlot.h"
 #include "features/information/DurabilityHud.h"
 #include "features/information/ClientCounters.h"
@@ -406,6 +407,8 @@ std::optional<ui::hud_editor::Box> drawDurability(MinecraftUIRenderContext& cont
     auto look = static_cast<dur::Look>(std::clamp(settings.durabilityLook, 0, 2));
     // Copies for this frame only: the renderer must not replay a pickup squash.
     std::array<ItemStack, 6> stacks;
+    // What a loaded crossbow holds, marked on its icon (L-150).
+    std::array<ItemStack, 6> charges;
     dur::Samples samples{};
     auto sample = [&](dur::Slot slot, ItemStack const& source) {
         auto i = static_cast<size_t>(slot);
@@ -413,9 +416,17 @@ std::optional<ui::hud_editor::Box> drawDurability(MinecraftUIRenderContext& cont
         stacks[i] = source;
         stacks[i].mShowPickUp = false;
         stacks[i].mWasPickedUp = false;
-        samples[i] = {true, source.getDamageValue(), static_cast<int>(source.mItem->getMaxDamage())};
+        samples[i] = {true, source.getDamageValue(), static_cast<int>(source.mItem->getMaxDamage()),
+                      dur::weaponOf(source.getTypeName())};
+        ItemInstance const* charged = source.mChargedItem.get();
+        if (samples[i].weapon == dur::Weapon::Crossbow && charged && !charged->isNull() && charged->mItem) {
+            try { charges[i].reinit(charged->getTypeName(), 1, charged->getAuxValue()); } catch (...) { charges[i] = ItemStack(); }
+        }
     };
-    if (auto* player = context.mClient.getLocalPlayer()) {
+    bool gliding = false;
+    dur::AmmoCounts ammo;
+    auto* player = context.mClient.getLocalPlayer();
+    if (player) {
         using ArmorSlot = SharedTypes::Legacy::ArmorSlot;
         sample(dur::Slot::MainHand, player->getSelectedItem());
         sample(dur::Slot::Offhand, player->getOffhandSlot());
@@ -423,8 +434,21 @@ std::optional<ui::hud_editor::Box> drawDurability(MinecraftUIRenderContext& cont
         sample(dur::Slot::Chest, player->getArmor(ArmorSlot::Torso));
         sample(dur::Slot::Legs, player->getArmor(ArmorSlot::Legs));
         sample(dur::Slot::Feet, player->getArmor(ArmorSlot::Feet));
+        gliding = settings.durabilityAmmo && player->isGliding();
     }
-    auto rows = dur::rows(samples, settings.durabilityOffhand, settings.durabilityArmor);
+    auto rows = dur::rows(samples, settings.durabilityOffhand, settings.durabilityArmor, gliding);
+    auto ammoOf = [&](dur::Row const& row) {
+        return settings.durabilityAmmo ? dur::ammoFor(samples[static_cast<size_t>(row.slot)].weapon) : std::vector<dur::Ammo>{};
+    };
+    // Bounded: the 36 inventory slots and the offhand, only while a row needs them.
+    if (player && std::any_of(rows.begin(), rows.end(), [&](auto const& row) { return !ammoOf(row).empty(); })) {
+        auto count = [&](ItemStack const& stack) {
+            if (!stack.isNull() && stack.mItem) ammo.add(stack.getTypeName(), stack.mCount);
+        };
+        auto& inventory = player->getInventory();
+        for (int slot = 0; slot < 36; ++slot) count(inventory.getItem(slot));
+        count(player->getOffhandSlot());
+    }
     if (rows.empty() && preview) {
         // The layout editor needs something to place even with bare hands.
         ItemStack pick;
@@ -445,11 +469,25 @@ std::optional<ui::hud_editor::Box> drawDurability(MinecraftUIRenderContext& cont
     float icon = 16 * z, gap = 4 * z, barW = 32 * z, barH = 3 * z, rowH = 18 * z;
     std::vector<std::string> texts;
     std::vector<float> rowWidths;
+    // Ammo sits right of the durability: more space before it, the item icon
+    // and its total close together.
+    float ammoGap = 8 * z, ammoIconGap = z;
+    std::array<ItemStack, 2> ammoIcons;
+    auto ammoIcon = [&](dur::Ammo kind) -> ItemStack const& {
+        auto& stack = ammoIcons[static_cast<size_t>(kind)];
+        if (stack.isNull()) {
+            try { stack.reinit(kind == dur::Ammo::Arrows ? "minecraft:arrow" : "minecraft:firework_rocket", 1, 0); }
+            catch (...) { stack = ItemStack(); }
+        }
+        return stack;
+    };
     float contentW = 0;
     for (auto const& row : rows) {
         texts.push_back(dur::showsNumber(look, row) ? dur::numberText(look, row) : std::string{});
         float w = icon + (dur::showsBar(look) ? gap + barW : 0);
         if (!texts.back().empty()) w += gap + ui::textWidthScaled(context, texts.back(), z);
+        for (auto kind : ammoOf(row))
+            w += ammoGap + icon + ammoIconGap + ui::textWidthScaled(context, std::to_string(ammo.of(kind)), z);
         rowWidths.push_back(w + 2 * z);
         contentW = std::max(contentW, w + 2 * z);
     }
@@ -469,8 +507,12 @@ std::optional<ui::hud_editor::Box> drawDurability(MinecraftUIRenderContext& cont
         }
         // Whole GUI units, as in inventory slots: layered icons (dyed
         // leather) show seams between their layers at fractional positions.
-        if (renderer)
+        if (renderer) {
             inspection::render::drawItemIcon(context, {&stacks[static_cast<size_t>(row.slot)], std::round(x), std::round(y + z), z}, 17);
+            // A loaded crossbow: its charge, small, on the icon's lower right.
+            if (auto const& charge = charges[static_cast<size_t>(row.slot)]; !charge.isNull())
+                inspection::render::drawItemIcon(context, {&charge, std::round(x + 8 * z), std::round(y + 9 * z), z / 2}, 18);
+        }
         float cx = x + icon;
         if (dur::showsBar(look)) {
             cx += gap;
@@ -481,9 +523,25 @@ std::optional<ui::hud_editor::Box> drawDurability(MinecraftUIRenderContext& cont
             if (fillW > 0) ui::fill(context, cx, by, fillW, barH - z, ui::Rgb{color.r, color.g, color.b});
             cx += barW;
         }
-        if (!texts[i].empty())
+        if (!texts[i].empty()) {
             ui::labelScaled(context, cx + gap, y + (rowH - 10 * z) / 2, contentW, texts[i], z, ui::palette::text,
                             ui::Align::Left, element.shadow);
+            cx += gap + ui::textWidthScaled(context, texts[i], z);
+        }
+        for (auto kind : ammoOf(row)) {
+            cx += ammoGap;
+            if (renderer) {
+                auto const& stack = ammoIcon(kind);
+                if (!stack.isNull()) inspection::render::drawItemIcon(context, {&stack, std::round(cx), std::round(y + z), z}, 17);
+            }
+            cx += icon + ammoIconGap;
+            int total = ammo.of(kind);
+            auto empty = inspection::render::durabilityColor(0);
+            auto text = std::to_string(total);
+            ui::labelScaled(context, cx, y + (rowH - 10 * z) / 2, contentW, text, z,
+                            total == 0 ? ui::Rgb{empty.r, empty.g, empty.b} : ui::palette::text, ui::Align::Left, element.shadow);
+            cx += ui::textWidthScaled(context, text, z);
+        }
     }
     context.flushText(0, std::nullopt);
     return ui::hud_editor::Box{placement.x, placement.y, boxW, boxH};

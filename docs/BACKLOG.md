@@ -495,6 +495,14 @@ Goal: show the arrows available to the player without opening inventory.
   limited Durability to card/none); fixed, with a test that every offered
   choice survives normalization. Checked in game 2026-10-12: per line works,
   bands line up on the right edge when moved to the right.
+- Built 2026-10-12: a "Show ammo" child (default on). Bow rows show the
+  inventory-wide arrow total (offhand included, tipped arrows counted with
+  plain ones), crossbow rows arrows and fireworks, elytra rows fireworks; a
+  zero is drawn in the bar's empty red. A loaded crossbow gets its charge as
+  a half-size icon on the lower right of its icon (not counted). The elytra
+  row also shows while gliding with armor rows off (only with ammo on).
+  Counting is pure (`DurabilityHud.h`, tested) and runs over 37 slots only
+  while a row needs it. Not checked in game yet.
 
 ### L-146 Layer switches on the world map (with the next integration review)
 Kind: Design. Raised by the maintainer 2026-10-11 before the 0.2.0 release;

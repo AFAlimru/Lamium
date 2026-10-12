@@ -982,6 +982,8 @@ inline constexpr auto simplifiedChinese = std::to_array<Text>({
     {"durabilityOffhand", "副手: {}"},
     {"durabilityArmor", "盔甲: {}"},
     {"help.information.durabilityArmor", "头盔、胸甲或鞘翅、护腿和靴子。"},
+    {"durabilityAmmo", "显示弹药: {}"},
+    {"help.information.durabilityAmmo", "弓旁显示箭，弩旁显示箭和烟花火箭，鞘翅旁显示烟花火箭（关闭盔甲时滑翔中也显示鞘翅）。统计整个物品栏。"},
     {"hudCoordinates", "坐标: {}"},
     {"hudCameraTag", "相机"},
     {"hudPlayerTag", "玩家"},

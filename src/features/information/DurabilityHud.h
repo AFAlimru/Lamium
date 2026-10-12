@@ -4,6 +4,7 @@
 #include <cmath>
 #include <cstdint>
 #include <string>
+#include <string_view>
 #include <vector>
 
 // Held-item durability HUD (BACKLOG L-61, docs/demos/durability-hud.html).
@@ -11,10 +12,19 @@
 namespace lamium::information::durability {
 enum class Look { BarAndNumber, Number, Bar };
 enum class Slot { MainHand, Offhand, Head, Chest, Legs, Feet };
+// Items whose row also counts ammo (L-150).
+enum class Weapon { Other, Bow, Crossbow, Elytra };
+inline Weapon weaponOf(std::string_view name) {
+    if (name == "minecraft:bow") return Weapon::Bow;
+    if (name == "minecraft:crossbow") return Weapon::Crossbow;
+    if (name == "minecraft:elytra") return Weapon::Elytra;
+    return Weapon::Other;
+}
 struct Sample {
     bool damageable = false;
     int damage = 0;
     int max = 0;
+    Weapon weapon = Weapon::Other;
 };
 // Samples in Slot order.
 using Samples = std::array<Sample, 6>;
@@ -28,9 +38,9 @@ inline bool usable(Sample const& sample) { return sample.damageable && sample.ma
 inline Row row(Slot slot, Sample const& sample) {
     return {slot, sample.max - std::clamp(sample.damage, 0, sample.max), sample.max};
 }
-// An elytra is an ordinary chest row; gliding gets no special row (maintainer,
-// 2026-09-30: parked with the flight time).
-inline std::vector<Row> rows(Samples const& samples, bool offhand, bool armor) {
+// An elytra is an ordinary chest row. While gliding it shows even with armor
+// rows off, for its fireworks (L-150, maintainer 2026-10-12).
+inline std::vector<Row> rows(Samples const& samples, bool offhand, bool armor, bool gliding = false) {
     std::vector<Row> out;
     auto add = [&](Slot slot) {
         auto const& sample = samples[static_cast<size_t>(slot)];
@@ -39,8 +49,32 @@ inline std::vector<Row> rows(Samples const& samples, bool offhand, bool armor) {
     add(Slot::MainHand);
     if (offhand) add(Slot::Offhand);
     if (armor) for (auto slot : {Slot::Head, Slot::Chest, Slot::Legs, Slot::Feet}) add(slot);
+    else if (gliding && samples[static_cast<size_t>(Slot::Chest)].weapon == Weapon::Elytra) add(Slot::Chest);
     return out;
 }
+// ---- Ammo beside a bow, crossbow or elytra row (L-150) ----
+enum class Ammo { Arrows, Fireworks };
+// Tipped arrows share the arrow item and count with plain ones.
+inline std::vector<Ammo> ammoFor(Weapon weapon) {
+    switch (weapon) {
+    case Weapon::Bow: return {Ammo::Arrows};
+    case Weapon::Crossbow: return {Ammo::Arrows, Ammo::Fireworks};
+    case Weapon::Elytra: return {Ammo::Fireworks};
+    default: return {};
+    }
+}
+// Totals over the stacks the client sees (inventory and offhand); a loaded
+// crossbow's charge is shown by its mark, not counted.
+struct AmmoCounts {
+    int arrows = 0;
+    int fireworks = 0;
+    void add(std::string_view name, int count) {
+        if (count <= 0) return;
+        if (name == "minecraft:arrow") arrows += count;
+        else if (name == "minecraft:firework_rocket") fireworks += count;
+    }
+    int of(Ammo ammo) const { return ammo == Ammo::Arrows ? arrows : fireworks; }
+};
 inline bool showsBar(Look look) { return look != Look::Number; }
 // Bar look shows the number only once a quarter or less remains.
 inline bool showsNumber(Look look, Row const& row) { return look != Look::Bar || row.ratio() < .25f; }

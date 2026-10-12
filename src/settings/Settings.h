@@ -206,6 +206,7 @@ struct Settings {
         int durabilityLook = 0; // 0 bar and number, 1 number, 2 bar (number below a quarter)
         bool durabilityOffhand = true;
         bool durabilityArmor = true;
+        bool durabilityAmmo = true; // Arrows and fireworks beside bows, crossbows and elytra (L-150)
         bool offhandSlot = false;      // Offhand item beside the hotbar (L-75)
         bool offhandSlotEmpty = false; // Keep the empty frame when nothing is held
         // Player list columns (L-128), all shown by default.
