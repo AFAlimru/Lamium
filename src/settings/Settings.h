@@ -120,6 +120,7 @@ struct Settings {
         ui::HudElement playerList = ui::defaultHudElement(ui::HudElementId::PlayerList);
         ui::HudElement inventory = ui::defaultHudElement(ui::HudElementId::Inventory);
         ui::HudElement usedSlots = ui::defaultHudElement(ui::HudElementId::UsedSlots);
+        ui::HudElement statusEffects = ui::defaultHudElement(ui::HudElementId::StatusEffects);
     } hud;
     struct Map {
         bool minimap = false;
@@ -215,6 +216,8 @@ struct Settings {
         // Inventory grid and used-slot counter (L-127), each with its own hotbar switch:
         // the grid shows the main 27 by default, the counter counts all 36 (2026-10-11).
         bool inventoryHud = false, usedSlots = false, inventoryHotbar = false, usedSlotsHotbar = true;
+        // Status Effects HUD (L-147): names off gives the icon-and-time column.
+        bool effectsHud = false, effectsNames = true, effectsWarning = true, effectsHideVanilla = true;
         bool saturation = true;        // Gold outlines on the hunger bar (L-63)
         bool saturationPreview = true; // What the held food would add
         bool hud = false;
@@ -320,6 +323,7 @@ struct Settings {
         normalizeElement(hud.playerList, ui::defaultHudElement(ui::HudElementId::PlayerList), true);
         normalizeElement(hud.inventory, ui::defaultHudElement(ui::HudElementId::Inventory));
         normalizeElement(hud.usedSlots, ui::defaultHudElement(ui::HudElementId::UsedSlots));
+        normalizeElement(hud.statusEffects, ui::defaultHudElement(ui::HudElementId::StatusEffects), true);
         map.zoom = map::clampZoomIndex(map.zoom);
         if (!std::isfinite(map.size)) map.size = 20;
         map.size = std::clamp(std::round(map.size), 10.f, 50.f);

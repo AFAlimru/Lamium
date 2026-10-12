@@ -65,6 +65,7 @@ inline constexpr auto features = std::to_array<FeatureInfo>({
     {"durabilityHud", "feature.durabilityHud", "help.durabilityHud", "information.durabilityHud", false, input::Action::ToggleDurabilityHud},
     {"inventoryHud", "feature.inventoryHud", "help.inventoryHud", "information.inventoryHud", false, input::Action::ToggleInventoryHud},
     {"usedSlots", "feature.usedSlots", "help.usedSlots", "information.usedSlots", false, input::Action::ToggleUsedSlots},
+    {"statusEffects", "feature.statusEffects", "help.statusEffects", "information.effectsHud", false, input::Action::ToggleStatusEffects},
     {"offhandSlot", "feature.offhandSlot", "help.offhandSlot", "information.offhandSlot", false, input::Action::ToggleOffhandSlot},
     {"saturation", "feature.saturation", "help.saturation", "information.saturation", false, input::Action::ToggleSaturation},
     {"debugView", "feature.debugView", "help.debugView", "information.debug", false, input::Action::DebugView},
@@ -174,6 +175,7 @@ inline std::optional<HudElementId> layoutElement(std::string_view feature) {
     if (feature == "playerList") return HudElementId::PlayerList;
     if (feature == "inventoryHud") return HudElementId::Inventory;
     if (feature == "usedSlots") return HudElementId::UsedSlots;
+    if (feature == "statusEffects") return HudElementId::StatusEffects;
     return std::nullopt;
 }
 inline constexpr std::string_view layoutLinkLabel(HudElementId id) {

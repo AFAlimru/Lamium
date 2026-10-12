@@ -117,6 +117,13 @@ Meaning: the vanilla HUD's position panel is named `player_position` (label
 `HudPlayerRenderer`, its control named `hud_player` (where the Info HUD
 covers it, L-145). A renamed control only stops the hiding.
 
+### `src/features/information/StatusEffectsVanilla.cpp`
+Hooks: `VanillaEffectIcons`
+Meaning: `HudMobEffectsRenderer` draws the HUD's effect icons on the right
+(the hud screen's `mob_effects_renderer`). Skipped only while the Status
+Effects HUD read the effects that frame; a change only stops the hiding or
+hides those icons with the HUD showing the same effects (L-147).
+
 ### `src/features/information/FrameTiming.cpp`
 Hooks: `FrameCompleted`
 Rebuild.

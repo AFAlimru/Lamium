@@ -48,6 +48,7 @@ std::string_view elementName(HudElementId id) {
     case HudElementId::PlayerList: return "feature.playerList";
     case HudElementId::Inventory: return "feature.inventoryHud";
     case HudElementId::UsedSlots: return "feature.usedSlots";
+    case HudElementId::StatusEffects: return "feature.statusEffects";
     default: return "hudEditor.toast";
     }
 }
@@ -63,6 +64,7 @@ HudElement& layoutElement(Settings::Hud& hud, HudElementId id) {
     case HudElementId::PlayerList: return hud.playerList;
     case HudElementId::Inventory: return hud.inventory;
     case HudElementId::UsedSlots: return hud.usedSlots;
+    case HudElementId::StatusEffects: return hud.statusEffects;
     default: return hud.toast;
     }
 }

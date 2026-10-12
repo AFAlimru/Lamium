@@ -32,6 +32,13 @@
 #include "mc/world/item/ItemInstance.h"
 #include "mc/deps/shared_types/legacy/actor/ArmorSlot.h"
 #include "features/information/DurabilityHud.h"
+#include "features/information/StatusEffects.h"
+#include "features/information/StatusEffectsVanilla.h"
+#include "mc/deps/ecs/gamerefs_entity/EntityContext.h"
+#include "mc/entity/components/MobEffectsComponent.h"
+#include "mc/world/effect/MobEffect.h"
+#include "mc/world/effect/MobEffectIds.h"
+#include "mc/world/effect/MobEffectInstance.h"
 #include "features/information/ClientCounters.h"
 #include "features/information/OffhandSlot.h"
 #include "features/information/PaperDoll.h"
@@ -542,6 +549,84 @@ std::optional<ui::hud_editor::Box> drawDurability(MinecraftUIRenderContext& cont
                             total == 0 ? ui::Rgb{empty.r, empty.g, empty.b} : ui::palette::text, ui::Align::Left, element.shadow);
             cx += ui::textWidthScaled(context, text, z);
         }
+    }
+    context.flushText(0, std::nullopt);
+    return ui::hud_editor::Box{placement.x, placement.y, boxW, boxH};
+}
+// ---- Status Effects HUD (L-147, docs/demos/status-effects-hud.html) ----
+std::optional<statusEffects::Effect> effectFor(unsigned id, int ticks, int amplifier, bool ambient) {
+    if (id == 0 || id >= static_cast<unsigned>(MobEffectIds::Count)) return std::nullopt;
+    MobEffect const* type = MobEffect::mMobEffects()[static_cast<MobEffectIds>(id)].get();
+    if (!type) return std::nullopt;
+    statusEffects::Effect effect{id, ticks, amplifier, ambient, type->mIsHarmful};
+    effect.name = getI18n().get(*type->mDescriptionId, getI18n().getCurrentLanguage());
+    effect.icon = *type->mIconName;
+    return effect;
+}
+// The local player's effects as the client holds them; nullopt when the
+// component cannot be read (vanilla icons then stay drawn).
+std::optional<std::vector<statusEffects::Effect>> readEffects(LocalPlayer& player) {
+    auto component = player.getEntityContext().tryGetComponent<MobEffectsComponent>();
+    if (!component) return std::nullopt;
+    std::vector<statusEffects::Effect> effects;
+    for (auto const& instance : *component->mMobEffects)
+        if (auto effect = effectFor(instance.mId, instance.mDuration->mValue, instance.mAmplifier, instance.mAmbient))
+            effects.push_back(std::move(*effect));
+    return effects;
+}
+std::optional<ui::hud_editor::Box> drawStatusEffects(MinecraftUIRenderContext& context, float width, float height,
+    ui::HudElement const& element, Settings::Information const& settings, bool preview) {
+    namespace fx = statusEffects;
+    std::optional<std::vector<fx::Effect>> read;
+    if (auto* player = context.mClient.getLocalPlayer()) {
+        try { read = readEffects(*player); } catch (...) { read.reset(); }
+    }
+    fx::covers(!preview && read && settings.effectsHideVanilla);
+    std::vector<fx::Effect> effects = read ? *read : std::vector<fx::Effect>{};
+    if (effects.empty() && preview) {
+        // The layout editor needs something to place without active effects.
+        for (auto [id, ticks, amplifier] : {std::tuple{1u, 3300, 1}, std::tuple{19u, 80, 0}, std::tuple{16u, -1, 0}})
+            if (auto effect = effectFor(id, ticks, amplifier, false)) effects.push_back(std::move(*effect));
+    }
+    if (effects.empty()) return std::nullopt;
+    fx::order(effects);
+    float z = elementZoom(element);
+    bool card = element.background == ui::ElementBackground::Card;
+    bool band = element.background == ui::ElementBackground::Line;
+    float padX = card ? 5 * z : band ? ui::lineSidePadding * z : 0, padY = card ? 3 * z : 0;
+    float icon = 16 * z, gap = 4 * z, timeGap = 8 * z, rowH = 18 * z;
+    // Names on: name and level, then the time in its own right-aligned column.
+    // Names off: the level before the time.
+    std::vector<std::string> names, times;
+    float nameW = 0, timeW = 0;
+    for (auto const& effect : effects) {
+        names.push_back(settings.effectsNames ? fx::label(effect) : fx::levelText(effect.amplifier));
+        times.push_back(fx::timeText(effect.ticks));
+        nameW = std::max(nameW, ui::textWidthScaled(context, names.back(), z));
+        timeW = std::max(timeW, ui::textWidthScaled(context, times.back(), z));
+    }
+    float rowW = icon + gap + (nameW > 0 ? nameW + (settings.effectsNames ? timeGap : gap) : 0) + timeW;
+    float boxW = rowW + 2 * padX, boxH = effects.size() * rowH + 2 * padY;
+    auto placement = ui::placeElement(width, height, boxW, boxH, element);
+    if (card) ui::card(context, placement.x, placement.y, boxW, boxH, cardOpacity);
+    float x = placement.x + padX;
+    for (size_t i = 0; i < effects.size(); ++i) {
+        auto const& effect = effects[i];
+        float y = placement.y + padY + i * rowH, textY = y + (rowH - 10 * z) / 2;
+        if (band) {
+            auto line = ui::lineBox(x, y, rowW, rowH, z);
+            ui::fill(context, line.x, line.y, line.width, line.height, ui::palette::panel, cardOpacity);
+        }
+        if (auto path = fx::iconPath(effect.icon); !path.empty())
+            ui::imageUv(context, path, {std::round(x), std::round(y + z), icon, icon}, 0, 0, 1, 1);
+        float tx = x + icon + gap;
+        if (nameW > 0)
+            ui::labelScaled(context, tx, textY, nameW, names[i], z,
+                            settings.effectsNames && effect.harmful ? ui::palette::heart : ui::palette::text,
+                            ui::Align::Left, element.shadow);
+        bool warn = settings.effectsWarning && fx::runningOut(effect);
+        ui::labelScaled(context, x + rowW - timeW, textY, timeW, times[i], z, warn ? ui::palette::warning : ui::palette::text,
+                        settings.effectsNames ? ui::Align::Right : ui::Align::Left, element.shadow);
     }
     context.flushText(0, std::nullopt);
     return ui::hud_editor::Box{placement.x, placement.y, boxW, boxH};
@@ -1403,6 +1488,9 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
     }
     if (preview || settings.durabilityHud)
         box(ui::HudElementId::Durability) = drawDurability(context, width, height, hud.durability, settings, preview != nullptr);
+    if (preview || settings.effectsHud)
+        box(ui::HudElementId::StatusEffects) = drawStatusEffects(context, width, height, hud.statusEffects, settings, preview != nullptr);
+    else statusEffects::covers(false);
     if (preview || settings.inventoryHud || settings.usedSlots) {
         if (auto sample = sampleInventory(context.mClient, preview != nullptr)) {
             if (preview || settings.inventoryHud)

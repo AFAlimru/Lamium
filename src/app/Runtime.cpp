@@ -47,6 +47,7 @@
 #include "features/visuals/HideOffhand.h"
 #include "features/visuals/HideEffects.h"
 #include "features/information/DebugVanillaHud.h"
+#include "features/information/StatusEffectsVanilla.h"
 #include "features/visuals/EffectTrace.h"
 #include "input/CustomInput.h"
 #include "overlay/WorldOverlay.h"
@@ -155,6 +156,7 @@ Feature const features[] = {
     {"Sneak", started<interaction::sneak::start>, interaction::sneak::stop},
     {"Effect visibility", started<visuals::effects::start>, visuals::effects::stop},
     {"Debug View vanilla HUD", started<information::debugVanilla::start>, information::debugVanilla::stop},
+    {"Status effects vanilla icons", started<information::statusEffects::start>, information::statusEffects::stop},
     {"Effect diagnostics", started<visuals::effectTrace::start>, visuals::effectTrace::stop},
     {"Portal diagnostics", started<visuals::portalTrace::start>, visuals::portalTrace::stop},
 };

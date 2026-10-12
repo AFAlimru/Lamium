@@ -452,6 +452,22 @@ and movable through the existing HUD Layout Editor.
   Maintainer: the picks are fine (decided 2026-10-12). Next: research the
   local player's effect list (amplifier, remaining ticks, infinite, beacon
   ambient flag) and how to hide only vanilla's effect icons; then build.
+- Research and first build 2026-10-12 (not checked in game). Data: the
+  local player's `MobEffectsComponent` (id, duration ticks, amplifier,
+  ambient), names from `MobEffect::mDescriptionId` through the game's
+  language, icons from `mIconName` (resolved to `textures/ui/<name>`, where
+  the vanilla pack keeps `*_effect` icons; a missing texture draws no icon).
+  Infinite is assumed to be a negative duration and shows as the infinity
+  sign; whether the client counts the time down between server updates is
+  unverified. Vanilla icons: `HudMobEffectsRenderer::render` (the hud
+  screen's `mob_effects_renderer`) is skipped only in frames where the HUD
+  read the component; not gated (skipping a draw writes nothing). New
+  element `StatusEffects` (appended), right middle 48 below center (under
+  the automation status), card, per-line allowed; `Toggle the Status effects
+  HUD` action appended, unbound. Harmful names in the heart red, running-out
+  times in the warning color. To check: names/levels/times, ∞ glyph in the
+  game font, beacon effects, renewal/removal, vanilla icons gone only while
+  on, inventory screen effects untouched, Pocket UI, editor sample, F1.
 
 ### L-150 Arrow-count HUD
 Kind: Design (small), then Ready after counting and visibility are agreed.
