@@ -12,6 +12,17 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-159 follow-up and Edge Guard on BDS (2026-10-12)
+
+By the maintainer, local, `e93606e` (DLL SHA-256 `7f5d6086...a8cbc18b`):
+binding editor buttons on the edited row replace its switch and give it back
+after Clear, Reset and Cancel; no overlap on a row with a stepper; Find by key
+sits next to the key column, leaves "Key: C_" focused, Backspace shows all,
+typing switches to a name search. All OK.
+Edge Guard (L-160): works in a local world; on BDS the player stops at the
+edge for a moment and falls within a second. Build and server version not
+recorded for this observation.
+
 ## L-159 Find by key in Hotkeys (2026-10-12)
 
 By the maintainer, local, `c4ac083` (DLL SHA-256 `99f5dce8...b71734c`).

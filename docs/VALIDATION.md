@@ -59,7 +59,7 @@ game result.
 | Breaking Restriction, resume after a forbidden block (L-36) | 2026-09-30, local, capture/reset design; 2026-10-08, local, press-anchored design (`178dc00`) | Servers |
 | Breaking Restriction, press-anchored modes and height band (L-15 step 1) | 2026-10-08, local (`178dc00`): all modes in survival, creative, re-anchoring, faces, Status, world exit and dimension change, with Tool Switch and Tool Protection | Servers; faces z-fight with blocks (L-110) |
 | Permanent Sneak, Permanent Sprint (L-43) | 2026-09-26, local | |
-| Edge Guard (L-40) | 2026-09-26, local | Servers |
+| Edge Guard (L-40) | 2026-09-26, local | Fails on BDS (2026-10-12: stops briefly, then falls; L-160); other servers |
 | Auto Attack / Auto Use (L-34) | 2026-09-30, local (build 221edcb) | Several clicks per update landing on servers |
 | Tool Protection (L-62) | 2026-09-30, local; light BDS pass: swap from inventory and hotbar, stop toast, strict child | Trace-disabled build, Unbreaking/Mending ordering, elytra replacement in flight; shared mining session (L-73 B) checked 2026-10-08, local |
 | Auto Elytra, experimental (L-70) | 2026-09-30, local; light BDS pass: key, firework jump, delayed chestplate, hand-worn elytra | Trace-disabled build; no automatic glide (L-71) |
@@ -105,7 +105,7 @@ game result.
 | Feature | Last confirmed | Not yet checked |
 |---|---|---|
 | Simplified Chinese UI (L-90) | 2026-10-02, local: text fit, baseline and behavior on `ca25c2c` | Native review of the wording |
-| Settings screen, search, layout B (L-50, L-52, L-81) | 2026-09-27, local; 2026-09-30: edits finish with the frame, range warning cleared on moving (`1cdb481`); 2026-10-06: header version, tooltip and copy, no page-name breadcrumb (L-101, `ff55b9f`); 2026-10-12: three missing action labels fixed in three languages (L-155, `3767542`); search by a child row's shown label, toasts unchanged (L-158, `be0b1f1`); Find by key in Hotkeys (L-159, `c4ac083`) | Individual binding edits |
+| Settings screen, search, layout B (L-50, L-52, L-81) | 2026-09-27, local; 2026-09-30: edits finish with the frame, range warning cleared on moving (`1cdb481`); 2026-10-06: header version, tooltip and copy, no page-name breadcrumb (L-101, `ff55b9f`); 2026-10-12: three missing action labels fixed in three languages (L-155, `3767542`); search by a child row's shown label, toasts unchanged (L-158, `be0b1f1`); Find by key in Hotkeys (L-159, `c4ac083`); binding editor buttons on the edited row (`e93606e`) | Individual binding edits |
 | Dedicated Hotkeys/Shapes/HUD openers (L-02 follow-up) | Source and tests only (2026-09-28) | In game |
 | Toggle toasts; message toast | 2026-09-30, local | |
 | Version-sensitive gates and the unverified-game test build (L-137) | 2026-10-11, local: the gated features behave as before on the verified game (0.2.0 regression check 1, `2aea267`); the `--unverified_game=y` build of `891b798`: all nine capabilities stay vanilla with one log line each, the rest of their features work, no crash; `ddac26c`: paused marks in toggle toasts and settings rows, header warning, join toast | A real different game executable (next game update) |

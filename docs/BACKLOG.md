@@ -75,7 +75,7 @@ L-item wins. Every entry names what the task is, not only its number.
      action in search, L-156 dark bookshelves above glass under Vibrant
      Visuals, L-157 intermittently hard-to-see Chunk Borders. Fix/research
      these before new features; L-155 and L-158 done 2026-10-12; L-159
-     Find by key in Hotkeys checked; its follow-up built (check pending); L-156 is linked to L-133 (same look, split faces,
+     Find by key in Hotkeys done; L-160 Edge Guard fails on BDS (new); L-156 is linked to L-133 (same look, split faces,
      research together; past attempts on L-133 failed).
    - Bugs: L-123 elytra stretched on the inventory model after FreeCamera
      (parked 2026-10-10 after two rounds); L-91 shield
@@ -315,6 +315,23 @@ found later are handled as bugs.
 
 ## Bugs
 
+### L-160 Edge Guard lets the player fall on BDS
+Kind: Bug, Research (strong model).
+Status: open. Maintainer's report, 2026-10-12 (0.2.0-era builds): in a
+local world Edge Guard holds the player at edges; on BDS the player stops
+for a moment at the edge, then falls within a second. Expected since L-40:
+the guard shortens the move request in `MoveCollisionSystem` on the client
+(and on the integrated server's copy in a local world, `910d2eb`); a
+dedicated server simulates movement itself from the client's input and
+corrects the client, so the client-only guard is undone.
+Next: confirm with the log/trace on BDS (correction packets after the stop);
+then look for a client-side change the server also honors, such as changing
+the movement input the client sends (the input vector before it is packed
+into the auth-input packet) near an edge, rather than the client's resulting
+speed. Sending real sneak input is not acceptable (L-40: no sneak pose,
+speed loss or network sneak state). Fail open on an unverified version.
+Record the server's movement settings if they are visible.
+
 ### L-156 Low bookshelves above glass become dark under Vibrant Visuals
 Kind: Bug, Research (strong model).
 Status: open. Maintainer's actual-play report, 2026-10-12, Lamium 0.2.0.
@@ -400,24 +417,6 @@ type 3, scale 1.333, with the font's own material).
 ---
 
 ## Feature work and research
-
-### L-159 Find actions by key in Hotkeys
-Kind: Ready. Requested by the maintainer 2026-10-12 ("what did I put on Z?");
-they chose press-a-key over typing key names or a `key:` syntax. Contract in
-DESIGN.md (Settings screen, resets paragraph).
-Built 2026-10-12: `chordUses` (Binding.h) and a `KeyFilter` for
-`buildSettingsRows`; the screen reuses the binding capture path and applies
-the found inputs with the next frame, outside input events. Vanilla
-bindings are not searched. Tests cover matching, default bindings and the
-button's place. Checked in game 2026-10-12 (`c4ac083`): all OK.
-Follow-up decided 2026-10-12 (DESIGN.md): swap the buttons so Find by key
-sits next to the key column and Reset all keys left of it; after a find the
-search field takes focus with "Key: Z" as one unit (Backspace clears it,
-typing starts a text search, Esc clears, Down/Enter go to results); the
-binding editor's Clear/Reset/Cancel move from the footer onto the edited
-row next to its key cell, replacing its switch while editing (A in
-[demos/binding-editor.html](demos/binding-editor.html); footer hint kept).
-Built 2026-10-12; in-game check pending.
 
 ### L-147 Status Effects HUD
 Kind: Design, with Research for native data and vanilla HUD visibility.
