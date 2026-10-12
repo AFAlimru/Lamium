@@ -90,18 +90,16 @@ struct SettingsTable {
         versionWidth = usable() && textWidth > 0 && versionX + textWidth <= searchX - gap ? textWidth : 0;
     }
     // Reset button on the column-heading line (General: all settings,
-    // Hotkeys: key bindings), right-aligned before the state/key heading.
-    static constexpr float headActionWidth = 84;
-    float headActionX(bool hotkeys) const { return (hotkeys ? keyX : stateX - 6) - gap - headActionWidth; }
+    // Hotkeys: key bindings), right-aligned before the state heading; in
+    // Hotkeys, Find by key sits between it and the key heading (L-159).
+    static constexpr float headActionWidth = 84, keyFindWidth = 64;
+    float keyFindX() const { return keyX - gap - keyFindWidth; }
+    float headActionX(bool hotkeys) const { return (hotkeys ? keyFindX() : stateX - 6) - gap - headActionWidth; }
     bool headAction(float x, float y, bool hotkeys) const {
         float ax = headActionX(hotkeys);
         return usable() && y >= theadTop && y < rowsTop && x >= ax && x < ax + headActionWidth;
     }
-    // Hotkeys' Find by key, left of its reset button; absent when the action
-    // heading would have no room.
-    static constexpr float keyFindWidth = 64;
-    float keyFindX() const { return headActionX(true) - gap - keyFindWidth; }
-    bool keyFindShown() const { return usable() && keyFindX() > nameX + 40; }
+    bool keyFindShown() const { return usable() && headActionX(true) > nameX + 40; }
     bool keyFind(float x, float y) const {
         return keyFindShown() && y >= theadTop && y < rowsTop && x >= keyFindX() && x < keyFindX() + keyFindWidth;
     }
@@ -113,7 +111,19 @@ struct SettingsTable {
     float navItemY(int index) const { return navTop + 4 + index * navStep; }
     static constexpr int pinnedItems = 6; // Hotkeys, Shapes, Waypoints, Schematics, World map, HUD layout.
     float pinnedItemY(int k) const { return navBottom - 4 - (pinnedItems - k) * navStep; }
-    // Binding-editor buttons (Clear / Reset / Cancel) on the footer's first line.
+    // Binding-editor buttons (Clear / Reset / Cancel) on the edited row, ending
+    // just before its key cell (L-159).
+    static constexpr float captureButtonWidth = 40, captureButtonGap = 3;
+    float captureButtonX(int index, int count) const {
+        return keyX - gap - (count - index) * (captureButtonWidth + captureButtonGap) + captureButtonGap;
+    }
+    int captureButton(float x, float y, float rowTop, int count) const {
+        if (y < rowTop + 1.5f || y >= rowTop + 1.5f + footerButtonHeight) return -1;
+        for (int i = 0; i < count; ++i)
+            if (x >= captureButtonX(i, count) && x < captureButtonX(i, count) + captureButtonWidth) return i;
+        return -1;
+    }
+    // Find by key's Cancel on the footer's first line.
     static constexpr float footerButtonWidth = 50, footerButtonHeight = 11;
     float footerButtonX(int index) const { return left + pad + index * (footerButtonWidth + 4); }
     float footerButtonY() const { return footerTop + 3; }

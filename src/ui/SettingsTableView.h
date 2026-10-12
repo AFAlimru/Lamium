@@ -43,7 +43,8 @@ void captureInput(input::Token token, bool down);
 void cancelCapture();
 // A captured binding is saved with the next frame, outside input events.
 void applyBinding();
-// Whether (x, y) is on one of the capture footer's buttons.
+// Whether (x, y) is on a binding editor button (on the edited row) or Find by
+// key's Cancel (footer).
 bool onCaptureButton(float x, float y);
 
 void click(float x, float y, bool right);

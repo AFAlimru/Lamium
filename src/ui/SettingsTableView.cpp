@@ -116,6 +116,7 @@ bool mapCacheArmed = false;
 float mapCacheButtonX = 0, mapCacheButtonWidth = 0;
 bool onMapCacheButton(float x) { return mapCacheButtonWidth > 0 && x >= mapCacheButtonX && x < mapCacheButtonX + mapCacheButtonWidth; }
 std::optional<input::Action> capturing_;
+int captureRow = -1; // The edited row: its buttons replace its switch or stepper.
 input::BindingCapture capture;
 struct BindingEdit { input::Action action; std::optional<input::Chord> binding; };
 std::optional<BindingEdit> bindingEdit;
@@ -172,6 +173,19 @@ void cancelCapture_() {
 }
 void startCapture(input::Action action) {
     capturing_ = action; capture.begin(screen::heldKeys()); screen::clearMessage();
+    captureRow = selected;
+    first = SettingsTable::reveal(first, captureRow, displayed.visible);
+}
+// Clear is absent where unbinding would lock the screen shut.
+std::vector<std::string_view> captureButtons() {
+    if (capturing_ && !input::canClear(*capturing_)) return {"resetShort", "cancelShort"};
+    return {"clearShort", "resetShort", "cancelShort"};
+}
+int captureButtonAt(float x, float y) {
+    if (!capturing_ || !valid(captureRow)) return -1;
+    int count = static_cast<int>(captureButtons().size());
+    int button = displayed.captureButton(x, y, displayed.rowY(captureRow), count);
+    return button < 0 ? -1 : button + 3 - count; // 0 Clear, 1 Reset, 2 Cancel
 }
 void queryChanged() { searchCollapsed.clear(); first = 0; rebuild_(false); }
 void startKeyFind() {
@@ -308,15 +322,10 @@ void handleClick(SettingsTable::Hit const& hit, bool right) {
         return;
     }
     if (capturing_) {
-        if (hit.zone == Zone::Footer && !right) {
-            int button = displayed.footerButton(hit.x, hit.y);
-            if (!input::canClear(*capturing_)) {
-                if (button == 0) bindingEdit = BindingEdit{*capturing_, std::nullopt};
-                else if (button == 1) cancelCapture_();
-            } else if (button == 2) cancelCapture_();
-            else if (button >= 0) bindingEdit = BindingEdit{*capturing_, button == 0
-                ? std::optional<input::Chord>(input::Chord{}) : std::nullopt};
-        }
+        int button = right ? -1 : captureButtonAt(hit.x, hit.y);
+        if (button == 2) cancelCapture_();
+        else if (button >= 0) bindingEdit = BindingEdit{*capturing_, button == 0
+            ? std::optional<input::Chord>(input::Chord{}) : std::nullopt};
         return;
     }
     switch (hit.zone) {
@@ -378,8 +387,10 @@ void handleClick(SettingsTable::Hit const& hit, bool right) {
 }
 void handleKey(int key) {
     if (searchFocused_()) {
+        // A found key is one unit in the field (L-159).
+        if (keyQuery && (key == 0x08 || key == 0x1b)) { clearKeyQuery(); return; }
         switch (key) {
-        case 0x41: if (screen::heldCtrl()) query.selectAll(); break;
+        case 0x41: if (screen::heldCtrl() && !keyQuery) query.selectAll(); break;
         case 0x08: if (query.backspace()) queryChanged(); break;
         case 0x1b: searchFocused_() = false; break;
         case 0x0d: case 0x09: case 0x28:
@@ -758,7 +769,7 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
     if (findingKey && hotkeysView())
         label(context,t.searchX+4,t.top+5+boxTextInset(),t.searchWidth-8,translated("captureBox"),palette::accent);
     else if (keyQuery && hotkeysView())
-        label(context,t.searchX+4,t.top+5+boxTextInset(),t.searchWidth-8,translated("keyFind.query", keyQueryName));
+        label(context,t.searchX+4,t.top+5+boxTextInset(),t.searchWidth-8,translated("keyFind.query", keyQueryName) + (searchFocused_() ? "_" : ""));
     else if (query.value().empty() && !searchFocused_())
         label(context,t.searchX+4,t.top+5+boxTextInset(),t.searchWidth-8,translated("searchPlaceholder") + "  Ctrl+F",palette::faint);
     else label(context,t.searchX+4,t.top+5+boxTextInset(),t.searchWidth-8,query.value() + (searchFocused_() ? "_" : ""));
@@ -853,13 +864,18 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
         if (i % 2) fill(context,rowLeft,y,rowWidth,SettingsTable::rowHeight,palette::white,.025f);
         if (entry.heading() && entry.expanded) fill(context,rowLeft,y,rowWidth,SettingsTable::rowHeight,palette::white,.05f);
         rowBackground(context,rowLeft,y,rowWidth,SettingsTable::rowHeight,selected == i,hover.zone == Zone::Row && hover.index == i);
-        float nameRight = t.stateX - SettingsTable::gap;
+        // The edited row's buttons take the place of its switch or stepper.
+        bool editingRow = capturing_ && i == captureRow;
+        auto buttons = captureButtons();
+        float buttonsX = t.captureButtonX(0, static_cast<int>(buttons.size()));
+        float nameRight = editingRow ? buttonsX - SettingsTable::gap : t.stateX - SettingsTable::gap;
         switch (entry.kind) {
         case RowKind::Feature: {
             if (entry.children) chevron(context,t.nameX,y+5,entry.expanded);
             drawName(context,t.nameX+9,y,nameRight,featureName(*entry.feature)+pausedSuffix(entry.feature->id),palette::text,
                 entry.children,entry.feature->experimental);
-            if (auto option = settings::find(entry.feature->toggle))
+            if (editingRow) {}
+            else if (auto option = settings::find(entry.feature->toggle))
                 toggleSwitch(context,t.stateX+(SettingsTable::stateWidth-switchWidth)/2,y+(SettingsTable::rowHeight-switchHeight)/2,
                     std::get<bool>(option->read(preferences)));
             else if (isSessionFeature(entry.feature->id))
@@ -874,7 +890,9 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
             auto name = splitLabel(translated(entry.option->label)).name;
             bool paused = effectsPaused(entry.feature->id,preferences);
             if (paused) name += " (" + translated("effectsPaused") + ")";
-            if (auto flag = std::get_if<bool>(&value)) {
+            if (editingRow) {
+                label(context,t.nameX+12,y+3,nameRight-t.nameX-12,std::move(name),palette::dim);
+            } else if (auto flag = std::get_if<bool>(&value)) {
                 label(context,t.nameX+12,y+3,nameRight-t.nameX-12,std::move(name),palette::dim);
                 toggleSwitch(context,t.stateX+(SettingsTable::stateWidth-switchWidth)/2,y+(SettingsTable::rowHeight-switchHeight)/2,*flag);
             } else {
@@ -899,7 +917,8 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
         }
         case RowKind::Action: {
             if (hotkeysView()) {
-                drawName(context,t.nameX,y,t.keyX-SettingsTable::gap,actionLabel(*entry.action),palette::text,0,entry.feature->experimental);
+                drawName(context,t.nameX,y,editingRow ? nameRight : t.keyX-SettingsTable::gap,actionLabel(*entry.action),
+                    palette::text,0,entry.feature->experimental);
             } else {
                 drawGuide(context,y,entry.lastChild);
                 label(context,t.nameX+12,y+3,nameRight-t.nameX-12,actionLabel(*entry.action,true),palette::dim);
@@ -932,6 +951,14 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
         }
         default: break;
         }
+        if (editingRow)
+            for (size_t b = 0; b < buttons.size(); ++b) {
+                float bx = t.captureButtonX(static_cast<int>(b), static_cast<int>(buttons.size())), by = y + 1.5f;
+                bool over = t.captureButton(hover.x, hover.y, y, static_cast<int>(buttons.size())) == static_cast<int>(b);
+                fill(context,bx,by,SettingsTable::captureButtonWidth,SettingsTable::footerButtonHeight,over ? Rgb{.23f,.23f,.24f} : palette::keyFill);
+                frame(context,bx,by,SettingsTable::captureButtonWidth,SettingsTable::footerButtonHeight,palette::keyEdge);
+                label(context,bx,by+boxTextInset(),SettingsTable::captureButtonWidth,translated(buttons[b]),palette::text,Align::Center);
+            }
     }
     if (static_cast<int>(rows.size()) > t.visible) {
         float track = t.visible * SettingsTable::rowHeight;
@@ -954,17 +981,7 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
         label(context,after,t.footerButtonY()+1,t.left+t.width-SettingsTable::pad-after,
             screen::message().empty() ? description() : screen::message(),screen::message().empty() ? palette::dim : palette::warning);
     } else if (capturing_) {
-        std::vector<std::string> names{translated("resetShort"), translated("cancelShort")};
-        if (input::canClear(*capturing_)) names.insert(names.begin(), translated("clearShort"));
-        for (size_t i = 0; i < names.size(); ++i) {
-            float x = t.footerButtonX(static_cast<int>(i)), y = t.footerButtonY();
-            bool over = hover.zone == Zone::Footer && t.footerButton(hover.x, hover.y) == static_cast<int>(i);
-            fill(context,x,y,SettingsTable::footerButtonWidth,SettingsTable::footerButtonHeight,over ? Rgb{.23f,.23f,.24f} : palette::keyFill);
-            frame(context,x,y,SettingsTable::footerButtonWidth,SettingsTable::footerButtonHeight,palette::keyEdge);
-            label(context,x,y+boxTextInset(),SettingsTable::footerButtonWidth,names[i],palette::text,Align::Center);
-        }
-        float after = t.footerButtonX(3);
-        label(context,after,t.footerButtonY()+1,t.left+t.width-SettingsTable::pad-after,
+        label(context,textLeft,t.footerTop+3,textWidthAvailable,
             screen::message().empty() ? description() : screen::message(),screen::message().empty() ? palette::dim : palette::warning);
         if (!t.shortFooter) label(context,textLeft,t.footerTop+30,textWidthAvailable,translated("captureInline"),palette::faint);
     } else if (t.shortFooter) {
@@ -975,7 +992,7 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
             && optionWarning(rows[selected].option->id,preferences).has_value();
         paragraph(context,textLeft,t.footerTop+3,textWidthAvailable,description(),2,warns ? palette::warning : palette::text);
         std::string hint = !screen::message().empty() ? screen::message()
-            : translated(searchFocused_() ? "searchHint" : editingNumber_ ? "numberHint" : keyQuery && hotkeysView() ? "keyFind.hint" : "tableHint");
+            : translated(keyQuery && hotkeysView() ? "keyFind.hint" : searchFocused_() ? "searchHint" : editingNumber_ ? "numberHint" : "tableHint");
         label(context,textLeft,t.footerTop+30,textWidthAvailable,std::move(hint),screen::message().empty() ? palette::faint : palette::warning);
     }
     if (!capturing_ && !findingKey)
@@ -1037,6 +1054,7 @@ void applyBinding() {
     if (foundKey) {
         keyQuery = std::move(foundKey);
         cancelCapture_();
+        searchFocused_() = true;
         first = 0;
         rebuild_(false);
         return;
@@ -1049,8 +1067,11 @@ void applyBinding() {
     screen::setMessage(saved ? std::string{} : translated("saveError"));
 }
 bool onCaptureButton(float x, float y) {
-    auto hit = displayed.hit(x, y, nav::count, displayedTabWidth);
-    return hit.zone == Zone::Footer && displayed.footerButton(hit.x, hit.y) >= 0;
+    if (findingKey) {
+        auto hit = displayed.hit(x, y, nav::count, displayedTabWidth);
+        return hit.zone == Zone::Footer && displayed.footerButton(hit.x, hit.y) == 0;
+    }
+    return captureButtonAt(x, y) >= 0;
 }
 void click(float x, float y, bool right) { handleClick(displayed.hit(x, y, nav::count, displayedTabWidth), right); }
 void key(int key) { handleKey(key); }

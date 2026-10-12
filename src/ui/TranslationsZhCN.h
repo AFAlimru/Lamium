@@ -798,7 +798,7 @@ inline constexpr auto simplifiedChinese = std::to_array<Text>({
     {"keyFind.prompt", "按下要查找的按键或组合键 | Esc: 取消"},
     {"keyFind.query", "按键: {}"},
     {"keyFind.none", "没有使用 {} 的操作"},
-    {"keyFind.hint", "正在显示使用此按键的操作 | Esc 或点击搜索框: 显示全部"},
+    {"keyFind.hint", "使用此按键的操作 | Backspace / Esc: 显示全部 | 输入文字: 按名称搜索 | Enter: 结果"},
     {"reset.section", "重置此分类"},
     {"reset.confirm", "再按一次"},
     {"column.action", "操作"},

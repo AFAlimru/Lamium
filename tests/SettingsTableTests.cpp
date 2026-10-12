@@ -59,9 +59,18 @@ void settingsTableTests() {
                 "the reset button is hit only on the heading line, which no other zone claims");
         }
         float kx = t.keyFindX(), ky = t.theadTop + 2;
-        check(t.keyFindShown() && kx > t.nameX + 40 && kx + SettingsTable::keyFindWidth < t.headActionX(true)
+        check(t.keyFindShown() && t.headActionX(true) + SettingsTable::headActionWidth < kx
+              && kx + SettingsTable::keyFindWidth < t.keyX
               && t.keyFind(kx + 1, ky) && !t.headAction(kx + 1, ky, true) && !t.keyFind(kx + 1, t.rowsTop + 1),
-              "Find by key sits left of the Hotkeys reset button on the heading line");
+              "Find by key sits next to the key heading, the Hotkeys reset button left of it");
+        for (int count : {2, 3}) {
+            float row = t.rowY(t.first + 2), last = t.captureButtonX(count - 1, count);
+            check(t.captureButtonX(0, count) > t.nameX + 40 && last + SettingsTable::captureButtonWidth < t.keyX
+                  && t.captureButton(t.captureButtonX(0, count) + 1, row + 4, row, count) == 0
+                  && t.captureButton(last + 1, row + 4, row, count) == count - 1
+                  && t.captureButton(last + 1, row + SettingsTable::rowHeight + 4, row, count) == -1,
+                  "binding editor buttons sit on the edited row just before its key cell");
+        }
     }
 
     // Scrolling is owned by the caller and clamped.
