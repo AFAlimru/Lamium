@@ -442,8 +442,8 @@ Tests: insert/delete around multi-byte characters, word jumps over spaces
 and punctuation, paste limits, IME backspace sequences at a middle caret.
 
 ### L-171 Calculator
-Kind: Design. Requested by the maintainer 2026-10-12; not chosen for
-building, no release.
+Kind: Ready (strong model) after L-172; designed with the maintainer
+2026-10-12 (demos/calculator.html). Not scheduled, no release.
 Goal: a quick calculator inside the game; playing often needs arithmetic
 (stacks, coordinates, farm rates) and there is no way to do it in game now.
 Agent's proposal (not decided):
@@ -473,11 +473,12 @@ words `st` `ch` `sb` `lc` (no `dc`); `x y z` as the player's position; 10
 history lines kept for the session only.
 Opening over container screens is wanted but is a second step: first find
 how to keep E, Esc, number keys and the drop key from reaching the vanilla
-screen while the panel has the keyboard. A (the centered window) is the
-favourite on its own; over a container screen the demo now puts it beside
-the window (left of it) so it does not cover it.
-Open (maintainer): A with the beside-the-window placement, or another
-variant. Text editing comes from L-172.
+screen while the panel has the keyboard. Variant A (maintainer 2026-10-12): a
+centered window near the top (result, one restatement line, 3 history
+lines, older ones through Up/Down); when it opens over a container screen
+(second step) it sits left of that window so it does not cover it. Text
+editing comes from L-172, so L-172 goes first. Spec complete; Ready
+(strong model) once L-172 is in.
 
 ### L-170 Enchantment order planner
 Kind: Design, then Research (strong model). Requested by the maintainer
