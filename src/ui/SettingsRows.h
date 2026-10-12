@@ -179,6 +179,38 @@ inline constexpr std::string_view layoutLinkLabel(HudElementId id) {
     return id == HudElementId::Toast ? "layoutLinkToast"
         : id == HudElementId::Magnification ? "layoutLinkMagnification" : "layoutLink";
 }
+// Action labels carry a catalog prefix that the settings UI strips.
+inline std::string actionName(std::string label) {
+    constexpr std::string_view prefix = "Lamium: ";
+    if (label.starts_with(prefix)) label.erase(0, prefix.size());
+    return label;
+}
+inline std::string actionTranslationKey(input::Action action, bool child = false) {
+    if (child && action == input::Action::FreeCameraSpeedUp) return "freeCameraSpeedUp";
+    if (child && action == input::Action::FreeCameraSpeedDown) return "freeCameraSpeedDown";
+    return "key.Lamium." + std::string(input::actions[static_cast<size_t>(action)].id);
+}
+// The catalog's name key for a feature id; empty for an unknown id.
+inline constexpr std::string_view featureNameKey(std::string_view id) {
+    for (auto const& feature : features)
+        if (feature.id == id) return feature.name;
+    return {};
+}
+// What a toggle toast names: an effect's own switch, otherwise its feature.
+inline std::string_view toggleToastKey(input::Action action) {
+    using input::Action;
+    switch (action) {
+    case Action::HideWeather: return "toast.hideWeather";
+    case Action::HideParticles: return "toast.hideParticles";
+    case Action::HideBossBars: return "toast.hideBossBars";
+    case Action::HideNausea: return "toast.hideNausea";
+    case Action::HideWater: return "toast.hideWater";
+    case Action::HideLava: return "toast.hideLava";
+    case Action::HidePowderSnow: return "toast.hidePowderSnow";
+    case Action::HideDistanceFog: return "toast.hideDistanceFog";
+    default: return featureNameKey(input::actions[static_cast<size_t>(action)].feature);
+    }
+}
 struct SettingsRow {
     RowKind kind;
     FeatureInfo const* feature = nullptr;
@@ -232,7 +264,7 @@ std::vector<SettingsRow> buildSettingsRows(bool hotkeys, std::string_view catego
                 for (size_t i : actionOrder) {
                     auto const& action = input::actions[i];
                     if (action.feature != feature.id || !query.matches(scope + " " + std::string(action.id) + " "
-                        + translate("key.Lamium." + std::string(action.id)))) continue;
+                        + translate(actionTranslationKey(static_cast<input::Action>(i))))) continue;
                     sectionRow(section);
                     rows.push_back({RowKind::Action, &feature, nullptr, static_cast<input::Action>(i), section});
                 }
@@ -277,9 +309,10 @@ std::vector<SettingsRow> buildSettingsRows(bool hotkeys, std::string_view catego
             auto childText = [&](SettingsRow const& row) {
                 if (row.kind == RowKind::MapCache) return std::string(translate("mapCache"));
                 if (row.layout) return std::string(translate(layoutLinkLabel(*row.layout))) + " " + translate("nav.hudLayout");
-                return row.option ? std::string(row.option->id) + " " + translate(row.option->label)
-                    : std::string(input::actions[static_cast<size_t>(*row.action)].id) + " "
-                        + translate("key.Lamium." + std::string(input::actions[static_cast<size_t>(*row.action)].id));
+                if (row.option) return std::string(row.option->id) + " " + translate(row.option->label);
+                // The child label shown here, plus the Hotkeys name as an alias.
+                return std::string(input::actions[static_cast<size_t>(*row.action)].id) + " "
+                    + translate(actionTranslationKey(*row.action, true)) + " " + translate(actionTranslationKey(*row.action));
             };
             bool self = query.matches(scope);
             std::vector<SettingsRow> matching;
@@ -318,17 +351,6 @@ inline LabelParts splitLabel(std::string_view pattern) {
         return {name, "{}"};
     }
     return {std::string(pattern.substr(0, split)), std::string(pattern.substr(split + 2))};
-}
-// Action labels carry a catalog prefix that the settings UI strips.
-inline std::string actionName(std::string label) {
-    constexpr std::string_view prefix = "Lamium: ";
-    if (label.starts_with(prefix)) label.erase(0, prefix.size());
-    return label;
-}
-inline std::string actionTranslationKey(input::Action action, bool child = false) {
-    if (child && action == input::Action::FreeCameraSpeedUp) return "freeCameraSpeedUp";
-    if (child && action == input::Action::FreeCameraSpeedDown) return "freeCameraSpeedDown";
-    return "key.Lamium." + std::string(input::actions[static_cast<size_t>(action)].id);
 }
 // Reset a settings category: every option owned by its features and the HUD
 // placement of their elements. Key bindings stay; Hotkeys has its own reset.

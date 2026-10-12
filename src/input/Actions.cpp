@@ -40,18 +40,8 @@ std::optional<std::string> autoModeText(Settings const& value, input::Action act
         attack ? value.interaction.attackHeldOnly : value.interaction.useHeldOnly);
 }
 std::string toggleFeatureName(input::Action action) {
-    if (action == input::Action::HideWeather) return ui::translated("toast.hideWeather");
-    if (action == input::Action::HideParticles) return ui::translated("toast.hideParticles");
-    if (action == input::Action::HideBossBars) return ui::translated("toast.hideBossBars");
-    if (action == input::Action::HideNausea) return ui::translated("toast.hideNausea");
-    if (action == input::Action::HideWater) return ui::translated("toast.hideWater");
-    if (action == input::Action::HideLava) return ui::translated("toast.hideLava");
-    if (action == input::Action::HidePowderSnow) return ui::translated("toast.hidePowderSnow");
-    if (action == input::Action::HideDistanceFog) return ui::translated("toast.hideDistanceFog");
-    auto id = input::actions[static_cast<size_t>(action)].feature;
-    for (auto const& feature : ui::features)
-        if (feature.id == id) return ui::translated(feature.name);
-    return std::string(id);
+    auto key = ui::toggleToastKey(action);
+    return key.empty() ? std::string(input::actions[static_cast<size_t>(action)].feature) : ui::translated(key);
 }
 bool toggleState(IClientInstance& client, Settings const& value, input::Action action) {
     (void)client;

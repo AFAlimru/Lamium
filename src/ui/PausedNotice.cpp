@@ -2,6 +2,7 @@
 #include "app/Versions.h"
 #include "features/map/WaypointSession.h"
 #include "ui/Localization.h"
+#include "ui/SettingsRows.h"
 #include "ui/Toast.h"
 #include <string>
 
@@ -18,7 +19,7 @@ void frame(Settings const& settings) {
     noticedWorld = place.world;
     std::string names;
     for (auto feature : paused::inUse(settings)) {
-        auto name = translated("feature." + std::string(feature));
+        auto name = translated(featureNameKey(feature));
         if (paused::onUnverified(feature) == paused::Level::Partly) name = translated("paused.part", name);
         names += (names.empty() ? "" : ", ") + name;
     }

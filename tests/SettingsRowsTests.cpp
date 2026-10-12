@@ -1,3 +1,4 @@
+#include "app/PausedFeatures.h"
 #include "ui/SettingsRows.h"
 #include "ui/SettingsNavigation.h"
 #include "ui/Translations.h"
@@ -26,12 +27,40 @@ void settingsRowsTests() {
     check(ui::translations::find(ui::actionTranslationKey(input::Action::FreeCameraSpeedUp,true),"ja_JP") == "速度を上げる"
           && ui::translations::find(ui::actionTranslationKey(input::Action::FreeCameraSpeedDown,true),"ja_JP") == "速度を下げる",
           "Japanese detail speed action labels are natural commands");
-    for (size_t i = 0; i < static_cast<size_t>(input::Action::Count); ++i) {
-        auto action = static_cast<input::Action>(i);
-        if (input::retired(action)) continue;
-        for (auto locale : {"en_US", "ja_JP", "zh_CN"})
-            check(!ui::translations::find(ui::actionTranslationKey(action), locale).empty(),
-                  std::format("action {} has a {} label", input::actions[i].id, locale).c_str());
+    // Every name the UI resolves from the catalogs exists in all three
+    // languages (L-158): checked from the catalogs, not the tables.
+    for (auto locale : {"en_US", "ja_JP", "zh_CN"}) {
+        auto has = [&](std::string_view key, std::string_view what) {
+            check(!key.empty() && !ui::translations::find(key, locale).empty(),
+                  std::format("{} has a {} label ({})", what, locale, key).c_str());
+        };
+        for (auto section : ui::sections) has(section, section);
+        for (auto const& feature : ui::features) {
+            has(feature.name, feature.id);
+            has(feature.description, feature.id);
+        }
+        for (size_t i = 0; i < static_cast<size_t>(input::Action::Count); ++i) {
+            auto action = static_cast<input::Action>(i);
+            if (input::retired(action)) continue;
+            has(ui::actionTranslationKey(action), input::actions[i].id);
+            has(ui::actionTranslationKey(action, true), input::actions[i].id);
+            if (input::actions[i].behavior == input::Behavior::Toggle) has(ui::toggleToastKey(action), input::actions[i].id);
+        }
+        for (auto feature : paused::gatedFeatures) has(ui::featureNameKey(feature), feature);
+        // Search finds an action row by the child label it shows.
+        auto local = [&](std::string_view key) { return std::string(ui::translations::find(key, locale)); };
+        ui::SearchQuery shown;
+        shown.append(local(ui::actionTranslationKey(input::Action::FreeCameraSpeedUp, true)));
+        auto found = ui::buildSettingsRows(false, {}, shown, {}, local);
+        check(std::any_of(found.begin(), found.end(), [](auto const& row) { return row.action == input::Action::FreeCameraSpeedUp; }),
+              std::format("search finds the {} child action label", locale).c_str());
+        Settings value;
+        for (auto const& option : settings::options) {
+            if (!std::holds_alternative<settings::ChoiceValue>(option.read(value))) continue;
+            Settings cycled;
+            for (int step = 0; step < 32; ++step, option.adjust(cycled, 1))
+                has(std::get<settings::ChoiceValue>(option.read(cycled)).label, option.id);
+        }
     }
     ui::SearchQuery query;
     std::set<std::string_view> expanded;
