@@ -342,6 +342,12 @@ Jump input passes. Ice and other slippery blocks slide further than assumed.
 The client-side movement-request guard stays. Test server: official BDS
 1.26.51.1 at C:/Users/kenke/Documents/Lamina/bds-1.26.51.1 (outside the repo;
 local, players are operators, world `lamium-edge`).
+That build stopped locally but still fell on BDS: the trace showed the server
+rebuilding the vector from the sent input state (direction keys, raw and
+analog move), not from the packet's move (VALIDATION-LOG). Next build: when
+the guard changes the vector it also rewrites the local player's input state
+(direction keys cleared, the guarded vector as the analog and raw move). Not
+yet checked; sprinting may end when the forward key is cleared at an edge.
 
 ### L-156 Low bookshelves above glass become dark under Vibrant Visuals
 Kind: Bug, Research (strong model).

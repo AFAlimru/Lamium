@@ -12,6 +12,19 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-160 Edge Guard on BDS, trace (2026-10-12)
+
+By the maintainer on the local test BDS 1.26.51.1 (official, at
+`C:/Users/kenke/Documents/Lamina/bds-1.26.51.1`); in a local world the
+build stopped at edges. `1153107` (DLL `20c644ab...41406eca5`): on BDS the
+player still stopped for a moment and fell. Trace build of `2391912` (DLL
+`331e1c5c...ece720e`, `--edge_trace=y`): at the edge the guard changed the
+move vector from 0,1 to 0.03,0 for both the raw and the input state, and the
+sent `PlayerAuthInputPacket` carried move 0.03,0 but raw move 0,1 and the Up
+key; the server's correction then put the player 0.7 blocks further along
+(-79.078 against the client's -79.790), and the player fell. So the server
+rebuilds the vector from the sent input state, not from the packet's move.
+
 ## L-159 follow-up and Edge Guard on BDS (2026-10-12)
 
 By the maintainer, local, `e93606e` (DLL SHA-256 `7f5d6086...a8cbc18b`):

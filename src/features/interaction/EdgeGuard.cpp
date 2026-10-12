@@ -184,6 +184,17 @@ void guardMoveVector(MoveInputState const& state, Vec2& move) {
     auto [strafe, forward] = inputMove(gx, gz, yaw);
     move.x = static_cast<float>(strafe);
     move.z = static_cast<float>(forward);
+    // The server rebuilds the vector from the sent input state (seen on BDS:
+    // the packet's move was guarded, its direction keys were not, and the
+    // server's correction followed the keys). The state therefore carries the
+    // guarded vector as an analog input without direction keys; it is rebuilt
+    // from the devices every tick.
+    using Flag = MoveInputState::Flag;
+    auto& sent = const_cast<MoveInputState&>(state);
+    for (auto flag : {Flag::Up, Flag::Down, Flag::Left, Flag::Right, Flag::UpLeft, Flag::UpRight, Flag::DownLeft, Flag::DownRight})
+        sent.mFlagValues->set(static_cast<size_t>(flag), false);
+    *sent.mAnalogMoveVector = move;
+    if (raw && &state == &*raw->mRawInput) *raw->mRawMove = move;
     if (!reportedInput) {
         reportedInput = true;
         runtime.self().getLogger().info("Edge Guard: guarding the move input");
