@@ -36,6 +36,11 @@ void calculatorTests() {
               && format(2.0 / 3) == "0.666667" && format(-0.0000001) == "0" && format(999) == "999",
           "results are grouped and trimmed");
     check(restatable(64) && restatable(-128) && !restatable(63) && !restatable(100.5), "only whole counts of 64 or more restate");
+    auto after = [](std::string text) { return text.substr(0, pieceStart(text, text.size())); };
+    check(after("20 lc - 1234") == "20 lc - 123" && after("3 + ") == "3" && after("3 +") == "3" && after("sqrt(") == ""
+              && after("2 * sqrt(") == "2 *" && after("ans") == "" && after("12 st") == "12" && after("2st") == "2"
+              && after("min(3, ") == "min(3" && after("   ") == "" && after("") == "",
+          "the backspace key deletes what a key put in, with its spaces");
     std::vector<Line> history;
     for (int i = 0; i < 22; ++i) remember(history, {std::to_string(i), static_cast<double>(i)});
     check(history.size() == historyLimit && history.back().text == "21" && history.front().text == "2", "twenty lines, newest last");

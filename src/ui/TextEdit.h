@@ -119,6 +119,14 @@ public:
     }
     void home() { replace = false; at = 0; }
     void end() { replace = false; at = text.size(); }
+    // Removes the text from `from` up to the caret (a select-all clears).
+    bool eraseBefore(std::size_t from) {
+        if (replace) { bool had = !text.empty(); clear(); return had; }
+        if (from >= at) return false;
+        text.erase(from, at - from);
+        at = from;
+        return true;
+    }
     // A click: the caret goes to `byte`, moved back onto a codepoint boundary.
     void place(std::size_t byte) {
         replace = false;

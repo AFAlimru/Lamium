@@ -220,6 +220,28 @@ inline std::string format(double value) {
 inline bool restatable(double value) {
     return std::isfinite(value) && std::fabs(value) >= 64 && std::fabs(value) < 9e15 && std::floor(value) == value;
 }
+// Where the calculator's backspace key deletes back to: the piece a key put
+// in, with the spaces around an operator (" + "), a whole function name with
+// its parenthesis ("sqrt("), a whole word ("ans", "st"), else one character
+// (maintainer 2026-10-13: the spaces needed presses of their own).
+inline std::size_t pieceStart(std::string_view text, std::size_t caret) {
+    std::size_t i = caret > text.size() ? text.size() : caret;
+    auto word = [](char c) { return std::isalnum(static_cast<unsigned char>(c)) || c == '_'; };
+    while (i > 0 && text[i - 1] == ' ') --i;
+    if (i == 0) return 0;
+    char c = text[i - 1];
+    if (c == '(' && i >= 2 && std::isalpha(static_cast<unsigned char>(text[i - 2]))) {
+        --i;
+        while (i > 0 && word(text[i - 1])) --i;
+    } else if (std::isalpha(static_cast<unsigned char>(c)) || c == '_') {
+        while (i > 0 && word(text[i - 1]) && !std::isdigit(static_cast<unsigned char>(text[i - 1]))) --i;
+    } else {
+        --i;
+        while (i > 0 && (static_cast<unsigned char>(text[i]) & 0xc0) == 0x80) --i;
+    }
+    while (i > 0 && text[i - 1] == ' ') --i;
+    return i;
+}
 // The history the panel keeps for the session, oldest first (decided
 // 2026-10-13: 20 cards, newest drawn at the bottom).
 struct Line {

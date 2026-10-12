@@ -9,6 +9,7 @@
 #include "mc/client/player/LocalPlayer.h"
 #include "mc/client/renderer/screen/MinecraftUIRenderContext.h"
 #include "mc/deps/core/math/Vec3.h"
+#include "mc/deps/input/RectangleArea.h"
 #include <algorithm>
 #include <array>
 #include <chrono>
@@ -84,7 +85,7 @@ Rgb inkOf(Kind kind) {
 SearchQuery line;
 std::vector<calculator::Line> history; // the session's lines, oldest first; newest drawn at the bottom
 int recalled = -1;                     // lines back from the newest shown in the field (Up/Down), -1 none
-int scrolled = 0;                      // cards scrolled up from the newest
+float scrolled = 0;                    // how far the cards are scrolled up from the newest, in GUI units
 std::string draft;                     // the line typed before recalling
 calculator::Variables variables;
 calculator::Result result;
@@ -134,7 +135,7 @@ void enter() {
 void press(Key const& key) {
     menuFor = -2;
     if (key.insert == "clear") line.clear();
-    else if (key.insert == "back") line.backspace();
+    else if (key.insert == "back") line.eraseBefore(calculator::pieceStart(line.value(), line.caret()));
     else if (key.insert == "equals") { enter(); return; }
     else {
         // After Enter the line is selected: an operator continues from the result.
@@ -146,18 +147,28 @@ void press(Key const& key) {
     recalculate();
 }
 // The card of history line `index` (oldest 0) as drawn, or none when it is
-// scrolled out of view.
+// scrolled wholly out of view; cards cut by the edges are clipped.
+constexpr float step = Layout::cardHeight + Layout::cardGap;
+float cardTop(Layout const& l, int index) {
+    int fromNewest = static_cast<int>(history.size()) - 1 - index;
+    return l.bottom() - (fromNewest + 1) * step + Layout::cardGap + scrolled;
+}
 std::optional<float> cardY(Layout const& l, int index) {
-    int fromNewest = static_cast<int>(history.size()) - 1 - index - scrolled;
-    float y = l.bottom() - (fromNewest + 1) * (Layout::cardHeight + Layout::cardGap) + Layout::cardGap;
-    if (fromNewest < 0 || y < l.cardsTop()) return std::nullopt;
+    float y = cardTop(l, index);
+    if (y + Layout::cardHeight <= l.cardsTop() || y >= l.bottom()) return std::nullopt;
     return y;
 }
-int visibleCards(Layout const& l) {
-    return std::max(1, static_cast<int>((l.bottom() - l.cardsTop() + Layout::cardGap) / (Layout::cardHeight + Layout::cardGap)));
+// How far the history can scroll: all cards minus the space they have.
+float scrollRange(Layout const& l) {
+    return std::max(0.f, static_cast<float>(history.size()) * step - Layout::cardGap - (l.bottom() - l.cardsTop()));
 }
-void clampScroll(Layout const& l) {
-    scrolled = std::clamp(scrolled, 0, std::max(0, static_cast<int>(history.size()) - visibleCards(l)));
+void clampScroll(Layout const& l) { scrolled = std::clamp(scrolled, 0.f, scrollRange(l)); }
+// Scrolls just enough to show the card of history line `index` whole.
+void reveal(Layout const& l, int index) {
+    float y = cardTop(l, index);
+    if (y < l.cardsTop()) scrolled += l.cardsTop() - y;
+    else if (y + Layout::cardHeight > l.bottom()) scrolled -= y + Layout::cardHeight - l.bottom();
+    clampScroll(l);
 }
 bool inside(float x, float y, float left, float top, float w, float h) { return x >= left && x < left + w && y >= top && y < top + h; }
 // A card's copy button, beside its expression line.
@@ -166,11 +177,21 @@ float cardCopyX(Layout const& l) { return l.rightX() + l.rightWidth() - 5 - 4 - 
 bool onScrollbar(Layout const& l, float x, float y) {
     return x >= l.rightX() + l.rightWidth() - 6 && x <= l.rightX() + l.rightWidth() + 1 && y >= l.cardsTop() && y <= l.bottom();
 }
+// The scrollbar thumb follows the pointer smoothly (whole cards jumped, 2026-10-13).
+float thumbLength(Layout const& l) {
+    float track = l.bottom() - l.cardsTop(), range = scrollRange(l);
+    return std::max(10.f, track * track / (track + range));
+}
+float grabOffset = 0; // where in the thumb it was taken
 void scrollTo(Layout const& l, float y) {
-    int span = static_cast<int>(history.size()) - visibleCards(l);
-    if (span <= 0) { scrolled = 0; return; }
-    float fraction = std::clamp((l.bottom() - y) / (l.bottom() - l.cardsTop()), 0.f, 1.f);
-    scrolled = static_cast<int>(std::lround(fraction * static_cast<float>(span)));
+    float track = l.bottom() - l.cardsTop(), thumb = thumbLength(l), range = scrollRange(l);
+    if (range <= 0 || track <= thumb) { scrolled = 0; return; }
+    float thumbTop = y - grabOffset;
+    scrolled = std::clamp((l.bottom() - thumb - thumbTop) / (track - thumb), 0.f, 1.f) * range;
+}
+float thumbTop(Layout const& l) {
+    float track = l.bottom() - l.cardsTop(), thumb = thumbLength(l), range = scrollRange(l);
+    return l.bottom() - thumb - (range > 0 ? (track - thumb) * scrolled / range : 0);
 }
 // A small triangle pointing down, for the copy menu's button.
 void downArrow(MinecraftUIRenderContext& context, float cx, float cy, Rgb color) {
@@ -238,14 +259,15 @@ Result key(int key) {
             if (recalled < 0) draft = line.value();
             ++recalled;
             show(history[history.size() - 1 - static_cast<size_t>(recalled)].text);
-            scrolled = std::max(scrolled, recalled - visibleCards(last) + 1);
+            reveal(last, static_cast<int>(history.size()) - 1 - recalled);
         }
         return Result::None;
     case 0x28: // Down: a newer line, then back to the line being typed
         if (recalled >= 0) {
             --recalled;
             show(recalled >= 0 ? history[history.size() - 1 - static_cast<size_t>(recalled)].text : draft);
-            scrolled = std::min(scrolled, std::max(0, recalled));
+            if (recalled >= 0) reveal(last, static_cast<int>(history.size()) - 1 - recalled);
+            else { scrolled = 0; }
         }
         return Result::None;
     default: return Result::None;
@@ -273,8 +295,11 @@ void click(float x, float y, glm::vec2 size) {
     }
     if (inside(x, y, l.helpX(), l.top + 4, 12, 12)) { helpOpen = !helpOpen; return; }
     if (helpOpen) { helpOpen = false; return; }
-    if (static_cast<int>(history.size()) > visibleCards(l) && onScrollbar(l, x, y)) {
+    if (scrollRange(l) > 0 && onScrollbar(l, x, y)) {
         dragging = true;
+        // Taken on the thumb it keeps its grip; on the track the thumb centers there.
+        float top = thumbTop(l), thumb = thumbLength(l);
+        grabOffset = y >= top && y <= top + thumb ? y - top : thumb / 2;
         scrollTo(l, y);
         return;
     }
@@ -286,7 +311,7 @@ void click(float x, float y, glm::vec2 size) {
             if (inside(x, y, l.keyX(column), l.keyY(row), l.cell(), l.rowHeight())) { press(grid[row][column]); return; }
     for (int index = 0; index < static_cast<int>(history.size()); ++index) {
         auto top = cardY(l, index);
-        if (!top || !inside(x, y, l.rightX(), *top, l.rightWidth() - 5, Layout::cardHeight)) continue;
+        if (!top || y < l.cardsTop() || y >= l.bottom() || !inside(x, y, l.rightX(), *top, l.rightWidth() - 5, Layout::cardHeight)) continue;
         float cx = cardCopyX(l);
         if (inside(x, y, cx, *top + 3, Layout::copyWidth, 10)) { copy(calculator::format(history[static_cast<size_t>(index)].value)); return; }
         if (inside(x, y, cx + Layout::copyWidth + 1, *top + 3, Layout::arrowWidth, 10)) { menuFor = index; return; }
@@ -297,7 +322,7 @@ void click(float x, float y, glm::vec2 size) {
 }
 void wheel(int direction) {
     if (!inside(lastPointer.x, lastPointer.y, last.rightX(), last.cardsTop(), last.rightWidth() + 2, last.bottom() - last.cardsTop())) return;
-    scrolled += direction > 0 ? 1 : -1; // wheel up shows older cards
+    scrolled += direction > 0 ? step : -step; // wheel up shows older cards
     clampScroll(last);
 }
 void release() { dragging = false; }
@@ -364,12 +389,16 @@ void render(MinecraftUIRenderContext& context, glm::vec2 size, glm::vec2 pointer
     float rx = l.rightX(), rw = l.rightWidth();
     fill(context, rx - 5, l.top + 19, 1, l.height - 19, palette::white, .14f);
     label(context, rx, l.top + 23, rw, translated("calc.history", history.size(), calculator::historyLimit), palette::faint);
+    // Cards scroll by the unit and are clipped to their column.
+    context.flushText(0, std::nullopt);
+    context.saveCurrentClippingRectangle();
+    context.setClippingRectangle(RectangleArea{rx - 1, rx + rw + 1, l.cardsTop(), l.bottom()});
     for (int index = 0; index < static_cast<int>(history.size()); ++index) {
         auto top = cardY(l, index);
         if (!top) continue;
         auto const& entry = history[static_cast<size_t>(index)];
         bool current = recalled >= 0 && index == static_cast<int>(history.size()) - 1 - recalled;
-        bool over = inside(pointer.x, pointer.y, rx, *top, rw - 5, Layout::cardHeight);
+        bool over = !dragging && pointer.y >= l.cardsTop() && pointer.y < l.bottom() && inside(pointer.x, pointer.y, rx, *top, rw - 5, Layout::cardHeight);
         fill(context, rx, *top, rw - 5, Layout::cardHeight, current ? palette::accentDeep : palette::white, current ? .35f : over ? .08f : .04f);
         frame(context, rx, *top, rw - 5, Layout::cardHeight, current ? palette::accent : palette::white, current ? 1.f : .08f);
         bool buttons = over || menuFor == index;
@@ -384,12 +413,10 @@ void render(MinecraftUIRenderContext& context, glm::vec2 size, glm::vec2 pointer
                         inside(pointer.x, pointer.y, cx + Layout::copyWidth + 1, *top + 3, Layout::arrowWidth, 10), menuFor == index);
         }
     }
-    if (static_cast<int>(history.size()) > visibleCards(l)) {
-        float track = l.bottom() - l.cardsTop();
-        float share = static_cast<float>(visibleCards(l)) / static_cast<float>(history.size());
-        float thumb = std::max(10.f, track * share);
-        float span = static_cast<float>(history.size()) - static_cast<float>(visibleCards(l));
-        float from = l.bottom() - thumb - (track - thumb) * (static_cast<float>(scrolled) / span);
+    context.flushText(0, std::nullopt);
+    context.restoreSavedClippingRectangle();
+    if (scrollRange(l) > 0) {
+        float track = l.bottom() - l.cardsTop(), thumb = thumbLength(l), from = thumbTop(l);
         bool overBar = dragging || onScrollbar(l, pointer.x, pointer.y);
         fill(context, rx + rw - 3, l.cardsTop(), 2, track, palette::white, overBar ? .14f : .08f);
         fill(context, rx + rw - (overBar ? 4 : 3), from, overBar ? 3 : 2, thumb, overBar ? palette::text : palette::keyEdge);
