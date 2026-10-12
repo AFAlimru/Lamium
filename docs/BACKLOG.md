@@ -74,8 +74,8 @@ L-item wins. Every entry names what the task is, not only its number.
    - New 0.2.0 reports (2026-10-12): L-155 untranslated Connected Textures
      action in search, L-156 dark bookshelves above glass under Vibrant
      Visuals, L-157 intermittently hard-to-see Chunk Borders. Fix/research
-     these before new features; L-155 done 2026-10-12 (L-158 next, the
-     maintainer's choice); L-156 is linked to L-133 (same look, split faces,
+     these before new features; L-155 done 2026-10-12, L-158 first pass
+     built (in-game check pending); L-156 is linked to L-133 (same look, split faces,
      research together; past attempts on L-133 failed).
    - Bugs: L-123 elytra stretched on the inventory model after FreeCamera
      (parked 2026-10-10 after two rounds); L-91 shield
@@ -1151,7 +1151,17 @@ micro-optimizations.
 
 ### L-158 Prevent missing and inconsistent settings/action labels
 Kind: Refactor (strong model), with Design for any user-visible wording change.
-Status: future follow-up requested by the maintainer 2026-10-12; not started.
+Status: first pass built 2026-10-12, in-game check pending. Audit: action
+labels resolve through `actionTranslationKey` (SettingsRows.h); settings search
+built its own `key.Lamium.<id>` keys instead, so a child row's shown label
+(e.g. "Increase speed") did not match; toggle toasts and the paused-features
+notice built feature keys by hand. Done: search uses the shared resolver (child
+label plus the Hotkeys name as an alias); `featureNameKey` and `toggleToastKey`
+serve toasts and the notice; SettingsRowsTests checks from the catalogs, in all
+three languages, every section, feature name/description, action label (both
+contexts), toggle toast name, paused feature name and every choice value. No
+wording changed. Left: the shared-reference idea for repeated feature names in
+toggle labels (not started; needs a wording decision first).
 Keep separate feature and action labels: a feature name and commands such as
 increase speed, rotate or open a view have different purposes. Do not merge
 all labels or mechanically construct every action name from the feature name.
