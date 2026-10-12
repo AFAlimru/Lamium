@@ -65,7 +65,7 @@ bool traceFalling = false;
 float traceGroundY = 0;
 void trace(std::string text) {
     traceRing.push_back(std::format("#{} {}", traceSends, std::move(text)));
-    if (traceRing.size() > 160) traceRing.pop_front();
+    if (traceRing.size() > 200) traceRing.pop_front();
 }
 void traceFall(float y, bool ground) {
     if (ground) { traceGroundY = y; traceFalling = false; return; }
@@ -175,6 +175,18 @@ void guardMoveVector(MoveInputState const& state, Vec2& move) {
                 trace(std::format("calc {} flags [{}] analog {:.2f},{:.2f} move {:.2f},{:.2f} -> {:.2f},{:.2f} pos {:.3f},{:.3f} v {:.3f},{:.3f} ground {}",
                     name, flagText(state), state.mAnalogMoveVector->x, state.mAnalogMoveVector->z,
                     before.x, before.z, move.x, move.z, pos.x, pos.z, delta.x, delta.z, player->isOnGround()));
+                if (std::string_view{name} != "raw") return;
+                // What the support probes can find around the feet (0.5 beyond the box).
+                auto const& box = player->getAABB();
+                std::vector<AABB> found;
+                AABB around{Vec3{box.min.x - .5f, box.min.y - stepHeight, box.min.z - .5f}, Vec3{box.max.x + .5f, box.min.y + .5f, box.max.z + .5f}};
+                player->getDimensionBlockSourceConst().fetchCollisionShapes(found, around, false, nullptr, nullptr);
+                std::string text = std::format("feet {:.3f} box x {:.3f}..{:.3f} z {:.3f}..{:.3f} shapes", box.min.y, box.min.x, box.max.x,
+                    box.min.z, box.max.z);
+                for (size_t i = 0; i < found.size() && i < 8; ++i)
+                    text += std::format(" [{:.2f}..{:.2f} y{:.2f}..{:.2f} {:.2f}..{:.2f}]", found[i].min.x, found[i].max.x, found[i].min.y,
+                        found[i].max.y, found[i].min.z, found[i].max.z);
+                trace(text);
             } catch (...) {}
         }
     } report{state, before, move};

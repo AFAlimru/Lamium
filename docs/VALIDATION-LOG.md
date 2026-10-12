@@ -12,6 +12,17 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-160 slab bridging falls (2026-10-12)
+
+By the maintainer, trace build of `29bf8ad` (DLL `d86012bb...50d47c972`), BDS:
+the 45-degree wall case and sneak release no longer fall. Slab bridging fell
+again; the maintainer noticed a slab sometimes goes into the cell the player
+stands in, lifting the body by half a block, around the fall. Trace (four
+falls): no server correction; the guard and the movement clamp both let a
+full input through for a tick right before the client walked off, so both
+judged ground ahead that was not there. Cause not yet found; the next trace
+build logs the collision shapes around the feet.
+
 ## L-160 corner falls beside a wall (2026-10-12)
 
 By the maintainer, trace build of `c73fc16` (DLL `0ef93b72...cbc7f796`), BDS and a local world: letting go of
