@@ -470,8 +470,10 @@ Agent's proposal (not decided):
 Decided (maintainer 2026-10-12): the first version plans from fresh books
 only (no prior-work penalty on the inputs); planning from the books in the
 inventory can come later.
-Open (maintainer): where the screen opens (hotkey, from the anvil screen),
-and whether the anvil highlight is wanted.
+Decided (maintainer 2026-10-12): an unbound hotkey (and the settings
+screen) opens it with the held item preselected; anything inside the anvil
+screen comes later.
+Open (maintainer): whether the anvil highlight is wanted later.
 
 ### L-169 Item Transfer in more screens, and bulk transfer
 Kind: Design, then Research (strong model). Requested by the maintainer
@@ -527,9 +529,14 @@ each drop gesture has its own switch, and "drop every matching item"
 default off (it can throw away a whole inventory). Check on Bedrock before
 choosing: whether Alt reaches the game in screens, what the drop key does
 in screens today, and that W/S are free while a screen is open.
-Open (maintainer): which additions to take (and defaults), hotbar handling
-in "everything", which screens are wanted first, and whether "fill
-existing stacks only" is wanted as well.
+Decided (maintainer 2026-10-12): take the matching/everything moves (Ctrl
++ wheel, Ctrl + Shift + wheel, the Alt clicks, Shift + click on an empty
+slot), all-but-one (Shift + right drag) and the drop gestures; not the W/S
+moves for now. First screens: the furnace family and dispenser, dropper and
+hopper; the brewing stand next.
+Open (maintainer): defaults per gesture (agent: on, except "drop every
+matching item" off), hotbar handling in "everything" (agent: hotbar kept),
+and whether "fill existing stacks only" is wanted as well.
 
 ### L-168 Trade finder: reroll a villager until a wanted trade appears
 Kind: Design, then Research (strong model). Requested by the maintainer
@@ -559,10 +566,12 @@ Agent's proposal (not decided), in two stages:
    traded (locked) villager, low durability (L-62), or world/dimension
    change. Default off; help text warns that servers may treat the loop as
    automation.
-Decided (maintainer 2026-10-12): stage 2, the loop, is wanted.
-Open (maintainer): how wanted offers are entered (a picker from the game's
-item and enchantment lists), where the list is saved, and whether matches
-are kept as a short log.
+Decided (maintainer 2026-10-12): stage 2, the loop, is wanted. The list of
+wanted offers is kept per world or server (keyed like the map's per-world
+data), not shared.
+Open (maintainer): how wanted offers are entered (agent: a picker from the
+game's item and enchantment lists), and whether matches are kept as a short
+log.
 
 ### L-167 Change the language and resource packs from inside a world
 Kind: Research, then Design (strong model). Imported from the maintainer's
@@ -588,9 +597,10 @@ Agent's proposal (not decided), in two parts that are judged separately:
    screen), then rejoin the same local world. Rejoining a server is only
    offered if the game keeps its address without Lamium storing it. World
    and server packs are never changed or skipped.
-Open (maintainer): which part is wanted (motivation: checking names in
-English is already covered by L-130), where the entry lives (Lamium settings
-or a pause-menu button), and whether a leave/rejoin flow is acceptable.
+Decided (maintainer 2026-10-12): the language part first; resource packs
+wait until it is done and seen.
+Open (maintainer, after the research): where the entry lives (agent: a
+Lamium settings row listing the game's languages).
 Fail open: if the game's own apply path cannot be found, show nothing.
 
 ### L-166 Villager trade helpers
@@ -619,10 +629,9 @@ Research entry: `Trade2ScreenController` (`_onContainerSlotPressed`, the
 `UpdateTradePacket` after each trade (does `uses` update, how fast).
 Validation: local world and BDS, with latency; sold-out mid-run, full
 inventory, closing the screen mid-run, two-input trades, enchanted books.
-Open (maintainer): the gesture (agent's guess: Shift+click on the trade
-row; check it does not clash with vanilla's own shift handling), whether
-"as many as possible" or a count, default on or off, and whether part 2 is
-wanted at all.
+Decided (maintainer 2026-10-12): right click on a trade row trades it as
+often as allowed; left click and Shift stay vanilla; default on.
+Open (maintainer): whether part 2 is wanted at all.
 
 ### L-165 Mass Craft: craft a recipe many times at once
 Kind: Design, then Research (strong model). In the notes since 2026-09-22;
@@ -656,9 +665,12 @@ Watch out for: recipes with leftovers (buckets, bottles), recipes that
 accept several ingredient kinds (any log), the OreUI recipe book versus the
 JSON UI screen (L-130 found only the latter covered), servers that limit
 request rates (help-text warning like Auto Attack's).
-Open (maintainer): the gesture (agent's guess: Ctrl+click on a recipe; check
-L-41/L-103 gestures), all-or-count, default on or off, and whether a "craft
-the last recipe again" key is wanted. Crafting from nearby chests is out.
+Decided (maintainer 2026-10-12): Ctrl + click on a recipe crafts all
+(no count in the first version), default off: Ctrl + click lies close to
+Shift + click and an accidental mass craft would hurt. Crafting from nearby
+chests is out.
+Open (maintainer): whether a "craft the last recipe again" key is wanted
+(agent: not in the first version).
 
 ### L-164 Connected Textures: one quad per face with generated sprites
 Kind: Research (strong model), then a rebuild of L-96's method layer.
