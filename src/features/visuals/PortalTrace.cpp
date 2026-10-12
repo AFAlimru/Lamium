@@ -217,9 +217,36 @@ LL_TYPE_INSTANCE_HOOK(PortalCraftingScreenValid, ll::memory::HookPriority::Norma
     }
     return result;
 }
+// Step 8 (trace builds only): the stub chain from a symbol to the game code,
+// with the bytes at each hop, so the function can be read from the game file.
+void logChain(char const* name) {
+    auto base = reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));
+    auto* p = static_cast<unsigned char*>(ll::memory::SymbolView{name}.resolve(true));
+    std::string text = std::format("chain {}:", name);
+    for (int hop = 0; hop < 5 && p; ++hop) {
+        auto a = reinterpret_cast<uintptr_t>(p);
+        text += std::format(" [{:x}{}", a, a >= base && a < base + 0x13000000 ? std::format(" rva {:x}", a - base) : std::string{});
+        std::string bytes;
+        for (int k = 0; k < 16; ++k) bytes += std::format("{:02x}", p[k]);
+        text += " " + bytes + "]";
+        if (p[0] == 0xFF && p[1] == 0x25) p = *reinterpret_cast<unsigned char**>(p + 6 + *reinterpret_cast<int32_t*>(p + 2));
+        else if (p[0] == 0x48 && p[1] == 0xFF && p[2] == 0x25) p = *reinterpret_cast<unsigned char**>(p + 7 + *reinterpret_cast<int32_t*>(p + 3));
+        else if (p[0] == 0xE9) p = p + 5 + *reinterpret_cast<int32_t*>(p + 1);
+        else if (p[0] == 0x48 && p[1] == 0xB8) p = *reinterpret_cast<unsigned char**>(p + 2);
+        else if (p[0] == 0x49 && p[1] == 0xBB) p = *reinterpret_cast<unsigned char**>(p + 2);
+        else break;
+    }
+    log(text);
+}
 void start() {
-    PortalScreenValid::hook();
-    PortalCraftingScreenValid::hook();
+    try {
+        for (char const* name : {"?$_isStillValid@CraftingScreenController@@QEBA_NXZ", "?$_isStillValid@ContainerScreenController@@QEBA_NXZ",
+                                 "?handleInventoryButtonPress@ClientInputCallbacks@@SAXAEAVIClientInstance@@W4CraftingType@@@Z",
+                                 "?$tick@ContainerScreenController@@QEAA?AW4DirtyFlag@ui@@XZ"})
+            logChain(name);
+    } catch (...) {}
+    // Unhooked in this build so the chains above lead to unpatched code.
+    // PortalScreenValid::hook(); PortalCraftingScreenValid::hook();
     PortalModelValid::hook();
     PortalCraftingValid::hook();
     try {
@@ -235,7 +262,7 @@ void start() {
         for (auto const& c : candidates) log(std::format("candidate +{:x} {}", c.address - base, c.name));
     } catch (...) {}
     PortalSchedulePop::hook();
-    PortalInventoryKey::hook();
+    // PortalInventoryKey::hook();
     PortalOpenInventory::hook();
     PortalCanOpen::hook();
     PortalInside::hook();
