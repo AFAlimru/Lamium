@@ -156,6 +156,14 @@ inline Chord effectiveChord(Bindings const& bindings, Action action) {
     if (override) return *override;
     return defaultChord(action);
 }
+// Find by key: a binding uses every pressed input, in any order (Z finds Z
+// and Ctrl+Z; Ctrl+Z finds only bindings with both).
+inline bool chordUses(Chord const& binding, Chord const& pressed) {
+    if (pressed.empty()) return false;
+    for (auto token : pressed)
+        if (std::find(binding.begin(), binding.end(), token) == binding.end()) return false;
+    return true;
+}
 // Clearing the settings binding would lock the screen shut, so only Reset is
 // offered for it. Loading also ignores a stored empty settings binding.
 inline constexpr bool canClear(Action action) { return action != Action::Settings; }

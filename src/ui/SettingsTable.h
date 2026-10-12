@@ -97,6 +97,14 @@ struct SettingsTable {
         float ax = headActionX(hotkeys);
         return usable() && y >= theadTop && y < rowsTop && x >= ax && x < ax + headActionWidth;
     }
+    // Hotkeys' Find by key, left of its reset button; absent when the action
+    // heading would have no room.
+    static constexpr float keyFindWidth = 64;
+    float keyFindX() const { return headActionX(true) - gap - keyFindWidth; }
+    bool keyFindShown() const { return usable() && keyFindX() > nameX + 40; }
+    bool keyFind(float x, float y) const {
+        return keyFindShown() && y >= theadTop && y < rowsTop && x >= keyFindX() && x < keyFindX() + keyFindWidth;
+    }
     float rowY(int index) const { return rowsTop + (index - first) * rowHeight; }
     float rowsRight() const { return tableLeft + tableWidth; }
     // Values without a switch span the state and key columns.

@@ -119,6 +119,11 @@ std::optional<input::Action> capturing_;
 input::BindingCapture capture;
 struct BindingEdit { input::Action action; std::optional<input::Chord> binding; };
 std::optional<BindingEdit> bindingEdit;
+// Find by key (Hotkeys): waiting for the inputs, the inputs pressed (applied
+// with the next frame, outside input events), then the inputs shown.
+bool findingKey = false;
+std::optional<input::Chord> foundKey, keyQuery;
+std::string keyQueryName; // As drawn: names need the client, which descriptions lack.
 std::string_view categoryKey() {
     return screen::currentNav() > 0 && screen::currentNav() < nav::hotkeys
         ? sections[screen::currentNav() - 1] : std::string_view{};
@@ -134,9 +139,11 @@ void rebuild_(bool keepSelection) {
     if (keepSelection && valid(selected)) previous = rows[selected];
     // preferences() returns a copy: keep it alive while its bindings are read.
     auto const preferences = Runtime::instance().preferences();
+    std::optional<KeyFilter> keys;
+    if (keyQuery && hotkeysView()) keys = KeyFilter{*keyQuery, preferences.bindings};
     rows = buildSettingsRows(hotkeysView(), categoryKey(), query, expanded,
         [](std::string_view key) { return translated(key); }, preferences.information.lineOrder,
-        searchCollapsed);
+        searchCollapsed, keys ? &*keys : nullptr);
     selected = -1;
     if (previous)
         for (size_t i = 0; i < rows.size(); ++i)
@@ -145,6 +152,13 @@ void rebuild_(bool keepSelection) {
     first = SettingsTable::clampFirst(first, static_cast<int>(rows.size()), displayed.visible);
 }
 void captureInput_(input::Token token, bool down) {
+    if (findingKey) {
+        if (foundKey) return;
+        try {
+            if (auto value = capture.observe(token, down, input::Behavior::Press)) foundKey = std::move(value);
+        } catch (std::exception const&) { screen::setMessage(translated("invalidBinding")); }
+        return;
+    }
     if (!capturing_ || bindingEdit) return;
     try {
         auto value = capture.observe(token, down, input::actions[static_cast<size_t>(*capturing_)].behavior);
@@ -154,11 +168,20 @@ void captureInput_(input::Token token, bool down) {
 void cancelCapture_() {
     // The table stays where it was: selection and scroll are not rebuilt.
     capturing_.reset(); capture.clear(); bindingEdit.reset(); screen::clearMessage();
+    findingKey = false; foundKey.reset();
 }
 void startCapture(input::Action action) {
     capturing_ = action; capture.begin(screen::heldKeys()); screen::clearMessage();
 }
 void queryChanged() { searchCollapsed.clear(); first = 0; rebuild_(false); }
+void startKeyFind() {
+    query.clear(); searchFocused_() = false; resetArmed = false;
+    findingKey = true; foundKey.reset(); capture.begin(screen::heldKeys()); screen::clearMessage();
+}
+void clearKeyQuery() {
+    if (!keyQuery) return;
+    keyQuery.reset(); first = 0; rebuild_(false);
+}
 // ---- Settings table actions ----
 // Read current preferences for every edit so another action cannot be
 // overwritten by a stale copy captured when the screen opened.
@@ -271,12 +294,19 @@ void handleClick(SettingsTable::Hit const& hit, bool right) {
     if (!(hit.zone == Zone::Row && valid(hit.index) && rows[hit.index].kind == RowKind::MapCache && !right
           && onMapCacheButton(hit.x)))
         mapCacheArmed = false;
-    auto scope = capturing_ ? ResetScope::None : resetScope();
+    if (!capturing_ && !findingKey && hotkeysView() && !right && displayed.keyFind(hit.x, hit.y)) {
+        resetArmed = false; screen::finishEditing(); startKeyFind(); return;
+    }
+    auto scope = capturing_ || findingKey ? ResetScope::None : resetScope();
     bool head = scope != ResetScope::None && displayed.headAction(hit.x, hit.y, hotkeysView());
     if (!head || right) resetArmed = false;
     if (head && !right) { screen::finishEditing(); pressReset(scope); return; }
     if (hit.zone != Zone::Row || !valid(hit.index) || rows[hit.index].kind != RowKind::Option
         || editingNumber_ != rows[hit.index].option) screen::finishEditing();
+    if (findingKey) {
+        if (hit.zone == Zone::Footer && !right && displayed.footerButton(hit.x, hit.y) == 0) cancelCapture_();
+        return;
+    }
     if (capturing_) {
         if (hit.zone == Zone::Footer && !right) {
             int button = displayed.footerButton(hit.x, hit.y);
@@ -290,7 +320,7 @@ void handleClick(SettingsTable::Hit const& hit, bool right) {
         return;
     }
     switch (hit.zone) {
-    case Zone::Search: searchFocused_() = true; return;
+    case Zone::Search: clearKeyQuery(); searchFocused_() = true; return;
     case Zone::Close: screen::close(); return;
     case Zone::Version: copyVersion_(); return;
     case Zone::Nav: searchFocused_() = false; screen::selectNav(hit.index); return;
@@ -368,7 +398,7 @@ void handleKey(int key) {
     auto* entry = valid(selected) ? &rows[selected] : nullptr;
     int page = std::max(1, displayed.visible - 1);
     switch (key) {
-    case 0x1b: screen::close(); break;
+    case 0x1b: if (keyQuery) clearKeyQuery(); else screen::close(); break;
     case 0x26: moveSelection(-1); keyboardTip = true; break;
     case 0x28: moveSelection(1); keyboardTip = true; break;
     case 0x21: moveSelection(-page); keyboardTip = true; break;
@@ -530,6 +560,9 @@ std::string sectionCount(std::string_view section, Settings const& preferences) 
 }
 std::string description() {
     if (capturing_) return actionLabel(*capturing_) + " - " + behaviorText(*capturing_);
+    if (findingKey) return translated("keyFind.prompt");
+    if (!valid(selected) && keyQuery && hotkeysView())
+        return translated("keyFind.none", keyQueryName);
     if (!valid(selected)) return query.value().find_first_not_of(' ') != std::string::npos
         ? translated("noResultsFor", query.value()) : std::string{};
     auto const& entry = rows[selected];
@@ -701,6 +734,7 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
         return;
     }
     auto const preferences = Runtime::instance().preferences();
+    keyQueryName = keyQuery ? bindingChordName(current, *keyQuery) : std::string{};
     auto hover = t.hit(pointer.x, pointer.y, nav::count, displayedTabWidth);
     if (pointer != tipPointer) { keyboardTip = false; tipPointer = pointer; }
     panel(context,t.left,t.top,t.width,t.height,.8f);
@@ -718,10 +752,14 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
     }
     if (!shapesView() && !waypointsView() && !schematicsView()) {
     fill(context,t.searchX,t.top+4,t.searchWidth,12,Rgb{0,0,0},.45f);
-    frame(context,t.searchX,t.top+4,t.searchWidth,12,searchFocused_() ? palette::accent : palette::keyEdge);
+    frame(context,t.searchX,t.top+4,t.searchWidth,12,searchFocused_() || (findingKey && hotkeysView()) ? palette::accent : palette::keyEdge);
     if (searchFocused_() && query.selectedAll() && !query.value().empty())
         fill(context,t.searchX+3,t.top+5,std::min(t.searchWidth-6,textWidth(context,query.value())),10,palette::accent,.35f);
-    if (query.value().empty() && !searchFocused_())
+    if (findingKey && hotkeysView())
+        label(context,t.searchX+4,t.top+5+boxTextInset(),t.searchWidth-8,translated("captureBox"),palette::accent);
+    else if (keyQuery && hotkeysView())
+        label(context,t.searchX+4,t.top+5+boxTextInset(),t.searchWidth-8,translated("keyFind.query", keyQueryName));
+    else if (query.value().empty() && !searchFocused_())
         label(context,t.searchX+4,t.top+5+boxTextInset(),t.searchWidth-8,translated("searchPlaceholder") + "  Ctrl+F",palette::faint);
     else label(context,t.searchX+4,t.top+5+boxTextInset(),t.searchWidth-8,query.value() + (searchFocused_() ? "_" : ""));
     }
@@ -786,7 +824,11 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
         label(context,t.stateX-6,theadY,SettingsTable::stateWidth+12,translated("column.state"),palette::faint,Align::Center);
     }
     label(context,t.keyX,theadY,t.keyWidth,translated("column.key"),palette::faint);
-    if (auto scope = capturing_ ? ResetScope::None : resetScope(); scope != ResetScope::None) {
+    if (hotkeysView() && !capturing_ && t.keyFindShown())
+        drawSmallButton(context,t.keyFindX(),t.theadTop,SettingsTable::keyFindWidth,11,translated("keyFind.button"),
+            t.keyFind(hover.x,hover.y),palette::keyFill,
+            findingKey || keyQuery ? palette::accent : palette::keyEdge,findingKey || keyQuery ? palette::text : palette::dim);
+    if (auto scope = capturing_ || findingKey ? ResetScope::None : resetScope(); scope != ResetScope::None) {
         bool keys = scope == ResetScope::Keys;
         drawSmallButton(context,t.headActionX(keys),t.theadTop,SettingsTable::headActionWidth,11,
             translated(resetArmed ? "reset.confirm" : keys ? "reset.keys"
@@ -902,7 +944,16 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
     // Footer: description and hints, or the binding editor's buttons.
     fill(context,t.left,t.footerTop,t.width,1,palette::white,.14f);
     float textLeft = t.left + SettingsTable::pad, textWidthAvailable = t.width - 2*SettingsTable::pad;
-    if (capturing_) {
+    if (findingKey) {
+        float x = t.footerButtonX(0), y = t.footerButtonY();
+        bool over = hover.zone == Zone::Footer && t.footerButton(hover.x, hover.y) == 0;
+        fill(context,x,y,SettingsTable::footerButtonWidth,SettingsTable::footerButtonHeight,over ? Rgb{.23f,.23f,.24f} : palette::keyFill);
+        frame(context,x,y,SettingsTable::footerButtonWidth,SettingsTable::footerButtonHeight,palette::keyEdge);
+        label(context,x,y+boxTextInset(),SettingsTable::footerButtonWidth,translated("cancelShort"),palette::text,Align::Center);
+        float after = t.footerButtonX(1);
+        label(context,after,t.footerButtonY()+1,t.left+t.width-SettingsTable::pad-after,
+            screen::message().empty() ? description() : screen::message(),screen::message().empty() ? palette::dim : palette::warning);
+    } else if (capturing_) {
         std::vector<std::string> names{translated("resetShort"), translated("cancelShort")};
         if (input::canClear(*capturing_)) names.insert(names.begin(), translated("clearShort"));
         for (size_t i = 0; i < names.size(); ++i) {
@@ -923,10 +974,11 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
         bool warns = valid(selected) && rows[selected].option
             && optionWarning(rows[selected].option->id,preferences).has_value();
         paragraph(context,textLeft,t.footerTop+3,textWidthAvailable,description(),2,warns ? palette::warning : palette::text);
-        std::string hint = !screen::message().empty() ? screen::message() : translated(searchFocused_() ? "searchHint" : editingNumber_ ? "numberHint" : "tableHint");
+        std::string hint = !screen::message().empty() ? screen::message()
+            : translated(searchFocused_() ? "searchHint" : editingNumber_ ? "numberHint" : keyQuery && hotkeysView() ? "keyFind.hint" : "tableHint");
         label(context,textLeft,t.footerTop+30,textWidthAvailable,std::move(hint),screen::message().empty() ? palette::faint : palette::warning);
     }
-    if (!capturing_)
+    if (!capturing_ && !findingKey)
         if (auto target = tipTarget(t, hover)) drawConflictTip(context,current,t,target->first,target->second);
     drawVersionTip(context, t, hover);
     context.flushText(0,std::nullopt);
@@ -937,15 +989,18 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
 void open() {
     endEditing();
     query.clear(); searchCollapsed.clear(); searchFocused_() = false; capturing_.reset(); bindingEdit.reset();
+    findingKey = false; foundKey.reset(); keyQuery.reset();
 }
 void reset() {
     sliderDrag = nullptr;
     endEditing();
     capturing_.reset(); bindingEdit.reset(); capture.clear();
+    findingKey = false; foundKey.reset(); keyQuery.reset();
     mapCacheArmed = false;
 }
 void endSearch() {
     query.clear();
+    keyQuery.reset();
     searchCollapsed.clear();
     resetArmed = false;
 }
@@ -958,7 +1013,7 @@ bool searchFocused() { return searchFocused_(); }
 void focusSearch() { searchFocused_() = true; query.selectAll(); }
 void unfocusSearch() { searchFocused_() = false; }
 void typeSearch(std::string const& text) {
-    if (!capturing_ && searchFocused_() && query.type(text)) queryChanged();
+    if (!capturing_ && searchFocused_() && query.type(text)) { keyQuery.reset(); queryChanged(); }
 }
 bool editingNumber() { return editingNumber_ != nullptr; }
 void applyNumber() {
@@ -975,10 +1030,17 @@ void endEditing() { editingNumber_ = nullptr; }
 void adjustOption(std::string_view id, int direction) {
     if (auto option = settings::find(id)) adjustOption_(*option, direction);
 }
-bool capturing() { return capturing_.has_value(); }
+bool capturing() { return capturing_.has_value() || findingKey; }
 void captureInput(input::Token token, bool down) { captureInput_(token, down); }
 void cancelCapture() { cancelCapture_(); }
 void applyBinding() {
+    if (foundKey) {
+        keyQuery = std::move(foundKey);
+        cancelCapture_();
+        first = 0;
+        rebuild_(false);
+        return;
+    }
     if (!bindingEdit) return;
     auto value = Runtime::instance().preferences();
     value.bindings[static_cast<size_t>(bindingEdit->action)] = bindingEdit->binding;

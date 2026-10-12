@@ -27,6 +27,24 @@ void settingsRowsTests() {
     check(ui::translations::find(ui::actionTranslationKey(input::Action::FreeCameraSpeedUp,true),"ja_JP") == "速度を上げる"
           && ui::translations::find(ui::actionTranslationKey(input::Action::FreeCameraSpeedDown,true),"ja_JP") == "速度を下げる",
           "Japanese detail speed action labels are natural commands");
+    {
+        using input::Device;
+        input::Chord z{{Device::Key, 0x5A}}, ctrlZ{{Device::Key, 0x11}, {Device::Key, 0x5A}};
+        check(input::chordUses(ctrlZ, z) && input::chordUses(ctrlZ, {{Device::Key, 0x5A}, {Device::Key, 0x11}})
+              && !input::chordUses(z, ctrlZ) && !input::chordUses(z, {}), "find by key matches bindings using every pressed input");
+        ui::KeyFilter keys{z, {}};
+        keys.bindings[static_cast<size_t>(input::Action::Zoom)] = z;
+        keys.bindings[static_cast<size_t>(input::Action::Hitboxes)] = ctrlZ;
+        auto found = ui::buildSettingsRows(true, {}, ui::SearchQuery{}, {}, translate, {}, {}, &keys);
+        std::vector<input::Action> listed;
+        for (auto const& row : found) if (row.action) listed.push_back(*row.action);
+        check(listed.size() == 2 && std::ranges::count(listed, input::Action::Zoom) && std::ranges::count(listed, input::Action::Hitboxes),
+              "Hotkeys found by key lists exactly the actions whose binding uses the key");
+        keys.pressed = {{Device::Key, 0x72}, {Device::Key, 0x47}}; // F3+G, Chunk Borders' default
+        found = ui::buildSettingsRows(true, {}, ui::SearchQuery{}, {}, translate, {}, {}, &keys);
+        check(std::ranges::any_of(found, [](auto const& row) { return row.action == input::Action::ChunkBorders; }),
+              "find by key sees default bindings");
+    }
     // Every name the UI resolves from the catalogs exists in all three
     // languages (L-158): checked from the catalogs, not the tables.
     for (auto locale : {"en_US", "ja_JP", "zh_CN"}) {

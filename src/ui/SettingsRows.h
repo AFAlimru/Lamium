@@ -211,6 +211,11 @@ inline std::string_view toggleToastKey(input::Action action) {
     default: return featureNameKey(input::actions[static_cast<size_t>(action)].feature);
     }
 }
+// Hotkeys found by key: only actions whose binding uses these inputs.
+struct KeyFilter {
+    input::Chord pressed;
+    input::Bindings bindings;
+};
 struct SettingsRow {
     RowKind kind;
     FeatureInfo const* feature = nullptr;
@@ -238,7 +243,7 @@ template<class Translate>
 std::vector<SettingsRow> buildSettingsRows(bool hotkeys, std::string_view category, SearchQuery const& query,
     std::set<std::string_view> const& expanded, Translate translate,
     std::vector<std::string> const& lineOrder = {},
-    std::set<std::string_view> const& searchCollapsed = {}) {
+    std::set<std::string_view> const& searchCollapsed = {}, KeyFilter const* keys = nullptr) {
     std::vector<SettingsRow> rows;
     bool const searching = query.value().find_first_not_of(' ') != std::string::npos;
     if (searching) category = {};
@@ -263,8 +268,10 @@ std::vector<SettingsRow> buildSettingsRows(bool hotkeys, std::string_view catego
             if (hotkeys) {
                 for (size_t i : actionOrder) {
                     auto const& action = input::actions[i];
-                    if (action.feature != feature.id || !query.matches(scope + " " + std::string(action.id) + " "
-                        + translate(actionTranslationKey(static_cast<input::Action>(i))))) continue;
+                    if (action.feature != feature.id) continue;
+                    if (keys ? !input::chordUses(input::effectiveChord(keys->bindings, static_cast<input::Action>(i)), keys->pressed)
+                             : !query.matches(scope + " " + std::string(action.id) + " "
+                                   + translate(actionTranslationKey(static_cast<input::Action>(i))))) continue;
                     sectionRow(section);
                     rows.push_back({RowKind::Action, &feature, nullptr, static_cast<input::Action>(i), section});
                 }

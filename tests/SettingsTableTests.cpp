@@ -58,6 +58,10 @@ void settingsTableTests() {
                 && t.hit(x + 1, y, 9).zone == SettingsTable::Zone::None,
                 "the reset button is hit only on the heading line, which no other zone claims");
         }
+        float kx = t.keyFindX(), ky = t.theadTop + 2;
+        check(t.keyFindShown() && kx > t.nameX + 40 && kx + SettingsTable::keyFindWidth < t.headActionX(true)
+              && t.keyFind(kx + 1, ky) && !t.headAction(kx + 1, ky, true) && !t.keyFind(kx + 1, t.rowsTop + 1),
+              "Find by key sits left of the Hotkeys reset button on the heading line");
     }
 
     // Scrolling is owned by the caller and clamped.
