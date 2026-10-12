@@ -522,6 +522,17 @@ Goal: open and use the ordinary inventory while inside a Nether portal.
   moves there: the block is client UI. Next trace: the screens' own
   `_isStillValid` (container and crafting controllers), answered valid near
   a portal.
+- Result: answering `CraftingScreenController::_isStillValid` valid keeps the
+  inventory open in the portal and items and 2x2 crafting work when it was
+  opened before entering; opened inside with Lamium's direct
+  `openInventory` it stays but items do not move (the server likely never
+  opened it). Read from the game file via the open screen's vtable (slot
+  39, rva 4e18b20): it says no when the player's `InsideBlockComponent`
+  block is one of two block types (rva 1a1fd40; likely Nether and End
+  portal, likely `Actor::isInsidePortal`). Next trace: `Actor::isInsidePortal`
+  answered false for the local player on the client tick thread, with the
+  other workarounds off, to see whether the vanilla E key then opens a
+  usable inventory that stays open.
 
 ### L-150 Arrow-count HUD
 Kind: Design (small), then Ready after counting and visibility are agreed.

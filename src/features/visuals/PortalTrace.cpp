@@ -22,6 +22,8 @@
 #include "features/visuals/PortalCandidates.inc"
 #include "ll/api/memory/Symbol.h"
 #include <format>
+#include <thread>
+#include "mc/world/actor/Actor.h"
 #include <string>
 #include <vector>
 
@@ -30,6 +32,7 @@ void pollChains();
 void logVtable();
 namespace {
 int lines = 0;
+std::thread::id clientThread;
 std::vector<std::string> pendingChains;
 
 // Experiment 5 (trace builds only): the client tick of the last
@@ -74,6 +77,7 @@ LL_TYPE_INSTANCE_HOOK(PortalTick, ll::memory::HookPriority::Normal, LocalPlayer,
     std::string before;
     try { before = screen(); } catch (...) {}
     ++ticks;
+    clientThread = std::this_thread::get_id(); // The client tick's thread.
     origin();
     try { if (!pendingChains.empty()) pollChains(); logVtable(); } catch (...) {}
     // Experiment (trace builds only): the effect time back to 0 after each
@@ -157,7 +161,7 @@ LL_TYPE_INSTANCE_HOOK(PortalSchedulePop, ll::memory::HookPriority::Normal, Scene
     try {
         auto top = screen();
         log(std::format("schedulePopScreen {} screen {} stack{}", total, top, stack()));
-        if (nearPortal() && top.starts_with("inventory_screen") && !playerClosing()) {
+        if (false && nearPortal() && top.starts_with("inventory_screen") && !playerClosing()) {
             log("  pop blocked: inventory in a portal, no Esc/E");
             return;
         }
@@ -174,7 +178,7 @@ LL_TYPE_STATIC_HOOK(PortalInventoryKey, ll::memory::HookPriority::Normal, Client
         auto after = screen();
         log(std::format("after handleInventoryButtonPress screen {}", after));
         auto* player = client.getLocalPlayer();
-        if (player && nearPortal() && after == before && after.starts_with("hud_screen")) {
+        if (false && player && nearPortal() && after == before && after.starts_with("hud_screen")) {
             log("  refused in a portal: calling openInventory");
             forcedOpen = std::chrono::steady_clock::now();
             player->openInventory();
@@ -277,17 +281,36 @@ void logChain(char const* name) {
     }
     log(text);
 }
+// Experiment 8 (trace builds only): CraftingScreenController::_isStillValid
+// (rva 4e18b20) says no while the player's InsideBlockComponent block is one
+// of two block types (rva 1a1fd40), likely Actor::isInsidePortal. Answer no
+// for the local player near a portal; does the vanilla E key then open a
+// usable inventory, and does it stay open?
+int insideAnswers = 0;
+LL_TYPE_INSTANCE_HOOK(PortalInsideCheck, ll::memory::HookPriority::Normal, Actor, &Actor::isInsidePortal, bool) {
+    bool result = origin();
+    try {
+        if (result && std::this_thread::get_id() == clientThread) {
+            auto client = ll::service::getClientInstance();
+            auto* local = client ? client->getLocalPlayer() : nullptr;
+            if (local && static_cast<Actor*>(local) == this) {
+                if (insideAnswers++ < 20) log("isInsidePortal -> true for the local player; answering false");
+                return false;
+            }
+        }
+    } catch (...) {}
+    return result;
+}
 void start() {
     try {
         for (char const* name : {"?$_isStillValid@CraftingScreenController@@QEBA_NXZ", "?$_isStillValid@ContainerScreenController@@QEBA_NXZ",
                                  "?handleInventoryButtonPress@ClientInputCallbacks@@SAXAEAVIClientInstance@@W4CraftingType@@@Z",
-                                 "?$tick@ContainerScreenController@@QEAA?AW4DirtyFlag@ui@@XZ"})
+                                 "?$tick@ContainerScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", "?isInsidePortal@Actor@@QEBA_NXZ"})
             logChain(name), pendingChains.emplace_back(name);
     } catch (...) {}
     // Unhooked in this build so the chains above lead to unpatched code.
     // PortalScreenValid::hook(); PortalCraftingScreenValid::hook();
-    PortalModelValid::hook();
-    PortalCraftingValid::hook();
+    PortalInsideCheck::hook();
     try {
         loadCandidates();
         auto base = reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));
@@ -311,6 +334,7 @@ void start() {
 void stop() {
     PortalScreenValid::unhook(true);
     PortalCraftingScreenValid::unhook(true);
+    PortalInsideCheck::unhook(true);
     PortalModelValid::unhook(true);
     PortalCraftingValid::unhook(true);
     PortalSchedulePop::unhook(true);
