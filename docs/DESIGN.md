@@ -501,6 +501,11 @@ exactly one switch, one mode and one set of keys:
   starts a text search instead, Esc clears it, Down/Enter go to the results.
   Typed text search does not match key names (one letter would match too
   many names).
+- (Decided 2026-10-12, L-159, demos/binding-editor.html A) While a key is
+  being assigned, Clear / Reset / Cancel sit on the edited row, ending just
+  before its key cell; they take the place of that row's switch or stepper
+  until the edit ends. The footer keeps the action's description and the
+  "press, then release to assign | Esc: cancel" line.
 
 ## Inventory transfer (Decided 2026-09-27, BACKLOG L-41)
 

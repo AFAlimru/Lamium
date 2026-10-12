@@ -75,7 +75,7 @@ L-item wins. Every entry names what the task is, not only its number.
      action in search, L-156 dark bookshelves above glass under Vibrant
      Visuals, L-157 intermittently hard-to-see Chunk Borders. Fix/research
      these before new features; L-155 and L-158 done 2026-10-12; L-159
-     Find by key in Hotkeys checked, placement follow-up being discussed; L-156 is linked to L-133 (same look, split faces,
+     Find by key in Hotkeys checked; its follow-up built (check pending); L-156 is linked to L-133 (same look, split faces,
      research together; past attempts on L-133 failed).
    - Bugs: L-123 elytra stretched on the inventory model after FreeCamera
      (parked 2026-10-10 after two rounds); L-91 shield
@@ -413,10 +413,11 @@ button's place. Checked in game 2026-10-12 (`c4ac083`): all OK.
 Follow-up decided 2026-10-12 (DESIGN.md): swap the buttons so Find by key
 sits next to the key column and Reset all keys left of it; after a find the
 search field takes focus with "Key: Z" as one unit (Backspace clears it,
-typing starts a text search, Esc clears, Down/Enter go to results). Not
-built yet. Still open: the binding editor's Clear/Reset/Cancel sit in the
-footer, far from the key cell being edited; three placements in
-[demos/binding-editor.html](demos/binding-editor.html), under review.
+typing starts a text search, Esc clears, Down/Enter go to results); the
+binding editor's Clear/Reset/Cancel move from the footer onto the edited
+row next to its key cell, replacing its switch while editing (A in
+[demos/binding-editor.html](demos/binding-editor.html); footer hint kept).
+Built 2026-10-12; in-game check pending.
 
 ### L-147 Status Effects HUD
 Kind: Design, with Research for native data and vanilla HUD visibility.
