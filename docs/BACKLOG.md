@@ -368,9 +368,9 @@ and both are dark gradients rather than wrong texels; research them as one
 question (what per-quad value the renderer interpolates or sorts differently
 for split faces), but confirm the shared cause before reusing L-133 results.
 Do not treat old pane experiments as a proven fix or cause for this report.
-L-164's spike (one quad with a generated sprite, 2026-10-12) also answers
-whether the split is the trigger here: draw a bookshelf that way under
-Vibrant Visuals.
+L-164's spike answered it (round 4, 2026-10-12): bookshelf sides drawn as
+one quad with a generated sprite show no dark bands under Vibrant Visuals;
+the one-sided split next to them does. The fix is L-164's method.
 Keep investigation bounded; native render changes must fail open.
 Exact reproduction, affected extent and cause remain unverified by an agent;
 no fix or post-fix runtime check yet.
@@ -761,6 +761,14 @@ image extensions with the base texture's pack, and serve a PNG from
 `load(ResourceLocationPair, ..., extensions)`; the texture group cache is
 not used by the atlas. Next: a bookshelf side variant under Vibrant
 Visuals (PBR texture sets, and the L-156 question).
+Round 4 (`d126608`, 2026-10-12): bookshelf sides joined on both sides drawn
+with a sprite show no dark bands under Vibrant Visuals, while a one-sided
+(split) join next to them does: the split is the trigger of L-156. The
+sprites carry no texture set (the bases have one in pack 13) and no
+surface difference was seen. Spike answered: adopt the generated-sprite
+method. A real build should give each sprite a texture set derived from
+the base's (color pointing at the sprite, MER/normal maps baked the same
+way) so blocks with stronger PBR maps match.
 If generated sprites cannot be added safely: keep split cells only where
 the dark shading has not been seen, and use the stretch under Vibrant
 Visuals (choice for the maintainer then).

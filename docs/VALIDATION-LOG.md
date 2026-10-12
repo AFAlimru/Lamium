@@ -12,6 +12,22 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-164 spike round 4: bookshelf sides, Vibrant Visuals (2026-10-12)
+
+By the maintainer, local, `d126608` (`ctsprite_trace`, DLL
+`bb470c6d...9b81f4d0c`), screenshots: three bookshelves in a row, the
+middle one's sides (joined left and right) drawn as one quad with a
+generated sprite; one-sided joins still split.
+- The middle shelf joins without the divider, no missing texture. OK.
+- Vibrant Visuals: no dark bands on the sprite face. With only a left
+  neighbor (split cells) the dark showed; with neighbors on both sides
+  (sprite) it did not. The L-156 darkening follows the split, not the
+  bookshelf or the glass below.
+- Vibrant Visuals surface (relief, gloss): no visible difference from the
+  neighbors, although the log shows the base textures have texture sets in
+  pack 13 and the sprites have none (`.texture_set.json` lookups -1).
+Not seen: other blocks with stronger PBR maps, resource packs.
+
 ## L-164 spike: a generated glass sprite in the terrain atlas (2026-10-12)
 
 By the maintainer, local, trace builds (`ctsprite_trace`), three rounds. A
