@@ -514,6 +514,12 @@ Goal: show the arrows available to the player without opening inventory.
   the bottom-left default), tipped arrows as total / total with tipped /
   per kind, a mark on a loaded crossbow, the elytra row while gliding even
   with armor rows off. Under review.
+- Decided 2026-10-12 (maintainer): the picks, except the ammo goes on the
+  same row, right of the durability. Total only for tipped arrows, red 0,
+  a mark on a loaded crossbow's icon, the elytra row while gliding even with
+  armor rows off, a "Show ammo" child of Durability HUD (default on). The
+  mockup showed a crossbow row reaching the hotbar at the bottom-left
+  default; keep the ammo text compact and check the overlap when built.
 
 ### L-146 Layer switches on the world map (with the next integration review)
 Kind: Design. Raised by the maintainer 2026-10-11 before the 0.2.0 release;
