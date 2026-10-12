@@ -415,6 +415,32 @@ type 3, scale 1.333, with the font's own material).
 
 ## Feature work and research
 
+### L-172 Text fields: caret movement, paste and click
+Kind: Ready (strong model), decided with the maintainer 2026-10-12.
+Problem: every Lamium text field (settings search, number fields, Shapes,
+Waypoints and Schematics names, save prompts, the world map search) only
+appends at the end; Backspace removes the last character and select-all
+replaces everything. There is no caret position, no Left/Right, Home/End or
+Delete, and no paste (`SearchQuery` and `NumberInput` in `src/ui/`).
+Scope (maintainer: movement, paste and click):
+- One shared pure editor (header, tested) with a caret kept on UTF-8
+  codepoint boundaries: insert at the caret, Backspace before it, Delete
+  after it, Left/Right by codepoint, Ctrl+Left/Right by word, Home/End,
+  Ctrl+V paste (control characters dropped, length limits kept), Ctrl+C
+  copy of the whole field (`app/Desktop` already writes the clipboard;
+  reading it is new), select-all kept as today.
+- IME: a composition's backspaces act before the caret, and the native
+  keyboard's caret position (`syncTextKeyboard`) follows the caret.
+- Click inside a field puts the caret at the nearest character boundary
+  (text width from the same measure the widgets use).
+- The caret is drawn at its position; long text scrolls to keep it visible.
+- Every existing field moves to the shared editor; `NumberInput` keeps its
+  digit rules on top of it.
+Later: selections (Shift + arrows, Shift + Home/End, drag) and replacing a
+selection.
+Tests: insert/delete around multi-byte characters, word jumps over spaces
+and punctuation, paste limits, IME backspace sequences at a middle caret.
+
 ### L-171 Calculator
 Kind: Design. Requested by the maintainer 2026-10-12; not chosen for
 building, no release.
@@ -438,9 +464,16 @@ Decided (maintainer 2026-10-12): a panel opened by a hotkey, not chat. It
 needs an agreed mockup first: [demos/calculator.html](demos/calculator.html)
 (A centered window, B tall panel on the right, C one line at the bottom;
 over gameplay and over a chest screen).
-Open (maintainer, listed in the demo): the variant, opening over container
-screens, which restatements under the result, ASCII unit words, `x y z`
-variables, and session-only history.
+Decided (maintainer 2026-10-12): restatements only for results of 64 or
+more (stacks and shulker boxes), ASCII unit words `st` `sb` `dc`, `x y z`
+as the player's position, 10 history lines kept for the session only.
+Opening over container screens is wanted but is a second step: first find
+how to keep E, Esc, number keys and the drop key from reaching the vanilla
+screen while the panel has the keyboard. A (the centered window) is the
+favourite on its own; over a container screen the demo now puts it beside
+the window (left of it) so it does not cover it.
+Open (maintainer): A with the beside-the-window placement, or another
+variant. Text editing comes from L-172.
 
 ### L-170 Enchantment order planner
 Kind: Design, then Research (strong model). Requested by the maintainer

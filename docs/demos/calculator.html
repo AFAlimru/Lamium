@@ -110,14 +110,11 @@ code{font:13px ui-monospace,Consolas,monospace;color:var(--ink)}
   <p class="note" id="explain"></p>
 
   <div class="box">
-    <h2>確認したいこと</h2>
+    <h2>決定事項（2026-10-12）と確認したいこと</h2>
     <ul>
-      <li>A / B / C のどれにするか。</li>
-      <li>チェストやかまどの画面の上でも開けるようにするか（数を数えながら計算する用途。推奨: 開ける）。</li>
-      <li>結果の下の言い換え（スタック・シュルカーボックス・ラージチェスト）をどこまで出すか。推奨: 64 以上のときだけ、スタックと箱の 2 つ。</li>
-      <li>単位の書き方: <code>st</code> <code>sb</code> <code>dc</code>（英字のみ）でよいか。推奨: 英字のみ（日本語入力に切り替えずに打てる）。</li>
-      <li>今の座標 <code>x y z</code> を変数として使えるようにするか（推奨: 使える）。</li>
-      <li>履歴は 10 件、ゲームを閉じたら消えるでよいか（推奨: そのまま）。</li>
+      <li>決定: 結果の言い換えは 64 以上のときだけ、スタックと箱。単位は英字の <code>st</code> <code>sb</code> <code>dc</code>。今の座標 <code>x y z</code> を変数に使える。履歴は 10 件、ゲームを閉じたら消える。</li>
+      <li>決定: チェストなどの画面の上で開くのは第 2 段階（バニラの画面に E・Esc・数字キー・Q が届かないようにする方法を調べてから）。</li>
+      <li>単体では A が有力。確認したいこと: 画面を開いているときに A をその画面の左横に寄せる形でよいか（「チェストを開いている」で確認できる）。</li>
     </ul>
   </div>
 </div>
@@ -133,9 +130,9 @@ const T = {
       err:'Incomplete expression', st:'stacks', sb:'shulker boxes', dc:'double chests', copy:'Copy', hist:'History', unk:'Unknown name: '},
 };
 const EXPLAIN = {
-  A:'<b>A 中央の小窓：</b>画面の上寄り中央に開く。結果を大きく、言い換えと履歴 3 件を下に。マウスはパネルが受け取り、後ろのゲームは見えたまま（歩けない）。チェストの画面の上では、チェストに重ならない上側に出る。',
+  A:'<b>A 中央の小窓：</b>画面の上寄り中央に開く。結果を大きく、言い換えと履歴 3 件を下に。マウスはパネルが受け取り、後ろのゲームは見えたまま（歩けない）。チェストなどの画面を開いているときは、その画面の左横に寄せて重ならないようにする（画面の上で開くのは第 2 段階）。',
   B:'<b>B 右端の縦長：</b>画面の右端に縦長で開き、履歴を 10 件まで並べる。何度も計算するときに見返しやすい。チェストの画面とは横に並ぶので重ならない。画面が狭いと幅が足りない。',
-  C:'<b>C 下の 1 行：</b>チャット欄の位置に 1 行だけ出て、結果は行の右端。履歴は ↑↓ で呼び出す。いちばん邪魔にならないが、言い換えは 1 つしか入らず、チャット欄と見た目が似るので送ってしまう心配を持たれやすい（実際は何も送らない）。',
+  C:'<b>C 下の 1 行：</b>チャット欄の位置に 1 行だけ出て、結果は行の右端。履歴は ↑↓ で呼び出す。画面を開いているときも下の 1 行なので重ならない。いちばん邪魔にならないが、言い換えは 1 つしか入らず、チャット欄と見た目が似るので送ってしまう心配を持たれやすい（実際は何も送らない）。',
 };
 
 // ---- A small expression evaluator for the demo (Lamium's will be a tested pure header) ----
@@ -204,7 +201,7 @@ function drawWorld(s){
   s.appendChild(el('hud t', 6, 6, 160, 9, 'XYZ: 152 / 64 / -320', {fontSize:'8px'}));
   if (state.scene === 'chest') {
     s.appendChild(el('', 0, 0, 640, 360, '', {background:'rgba(0,0,0,.45)'}));
-    const gx = 320-88, gy = 110;
+    const gx = 320-88, gy = 69;   // vanilla centers the 176 x 222 chest screen
     s.appendChild(el('mcgui', gx, gy, 176, 222));
     s.appendChild(el('t', gx+8, gy+6, 120, 9, 'ラージチェスト', {color:'#404040'}));
     for (let r=0;r<6;r++) for (let c=0;c<9;c++) s.appendChild(el('slot', gx+8+c*18, gy+18+r*18, 16, 16));
@@ -223,7 +220,7 @@ function drawPanel(s){
   const v = state.variant;
 
   if (v === 'C') {
-    const x = 4, y = chest ? 72 : 300, w = 632 - 260, h = 15;
+    const x = 4, y = chest ? 300 : 300, w = 632 - 260, h = 15;
     const box = el('card ring', x, y, w + 260, h + 13); s.appendChild(box);
     s.appendChild(el('field t', x+3, y+3, w, 13, esc(raw) + '<span class="caret"></span>'));
     s.appendChild(el('t ' + resultCls, x+w+10, y+5, 246, 10, ok ? `= ${resultText}${extra[0] ? `  <span class="dim">${extra[0]}</span>` : ''}` : resultText));
@@ -232,9 +229,10 @@ function drawPanel(s){
   }
 
   const B = v === 'B';
-  const w = B ? 150 : 240;
-  const x = B ? 640 - w - 6 : 320 - w/2;
-  const y = B ? 24 : (chest ? 8 : 40);
+  const w = B ? 150 : 216;
+  // Over a container screen A moves beside it (left of the 176-wide window) instead of covering it.
+  const x = B ? 640 - w - 6 : (chest ? 320 - 88 - 8 - w : 320 - w/2);
+  const y = B ? 24 : (chest ? 69 : 40);
   const histN = B ? 10 : 3;
   const h = B ? 300 : 146;
   s.appendChild(el('card ring', x, y, w, h));
