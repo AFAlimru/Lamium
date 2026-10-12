@@ -78,14 +78,22 @@ LL_TYPE_INSTANCE_HOOK(ConnectedBlock, ll::memory::HookPriority::Normal, BlockTes
     return result;
 }
 #ifdef LAMIUM_CTSPRITE_TRACE
-// L-164 spike: plain glass joined on all four sides draws as one quad with the
-// generated sprite instead of split cells.
+// L-164 spike: plain glass joined on all four sides and bookshelf sides joined
+// left and right draw as one quad with a generated sprite instead of split cells.
 std::optional<TextureUVCoordinateSet> spriteFace(Face face, Block const& block) {
     try {
-        if (current.block != &block || !current.region || block.getTypeName() != "minecraft:glass") return std::nullopt;
+        if (current.block != &block || !current.region) return std::nullopt;
         auto s = sides(face);
-        if (!(sameAt(block, s.left) && sameAt(block, s.right) && sameAt(block, s.top) && sameAt(block, s.bottom))) return std::nullopt;
-        return sprites::joinedGlass();
+        auto name = block.getTypeName();
+        if (name == "minecraft:glass") {
+            if (!(sameAt(block, s.left) && sameAt(block, s.right) && sameAt(block, s.top) && sameAt(block, s.bottom))) return std::nullopt;
+            return sprites::uv(sprites::Kind::Glass);
+        }
+        if (name == "minecraft:bookshelf" && face != Face::Up && face != Face::Down) {
+            if (!(sameAt(block, s.left) && sameAt(block, s.right))) return std::nullopt;
+            return sprites::uv(sprites::Kind::BookshelfSides);
+        }
+        return std::nullopt;
     } catch (...) { return std::nullopt; }
 }
 #else
