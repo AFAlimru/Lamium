@@ -492,6 +492,12 @@ exactly one switch, one mode and one set of keys:
   settings and HUD placement; not key bindings), and Hotkeys has "Reset all
   keys". They sit on the column-heading line and need a second press to apply.
   The HUD layout editor keeps its per-element and all-element resets.
+- (Decided 2026-10-12, L-159) Hotkeys has "Find by key" on the same line,
+  left of "Reset all keys": press it, then a key, mouse button or
+  combination; the list shows only actions whose binding uses every input
+  pressed (Z finds Z and Ctrl+Z). The search field shows "Key: Z"; Esc or
+  clicking the search field shows everything again. Typed text search does
+  not match key names (one letter would match too many names).
 
 ## Inventory transfer (Decided 2026-09-27, BACKLOG L-41)
 
