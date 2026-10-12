@@ -73,7 +73,7 @@ L-item wins. Every entry names what the task is, not only its number.
    come before large features and L-111 integration for now):
    - New 0.2.0 reports (2026-10-12): L-155 untranslated Connected Textures
      action in search, L-156 dark bookshelves above glass under Vibrant
-     Visuals, L-157 intermittently hard-to-see Chunk Borders. Fix/research
+     Visuals, L-157 intermittently hard-to-see Chunk Borders (done 2026-10-12). Fix/research
      these before new features; L-155 and L-158 done 2026-10-12; L-159
      Find by key in Hotkeys done; L-160 Edge Guard on BDS done; L-161
      slab merges and the edge margin setting done; L-162 rare fall after a
@@ -355,31 +355,6 @@ Do not treat old pane experiments as a proven fix or cause for this report.
 Keep investigation bounded; native render changes must fail open.
 Exact reproduction, affected extent and cause remain unverified by an agent;
 no fix or post-fix runtime check yet.
-
-### L-157 Chunk Borders are intermittently hard to see
-Kind: Bug, Research; Design only if a visibility policy change is needed.
-Status: open. Maintainer's actual-play report, 2026-10-12, Lamium 0.2.0.
-Reported symptom: Chunk Borders sometimes become difficult to see.
-Screenshot: `スクリーンショット 2026-10-12 015458.png` (report attachment).
-Lines remain visible in the image; some are much less distinct against
-terrain than against the sky. The report does not establish missing geometry,
-a change from earlier releases, or the trigger. Maintainer follow-up,
-2026-10-12: taken under Fancy graphics at night; other video settings not
-checked.
-Next: compare the same scene/view with different lighting and graphics
-modes, camera distance and direction, near/behind terrain, and other overlay
-combinations. Inspect the shared line material/depth path in WorldOverlay
-and record whether geometry, depth, color/alpha or contrast is responsible.
-Preserve existing colors and grid structure until evidence justifies a
-change. Check Chunk Borders and Hitboxes together if shared rendering changes.
-See OVERLAYS.md for the current contract.
-Maintainer 2026-10-12: the lines break up where they meet terrain (other
-choices offered: thin lines, colors blending in, lines vanishing). In the
-screenshot a dirt wall lies on the chunk wall's plane and the lines on it
-show as dashes: lines coplanar with block faces fight for depth. Chunk
-Borders and Hitboxes were the only world lines not pulled toward the eye
-(Depth.h rule 2). Built 2026-10-12: `drawLines` pulls them by 0.996
-(`worldLinePull`); colors and grid unchanged. In-game check pending.
 
 ### L-123 FreeCamera stretches the worn elytra on the inventory player model
 Kind: Bug, low priority. Reported from use 2026-10-09 (maintainer's notes).

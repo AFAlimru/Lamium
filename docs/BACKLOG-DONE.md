@@ -10,6 +10,32 @@ Runtime status is in [VALIDATION.md](VALIDATION.md), the evidence in
 
 ## Bugs
 
+### L-157 Chunk Borders are intermittently hard to see
+Done 2026-10-12: Chunk Borders and Hitboxes pulled toward the eye by 0.996 (`6cd2a68`); lines on walls stay whole, checked in game.
+Kind: Bug, Research; Design only if a visibility policy change is needed.
+Status: open. Maintainer's actual-play report, 2026-10-12, Lamium 0.2.0.
+Reported symptom: Chunk Borders sometimes become difficult to see.
+Screenshot: `スクリーンショット 2026-10-12 015458.png` (report attachment).
+Lines remain visible in the image; some are much less distinct against
+terrain than against the sky. The report does not establish missing geometry,
+a change from earlier releases, or the trigger. Maintainer follow-up,
+2026-10-12: taken under Fancy graphics at night; other video settings not
+checked.
+Next: compare the same scene/view with different lighting and graphics
+modes, camera distance and direction, near/behind terrain, and other overlay
+combinations. Inspect the shared line material/depth path in WorldOverlay
+and record whether geometry, depth, color/alpha or contrast is responsible.
+Preserve existing colors and grid structure until evidence justifies a
+change. Check Chunk Borders and Hitboxes together if shared rendering changes.
+See OVERLAYS.md for the current contract.
+Maintainer 2026-10-12: the lines break up where they meet terrain (other
+choices offered: thin lines, colors blending in, lines vanishing). In the
+screenshot a dirt wall lies on the chunk wall's plane and the lines on it
+show as dashes: lines coplanar with block faces fight for depth. Chunk
+Borders and Hitboxes were the only world lines not pulled toward the eye
+(Depth.h rule 2). Built 2026-10-12: `drawLines` pulls them by 0.996
+(`worldLinePull`); colors and grid unchanged. In-game check pending.
+
 ### L-161 Edge Guard: refuse slab merges that push the player off an edge
 Done 2026-10-12: pushing slab merges refused at build start and `useItemOn`, the edge margin 0.1 by default and a setting (0.02-0.30; `bd65aae`); checked on the local test BDS and locally. The rare fall after a server correction moved to L-162.
 Kind: Bug follow-up of L-160 (strong model). Decided with the maintainer

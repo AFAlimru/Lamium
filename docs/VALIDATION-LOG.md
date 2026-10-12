@@ -12,6 +12,15 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-157 Chunk Borders pulled toward the eye (2026-10-12)
+
+By the maintainer, local, `6cd2a68` (DLL `7f9ddee8...85011914`): lines on a
+wall lying on the chunk wall's plane stay whole at different distances and
+angles; lines behind walls do not show through noticeably; Hitboxes still
+draw. All OK. Noticed: where a chunk line runs along the vanilla block
+selection outline (black), the black outline covers it; a schematic corner
+mark's outline stays over the black outline (screenshots, not in the repo).
+
 ## L-161 edge margin setting (2026-10-12)
 
 By the maintainer, normal build `bd65aae` (DLL `1ce35b49...debb12e0`): "Stop
