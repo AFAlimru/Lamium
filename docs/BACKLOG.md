@@ -515,6 +515,13 @@ Goal: open and use the ordinary inventory while inside a Nether portal.
   container model's `isValid` (base and crafting) logged and answered valid
   near a portal, the likely check behind both the close and the refused
   moves; E ignored as a close for 500 ms after Lamium opens the screen.
+- Result: the screen stays open (E and entry) and Esc/E close it, but items
+  and the 2x2 crafting still do not move; the model's `isValid` never said
+  no; 466 closes were refused, i.e. the screen kept asking to close every
+  frame. Auto Elytra swapped items in the portal, so the server accepts
+  moves there: the block is client UI. Next trace: the screens' own
+  `_isStillValid` (container and crafting controllers), answered valid near
+  a portal.
 
 ### L-150 Arrow-count HUD
 Kind: Design (small), then Ready after counting and visibility are agreed.

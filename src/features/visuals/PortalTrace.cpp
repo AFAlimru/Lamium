@@ -10,6 +10,8 @@
 #include "mc/client/game/ClientInputCallbacks.h"
 #include "mc/client/gui/screens/SceneStack.h"
 #include "mc/world/containers/managers/models/ContainerManagerModel.h"
+#include "mc/client/gui/screens/controllers/ContainerScreenController.h"
+#include "mc/client/gui/screens/controllers/CraftingScreenController.h"
 #include "mc/world/containers/managers/models/CraftingContainerManagerModel.h"
 #include <chrono>
 #include <Windows.h>
@@ -195,7 +197,29 @@ LL_TYPE_INSTANCE_HOOK(PortalCraftingValid, ll::memory::HookPriority::Normal, Cra
     }
     return result;
 }
+// Experiment 7 (trace builds only): the inventory screen's own validity
+// check, which a container screen polls to close itself and to refuse moves.
+LL_TYPE_INSTANCE_HOOK(PortalScreenValid, ll::memory::HookPriority::Normal, ContainerScreenController,
+    &ContainerScreenController::$_isStillValid, bool) {
+    bool result = origin();
+    if (!result && nearPortal()) {
+        try { log("ContainerScreenController::_isStillValid -> false near a portal; answering true"); } catch (...) {}
+        return true;
+    }
+    return result;
+}
+LL_TYPE_INSTANCE_HOOK(PortalCraftingScreenValid, ll::memory::HookPriority::Normal, CraftingScreenController,
+    &CraftingScreenController::$_isStillValid, bool) {
+    bool result = origin();
+    if (!result && nearPortal()) {
+        try { log("CraftingScreenController::_isStillValid -> false near a portal; answering true"); } catch (...) {}
+        return true;
+    }
+    return result;
+}
 void start() {
+    PortalScreenValid::hook();
+    PortalCraftingScreenValid::hook();
     PortalModelValid::hook();
     PortalCraftingValid::hook();
     try {
@@ -219,6 +243,8 @@ void start() {
     Runtime::instance().self().getLogger().warn("Portal diagnostics enabled (L-148/L-149)");
 }
 void stop() {
+    PortalScreenValid::unhook(true);
+    PortalCraftingScreenValid::unhook(true);
     PortalModelValid::unhook(true);
     PortalCraftingValid::unhook(true);
     PortalSchedulePop::unhook(true);
