@@ -9,6 +9,9 @@
 #include "mc/world/actor/player/Player.h"
 #include "mc/client/game/ClientInputCallbacks.h"
 #include "mc/client/gui/screens/SceneStack.h"
+#include "mc/world/containers/managers/models/ContainerManagerModel.h"
+#include "mc/world/containers/managers/models/CraftingContainerManagerModel.h"
+#include <chrono>
 #include <Windows.h>
 #include <algorithm>
 #include <vector>
@@ -24,10 +27,13 @@ int lines = 0;
 // handleInsidePortal, to tell "in a portal" by recent contact.
 uint64_t ticks = 0, lastPortalTick = 0;
 bool nearPortal() { return lastPortalTick && ticks - lastPortalTick <= 2; }
-// Esc or E pressed within the last 300 ms: the player closing the screen.
+// The player closing the screen: Esc, or E once the screen has been open a
+// moment (the press that opened it is still down when the first close comes).
+std::chrono::steady_clock::time_point forcedOpen{};
 bool playerClosing() {
-    return (GetAsyncKeyState(VK_ESCAPE) & 0x8000) || (GetAsyncKeyState('E') & 0x8000) || (GetAsyncKeyState(VK_ESCAPE) & 1)
-        || (GetAsyncKeyState('E') & 1);
+    if ((GetAsyncKeyState(VK_ESCAPE) & 0x8000) || (GetAsyncKeyState(VK_ESCAPE) & 1)) return true;
+    bool e = (GetAsyncKeyState('E') & 0x8000) || (GetAsyncKeyState('E') & 1);
+    return e && std::chrono::steady_clock::now() - forcedOpen > std::chrono::milliseconds(500);
 }
 std::string lastScreen;
 void log(std::string const& text) {
@@ -160,6 +166,7 @@ LL_TYPE_STATIC_HOOK(PortalInventoryKey, ll::memory::HookPriority::Normal, Client
         auto* player = client.getLocalPlayer();
         if (player && nearPortal() && after == before && after.starts_with("hud_screen")) {
             log("  refused in a portal: calling openInventory");
+            forcedOpen = std::chrono::steady_clock::now();
             player->openInventory();
         }
     } catch (...) {}
@@ -168,7 +175,29 @@ LL_TYPE_INSTANCE_HOOK(PortalOpenInventory, ll::memory::HookPriority::Normal, Loc
     try { log(std::format("openInventory ({}) stack{}", fields(*this), stack())); } catch (...) {}
     origin();
 }
+// Experiment 6 (trace builds only): does the inventory's container model
+// call itself invalid near a portal? Answered valid there.
+LL_TYPE_INSTANCE_HOOK(PortalModelValid, ll::memory::HookPriority::Normal, ContainerManagerModel,
+    &ContainerManagerModel::$isValid, bool, float range) {
+    bool result = origin(range);
+    if (!result && nearPortal()) {
+        try { log("ContainerManagerModel::isValid -> false near a portal; answering true"); } catch (...) {}
+        return true;
+    }
+    return result;
+}
+LL_TYPE_INSTANCE_HOOK(PortalCraftingValid, ll::memory::HookPriority::Normal, CraftingContainerManagerModel,
+    &CraftingContainerManagerModel::$isValid, bool, float range) {
+    bool result = origin(range);
+    if (!result && nearPortal()) {
+        try { log("CraftingContainerManagerModel::isValid -> false near a portal; answering true"); } catch (...) {}
+        return true;
+    }
+    return result;
+}
 void start() {
+    PortalModelValid::hook();
+    PortalCraftingValid::hook();
     try {
         loadCandidates();
         auto base = reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));
@@ -190,6 +219,8 @@ void start() {
     Runtime::instance().self().getLogger().warn("Portal diagnostics enabled (L-148/L-149)");
 }
 void stop() {
+    PortalModelValid::unhook(true);
+    PortalCraftingValid::unhook(true);
     PortalSchedulePop::unhook(true);
     PortalInventoryKey::unhook(true);
     PortalOpenInventory::unhook(true);

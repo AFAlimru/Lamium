@@ -507,6 +507,14 @@ Goal: open and use the ordinary inventory while inside a Nether portal.
   key changes nothing near a portal, call `LocalPlayer::openInventory`; and
   near a portal refuse `_schedulePopScreen` on the inventory screen unless
   Esc or E is down.
+- Result (maintainer, 2026-10-12): with the close refused the inventory
+  stays open in the portal and Esc/E still close it, but items cannot be
+  moved; E opened it for an instant and it closed again (the opening E press
+  still counted as the player closing); on transfer it closed; no items lost
+  or duplicated. Naming still failed (only stubs resolved). Next trace: the
+  container model's `isValid` (base and crafting) logged and answered valid
+  near a portal, the likely check behind both the close and the refused
+  moves; E ignored as a close for 500 ms after Lamium opens the screen.
 
 ### L-150 Arrow-count HUD
 Kind: Design (small), then Ready after counting and visibility are agreed.
