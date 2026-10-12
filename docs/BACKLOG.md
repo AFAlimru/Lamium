@@ -434,10 +434,13 @@ Agent's proposal (not decided):
 - Optional: the player's `x y z` as variables.
 - Pure expression parser and unit formatting in a header with tests; the
   panel uses the existing text field (IME already works, L-84).
-Open (maintainer): the entry point (a panel from a hotkey, or typing in
-chat with a prefix that Lamium keeps local; the chat route risks sending by
-mistake), which unit words (and Japanese aliases), history kept across
-restarts or not, and whether coordinates variables are wanted.
+Decided (maintainer 2026-10-12): a panel opened by a hotkey, not chat. It
+needs an agreed mockup first: [demos/calculator.html](demos/calculator.html)
+(A centered window, B tall panel on the right, C one line at the bottom;
+over gameplay and over a chest screen).
+Open (maintainer, listed in the demo): the variant, opening over container
+screens, which restatements under the result, ASCII unit words, `x y z`
+variables, and session-only history.
 
 ### L-170 Enchantment order planner
 Kind: Design, then Research (strong model). Requested by the maintainer
@@ -464,9 +467,11 @@ Agent's proposal (not decided):
   penalty). The result is a numbered list of steps with each step's cost
   and the total.
 - Later, if wanted: highlight the next pair in the anvil screen.
-Open (maintainer): whether the first version plans only from scratch (books
-assumed fresh) or from the inventory too, where the screen opens (hotkey,
-from the anvil screen), and whether the anvil highlight is wanted.
+Decided (maintainer 2026-10-12): the first version plans from fresh books
+only (no prior-work penalty on the inputs); planning from the books in the
+inventory can come later.
+Open (maintainer): where the screen opens (hotkey, from the anvil screen),
+and whether the anvil highlight is wanted.
 
 ### L-169 Item Transfer in more screens, and bulk transfer
 Kind: Design, then Research (strong model). Requested by the maintainer
@@ -500,9 +505,31 @@ Agent's proposal (not decided):
 - Same safety as today: one request at a time, confirmed from
   authoritative state, stops on screen close, cursor item or a rejected
   request.
-Open (maintainer): the bulk keys or gestures (and whether they need their
-own switches), hotbar handling, which screens are wanted first, and
-whether "fill existing stacks only" is wanted as well.
+Gestures (maintainer 2026-10-12: base them on a widely used Java
+inventory-gesture set, read from its public description only, PROVENANCE;
+also bulk "matching" moves and drop operations). Today's four gestures
+already match that set. Proposed additions (agent, not decided):
+| Gesture | Effect |
+|---|---|
+| Ctrl + wheel | every stack of the hovered kind to the other side |
+| Ctrl + Shift + wheel | everything to the other side |
+| Alt + left click | same as Ctrl + wheel, as a click |
+| Alt + Shift + left click | same as Ctrl + Shift + wheel, as a click |
+| Shift + right drag | all but one item from each passed slot (vanilla's Shift + right drag today) |
+| Shift + click an empty slot, items on the cursor | every matching item into that side |
+| Shift + click outside the window, items on the cursor | drop every matching item in the inventory |
+| Drop key + Ctrl + drag | drop one item from each passed slot |
+| Drop key + Shift + right drag | drop all but one from each passed slot |
+| Drop key + Shift + left drag | drop everything in each passed slot |
+| W or S held + Shift/Ctrl click (and drag) | move the stack (or one item) up or down within the inventory |
+Drops go through vanilla's own drop request and are confirmed like moves;
+each drop gesture has its own switch, and "drop every matching item"
+default off (it can throw away a whole inventory). Check on Bedrock before
+choosing: whether Alt reaches the game in screens, what the drop key does
+in screens today, and that W/S are free while a screen is open.
+Open (maintainer): which additions to take (and defaults), hotbar handling
+in "everything", which screens are wanted first, and whether "fill
+existing stacks only" is wanted as well.
 
 ### L-168 Trade finder: reroll a villager until a wanted trade appears
 Kind: Design, then Research (strong model). Requested by the maintainer
@@ -532,9 +559,10 @@ Agent's proposal (not decided), in two stages:
    traded (locked) villager, low durability (L-62), or world/dimension
    change. Default off; help text warns that servers may treat the loop as
    automation.
-Open (maintainer): whether stage 2 is wanted, how wanted offers are entered
-(a picker from the game's item and enchantment lists), where the list is
-saved, and whether matches are kept as a short log.
+Decided (maintainer 2026-10-12): stage 2, the loop, is wanted.
+Open (maintainer): how wanted offers are entered (a picker from the game's
+item and enchantment lists), where the list is saved, and whether matches
+are kept as a short log.
 
 ### L-167 Change the language and resource packs from inside a world
 Kind: Research, then Design (strong model). Imported from the maintainer's

@@ -86,6 +86,9 @@ it) while doing so.
 - enchant-order (a web tool, MIT): the problem it solves, named by the
   maintainer 2026-10-12, is the source of the L-170 idea. Its source is not
   opened; Lamium's anvil rules are checked against the game.
+- Item Scroller (Java, LGPL-3.0-only): the key list in its public Modrinth
+  description, read 2026-10-12 at the maintainer's request, is the source
+  of L-169's gesture proposal. Its source is not opened.
 - CalcMod (Java, MIT): its Modrinth description, named by the maintainer
   2026-10-12, is the source of the L-171 idea. Its source is not opened.
 - Sodium, ImmediatelyFast, Lithium and EntityCulling (Java): their published
