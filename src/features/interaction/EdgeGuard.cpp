@@ -19,6 +19,12 @@
 #include "mc/entity/systems/move_collision_system/MoveCollisionSystem.h"
 #include "mc/input/MoveInputState.h"
 #include "mc/world/actor/provider/PlayerMovement.h"
+#include "mc/world/gamemode/GameMode.h"
+#include "mc/world/gamemode/InteractionResult.h"
+#include "mc/world/gamemode/SurvivalMode.h"
+#include "mc/world/item/ItemStack.h"
+#include "mc/world/level/block/Block.h"
+#include "mc/world/level/block/BlockType.h"
 #include "mc/world/level/BlockSource.h"
 #include "mc/world/phys/AABB.h"
 #include <cmath>
@@ -260,6 +266,55 @@ void guardMoveVector(MoveInputState const& state, Vec2& move) {
         runtime.self().getLogger().info("Edge Guard: guarding the move input");
     }
 }
+// L-161: sneaking refuses a block placed into the player's own cell; walking
+// with Edge Guard does not, and a slab merged into the slab the player barely
+// stands on pushes them out sideways, off the edge. Refused like sneaking,
+// only then: a merge under the player's center lifts them and stays allowed.
+bool refusesMerge(Player& actor, ItemStack const& item, BlockPos const& pos, uchar face) {
+    auto& runtime = Runtime::instance();
+    if (!runtime.enabled() || !runtime.snapshot()->interaction.edgeGuard) return false;
+    auto client = ll::service::getClientInstance();
+    auto* player = client ? client->getLocalPlayer() : nullptr;
+    if (!player || static_cast<Player*>(player) != &actor || !walking(*player)) return false;
+    Block const* held = item.mBlock;
+    if (!held || !held->getBlockType().isSlabBlock()) return false;
+    auto const& box = player->getAABB();
+    Box body{box.min.x, box.min.y, box.min.z, box.max.x, box.max.y, box.max.z};
+    auto const& region = player->getDimensionBlockSourceConst();
+    auto pushes = [&](BlockPos const& cell) {
+        return region.getBlock(cell).getBlockType().isSlabBlock() && mergePushesOff(body, cell.x, cell.y, cell.z);
+    };
+    BlockPos next = pos;
+    switch (face) {
+    case 0: --next.y; break;
+    case 1: ++next.y; break;
+    case 2: --next.z; break;
+    case 3: ++next.z; break;
+    case 4: --next.x; break;
+    case 5: ++next.x; break;
+    default: return false;
+    }
+    // The clicked slab merges only through its top or bottom face.
+    return ((face == 0 || face == 1) && pushes(pos)) || pushes(next);
+}
+bool refuses(Player& actor, ItemStack const& item, BlockPos const& pos, uchar face) {
+    try {
+        return versionSensitiveAllowed("Edge Guard (movement request)") && refusesMerge(actor, item, pos, face);
+    } catch (...) { return false; }
+}
+LL_TYPE_INSTANCE_HOOK(EdgeGuardPlaceHook, ll::memory::HookPriority::Normal, GameMode,
+    &GameMode::$useItemOn, InteractionResult, ItemStack& item, BlockPos const& pos, uchar face,
+    Vec3 const& hit, HandSlot hand, Block const* target, bool first) {
+    if (refuses(mPlayer, item, pos, face)) return InteractionResult{false, false};
+    return origin(item, pos, face, hit, hand, target, first);
+}
+// SurvivalMode overrides useItemOn; the base hook does not run in survival.
+LL_TYPE_INSTANCE_HOOK(EdgeGuardSurvivalPlaceHook, ll::memory::HookPriority::Normal, SurvivalMode,
+    &SurvivalMode::$useItemOn, InteractionResult, ItemStack& item, BlockPos const& pos, uchar face,
+    Vec3 const& hit, HandSlot hand, Block const* target, bool first) {
+    if (refuses(mPlayer, item, pos, face)) return InteractionResult{false, false};
+    return origin(item, pos, face, hit, hand, target, first);
+}
 LL_STATIC_HOOK(EdgeGuardInputHook, ll::memory::HookPriority::Normal, &PlayerMovement::calculateMoveVector, Vec2,
     MoveInputState const& inputState, bool playerIsFlying, ActorDataFlagComponent const& playerData, bool playerIsInWater,
     SneakingComponent const* sneakComponent) {
@@ -340,11 +395,18 @@ void start() {
         EdgeGuardHook::unhook(true);
         throw std::runtime_error("Could not install the edge guard input hook");
     }
+    if (EdgeGuardPlaceHook::hook(true) != 0 || EdgeGuardSurvivalPlaceHook::hook(true) != 0) {
+        EdgeGuardPlaceHook::unhook(true);
+        EdgeGuardInputHook::unhook(true);
+        EdgeGuardHook::unhook(true);
+        throw std::runtime_error("Could not install the edge guard placement hooks");
+    }
     installed = true;
 }
 void stop() {
     if (!installed) return;
+    bool place = EdgeGuardPlaceHook::unhook(true), survival = EdgeGuardSurvivalPlaceHook::unhook(true);
     bool input = EdgeGuardInputHook::unhook(true), movement = EdgeGuardHook::unhook(true);
-    if (input && movement) installed = false;
+    if (place && survival && input && movement) installed = false;
 }
 }

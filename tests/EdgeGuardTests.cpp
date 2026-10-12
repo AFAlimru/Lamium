@@ -75,6 +75,17 @@ void edgeGuardTests() {
     auto back = stepBack(touching);
     check(back && back->first < 0 && back->second == 0, "feet only touching an edge step back onto the block");
     check(!stepBack([](double, double) { return false; }), "no support nearby gives no step back");
+    using lamium::interaction::mergePushesOff, lamium::interaction::Box;
+    // Feet at 67.5 on a bottom slab in cell (-84, 67, 81), overlapping it by
+    // 0.03 in x (seen on BDS): a merge pushes the player off.
+    Box hanging{-84.57, 67.5, 80.817, -83.97, 69.3, 81.417};
+    check(mergePushesOff(hanging, -84, 67, 81), "merging the slab the player barely stands on is refused");
+    Box centered{-83.8, 67.5, 81.2, -83.2, 69.3, 81.8};
+    check(!mergePushesOff(centered, -84, 67, 81), "merging the slab under the player's center lifts them and is allowed");
+    Box beside{-85.6, 67.5, 81.2, -85.0, 69.3, 81.8};
+    check(!mergePushesOff(beside, -84, 67, 81), "a merge in a cell the player does not overlap is allowed");
+    Box above{-84.57, 68.0, 80.817, -83.97, 69.8, 81.417};
+    check(!mergePushesOff(above, -84, 67, 81), "standing on top of the cell does not count as inside it");
     auto [stillX, stillZ] = guardInput(0, 0, 0, 0, a, f, ground);
     check(stillX == 0 && stillZ == 0, "standing still stays still");
 }

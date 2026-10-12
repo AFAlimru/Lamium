@@ -98,4 +98,16 @@ std::pair<double, double> guardInput(double x, double z, double vx, double vz, d
     if (length > 1) { gx /= length; gz /= length; }
     return {gx, gz};
 }
+
+// A slab placed onto a slab merges into a full block in that cell. With the
+// player's box inside the cell but their center beside it, the game pushes
+// the player out sideways, off the edge (L-161). Box and cell as min/max.
+struct Box { double minX, minY, minZ, maxX, maxY, maxZ; };
+inline bool mergePushesOff(Box const& player, int cellX, int cellY, int cellZ, double epsilon = 1e-4) {
+    auto overlap = [&](double a0, double a1, double b0, double b1) { return std::min(a1, b1) - std::max(a0, b0) > epsilon; };
+    if (!overlap(player.minX, player.maxX, cellX, cellX + 1.0) || !overlap(player.minY, player.maxY, cellY, cellY + 1.0)
+        || !overlap(player.minZ, player.maxZ, cellZ, cellZ + 1.0)) return false;
+    double cx = (player.minX + player.maxX) / 2, cz = (player.minZ + player.maxZ) / 2;
+    return !(cx >= cellX && cx < cellX + 1.0 && cz >= cellZ && cz < cellZ + 1.0);
+}
 }
