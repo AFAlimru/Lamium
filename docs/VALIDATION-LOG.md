@@ -12,6 +12,14 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Overlays over the vanilla selection outline (2026-10-12)
+
+By the maintainer, local, `da218bd` (DLL `bcdc66b2...31e650e0a`): Chunk Border
+lines on the targeted block stay over the black selection outline; the
+schematic save area's outline and corners are not hidden by it; chunk lines
+behind walls do not show through noticeably; on Shapes the black outline
+still shows. All OK.
+
 ## L-157 Chunk Borders pulled toward the eye (2026-10-12)
 
 By the maintainer, local, `6cd2a68` (DLL `7f9ddee8...85011914`): lines on a
