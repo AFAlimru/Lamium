@@ -128,15 +128,20 @@ void guard(StrictEntityContext const& entity, AABBShapeComponent const& shape, M
             runtime.self().getLogger().info("Edge Guard: also guarding the local server's copy of the player");
         }
     }
-    // Only walking on the ground; vanilla sneaking already guards edges.
-    if (!walking(*player)) return;
+    // Walking on the ground, sneaking too: vanilla sneaking stops with the box
+    // only touching an edge, which a server treats as no support (L-160).
+    if (!walking(*player, true)) return;
     Vec3& speed = request.mSpeed;
     if (speed.y > 0) return; // A jump may leave the edge on purpose.
     AABB const& box = shape.mAABB;
     std::vector<AABB> shapes;
     auto supported = [&](double dx, double dz) {
-        AABB probe{Vec3{box.min.x + static_cast<float>(dx), box.min.y - stepHeight, box.min.z + static_cast<float>(dz)},
-                   Vec3{box.max.x + static_cast<float>(dx), box.min.y, box.max.z + static_cast<float>(dz)}};
+        // The margin keeps the box over the block: sliding along a wall into
+        // a corner left it only touching, and the client then fell (L-160).
+        AABB probe{Vec3{box.min.x + overlapMargin + static_cast<float>(dx), box.min.y - stepHeight,
+                        box.min.z + overlapMargin + static_cast<float>(dz)},
+                   Vec3{box.max.x - overlapMargin + static_cast<float>(dx), box.min.y,
+                        box.max.z - overlapMargin + static_cast<float>(dz)}};
         shapes.clear();
         region.fetchCollisionShapes(shapes, probe, false, collisionShape, nullptr);
         return !shapes.empty();
@@ -207,7 +212,15 @@ void guardMoveVector(MoveInputState const& state, Vec2& move) {
         auto const& velocity = player->getPosDelta();
         double accel = std::max(0.1, static_cast<double>(player->getSpeed()));
         std::tie(gx, gz) = guardInput(x, z, velocity.x, velocity.z, accel, groundFriction, supported);
-    } else if (auto back = stepBack(supported)) {
+    } else if (auto back = stepBack([&](double dx, double dz) {
+                   // Only where the body can go: in a corner the first
+                   // supported direction was into the wall (L-160).
+                   AABB body{Vec3{box.min.x + static_cast<float>(dx), box.min.y + 0.1f, box.min.z + static_cast<float>(dz)},
+                             Vec3{box.max.x + static_cast<float>(dx), box.max.y, box.max.z + static_cast<float>(dz)}};
+                   shapes.clear();
+                   region.fetchCollisionShapes(shapes, body, false, nullptr, nullptr);
+                   return shapes.empty() && supported(dx, dz);
+               })) {
         std::tie(gx, gz) = *back; // Only touching an edge: back onto the block.
     } else {
         return; // Already over a drop: do not freeze in the air.

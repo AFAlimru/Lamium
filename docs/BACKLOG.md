@@ -356,6 +356,11 @@ edge and letting go (the box only touches the block, which the server treats
 as no support). Next build: the input guard also runs while sneaking and keeps
 0.02 block of overlap; feet only touching an edge step back onto the block;
 the sent analog input undoes sneaking's 0.3 scale. Slab bridging unverified.
+Checked (`c73fc16`): sneak release and slab bridging hold on BDS and locally;
+sliding along a wall into a block corner still fell (box only touching the
+corner, step back blocked by the wall). Next build: the movement-request
+clamp keeps the same margin and runs while sneaking; step back only goes
+where the body is free.
 
 ### L-156 Low bookshelves above glass become dark under Vibrant Visuals
 Kind: Bug, Research (strong model).

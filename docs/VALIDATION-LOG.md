@@ -12,6 +12,16 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-160 corner falls beside a wall (2026-10-12)
+
+By the maintainer, trace build of `c73fc16` (DLL `0ef93b72...cbc7f796`), BDS and a local world: letting go of
+sneak at an edge and slab bridging no longer fall. Building a bridge toward a
+wall and pressing a key about 45 degrees into the wall a few times still fell.
+Trace (five falls, same pattern): the box sat exactly on a block corner
+(-140.700, -4.700), horizontal collision set, the step-back input pointed
+diagonally into the wall and did not move the player; when the keys were let
+go the client itself lost ground and fell, with no server correction.
+
 ## L-160 falls on BDS after sneaking (2026-10-12)
 
 By the maintainer, trace build of `410353a` (DLL `ddfed996...0fa8f1ef`):
