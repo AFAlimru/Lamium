@@ -19,9 +19,9 @@ void statusEffectsTests() {
     check(runningOut(poison) && runningOut(Effect{1, 199}) && !runningOut(Effect{1, 200}),
           "under 10 seconds is running out");
     check(!runningOut(beacon) && !runningOut(vision), "beacon and infinite effects never look like they run out");
-    check(levelText(0).empty() && levelText(-1).empty() && levelText(1) == "2" && levelText(4) == "5"
+    check(levelText(0) == "1" && levelText(-1) == "1" && levelText(1) == "2" && levelText(4) == "5"
               && levelText(10) == "11",
-          "levels show from 2 in Arabic numerals; level 1 is blank");
+          "every level shows in Arabic numerals, level 1 included");
     check(iconPath(1) == "textures/ui/speed_effect" && iconPath(25) == "textures/ui/poison_effect"
               && iconPath(37) == "textures/ui/breath_of_the_nautilus_effect" && iconPath(6).empty() && iconPath(0).empty()
               && iconPath(38).empty(),

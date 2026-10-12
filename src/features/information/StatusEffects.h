@@ -40,11 +40,9 @@ inline std::string timeText(int ticks) {
     if (hours > 0) return std::to_string(hours) + ":" + two(minutes % 60) + ":" + two(seconds % 60);
     return std::to_string(minutes) + ":" + two(seconds % 60);
 }
-// Level I is not written; others in Arabic numerals, in a column of their
-// own (Roman to X then numbers looked mixed, maintainer 2026-10-12).
-inline std::string levelText(int amplifier) {
-    return amplifier <= 0 ? std::string{} : std::to_string(amplifier + 1);
-}
+// Every level in Arabic numerals, 1 included, in a column of their own
+// (Roman to X then numbers looked mixed, maintainer 2026-10-12).
+inline std::string levelText(int amplifier) { return std::to_string(std::max(amplifier, 0) + 1); }
 // The vanilla pack's effect icons, textures/ui/<name>_effect, by effect id
 // (MobEffectIds). The effect's own icon name drew nothing (2026-10-12).
 // Instant health and damage and saturation have no icon.

@@ -478,7 +478,9 @@ std::optional<ui::hud_editor::Box> drawDurability(MinecraftUIRenderContext& cont
     std::vector<float> rowWidths;
     // Ammo sits right of the durability: more space before it, the item icon
     // and its total close together.
-    float ammoGap = 8 * z;
+    // 8 units after the durability, 6 between two kinds (8 looked too wide
+    // between a crossbow's arrows and fireworks, 2026-10-12).
+    float ammoGap = 8 * z, ammoKindGap = 6 * z;
     std::array<ItemStack, 2> ammoIcons;
     auto ammoIcon = [&](dur::Ammo kind) -> ItemStack const& {
         auto& stack = ammoIcons[static_cast<size_t>(kind)];
@@ -497,8 +499,9 @@ std::optional<ui::hud_editor::Box> drawDurability(MinecraftUIRenderContext& cont
         texts.push_back(dur::showsNumber(look, row) ? dur::numberText(look, row) : std::string{});
         float w = icon + (dur::showsBar(look) ? gap + barW : 0);
         if (!texts.back().empty()) w += gap + ui::textWidthScaled(context, texts.back(), z);
-        for (auto kind : ammoOf(row))
-            w += ammoGap + icon + gap + ui::textWidthScaled(context, std::to_string(ammo.of(kind)), z);
+        auto kinds = ammoOf(row);
+        for (size_t k = 0; k < kinds.size(); ++k)
+            w += (k ? ammoKindGap : ammoGap) + icon + gap + ui::textWidthScaled(context, std::to_string(ammo.of(kinds[k])), z);
         rowWidths.push_back(w + 2 * z);
         contentW = std::max(contentW, w + 2 * z);
     }
@@ -539,8 +542,10 @@ std::optional<ui::hud_editor::Box> drawDurability(MinecraftUIRenderContext& cont
                             ui::Align::Left, element.shadow);
             cx += gap + ui::textWidthScaled(context, texts[i], z);
         }
-        for (auto kind : ammoOf(row)) {
-            cx += ammoGap;
+        auto kinds = ammoOf(row);
+        for (size_t k = 0; k < kinds.size(); ++k) {
+            auto kind = kinds[k];
+            cx += k ? ammoKindGap : ammoGap;
             if (renderer) {
                 auto const& stack = ammoIcon(kind);
                 if (!stack.isNull())

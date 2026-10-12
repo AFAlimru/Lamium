@@ -479,7 +479,8 @@ and movable through the existing HUD Layout Editor.
   not line up. Decided 2026-10-12: Arabic numerals (level 1 blank) in a
   column of their own; columns laid out by width with no separators: icon,
   name (left), level and time (right-aligned); an unused column takes no
-  room; per-line bands span the table. Built, unchecked.
+  room; per-line bands span the table. Checked in game 2026-10-12
+  (`cd738e5`). Then decided: level 1 shows "1" too. Unchecked.
 
 ### L-150 Arrow-count HUD
 Kind: Design (small), then Ready after counting and visibility are agreed.
@@ -546,6 +547,9 @@ Goal: show the arrows available to the player without opening inventory.
   leggings, boots; "Elytra" (default on) shows a worn elytra at the chest
   position. Checked in game 2026-10-12 (`bc3e830`): same size as the tools,
   the gap, and the separate switches work.
+- Maintainer 2026-10-12: the gap between a crossbow's arrows and fireworks
+  was too wide (8 units); now 6 between kinds, 8 after the durability.
+  Unchecked.
 
 ### L-146 Layer switches on the world map (with the next integration review)
 Kind: Design. Raised by the maintainer 2026-10-11 before the 0.2.0 release;
