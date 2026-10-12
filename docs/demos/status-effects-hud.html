@@ -69,6 +69,21 @@ p{margin:0}
 .more{color:var(--mc-faint);padding:0 2px}
 .ring{box-shadow:0 0 0 1.5px #ff5aa0}
 .legend{font-size:13px;color:var(--ink-2)}
+.rec{display:inline-block;margin-left:5px;padding:0 5px;border:1px solid var(--accent);color:var(--accent);font-size:10px;line-height:15px;vertical-align:1px}
+.seg button[aria-pressed="true"] .rec{border-color:#fff;color:#fff}
+.vanilla{position:absolute;display:grid;gap:2px}
+.vanilla i{width:14px;height:14px;display:block;box-shadow:inset 0 0 0 1px rgba(0,0,0,.5);opacity:.95}
+.vlabel{font:7px/1 var(--mc-font);color:#fff;text-shadow:1px 1px 0 #000;margin-top:2px}
+.settings{border:1px solid var(--line);background:rgba(16,17,19,.92);font:13px/1.2 var(--mc-font);color:#fff;max-width:640px}
+.settings .sec{color:var(--accent);font-size:12px;padding:8px 10px 4px;border-bottom:1px solid rgba(108,195,73,.3)}
+.settings .r{display:grid;grid-template-columns:1fr 46px 92px;align-items:center;gap:8px;padding:5px 10px;border-bottom:1px solid rgba(255,255,255,.05)}
+.settings .r.child .n{padding-left:16px;color:var(--mc-dim)}
+.settings .sw{width:26px;height:12px;background:#48494a;position:relative;justify-self:center}
+.settings .sw::after{content:"";position:absolute;left:1px;top:1px;width:11px;height:10px;background:#d0d1d4}
+.settings .sw.on{background:#3c8527}.settings .sw.on::after{left:14px;background:#fff}
+.settings .k{color:var(--mc-faint);font-size:12px}
+.settings .link{grid-column:2 / span 2;color:var(--accent);text-align:right;font-size:12px}
+.settings .help{padding:7px 10px;color:var(--mc-dim);font-size:12px;border-top:1px solid rgba(255,255,255,.14)}
 @media (prefers-reduced-motion: reduce){.blink .time,.blink.icononly .ic{animation:none}}
 </style>
 </head>
@@ -77,13 +92,13 @@ p{margin:0}
   <div>
     <div class="eyebrow">L-147 · 2026-10-12 · 提案</div>
     <h1>状態効果 HUD の見せ方</h1>
-    <p class="lede">プレイ中に、いま掛かっている効果の名前・レベル・残り時間を読めるようにする HUD 要素。HUD レイアウトエディタで位置・大きさ・背景を変えられる前提で、見せ方の案を比べる。アイコンは仮の色付き四角（ゲームの画像ではない）。</p>
+    <p class="lede">プレイ中に、いま掛かっている効果の名前・レベル・残り時間を読めるようにする HUD 要素。初期位置は右の中ほど（2026-10-12 メンテナー: 右上と左の中ほどは Lamium の他の HUD があり、バニラも右の中ほどに出す）。HUD レイアウトエディタで位置・大きさ・背景を変えられる。アイコンは仮の色付き四角（ゲームの画像ではない）。「おすすめ」は私の推奨。</p>
   </div>
 
   <div class="controls">
     <div class="cgroup"><span>見せ方</span>
       <div class="seg" id="look">
-        <button data-v="list" aria-pressed="true">A 一覧</button>
+        <button data-v="list" aria-pressed="true">A 一覧<span class="rec">おすすめ</span></button>
         <button data-v="icons" aria-pressed="false">B アイコン横並び</button>
         <button data-v="column" aria-pressed="false">C アイコン＋時間の縦列</button>
       </div></div>
@@ -93,20 +108,20 @@ p{margin:0}
         <button data-v="per" aria-pressed="false">行ごと</button>
         <button data-v="none" aria-pressed="false">なし</button>
       </div></div>
-    <div class="cgroup"><span>位置</span>
-      <div class="seg" id="pos">
-        <button data-v="tr" aria-pressed="true">右上</button>
-        <button data-v="ml" aria-pressed="false">左の中ほど</button>
+    <div class="cgroup"><span>バニラの効果表示</span>
+      <div class="seg" id="vanilla">
+        <button data-v="hide" aria-pressed="true">隠す<span class="rec">おすすめ</span></button>
+        <button data-v="show" aria-pressed="false">残す</button>
       </div></div>
     <div class="cgroup"><span>残りわずか（10 秒未満）</span>
       <div class="seg" id="warn">
-        <button data-v="color" aria-pressed="true">色だけ</button>
+        <button data-v="color" aria-pressed="true">色だけ<span class="rec">おすすめ</span></button>
         <button data-v="blink" aria-pressed="false">点滅</button>
         <button data-v="none" aria-pressed="false">何もしない</button>
       </div></div>
     <div class="cgroup"><span>並び順</span>
       <div class="seg" id="order">
-        <button data-v="time" aria-pressed="true">残り時間が短い順</button>
+        <button data-v="time" aria-pressed="true">残り時間が短い順<span class="rec">おすすめ</span></button>
         <button data-v="good" aria-pressed="false">良い効果を先に</button>
         <button data-v="applied" aria-pressed="false">付いた順</button>
       </div></div>
@@ -118,7 +133,7 @@ p{margin:0}
       </div></div>
     <div class="cgroup"><span>多いとき</span>
       <div class="seg" id="overflow">
-        <button data-v="all" aria-pressed="true">全部出す</button>
+        <button data-v="all" aria-pressed="true">全部出す<span class="rec">おすすめ</span></button>
         <button data-v="cap" aria-pressed="false">6 個まで＋「+N」</button>
       </div></div>
     <div class="cgroup"><span>言語</span>
@@ -131,21 +146,39 @@ p{margin:0}
   <div class="stage-outer" id="outer"><div class="stage" id="stage"></div></div>
   <p class="note" id="explain"></p>
 
+  <div>
+    <h2>設定画面での並び（案）</h2>
+    <p class="note" style="margin-bottom:10px">「情報・オーバーレイ」の中に 1 機能として置く。見せ方の細かい設定は子の行に、位置・大きさ・背景は他の HUD と同じく HUD レイアウトで変える。</p>
+    <div class="settings" id="settings"></div>
+  </div>
+
+  <div class="box">
+    <h2>おすすめ（理由）</h2>
+    <ul>
+      <li><b>見せ方は A 一覧を基本に、「名前を表示」を切ると C（アイコン＋時間）になる</b>。この機能の目的が名前と時間を読めることなので A が基本。C は A から名前を抜いただけなので設定 1 つで両方まかなえる。B（横並び）は作りが別になるので最初は作らない。</li>
+      <li><b>バニラの効果表示はこの HUD がオンのとき隠す（子の設定で残せる）</b>。同じ右の中ほどに 2 つ出ると重なる。隠す方法が確かめられなければ、バニラ表示はそのまま残す（安全側）。</li>
+      <li><b>残りわずかは色だけ、点滅しない</b>。点滅は目立つが気が散りやすく、目の負担にもなる。しきい値は 10 秒。ビーコンの効果は数秒ごとに付け直されて短い時間を行き来するので、警告の色を付けない。</li>
+      <li><b>並び順は残り時間が短い順、無期限（∞）は最後</b>。切れそうなものが一番上に来る。</li>
+      <li><b>多いときは全部出す</b>。普段 6 個を超えることは少なく、多すぎるときは HUD レイアウトで縮小できる。</li>
+      <li><b>最初はオフ</b>（他の HUD と同じ）。切り替えキーは未割り当てで、付けられる。</li>
+    </ul>
+  </div>
+
   <div class="box">
     <h2>確認したいこと</h2>
     <ul>
-      <li>見せ方は A / B / C のどれにするか（A を基本にして B を選択肢にする、なども可）。</li>
-      <li>初期の位置（右上か、左の中ほどか）と、最初からオンにするか。</li>
+      <li>見せ方は A / B / C のどれにするか（おすすめ: A を基本、名前なしで C）。</li>
+      <li>設定画面の行の分け方（上の案）と、最初からオンにするか。</li>
       <li>残りわずかの表し方（色だけ / 点滅 / なし）。点滅は目立つが、うるさく感じるかもしれない。</li>
       <li>無期限の効果（コマンドなど）は「∞」で出す。ビーコンの効果は数秒ごとに付け直されるので、残り時間が短いまま点滅し続けないよう、残りわずかの扱いから外すか。</li>
       <li>並び順と、多いときにまとめるか。</li>
-      <li>バニラの効果表示（画面のアイコン）は、この HUD がオンのとき隠すか、残すか。</li>
+      <li>バニラの効果表示（画面のアイコン）は、この HUD がオンのとき隠すか、残すか（おすすめ: 隠す）。</li>
     </ul>
   </div>
 </div>
 
 <script>
-const state = {look:'list', bg:'card', pos:'tr', warn:'color', order:'time', count:'6', overflow:'all', lang:'ja'};
+const state = {look:'list', bg:'card', vanilla:'hide', warn:'color', order:'time', count:'6', overflow:'all', lang:'ja'};
 // Placeholder effects: [ja, en, color, good, level, seconds (null = infinite), order applied]
 const EFFECTS = [
   ['移動速度上昇','Speed','#7cafc6',true,2,165,3],
@@ -191,11 +224,40 @@ function render(){
     else hud.appendChild(el('div','tile'+cls+' icononly', `${icon}<span class="time">${fmt(sec)}</span>`));
   }
   if (more) hud.appendChild(el('div', state.look==='icons'?'tile':'row', `<span class="more">+${more}</span>`));
-  if (state.pos==='tr'){ hud.style.right='6px'; hud.style.top='6px'; }
-  else { hud.style.left='6px'; hud.style.top='120px'; }
+  hud.style.right='6px'; hud.style.top='50%'; hud.style.transform='translateY(-50%)';
+  if (state.vanilla==='show') {
+    // Vanilla's own effect icons (placeholder), also at the right middle.
+    const v = el('div','vanilla'); v.style.right='6px'; v.style.top='150px';
+    for (const e of list.slice(0,4)) { const i=el('i'); i.style.background=e[2]; v.appendChild(i); }
+    v.appendChild(el('div','vlabel','バニラ'));
+    s.appendChild(v);
+    hud.style.right='30px';
+  }
   s.appendChild(hud);
+  renderSettings();
   document.getElementById('explain').innerHTML = EXPLAIN[state.look] + ' 名前の赤みは悪い効果。時間の黄色は残り 10 秒未満。∞ は無期限。';
   fit();
+}
+function renderSettings(){
+  const en = state.lang==='en';
+  const rows = [
+    ['sec', en?'HUD & overlays':'情報・オーバーレイ'],
+    ['row', en?'Status effects HUD':'状態効果 HUD', 'off', en?'Unbound':'未割り当て'],
+    ['child', en?'Show names: On':'名前を表示: ON', 'on'],
+    ['child', en?'Color effects running out: On':'残りわずかを色で示す: ON', 'on'],
+    ['child', en?'Hide the vanilla effect icons: On':'バニラの効果表示を隠す: ON', 'on'],
+    ['link', en?'Placement and look':'配置と見た目', en?'Edit in HUD layout >':'HUD レイアウトで編集 >'],
+  ];
+  const box = document.getElementById('settings'); box.innerHTML='';
+  for (const r of rows) {
+    if (r[0]==='sec') { box.appendChild(el('div','sec',r[1])); continue; }
+    if (r[0]==='link') { box.appendChild(el('div','r child','<span class="n">'+r[1]+'</span><span class="link">'+r[2]+'</span>')); continue; }
+    box.appendChild(el('div','r'+(r[0]==='child'?' child':''),
+      '<span class="n">'+r[1]+'</span><span class="sw '+(r[2]==='on'?'on':'')+'"></span><span class="k">'+(r[3]||'')+'</span>'));
+  }
+  box.appendChild(el('div','help', en
+    ? 'Shows active effects with their level and remaining time. Placement, size and background are set in HUD layout.'
+    : 'いま掛かっている効果を、レベルと残り時間つきで表示します。位置・大きさ・背景は HUD レイアウトで変えます。'));
 }
 function fit(){
   const o=document.getElementById('outer'), s=document.getElementById('stage');

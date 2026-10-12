@@ -41,7 +41,17 @@ LL_TYPE_INSTANCE_HOOK(PortalTick, ll::memory::HookPriority::Normal, LocalPlayer,
     std::string before;
     try { before = screen(); } catch (...) {}
     origin();
+    // Experiment (trace builds only): the effect time back to 0 after each
+    // tick. Does the purple overlay go, does the inventory stay open, does
+    // the transfer still happen?
+    bool zeroed = false;
+    if (static_cast<float>(mPortalEffectTime) > 0 || static_cast<float>(mOPortalEffectTime) > 0) {
+        mPortalEffectTime = 0.f;
+        mOPortalEffectTime = 0.f;
+        zeroed = true;
+    }
     try {
+        if (zeroed) log("effect time zeroed after the tick");
         auto now = screen();
         bool active = static_cast<float>(mPortalEffectTime) > 0 || static_cast<float>(mOPortalEffectTime) > 0 || isInsidePortal();
         if (active || now != before) log(std::format("tick: {} screen {} -> {}", fields(*this), before, now));

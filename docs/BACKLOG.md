@@ -421,6 +421,12 @@ and movable through the existing HUD Layout Editor.
 - 2026-10-12: mockup [demos/status-effects-hud.html](demos/status-effects-hud.html)
   (A list, B icons with times, C icon-and-time column; backgrounds, position,
   short-time warning, order, overflow, language) under review.
+- Maintainer 2026-10-12: default position right middle (top right and left
+  middle already hold Lamium HUDs; vanilla shows effects at the right
+  middle). Asked for the settings rows, vanilla HUD suppression and the
+  agent's picks in the mockup; added (A list with a "Show names" child that
+  gives C, hide vanilla icons while on, color-only warning under 10 s except
+  beacon effects, shortest first with infinite last, show all, default off).
 
 ### L-148 Hide the Nether portal overlay
 Kind: Research, then Design/Ready once the drawing route is established.
@@ -442,6 +448,13 @@ contact, the time in the portal or dimension transfer.
   and `LocalPlayer::handleInsidePortal`. Trace build `--portal_trace=y`
   (`src/features/visuals/PortalTrace.cpp`) logs them per tick with the top
   screen name; awaiting a run through a portal.
+- Trace run 2026-10-12 (survival, local): touching the portal,
+  `handleInsidePortal` sets `mEnablePortalEffect`; from the next
+  `normalTick` the effect time rises 0.0125 per tick (0 to 1 in about 4 s,
+  transfer at 1.0), and in that same tick the open inventory closed
+  (inventory_screen -> hud_screen). Next trace build: the effect time is set
+  back to 0 after every tick, to see whether the overlay goes, the inventory
+  stays open and the transfer still happens.
 
 ### L-149 Allow inventory access in portals
 Kind: Research, with Design if screen behavior choices remain.
@@ -481,6 +494,10 @@ Goal: show the arrows available to the player without opening inventory.
   hotbar shows only the held stack's count; tridents need no ammo. Options
   under discussion: what to count per held item, and where to show it (the
   Durability HUD's held-item row, beside the hotbar slot, or a new element).
+- Maintainer 2026-10-12: extend the Durability HUD rather than a new element:
+  with a bow the arrows, with a crossbow arrows and fireworks, with elytra the
+  fireworks. Tipped arrows count with plain arrows (showing them separately
+  is wanted if feasible; a later mockup may settle it).
 
 ### L-146 Layer switches on the world map (with the next integration review)
 Kind: Design. Raised by the maintainer 2026-10-11 before the 0.2.0 release;
