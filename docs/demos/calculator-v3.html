@@ -90,6 +90,11 @@ code{font:13px ui-monospace,Consolas,monospace;color:var(--ink)}
         <button data-v="ja" aria-pressed="true">日本語</button>
         <button data-v="en" aria-pressed="false">English</button>
       </div></div>
+    <div class="cgroup"><span>ボタンの並び</span>
+      <div class="seg" id="keys">
+        <button data-v="grid" aria-pressed="true">B 6 列にそろえる（関数電卓型）</button>
+        <button data-v="blocks" aria-pressed="false">A 前の案</button>
+      </div></div>
     <div class="cgroup"><span>画面</span>
       <div class="seg" id="size">
         <button data-v="normal" aria-pressed="true">640 x 360（GUI 単位）</button>
@@ -113,7 +118,7 @@ code{font:13px ui-monospace,Consolas,monospace;color:var(--ink)}
 
 <script>
 const POS = {x:-85, y:71, z:52};
-const state = {lang:'ja', size:'normal', menu:null, help:false, recalled:-1, draft:'', text:'20 lc - 1234', caret:12, hover:-1, tip:null,
+const state = {lang:'ja', size:'normal', keys:'grid', menu:null, help:false, recalled:-1, draft:'', text:'20 lc - 1234', caret:12, hover:-1, tip:null,
   history:[{e:'27 * 64', r:1728}, {e:'nether(-2380)', r:-297.5}, {e:'4 st + 13', r:269}, {e:'x * y * z', r:-319940}, {e:'3 sb / 7', r:740.571429}, {e:'x', r:-85}, {e:'ticks(90)', r:1800}, {e:'ans / 2', r:900}, {e:'2 lc + 5 st', r:7232}]};
 const T = {
   ja:{title:'計算機', esc:'Esc: 閉じる', hist:'履歴', copy:'コピー', copyLine:'式ごとコピー', copyAmount:'換算をコピー', st:'スタック', ch:'チェスト',
@@ -140,6 +145,17 @@ const FUNCS = [
   [['ticks','ticks(','fn'],['secs','secs(','fn'],['pi','pi','var']],
 ];
 const BOTTOM = [['st','st','unit'],['ch','ch','unit'],['lc','lc','unit'],['x','x','var'],['y','y','var'],['z','z','var']];
+// B: one six-column grid like a scientific calculator: digits in the usual
+// place (7 8 9 on top), operators down the right, functions down the left.
+const GRID = [
+  [['st','st','unit'],['ch','ch','unit'],['lc','lc','unit'],['x','x','var'],['y','y','var'],['z','z','var']],
+  [['sqrt','sqrt(','fn'],['abs','abs(','fn'],['(','(','op'],[')',')','op'],['C','clear','op'],['⌫','back','op']],
+  [['round','round(','fn'],['floor','floor(','fn'],['7','7'],['8','8'],['9','9'],['÷','/','op']],
+  [['ceil','ceil(','fn'],['min','min(','fn'],['4','4'],['5','5'],['6','6'],['×','*','op']],
+  [['max','max(','fn'],['^','^','op'],['1','1'],['2','2'],['3','3'],['−','-','op']],
+  [['nether','nether(','fn'],['ow','ow(','fn'],['0','0'],['.','.'],['ans','ans','var'],['+','+','op']],
+  [['ticks','ticks(','fn'],['secs','secs(','fn'],[',',', ','op'],['pi','pi','var'],['%','%','op'],['=','eq','eq']],
+];
 // One copy button per result: the body copies the value, the arrow offers the line and the chest amount.
 function splitCopy(s, x, y, id, value, line, am, L){
   const body = el('btn t', x, y, 34, 12, L.copy);
@@ -287,6 +303,18 @@ function render(){
   s.appendChild(el('t dim', lx, y + 1, leftW, 9, am || '&nbsp;'));
   y += 15;
   const gap = 3, kw = (leftW - 4*gap) / 5, kh = small ? 13 : 17;
+  const keyB = (label, code, kind, x0, y0, w, h) => {
+    const k = el('key ' + (kind || ''), x0, y0, w, h, label);
+    k.onclick = () => press(code);
+    const tip = L.tips[code.replace('(','')] || L.tips[label];
+    if (tip) { k.onmouseenter = () => { state.tip = {text:tip, x:x0, y:y0 - 12}; renderTip(); }; k.onmouseleave = () => { state.tip = null; renderTip(); }; }
+    s.appendChild(k);
+  };
+  if (state.keys === 'grid') {
+    const cw = (leftW - 5*gap) / 6, rh = small ? 15 : 20;
+    GRID.forEach((row, r) => row.forEach(([label, code, kind], c) =>
+      keyB(label, code, kind, lx + c*(cw+gap), y + r*(rh+gap) + (r > 0 ? 3 : 0), cw, rh)));
+  } else {
   const key = (label, code, kind, x0, y0, w, h) => {
     const k = el('key ' + (kind || ''), x0, y0, w, h, label);
     k.onclick = () => press(code);
@@ -312,6 +340,7 @@ function render(){
     const w = (leftW - (row.length - 1)*gap) / row.length;
     row.forEach(([label, code, kind], c) => key(label, code, kind, lx + c*(w+gap), y + r*(fh+gap), w, fh));
   });
+  }
 
   // ---- Right: history cards ----
   const rx = X + pad + leftW + 10, rw = W - leftW - 2*pad - 10;
@@ -368,7 +397,7 @@ function fit(){
   stage.style.transform = `scale(${scale})`;
   outer.style.height = (SH*scale) + 'px';
 }
-for (const id of ['lang','size']) {
+for (const id of ['lang','size','keys']) {
   document.getElementById(id).addEventListener('click', e => {
     const b = e.target.closest('button'); if (!b) return;
     state[id] = b.dataset.v;
