@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Status Effects HUD</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Noto+Sans+JP:wght@400;500;700&display=swap">
+<style>
+:root{
+  color-scheme: dark;
+  --ground:#15181a; --ground-2:#1c2124; --line:#2c3337; --ink:#e6ebe8; --ink-2:#a6b0ab; --ink-3:#77827c;
+  --accent:#6cc349; --accent-deep:#3c8527;
+  /* In-game tokens (src/ui/Widgets.h palette). */
+  --mc-panel:16,17,19; --mc-text:#ffffff; --mc-dim:#b4b8b6; --mc-faint:#7f8583; --mc-warn:#ffc24a; --mc-bad:#e0503c;
+  --mc-font:"DotGothic16","MS Gothic","Osaka-Mono",monospace;
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font:15px/1.65 "Noto Sans JP",system-ui,sans-serif;margin:0}
+.wrap{max-width:1120px;margin:0 auto;padding:28px 16px 64px;display:grid;gap:22px}
+h1{font:700 26px/1.25 "Noto Sans JP",sans-serif;margin:0;text-wrap:balance}
+h2{font:700 18px/1.4 "Noto Sans JP",sans-serif;margin:0 0 8px}
+p{margin:0}
+.lede{color:var(--ink-2);max-width:74ch;margin-top:8px}
+.eyebrow{font:500 12px/1 "Noto Sans JP",sans-serif;letter-spacing:.12em;color:var(--accent);margin-bottom:10px}
+.controls{display:flex;flex-wrap:wrap;gap:14px 26px;align-items:start}
+.cgroup{display:grid;gap:6px}
+.cgroup > span{font-size:12px;color:var(--ink-3);letter-spacing:.04em}
+.seg{display:inline-flex;flex-wrap:wrap;border:1px solid var(--line);background:var(--ground-2);max-width:100%}
+.seg button{all:unset;cursor:pointer;padding:7px 12px;color:var(--ink-2);font:500 13px/1.2 "Noto Sans JP",sans-serif;border-right:1px solid var(--line)}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--accent-deep);color:#fff}
+.seg button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.note{color:var(--ink-2);font-size:14px;max-width:84ch}
+.note b{color:var(--ink)}
+.box{border:1px solid var(--line);background:var(--ground-2);padding:14px 18px}
+.box ul{margin:6px 0 0;padding-left:20px}
+.box li{margin:4px 0;color:var(--ink-2)}
+
+/* ---- Stage: the screen in GUI units (640 x 360), scaled to the page ---- */
+.stage-outer{border:1px solid var(--line);overflow:hidden;position:relative;
+  background:linear-gradient(#5f86b5 0%,#9cc3e6 46%,#6f9a4a 47%,#4f7a33 72%,#3b5c27 100%)}
+.stage{position:absolute;left:0;top:0;width:640px;height:360px;transform-origin:0 0;font:8px/1 var(--mc-font);color:var(--mc-text);user-select:none}
+.abs{position:absolute}
+.hotbar{left:229px;bottom:3px;width:182px;height:22px;display:flex;gap:0;background:rgba(0,0,0,.35);box-shadow:inset 0 0 0 1px rgba(160,160,160,.5)}
+.hotbar i{flex:1;box-shadow:inset 0 0 0 1px rgba(90,90,90,.6)}
+.hearts{left:229px;bottom:30px;color:#e0503c;font-size:9px;letter-spacing:-1px;text-shadow:1px 1px 0 #000}
+.food{right:229px;bottom:30px;color:#c98a3c;font-size:9px;letter-spacing:-1px;text-shadow:1px 1px 0 #000}
+.cross{left:316px;top:176px;color:#fff;font-size:10px;text-shadow:0 0 1px #000}
+.hud{position:absolute;display:grid;gap:1px;text-shadow:1px 1px 0 rgba(0,0,0,.75)}
+.hud.card{background:rgba(var(--mc-panel),.55);padding:3px 4px}
+.hud.icons{display:flex;gap:3px;align-items:start}
+.hud.column{gap:2px}
+.row{display:flex;align-items:center;gap:4px;height:12px;padding:0 2px;white-space:nowrap}
+.hud.per .row{background:rgba(var(--mc-panel),.55)}
+.ic{width:10px;height:10px;flex:none;display:grid;place-items:center;font-size:6px;color:#fff;box-shadow:inset 0 0 0 1px rgba(0,0,0,.45)}
+.name{color:var(--mc-text)}
+.time{color:var(--mc-dim);margin-left:auto;padding-left:6px}
+.bad .name{color:#ffb4a8}
+.warn .time{color:var(--mc-warn)}
+.blink .time{animation:blink 1s steps(2,start) infinite}
+.blink.icononly .ic{animation:blink 1s steps(2,start) infinite}
+@keyframes blink{to{visibility:hidden}}
+.tile{display:grid;justify-items:center;gap:1px;padding:2px 1px;min-width:22px}
+.hud.per .tile{background:rgba(var(--mc-panel),.55)}
+.tile .ic{width:12px;height:12px}
+.tile .time{margin:0;padding:0;font-size:7px}
+.more{color:var(--mc-faint);padding:0 2px}
+.ring{box-shadow:0 0 0 1.5px #ff5aa0}
+.legend{font-size:13px;color:var(--ink-2)}
+@media (prefers-reduced-motion: reduce){.blink .time,.blink.icononly .ic{animation:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div>
+    <div class="eyebrow">L-147 · 2026-10-12 · 提案</div>
+    <h1>状態効果 HUD の見せ方</h1>
+    <p class="lede">プレイ中に、いま掛かっている効果の名前・レベル・残り時間を読めるようにする HUD 要素。HUD レイアウトエディタで位置・大きさ・背景を変えられる前提で、見せ方の案を比べる。アイコンは仮の色付き四角（ゲームの画像ではない）。</p>
+  </div>
+
+  <div class="controls">
+    <div class="cgroup"><span>見せ方</span>
+      <div class="seg" id="look">
+        <button data-v="list" aria-pressed="true">A 一覧</button>
+        <button data-v="icons" aria-pressed="false">B アイコン横並び</button>
+        <button data-v="column" aria-pressed="false">C アイコン＋時間の縦列</button>
+      </div></div>
+    <div class="cgroup"><span>背景</span>
+      <div class="seg" id="bg">
+        <button data-v="card" aria-pressed="true">カード</button>
+        <button data-v="per" aria-pressed="false">行ごと</button>
+        <button data-v="none" aria-pressed="false">なし</button>
+      </div></div>
+    <div class="cgroup"><span>位置</span>
+      <div class="seg" id="pos">
+        <button data-v="tr" aria-pressed="true">右上</button>
+        <button data-v="ml" aria-pressed="false">左の中ほど</button>
+      </div></div>
+    <div class="cgroup"><span>残りわずか（10 秒未満）</span>
+      <div class="seg" id="warn">
+        <button data-v="color" aria-pressed="true">色だけ</button>
+        <button data-v="blink" aria-pressed="false">点滅</button>
+        <button data-v="none" aria-pressed="false">何もしない</button>
+      </div></div>
+    <div class="cgroup"><span>並び順</span>
+      <div class="seg" id="order">
+        <button data-v="time" aria-pressed="true">残り時間が短い順</button>
+        <button data-v="good" aria-pressed="false">良い効果を先に</button>
+        <button data-v="applied" aria-pressed="false">付いた順</button>
+      </div></div>
+    <div class="cgroup"><span>効果の数</span>
+      <div class="seg" id="count">
+        <button data-v="3" aria-pressed="false">3 個</button>
+        <button data-v="6" aria-pressed="true">6 個</button>
+        <button data-v="10" aria-pressed="false">10 個</button>
+      </div></div>
+    <div class="cgroup"><span>多いとき</span>
+      <div class="seg" id="overflow">
+        <button data-v="all" aria-pressed="true">全部出す</button>
+        <button data-v="cap" aria-pressed="false">6 個まで＋「+N」</button>
+      </div></div>
+    <div class="cgroup"><span>言語</span>
+      <div class="seg" id="lang">
+        <button data-v="ja" aria-pressed="true">日本語</button>
+        <button data-v="en" aria-pressed="false">English</button>
+      </div></div>
+  </div>
+
+  <div class="stage-outer" id="outer"><div class="stage" id="stage"></div></div>
+  <p class="note" id="explain"></p>
+
+  <div class="box">
+    <h2>確認したいこと</h2>
+    <ul>
+      <li>見せ方は A / B / C のどれにするか（A を基本にして B を選択肢にする、なども可）。</li>
+      <li>初期の位置（右上か、左の中ほどか）と、最初からオンにするか。</li>
+      <li>残りわずかの表し方（色だけ / 点滅 / なし）。点滅は目立つが、うるさく感じるかもしれない。</li>
+      <li>無期限の効果（コマンドなど）は「∞」で出す。ビーコンの効果は数秒ごとに付け直されるので、残り時間が短いまま点滅し続けないよう、残りわずかの扱いから外すか。</li>
+      <li>並び順と、多いときにまとめるか。</li>
+      <li>バニラの効果表示（画面のアイコン）は、この HUD がオンのとき隠すか、残すか。</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+const state = {look:'list', bg:'card', pos:'tr', warn:'color', order:'time', count:'6', overflow:'all', lang:'ja'};
+// Placeholder effects: [ja, en, color, good, level, seconds (null = infinite), order applied]
+const EFFECTS = [
+  ['移動速度上昇','Speed','#7cafc6',true,2,165,3],
+  ['再生能力','Regeneration','#cd5cab',true,1,8,6],
+  ['火炎耐性','Fire Resistance','#e49a3a',true,1,479,2],
+  ['暗視','Night Vision','#1f1fa1',true,1,null,1],
+  ['毒','Poison','#4e9331',false,1,4,7],
+  ['耐性','Resistance','#99453a',true,1,90,4],
+  ['跳躍力上昇','Jump Boost','#22ff4c',true,2,60,5],
+  ['採掘速度上昇','Haste','#d9c043',true,2,1800,8],
+  ['弱体化','Weakness','#484d48',false,1,30,9],
+  ['水中呼吸','Water Breathing','#2e5299',true,1,7200,10],
+];
+const ROMAN = ['','','II','III','IV','V'];
+const EXPLAIN = {
+  list:'<b>A 一覧：</b>アイコン・名前・レベル・残り時間を 1 行に。いちばん読みやすいが横幅を取る。名前が長い言語ほど広がる。',
+  icons:'<b>B アイコン横並び：</b>アイコンの下に残り時間だけ。小さく収まるが、アイコンで効果を覚えている必要がある。',
+  column:'<b>C 縦列：</b>アイコンと時間を 1 行に、名前なし。A より細く、B より時間が読みやすい。',
+};
+function fmt(sec){ if (sec===null) return '∞'; const m=Math.floor(sec/60), s=sec%60; return m>=60 ? `${Math.floor(m/60)}:${String(m%60).padStart(2,'0')}:${String(s).padStart(2,'0')}` : `${m}:${String(s).padStart(2,'0')}`; }
+function el(tag, cls, html){ const d=document.createElement(tag); if(cls) d.className=cls; if(html!=null) d.innerHTML=html; return d; }
+function render(){
+  const s=document.getElementById('stage'); s.innerHTML='';
+  s.appendChild(Object.assign(el('div','abs hotbar'),{innerHTML:'<i></i>'.repeat(9)}));
+  s.appendChild(el('div','abs hearts','♥♥♥♥♥♥♥♥♥♥'));
+  s.appendChild(el('div','abs food','🍗🍗🍗🍗🍗🍗🍗🍗🍗🍗'.replace(/🍗/g,'◆')));
+  s.appendChild(el('div','abs cross','+'));
+  let list = EFFECTS.slice(0, Number(state.count));
+  if (state.order==='time') list.sort((a,b)=>(a[5]??1e9)-(b[5]??1e9));
+  if (state.order==='good') list.sort((a,b)=>(a[3]===b[3]?((a[5]??1e9)-(b[5]??1e9)):(a[3]?-1:1)));
+  if (state.order==='applied') list.sort((a,b)=>a[6]-b[6]);
+  let more = 0;
+  if (state.overflow==='cap' && list.length>6){ more=list.length-6; list=list.slice(0,6); }
+  const hud = el('div','hud '+(state.bg==='card'?'card':state.bg==='per'?'per':'')+(state.look==='icons'?' icons':state.look==='column'?' column':''));
+  for (const e of list){
+    const [ja,en,color,good,level,sec] = e;
+    const name = (state.lang==='ja'?ja:en) + (level>1?' '+ROMAN[level]:'');
+    const warn = sec!==null && sec<10;
+    const cls = (good?'':' bad')+(warn&&state.warn!=='none'?' warn':'')+(warn&&state.warn==='blink'?' blink':'');
+    const icon = `<span class="ic" style="background:${color}">${(state.lang==='ja'?ja:en)[0]}</span>`;
+    if (state.look==='list') hud.appendChild(el('div','row'+cls, `${icon}<span class="name">${name}</span><span class="time">${fmt(sec)}</span>`));
+    else if (state.look==='column') hud.appendChild(el('div','row'+cls, `${icon}<span class="time" style="margin-left:0">${level>1?ROMAN[level]+' ':''}${fmt(sec)}</span>`));
+    else hud.appendChild(el('div','tile'+cls+' icononly', `${icon}<span class="time">${fmt(sec)}</span>`));
+  }
+  if (more) hud.appendChild(el('div', state.look==='icons'?'tile':'row', `<span class="more">+${more}</span>`));
+  if (state.pos==='tr'){ hud.style.right='6px'; hud.style.top='6px'; }
+  else { hud.style.left='6px'; hud.style.top='120px'; }
+  s.appendChild(hud);
+  document.getElementById('explain').innerHTML = EXPLAIN[state.look] + ' 名前の赤みは悪い効果。時間の黄色は残り 10 秒未満。∞ は無期限。';
+  fit();
+}
+function fit(){
+  const o=document.getElementById('outer'), s=document.getElementById('stage');
+  const k=o.clientWidth/640; s.style.transform=`scale(${k})`; o.style.height=(360*k)+'px';
+}
+for (const id of Object.keys(state)) {
+  document.getElementById(id).addEventListener('click', e=>{
+    const b=e.target.closest('button'); if(!b) return;
+    state[id]=b.dataset.v;
+    for (const x of b.parentElement.children) x.setAttribute('aria-pressed', x===b?'true':'false');
+    render();
+  });
+}
+window.addEventListener('resize', fit);
+render();
+</script>
+</body>
+</html>

@@ -418,6 +418,9 @@ and movable through the existing HUD Layout Editor.
 - Checks when built: all three languages, GUI scales, Desktop/Pocket UI,
   editor preview/save, F1, Debug View, inventory screens, renewal/removal,
   world/dimension exit, resource packs and servers. No runtime evidence yet.
+- 2026-10-12: mockup [demos/status-effects-hud.html](demos/status-effects-hud.html)
+  (A list, B icons with times, C icon-and-time column; backgrounds, position,
+  short-time warning, order, overflow, language) under review.
 
 ### L-148 Hide the Nether portal overlay
 Kind: Research, then Design/Ready once the drawing route is established.
@@ -434,6 +437,11 @@ contact, the time in the portal or dimension transfer.
 - Checks when built: hiding/restoration with child and master, other effects,
   portal entry/exit and dimension transitions, supported graphics modes and
   resource packs. Unsupported routes retain vanilla drawing.
+- Leads (SDK, 2026-10-12, unverified): `LocalPlayer::mPortalEffectTime` /
+  `mOPortalEffectTime` (likely the overlay's strength), `mEnablePortalEffect`,
+  and `LocalPlayer::handleInsidePortal`. Trace build `--portal_trace=y`
+  (`src/features/visuals/PortalTrace.cpp`) logs them per tick with the top
+  screen name; awaiting a run through a portal.
 
 ### L-149 Allow inventory access in portals
 Kind: Research, with Design if screen behavior choices remain.
@@ -451,6 +459,8 @@ Goal: open and use the ordinary inventory while inside a Nether portal.
   authoritative item movement/swaps/crafting, before/during transfer,
   return through the portal, disable and restoration after leaving it.
   Defer if feasibility requires deep invasive hooks or state divergence.
+- 2026-10-12: the L-148 portal trace also logs the top screen around
+  `handleInsidePortal`, to see where and when the inventory is closed.
 
 ### L-150 Arrow-count HUD
 Kind: Design (small), then Ready after counting and visibility are agreed.
@@ -463,6 +473,14 @@ Goal: show the arrows available to the player without opening inventory.
   Review overlap with Inventory HUD before choosing presentation.
 - Keep counting bounded; show only client-observed contents. Test the agreed
   pure counting rules and later verify consumption/refill and HUD behavior.
+- Scope survey (2026-10-12, maintainer asked to consider more than arrows):
+  bows use arrows and tipped arrows (Bedrock has no spectral arrows);
+  crossbows also load firework rockets; rockets boost elytra flight;
+  throwables are their own ammo (snowballs, eggs, ender pearls, wind
+  charges, splash and lingering potions, bottles o' enchanting), where the
+  hotbar shows only the held stack's count; tridents need no ammo. Options
+  under discussion: what to count per held item, and where to show it (the
+  Durability HUD's held-item row, beside the hotbar slot, or a new element).
 
 ### L-146 Layer switches on the world map (with the next integration review)
 Kind: Design. Raised by the maintainer 2026-10-11 before the 0.2.0 release;

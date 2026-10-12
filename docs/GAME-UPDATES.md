@@ -159,6 +159,10 @@ with the local player's own input states; `startBuildBlock`, `buildBlock` and
 `useItemOn` (base and survival) before a slab is placed, with the clicked block
 and face (the held item read from the building hand). Gated (Edge Guard).
 
+### `src/features/visuals/PortalTrace.cpp`
+Hooks: `PortalInside`, `PortalTick`
+Trace.
+
 ### `src/features/interaction/InventoryMoveTrace.cpp`
 Hooks: `InventoryMoveExtract`, `InventoryMoveClear`, `InventoryMoveLocks`, `InventoryMoveCalc`, `InventoryMoveUpdate`, `InventoryMoveSend`, `InventoryMoveCorrection`, `InventoryMoveAbsorb`, `InventoryMoveMapping`
 Trace.

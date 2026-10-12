@@ -14,6 +14,7 @@
 #include "features/research/TradeTrace.h"
 #include "features/interaction/InventoryMoveTrace.h"
 #include "features/visuals/ConnectedTexturesHooks.h"
+#include "features/visuals/PortalTrace.h"
 #include "features/inspection/LockedTrades.h"
 #include "features/inspection/EnglishSearch.h"
 #include "features/interaction/EdgeGuard.h"
@@ -155,6 +156,7 @@ Feature const features[] = {
     {"Effect visibility", started<visuals::effects::start>, visuals::effects::stop},
     {"Debug View vanilla HUD", started<information::debugVanilla::start>, information::debugVanilla::stop},
     {"Effect diagnostics", started<visuals::effectTrace::start>, visuals::effectTrace::stop},
+    {"Portal diagnostics", started<visuals::portalTrace::start>, visuals::portalTrace::stop},
 };
 }
 #ifdef LAMIUM_FEATURE_SKIP
