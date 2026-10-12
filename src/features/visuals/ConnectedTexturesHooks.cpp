@@ -1,5 +1,6 @@
 #include "features/visuals/ConnectedTexturesHooks.h"
 #include "features/visuals/ConnectedTextures.h"
+#include "features/visuals/ConnectedSpritesTrace.h"
 #include "app/Runtime.h"
 #include "app/Versions.h"
 #include "ll/api/memory/Hook.h"
@@ -76,6 +77,20 @@ LL_TYPE_INSTANCE_HOOK(ConnectedBlock, ll::memory::HookPriority::Normal, BlockTes
     current = saved;
     return result;
 }
+#ifdef LAMIUM_CTSPRITE_TRACE
+// L-164 spike: plain glass joined on all four sides draws as one quad with the
+// generated sprite instead of split cells.
+std::optional<TextureUVCoordinateSet> spriteFace(Face face, Block const& block) {
+    try {
+        if (current.block != &block || !current.region || block.getTypeName() != "minecraft:glass") return std::nullopt;
+        auto s = sides(face);
+        if (!(sameAt(block, s.left) && sameAt(block, s.right) && sameAt(block, s.top) && sameAt(block, s.bottom))) return std::nullopt;
+        return sprites::joinedGlass();
+    } catch (...) { return std::nullopt; }
+}
+#else
+std::optional<TextureUVCoordinateSet> spriteFace(Face, Block const&) { return std::nullopt; }
+#endif
 // The cells a split rule draws this face as; one cell means draw it as is.
 std::vector<Cell> faceCells(Face face, Block const& block) {
     if (current.block != &block || !current.region || !current.rule.split) return {};
@@ -178,7 +193,7 @@ void shapeCells(Tessellator& tessellator, TextureUVCoordinateSet const& tex, siz
 #define LAMIUM_CONNECTED_FACE(Name, Function, FaceId)                                                                        \
     LL_TYPE_INSTANCE_HOOK(Name, ll::memory::HookPriority::Normal, BlockTessellator, &BlockTessellator::Function, void,     \
         Tessellator& tessellator, Block const& block, Vec3 const& p, TextureUVCoordinateSet const& tex) {                   \
-        if (current.block != &block) return origin(tessellator, block, p, tex);                                             \
+        if (current.block != &block) return origin(tessellator, block, p, tex);                                                     if (auto sprite = spriteFace(FaceId, block)) return origin(tessellator, block, p, *sprite);                          \
         std::vector<Cell> cells;                                                                                            \
         try { cells = faceCells(FaceId, block); } catch (...) {}                                                            \
         if (cells.size() > 1) {                                                                                             \
@@ -339,6 +354,9 @@ bool start() {
     // Chunk meshes are version-sensitive: on an unverified game, stay vanilla.
     supported = versionSensitiveAllowed("Connected Textures (chunk mesh vertices)");
     if (!supported) return true;
+#ifdef LAMIUM_CTSPRITE_TRACE
+    sprites::start();
+#endif
     // Chunks built on joining a world already follow the switch.
     try { active = Runtime::instance().snapshot()->visuals.connectedTextures; } catch (...) {}
     for (auto& hook : hooks)

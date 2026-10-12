@@ -288,6 +288,10 @@ tessellator (render layer, shape set, region), the mesh data streams
 material names `beacon_beam_transparent`, `holo_hand_pointer`. Gated
 (Schematic ghost blocks; entity models in `GhostMarks.cpp`).
 
+### `src/features/visuals/ConnectedSpritesTrace.cpp`
+Hooks: `SpriteAtlas`, `SpriteImageSync`
+Trace (L-164 spike, `ctsprite_trace`).
+
 ### `src/features/visuals/ConnectedTexturesHooks.cpp`
 Hooks: `ConnectedBlock`, `Name`, `ConnectedPane`, `ConnectedPaneGlass`, `ConnectedRebuild`
 Meaning: the chunk mesh's vertex positions and UVs for glass and panes,
