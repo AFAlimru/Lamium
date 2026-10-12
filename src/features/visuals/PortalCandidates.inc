@@ -1,237 +1,145 @@
-// Generated for the L-149 trace: candidate functions to name caller offsets.
-#include "mc/client/gui/screens/controllers/AcceptDeclineInvitationScreenController.h"
-#include "mc/client/gui/screens/controllers/ActiveDirectoryAuthenticationScreenController.h"
-#include "mc/client/gui/screens/controllers/AnvilScreenController.h"
-#include "mc/client/gui/screens/controllers/BookScreenController.h"
-#include "mc/client/gui/screens/controllers/ChalkboardScreenController.h"
-#include "mc/client/gui/screens/controllers/ChatScreenController.h"
-#include "mc/client/gui/screens/controllers/ChooseRealmScreenController.h"
-#include "mc/client/gui/screens/controllers/ClientInstanceScreenController.h"
-#include "mc/client/gui/screens/controllers/CodeScreenController.h"
-#include "mc/client/gui/screens/controllers/CommandBlockScreenController.h"
-#include "mc/client/gui/screens/controllers/ContainerScreenController.h"
-#include "mc/client/gui/screens/controllers/CrafterScreenController.h"
-#include "mc/client/gui/screens/controllers/CraftingScreenController.h"
-#include "mc/client/gui/screens/controllers/CreateWorldUpsellScreenController.h"
-#include "mc/client/gui/screens/controllers/CustomTemplatesScreenController.h"
-#include "mc/client/gui/screens/controllers/DayOneExperienceScreenController.h"
-#include "mc/client/gui/screens/controllers/DeathScreenController.h"
-#include "mc/client/gui/screens/controllers/DebugScreenController.h"
-#include "mc/client/gui/screens/controllers/DeleteProgressScreenController.h"
-#include "mc/client/gui/screens/controllers/DlcProgressScreenController.h"
-#include "mc/client/gui/screens/controllers/DropdownScreenController.h"
-#include "mc/client/gui/screens/controllers/EDUPasscodeEntryScreenController.h"
-#include "mc/client/gui/screens/controllers/EDUPlayScreenController.h"
-#include "mc/client/gui/screens/controllers/EDUServersScreenController.h"
-#include "mc/client/gui/screens/controllers/EDUWorldTemplatesScreenController.h"
-#include "mc/client/gui/screens/controllers/EDUWorldsScreenController.h"
-#include "mc/client/gui/screens/controllers/EmoteWheelScreenController.h"
-#include "mc/client/gui/screens/controllers/EncyclopediaScreenController.h"
-#include "mc/client/gui/screens/controllers/FileDownloadScreenController.h"
-#include "mc/client/gui/screens/controllers/FileUploadScreenController.h"
-#include "mc/client/gui/screens/controllers/FurnaceScreenController.h"
-#include "mc/client/gui/screens/controllers/GameTipScreenController.h"
-#include "mc/client/gui/screens/controllers/GamepadDisconnectScreenController.h"
-#include "mc/client/gui/screens/controllers/GeneralSettingsScreenController.h"
-#include "mc/client/gui/screens/controllers/GlobalPauseScreenController.h"
-#include "mc/client/gui/screens/controllers/HowToPlayScreenController.h"
-#include "mc/client/gui/screens/controllers/HudScreenController.h"
-#include "mc/client/gui/screens/controllers/ImmersiveReaderScreenController.h"
-#include "mc/client/gui/screens/controllers/InBedScreenController.h"
-#include "mc/client/gui/screens/controllers/InviteScreenController.h"
-#include "mc/client/gui/screens/controllers/JoincodePauseMenuScreenController.h"
-#include "mc/client/gui/screens/controllers/LabTableScreenController.h"
-#include "mc/client/gui/screens/controllers/LateJoinPreGameScreenController.h"
-#include "mc/client/gui/screens/controllers/LeaveLevelProgressScreenController.h"
-#include "mc/client/gui/screens/controllers/LibraryItemScreenController.h"
-#include "mc/client/gui/screens/controllers/LibraryScreenController.h"
-#include "mc/client/gui/screens/controllers/LibraryTemplatesScreenController.h"
-#include "mc/client/gui/screens/controllers/LoomScreenController.h"
-#include "mc/client/gui/screens/controllers/ManifestValidationScreenController.h"
-#include "mc/client/gui/screens/controllers/MinecraftScreenController.h"
-#include "mc/client/gui/screens/controllers/MobEffectScreenController.h"
-#include "mc/client/gui/screens/controllers/ModalScreenController.h"
-#include "mc/client/gui/screens/controllers/NpcInteractScreenController.h"
-#include "mc/client/gui/screens/controllers/PauseScreenController.h"
-#include "mc/client/gui/screens/controllers/PermissionsScreenController.h"
-#include "mc/client/gui/screens/controllers/PlayScreenController.h"
-#include "mc/client/gui/screens/controllers/PlayerMessagingToastSubController.h"
-#include "mc/client/gui/screens/controllers/ProgressScreenController.h"
-#include "mc/client/gui/screens/controllers/RealmsAllowListScreenController.h"
-#include "mc/client/gui/screens/controllers/RealmsCreateScreenController.h"
-#include "mc/client/gui/screens/controllers/RealmsInviteLinkSettingsScreenController.h"
-#include "mc/client/gui/screens/controllers/RealmsPackErrorsScreenController.h"
-#include "mc/client/gui/screens/controllers/RealmsPendingInvitationsScreenController.h"
-#include "mc/client/gui/screens/controllers/RealmsSettingsScreenController.h"
-#include "mc/client/gui/screens/controllers/RealmsShareLauncherController.h"
-#include "mc/client/gui/screens/controllers/RealmsSlotsScreenController.h"
-#include "mc/client/gui/screens/controllers/RealmsWarningScreenController.h"
-#include "mc/client/gui/screens/controllers/ResourcePackApplyingScreenController.h"
-#include "mc/client/gui/screens/controllers/ResourcePacksScreenController.h"
-#include "mc/client/gui/screens/controllers/SafetyDialogScreenController.h"
-#include "mc/client/gui/screens/controllers/ScoreboardScreenController.h"
-#include "mc/client/gui/screens/controllers/ScreenshotScreenController.h"
-#include "mc/client/gui/screens/controllers/ServerTrustModalScreenController.h"
-#include "mc/client/gui/screens/controllers/SignScreenController.h"
-#include "mc/client/gui/screens/controllers/StartMenuScreenController.h"
-#include "mc/client/gui/screens/controllers/StorageManagementScreenController.h"
-#include "mc/client/gui/screens/controllers/StorageMigrationProgressScreenController.h"
-#include "mc/client/gui/screens/controllers/StructureEditorScreenController.h"
-#include "mc/client/gui/screens/controllers/SubmitFeedbackScreenController.h"
-#include "mc/client/gui/screens/controllers/SubscriptionsScreenController.h"
-#include "mc/client/gui/screens/controllers/SuggestedContentOffersScreenController.h"
-#include "mc/client/gui/screens/controllers/SunsettingScreenController.h"
-#include "mc/client/gui/screens/controllers/TTSEnabledWarningScreenController.h"
-#include "mc/client/gui/screens/controllers/ToastScreenController.h"
-#include "mc/client/gui/screens/controllers/Trade2ScreenController.h"
-#include "mc/client/gui/screens/controllers/UserDataScreenController.h"
-#include "mc/client/gui/screens/controllers/Win10TrialConversionScreenController.h"
-#include "mc/client/gui/screens/controllers/WorldConversionCompleteScreenController.h"
-#include "mc/client/gui/screens/controllers/WorldRecoveryScreenController.h"
-#include "mc/client/gui/screens/controllers/WorldSeedCatalogScreenController.h"
-#include "mc/client/gui/screens/controllers/WorldSettingsScreenController.h"
-#include "mc/client/gui/screens/controllers/WorldTemplatesScreenController.h"
+// Generated for the L-149 trace from Lamium.pdb: mangled names of candidate
+// game functions, resolved at run time to name caller offsets.
 #define LAMIUM_PORTAL_CANDIDATES \
-    {"AcceptDeclineInvitationScreenController::$tick", candidate(&AcceptDeclineInvitationScreenController::$tick)}, \
-    {"ActiveDirectoryAuthenticationScreenController::$tick", candidate(&ActiveDirectoryAuthenticationScreenController::$tick)}, \
-    {"AnvilScreenController::$tick", candidate(&AnvilScreenController::$tick)}, \
-    {"BookScreenController::$tick", candidate(&BookScreenController::$tick)}, \
-    {"ChalkboardScreenController::$tick", candidate(&ChalkboardScreenController::$tick)}, \
-    {"ChatScreenController::$tick", candidate(&ChatScreenController::$tick)}, \
-    {"ChooseRealmScreenController::$tick", candidate(&ChooseRealmScreenController::$tick)}, \
-    {"ClientInstanceScreenController::$tick", candidate(&ClientInstanceScreenController::$tick)}, \
-    {"CodeScreenController::$tick", candidate(&CodeScreenController::$tick)}, \
-    {"CommandBlockScreenController::$tick", candidate(&CommandBlockScreenController::$tick)}, \
-    {"ContainerScreenController::$tick", candidate(&ContainerScreenController::$tick)}, \
-    {"CrafterScreenController::$tick", candidate(&CrafterScreenController::$tick)}, \
-    {"CraftingScreenController::$tick", candidate(&CraftingScreenController::$tick)}, \
-    {"CreateWorldUpsellScreenController::$tick", candidate(&CreateWorldUpsellScreenController::$tick)}, \
-    {"CustomTemplatesScreenController::$tick", candidate(&CustomTemplatesScreenController::$tick)}, \
-    {"DayOneExperienceScreenController::$tick", candidate(&DayOneExperienceScreenController::$tick)}, \
-    {"DeathScreenController::$tick", candidate(&DeathScreenController::$tick)}, \
-    {"DebugScreenController::$tick", candidate(&DebugScreenController::$tick)}, \
-    {"DeleteProgressScreenController::$tick", candidate(&DeleteProgressScreenController::$tick)}, \
-    {"DlcProgressScreenController::$tick", candidate(&DlcProgressScreenController::$tick)}, \
-    {"DropdownScreenController::$tick", candidate(&DropdownScreenController::$tick)}, \
-    {"EDUPasscodeEntryScreenController::$tick", candidate(&EDUPasscodeEntryScreenController::$tick)}, \
-    {"EDUPlayScreenController::$tick", candidate(&EDUPlayScreenController::$tick)}, \
-    {"EDUServersScreenController::$tick", candidate(&EDUServersScreenController::$tick)}, \
-    {"EDUWorldTemplatesScreenController::$tick", candidate(&EDUWorldTemplatesScreenController::$tick)}, \
-    {"EDUWorldsScreenController::$tick", candidate(&EDUWorldsScreenController::$tick)}, \
-    {"EmoteWheelScreenController::$tick", candidate(&EmoteWheelScreenController::$tick)}, \
-    {"EncyclopediaScreenController::$tick", candidate(&EncyclopediaScreenController::$tick)}, \
-    {"FileDownloadScreenController::$tick", candidate(&FileDownloadScreenController::$tick)}, \
-    {"FileUploadScreenController::$tick", candidate(&FileUploadScreenController::$tick)}, \
-    {"FurnaceScreenController::$tick", candidate(&FurnaceScreenController::$tick)}, \
-    {"GameTipScreenController::$tick", candidate(&GameTipScreenController::$tick)}, \
-    {"GamepadDisconnectScreenController::$tick", candidate(&GamepadDisconnectScreenController::$tick)}, \
-    {"GeneralSettingsScreenController::$tick", candidate(&GeneralSettingsScreenController::$tick)}, \
-    {"GlobalPauseScreenController::$tick", candidate(&GlobalPauseScreenController::$tick)}, \
-    {"HowToPlayScreenController::$tick", candidate(&HowToPlayScreenController::$tick)}, \
-    {"HudScreenController::$tick", candidate(&HudScreenController::$tick)}, \
-    {"ImmersiveReaderScreenController::$tick", candidate(&ImmersiveReaderScreenController::$tick)}, \
-    {"InBedScreenController::$tick", candidate(&InBedScreenController::$tick)}, \
-    {"InviteScreenController::$tick", candidate(&InviteScreenController::$tick)}, \
-    {"JoincodePauseMenuScreenController::$tick", candidate(&JoincodePauseMenuScreenController::$tick)}, \
-    {"LabTableScreenController::$tick", candidate(&LabTableScreenController::$tick)}, \
-    {"LateJoinPreGameScreenController::$tick", candidate(&LateJoinPreGameScreenController::$tick)}, \
-    {"LeaveLevelProgressScreenController::$tick", candidate(&LeaveLevelProgressScreenController::$tick)}, \
-    {"LibraryItemScreenController::$tick", candidate(&LibraryItemScreenController::$tick)}, \
-    {"LibraryScreenController::$tick", candidate(&LibraryScreenController::$tick)}, \
-    {"LibraryTemplatesScreenController::$tick", candidate(&LibraryTemplatesScreenController::$tick)}, \
-    {"LoomScreenController::$tick", candidate(&LoomScreenController::$tick)}, \
-    {"ManifestValidationScreenController::$tick", candidate(&ManifestValidationScreenController::$tick)}, \
-    {"MinecraftScreenController::$tick", candidate(&MinecraftScreenController::$tick)}, \
-    {"MobEffectScreenController::$tick", candidate(&MobEffectScreenController::$tick)}, \
-    {"ModalScreenController::$tick", candidate(&ModalScreenController::$tick)}, \
-    {"NpcInteractScreenController::$tick", candidate(&NpcInteractScreenController::$tick)}, \
-    {"PauseScreenController::$tick", candidate(&PauseScreenController::$tick)}, \
-    {"PermissionsScreenController::$tick", candidate(&PermissionsScreenController::$tick)}, \
-    {"PlayScreenController::$tick", candidate(&PlayScreenController::$tick)}, \
-    {"PlayerMessagingToastSubController::$tick", candidate(&PlayerMessagingToastSubController::$tick)}, \
-    {"ProgressScreenController::$tick", candidate(&ProgressScreenController::$tick)}, \
-    {"RealmsAllowListScreenController::$tick", candidate(&RealmsAllowListScreenController::$tick)}, \
-    {"RealmsCreateScreenController::$tick", candidate(&RealmsCreateScreenController::$tick)}, \
-    {"RealmsInviteLinkSettingsScreenController::$tick", candidate(&RealmsInviteLinkSettingsScreenController::$tick)}, \
-    {"RealmsPackErrorsScreenController::$tick", candidate(&RealmsPackErrorsScreenController::$tick)}, \
-    {"RealmsPendingInvitationsScreenController::$tick", candidate(&RealmsPendingInvitationsScreenController::$tick)}, \
-    {"RealmsSettingsScreenController::$tick", candidate(&RealmsSettingsScreenController::$tick)}, \
-    {"RealmsShareLauncherController::$tick", candidate(&RealmsShareLauncherController::$tick)}, \
-    {"RealmsSlotsScreenController::$tick", candidate(&RealmsSlotsScreenController::$tick)}, \
-    {"RealmsWarningScreenController::$tick", candidate(&RealmsWarningScreenController::$tick)}, \
-    {"ResourcePackApplyingScreenController::$tick", candidate(&ResourcePackApplyingScreenController::$tick)}, \
-    {"ResourcePacksScreenController::$tick", candidate(&ResourcePacksScreenController::$tick)}, \
-    {"SafetyDialogScreenController::$tick", candidate(&SafetyDialogScreenController::$tick)}, \
-    {"ScoreboardScreenController::$tick", candidate(&ScoreboardScreenController::$tick)}, \
-    {"ScreenshotScreenController::$tick", candidate(&ScreenshotScreenController::$tick)}, \
-    {"ServerTrustModalScreenController::$tick", candidate(&ServerTrustModalScreenController::$tick)}, \
-    {"SignScreenController::$tick", candidate(&SignScreenController::$tick)}, \
-    {"StartMenuScreenController::$tick", candidate(&StartMenuScreenController::$tick)}, \
-    {"StorageManagementScreenController::$tick", candidate(&StorageManagementScreenController::$tick)}, \
-    {"StorageMigrationProgressScreenController::$tick", candidate(&StorageMigrationProgressScreenController::$tick)}, \
-    {"StructureEditorScreenController::$tick", candidate(&StructureEditorScreenController::$tick)}, \
-    {"SubmitFeedbackScreenController::$tick", candidate(&SubmitFeedbackScreenController::$tick)}, \
-    {"SubscriptionsScreenController::$tick", candidate(&SubscriptionsScreenController::$tick)}, \
-    {"SuggestedContentOffersScreenController::$tick", candidate(&SuggestedContentOffersScreenController::$tick)}, \
-    {"SunsettingScreenController::$tick", candidate(&SunsettingScreenController::$tick)}, \
-    {"TTSEnabledWarningScreenController::$tick", candidate(&TTSEnabledWarningScreenController::$tick)}, \
-    {"ToastScreenController::$tick", candidate(&ToastScreenController::$tick)}, \
-    {"Trade2ScreenController::$tick", candidate(&Trade2ScreenController::$tick)}, \
-    {"UserDataScreenController::$tick", candidate(&UserDataScreenController::$tick)}, \
-    {"Win10TrialConversionScreenController::$tick", candidate(&Win10TrialConversionScreenController::$tick)}, \
-    {"WorldConversionCompleteScreenController::$tick", candidate(&WorldConversionCompleteScreenController::$tick)}, \
-    {"WorldRecoveryScreenController::$tick", candidate(&WorldRecoveryScreenController::$tick)}, \
-    {"WorldSeedCatalogScreenController::$tick", candidate(&WorldSeedCatalogScreenController::$tick)}, \
-    {"WorldSettingsScreenController::$tick", candidate(&WorldSettingsScreenController::$tick)}, \
-    {"WorldTemplatesScreenController::$tick", candidate(&WorldTemplatesScreenController::$tick)}, \
-    {"ClientInputCallbacks::destroyVibrate", candidate(&ClientInputCallbacks::destroyVibrate)}, \
-    {"ClientInputCallbacks::handleBuildAction", candidate(&ClientInputCallbacks::handleBuildAction)}, \
-    {"ClientInputCallbacks::handleBuildOrAttackOrBlockSelectButtonPress", candidate(&ClientInputCallbacks::handleBuildOrAttackOrBlockSelectButtonPress)}, \
-    {"ClientInputCallbacks::handleChangeUserRequest", candidate(&ClientInputCallbacks::handleChangeUserRequest)}, \
-    {"ClientInputCallbacks::handleChatButtonRelease", candidate(&ClientInputCallbacks::handleChatButtonRelease)}, \
-    {"ClientInputCallbacks::handleCodeBuilderButtonRelease", candidate(&ClientInputCallbacks::handleCodeBuilderButtonRelease)}, \
-    {"ClientInputCallbacks::handleCommandMacroPress", candidate(&ClientInputCallbacks::handleCommandMacroPress)}, \
-    {"ClientInputCallbacks::handleConsoleButtonRelease", candidate(&ClientInputCallbacks::handleConsoleButtonRelease)}, \
-    {"ClientInputCallbacks::handleControllerConnectionStateChange", candidate(&ClientInputCallbacks::handleControllerConnectionStateChange)}, \
-    {"ClientInputCallbacks::handleCopyCurrentButtonPress", candidate(&ClientInputCallbacks::handleCopyCurrentButtonPress)}, \
-    {"ClientInputCallbacks::handleCopyFacingButtonPress", candidate(&ClientInputCallbacks::handleCopyFacingButtonPress)}, \
-    {"ClientInputCallbacks::handleDebugHotkeyChatEcho", candidate(&ClientInputCallbacks::handleDebugHotkeyChatEcho)}, \
-    {"ClientInputCallbacks::handleDismountButtonPress", candidate(&ClientInputCallbacks::handleDismountButtonPress)}, \
-    {"ClientInputCallbacks::handleDropAllButtonPress", candidate(&ClientInputCallbacks::handleDropAllButtonPress)}, \
-    {"ClientInputCallbacks::handleDropButtonPress", candidate(&ClientInputCallbacks::handleDropButtonPress)}, \
-    {"ClientInputCallbacks::handleEmoteButtonEntered", candidate(&ClientInputCallbacks::handleEmoteButtonEntered)}, \
-    {"ClientInputCallbacks::handleEmoteButtonHeld", candidate(&ClientInputCallbacks::handleEmoteButtonHeld)}, \
-    {"ClientInputCallbacks::handleEmoteButtonPress", candidate(&ClientInputCallbacks::handleEmoteButtonPress)}, \
-    {"ClientInputCallbacks::handleEmoteSlotButtonPress", candidate(&ClientInputCallbacks::handleEmoteSlotButtonPress)}, \
-    {"ClientInputCallbacks::handleImmersiveReaderButtonRelease", candidate(&ClientInputCallbacks::handleImmersiveReaderButtonRelease)}, \
-    {"ClientInputCallbacks::handleInputModeChanged", candidate(&ClientInputCallbacks::handleInputModeChanged)}, \
-    {"ClientInputCallbacks::handleInventoryButtonPress", candidate(&ClientInputCallbacks::handleInventoryButtonPress)}, \
-    {"ClientInputCallbacks::handleInventoryMoveButtonPress", candidate(&ClientInputCallbacks::handleInventoryMoveButtonPress)}, \
-    {"ClientInputCallbacks::handleMobEffectsButtonPress", candidate(&ClientInputCallbacks::handleMobEffectsButtonPress)}, \
-    {"ClientInputCallbacks::handleOpenSocialDrawer", candidate(&ClientInputCallbacks::handleOpenSocialDrawer)}, \
-    {"ClientInputCallbacks::handleOverlappingControls", candidate(&ClientInputCallbacks::handleOverlappingControls)}, \
-    {"ClientInputCallbacks::handlePauseButtonPress", candidate(&ClientInputCallbacks::handlePauseButtonPress)}, \
-    {"ClientInputCallbacks::handlePointerLocation", candidate(&ClientInputCallbacks::handlePointerLocation)}, \
-    {"ClientInputCallbacks::handlePointerLocationWithId", candidate(&ClientInputCallbacks::handlePointerLocationWithId)}, \
-    {"ClientInputCallbacks::handlePointerPressedButtonPress", candidate(&ClientInputCallbacks::handlePointerPressedButtonPress)}, \
-    {"ClientInputCallbacks::handlePointerPressedButtonRelease", candidate(&ClientInputCallbacks::handlePointerPressedButtonRelease)}, \
-    {"ClientInputCallbacks::handlePotentialOverlappingControls", candidate(&ClientInputCallbacks::handlePotentialOverlappingControls)}, \
-    {"ClientInputCallbacks::handleReloadUIDefinitions", candidate(&ClientInputCallbacks::handleReloadUIDefinitions)}, \
-    {"ClientInputCallbacks::handleScreenshotButtonPress", candidate(&ClientInputCallbacks::handleScreenshotButtonPress)}, \
-    {"ClientInputCallbacks::handleSlotSelectButtonPress", candidate(&ClientInputCallbacks::handleSlotSelectButtonPress)}, \
-    {"ClientInputCallbacks::handleSocialDrawerMobEffectsAndToastInteractButtonRelease", candidate(&ClientInputCallbacks::handleSocialDrawerMobEffectsAndToastInteractButtonRelease)}, \
-    {"ClientInputCallbacks::handleTextChar", candidate(&ClientInputCallbacks::handleTextChar)}, \
-    {"ClientInputCallbacks::handleToggleChatTextToSpeechButtonPress", candidate(&ClientInputCallbacks::handleToggleChatTextToSpeechButtonPress)}, \
-    {"ClientInputCallbacks::handleToggleControlTipsButtonPress", candidate(&ClientInputCallbacks::handleToggleControlTipsButtonPress)}, \
-    {"ClientInputCallbacks::handleToggleEnableFocusDebugButtonPress", candidate(&ClientInputCallbacks::handleToggleEnableFocusDebugButtonPress)}, \
-    {"ClientInputCallbacks::handleToggleEnableNewScreensDebugButtonPress", candidate(&ClientInputCallbacks::handleToggleEnableNewScreensDebugButtonPress)}, \
-    {"ClientInputCallbacks::handleTogglePerspectiveButtonPress", candidate(&ClientInputCallbacks::handleTogglePerspectiveButtonPress)}, \
-    {"ClientInputCallbacks::handleToggleSimulateTouchButtonPress", candidate(&ClientInputCallbacks::handleToggleSimulateTouchButtonPress)}, \
-    {"ClientInputCallbacks::handleToggleUIProfile", candidate(&ClientInputCallbacks::handleToggleUIProfile)}, \
-    {"ClientInputCallbacks::handleUIScalingRuleChange", candidate(&ClientInputCallbacks::handleUIScalingRuleChange)}, \
-    {"ClientInputCallbacks::splitVibrate", candidate(&ClientInputCallbacks::splitVibrate)}, \
-    {"LocalPlayer::$normalTick", candidate(&LocalPlayer::$normalTick)}, \
-    {"LocalPlayer::$handleInsidePortal", candidate(&LocalPlayer::$handleInsidePortal)}, \
-    {"LocalPlayer::$tickWorld", candidate(&LocalPlayer::$tickWorld)}, \
-    {"LocalPlayer::$aiStep", candidate(&LocalPlayer::$aiStep)}, \
-    {"LocalPlayer::$openInventory", candidate(&LocalPlayer::$openInventory)},
+    "?$aiStep@LocalPlayer@@QEAAXXZ", \
+    "?$handleInsidePortal@LocalPlayer@@QEAAXAEBVBlockPos@@@Z", \
+    "?$normalTick@LocalPlayer@@QEAAXXZ", \
+    "?$openInventory@LocalPlayer@@QEAAXXZ", \
+    "?$tick@AcceptDeclineInvitationScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@ActiveDirectoryAuthenticationScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@AnvilScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@BookScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@ChalkboardScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@ChatScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@ChooseRealmScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@ClientInstanceScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@CodeScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@CommandBlockScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@ContainerScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@CrafterScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@CraftingScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@CreateWorldUpsellScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@CustomTemplatesScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@DayOneExperienceScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@DeathScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@DebugScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@DeleteProgressScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@DlcProgressScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@DropdownScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@EDUPasscodeEntryScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@EDUPlayScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@EDUServersScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@EDUWorldTemplatesScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@EDUWorldsScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@EmoteWheelScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@EncyclopediaScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@FileDownloadScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@FileUploadScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@FurnaceScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@GameTipScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@GamepadDisconnectScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@GeneralSettingsScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@GlobalPauseScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@HowToPlayScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@HudScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@ImmersiveReaderScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@InBedScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@InviteScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@JoincodePauseMenuScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@LabTableScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@LateJoinPreGameScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@LeaveLevelProgressScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@LibraryItemScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@LibraryScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@LibraryTemplatesScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@LoomScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@ManifestValidationScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@MinecraftScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@MobEffectScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@ModalScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@NpcInteractScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@PauseScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@PermissionsScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@PlayScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@ProgressScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@RealmsAllowListScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@RealmsCreateScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@RealmsInviteLinkSettingsScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@RealmsPackErrorsScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@RealmsPendingInvitationsScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@RealmsSettingsScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@RealmsSlotsScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@RealmsWarningScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@ResourcePackApplyingScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@ResourcePacksScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@SafetyDialogScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@ScoreboardScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@ScreenshotScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@ServerTrustModalScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@SignScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@StartMenuScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@StorageManagementScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@StorageMigrationProgressScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@StructureEditorScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@SubmitFeedbackScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@SubscriptionsScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@SuggestedContentOffersScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@SunsettingScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@TTSEnabledWarningScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@ToastScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@Trade2ScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@UserDataScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@Win10TrialConversionScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@WorldConversionCompleteScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@WorldRecoveryScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@WorldSeedCatalogScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@WorldSettingsScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tick@WorldTemplatesScreenController@@QEAA?AW4DirtyFlag@ui@@XZ", \
+    "?$tickWorld@LocalPlayer@@QEAAXAEBUTick@@@Z", \
+    "?_schedulePopScreen@SceneStack@@QEAAXHV?$optional@URouteAction@OreUI@@@std@@AEBV?$vector@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@V?$allocator@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@@3@@Z", \
+    "?destroyVibrate@ClientInputCallbacks@@SAXAEAVIClientInstance@@H@Z", \
+    "?handleBuildAction@ClientInputCallbacks@@SA_NAEAVIClientInstance@@AEAVBuildActionIntention@@AEBVHitResult@@2@Z", \
+    "?handleBuildOrAttackOrBlockSelectButtonPress@ClientInputCallbacks@@SAXAEAVIClientInstance@@@Z", \
+    "?handleChangeUserRequest@ClientInputCallbacks@@SAXPEAVIMinecraftGame@@H_N@Z", \
+    "?handleChatButtonRelease@ClientInputCallbacks@@SAXAEAVIClientInstance@@@Z", \
+    "?handleCodeBuilderButtonRelease@ClientInputCallbacks@@SAXAEAVIClientInstance@@@Z", \
+    "?handleCommandMacroPress@ClientInputCallbacks@@SAXAEAVIClientInstance@@W4OptionID@@@Z", \
+    "?handleConsoleButtonRelease@ClientInputCallbacks@@SAXAEAVIClientInstance@@@Z", \
+    "?handleControllerConnectionStateChange@ClientInputCallbacks@@SAXAEAVIClientInstance@@_NH@Z", \
+    "?handleCopyCurrentButtonPress@ClientInputCallbacks@@SAXAEAVIClientInstance@@@Z", \
+    "?handleCopyFacingButtonPress@ClientInputCallbacks@@SAXAEAVIClientInstance@@@Z", \
+    "?handleDebugHotkeyChatEcho@ClientInputCallbacks@@SAXAEAVIClientInstance@@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@_N@Z", \
+    "?handleDismountButtonPress@ClientInputCallbacks@@SAXAEAVIClientInstance@@@Z", \
+    "?handleDropAllButtonPress@ClientInputCallbacks@@SAXAEAVIClientInstance@@@Z", \
+    "?handleDropButtonPress@ClientInputCallbacks@@SAXAEAVIClientInstance@@@Z", \
+    "?handleEmoteButtonEntered@ClientInputCallbacks@@SAXAEAVIClientInstance@@@Z", \
+    "?handleEmoteButtonHeld@ClientInputCallbacks@@SAXAEAVIClientInstance@@@Z", \
+    "?handleEmoteButtonPress@ClientInputCallbacks@@SAXAEAVIClientInstance@@@Z", \
+    "?handleEmoteSlotButtonPress@ClientInputCallbacks@@SAXAEAVIClientInstance@@H@Z", \
+    "?handleImmersiveReaderButtonRelease@ClientInputCallbacks@@SA_NAEAVIClientInstance@@@Z", \
+    "?handleInputModeChanged@ClientInputCallbacks@@SAXAEAVIClientInstance@@W4InputMode@@@Z", \
+    "?handleInventoryButtonPress@ClientInputCallbacks@@SAXAEAVIClientInstance@@W4CraftingType@@@Z", \
+    "?handleInventoryMoveButtonPress@ClientInputCallbacks@@SAXAEAVIClientInstance@@H@Z", \
+    "?handleMobEffectsButtonPress@ClientInputCallbacks@@SAXAEAVIClientInstance@@@Z", \
+    "?handleOpenSocialDrawer@ClientInputCallbacks@@SAXAEAVIClientInstance@@@Z", \
+    "?handleOverlappingControls@ClientInputCallbacks@@SAXAEAVIClientInstance@@AEBUOverlappingControlsEventData@@@Z", \
+    "?handlePauseButtonPress@ClientInputCallbacks@@SAXAEAVIClientInstance@@@Z", \
+    "?handlePointerLocation@ClientInputCallbacks@@SA_NAEAVIClientInstance@@AEBUPointerLocationEventData@@W4FocusImpact@@@Z", \
+    "?handlePointerLocationWithId@ClientInputCallbacks@@SAXAEAVIClientInstance@@AEBUPointerLocationWithIdEventData@@@Z", \
+    "?handlePointerPressedButtonPress@ClientInputCallbacks@@SAXAEAVIClientInstance@@@Z", \
+    "?handlePointerPressedButtonRelease@ClientInputCallbacks@@SAXAEAVIClientInstance@@@Z", \
+    "?handlePotentialOverlappingControls@ClientInputCallbacks@@SAXAEAVIClientInstance@@@Z", \
+    "?handleReloadUIDefinitions@ClientInputCallbacks@@SAXAEBV?$not_null@V?$NonOwnerPointer@VIClientInstance@@@Bedrock@@@gsl@@@Z", \
+    "?handleScreenshotButtonPress@ClientInputCallbacks@@SAXAEAVIClientInstance@@@Z", \
+    "?handleSlotSelectButtonPress@ClientInputCallbacks@@SAXAEAVIClientInstance@@H@Z", \
+    "?handleSocialDrawerMobEffectsAndToastInteractButtonRelease@ClientInputCallbacks@@SAXAEAVIClientInstance@@@Z", \
+    "?handleTextChar@ClientInputCallbacks@@SAXAEAVIClientInstance@@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@W4FocusImpact@@@Z", \
+    "?handleToggleChatTextToSpeechButtonPress@ClientInputCallbacks@@SAXAEAVIClientInstance@@@Z", \
+    "?handleToggleControlTipsButtonPress@ClientInputCallbacks@@SAXAEAVIClientInstance@@@Z", \
+    "?handleToggleEnableFocusDebugButtonPress@ClientInputCallbacks@@SAXAEAVIClientInstance@@@Z", \
+    "?handleToggleEnableNewScreensDebugButtonPress@ClientInputCallbacks@@SAXAEAVIClientInstance@@@Z", \
+    "?handleTogglePerspectiveButtonPress@ClientInputCallbacks@@SAXAEAVIClientInstance@@@Z", \
+    "?handleToggleSimulateTouchButtonPress@ClientInputCallbacks@@SAXAEAVIClientInstance@@@Z", \
+    "?handleToggleUIProfile@ClientInputCallbacks@@SAXAEAVIClientInstance@@@Z", \
+    "?handleUIScalingRuleChange@ClientInputCallbacks@@SAXAEAVIClientInstance@@@Z", \
+    "?splitVibrate@ClientInputCallbacks@@SAXAEAVIClientInstance@@H@Z",
