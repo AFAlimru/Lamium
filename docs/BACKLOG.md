@@ -71,31 +71,19 @@ L-item wins. Every entry names what the task is, not only its number.
 
 1. **Small and medium features and fixes** (maintainer 2026-10-10: these
    come before large features and L-111 integration for now):
-   - New 0.2.0 reports (2026-10-12): L-155 untranslated Connected Textures
-     action in search, L-156 dark bookshelves above glass under Vibrant
-     Visuals, L-157 intermittently hard-to-see Chunk Borders (done 2026-10-12). Fix/research
-     these before new features; L-155 and L-158 done 2026-10-12; L-159
-     Find by key in Hotkeys done; L-160 Edge Guard on BDS done; L-161
-     slab merges and the edge margin setting done; L-162 rare fall after a
-     server correction (research); L-156 and L-133 were fixed by L-164 (connected faces drawn as one quad
-     with sprites generated into the terrain atlas, done 2026-10-13).
-   - Bugs: L-123 elytra stretched on the inventory model after FreeCamera
-     (parked 2026-10-10 after two rounds); L-91 shield
-     glint in Lamium's icons (parked after one round; leather fixed).
-   - Paused: L-132 move while the inventory screen is open (research
-     paused after eight trial rounds).
-   - New design/research candidates imported from the maintainer's notes
-     on 2026-10-12: L-147 Status Effects HUD (done), L-148 portal overlay
-     hiding (done), L-149 inventory access in portals (parked) and L-150
-     arrow-count HUD (done).
-     Choose the next item with the maintainer; this list does not approve
-     an implementation or set a release target. L-151 to L-154 stay later.
-     Imported for spec work the same day: L-165 Mass Craft, L-166 villager
-     trade helpers, L-167 in-world language and resource packs (Design or
-     Research; specs to be agreed with the maintainer). Requested next, same
-     status: L-168 trade finder (reroll villagers), L-169 Item Transfer in
-     more screens and bulk transfer, L-170 enchantment order planner; L-171
-     calculator done 2026-10-13.
+   - Bugs: L-162 rare Edge Guard fall after a server correction (research);
+     L-123 elytra stretched on the inventory model after FreeCamera and
+     L-91 shield glint in Lamium's icons (both parked); L-132 moving with
+     the inventory screen open (paused after eight rounds).
+   - Specs to agree with the maintainer before building: L-165 Mass Craft,
+     L-166 villager trade helpers, L-167 in-world language, L-168 trade
+     finder, L-169 Item Transfer in more screens and bulk moves, L-170
+     enchantment order planner, L-173 quick shapes and beacon range, L-174
+     chat position, L-163 a Lamium-drawn inventory screen. L-151 to L-154
+     stay later. This list approves no implementation and sets no release.
+   - Done since 0.2.0 (BACKLOG-DONE): L-155, L-157 to L-161, L-147, L-148,
+     L-150, L-164 with L-133 and L-156, L-171 calculator, L-172 text
+     fields.
 2. **Schematic — L-93 follow-ups:** the screen review and the 0.1.8
    rendering work shipped in 0.1.8. Open: L-114 the Check tab preview's
    mistake look and see-through emphasis, L-115 entity models beyond the
@@ -131,12 +119,14 @@ L-item wins. Every entry names what the task is, not only its number.
    part hitboxes, L-33 mob growth and
    breeding timers, L-105 performance profiling (measure before any
    optimization).
-6. **Before a release:** the pre-release checks below. 0.1.9 was released
-   on 2026-10-11; server checks stay listed below as known gaps (Release policy does not require a full
-   regression).
+6. **Before a release:** the pre-release checks below. 0.2.0 was released
+   on 2026-10-11. No date for the next one (maintainer 2026-10-13: releases
+   came often lately and the changes since are mostly features, so no
+   hurry). Server checks stay listed below as known gaps (the Release
+   policy does not require a full regression).
 
 Ideas that are not yet chosen (for example a fall-rescue elytra) stay in
-the maintainer's notes and enter
+the maintainer's notes (the Notion idea inbox) and enter
 this file once chosen. The candidates imported on 2026-10-12 are now
 tracked here for design/research; their open choices remain open.
 Mass Craft (L-165) ranks below Map because resource packs already cover part of it.
@@ -155,6 +145,16 @@ Remaining coverage to consider for the next changed-feature smoke test. These
 include trace-only and local-only results; VALIDATION.md owns the per-feature
 gaps. The Release policy above does not require a full regression or closing
 every server gap before a release.
+
+### Since 0.2.0 (unreleased)
+
+Changed features for the next smoke test, all checked locally only:
+Edge Guard on a server (L-160, L-161 margin setting), Find by key (L-159),
+Chunk Borders and Hitboxes on walls (L-157), the Status effects HUD and
+ammo counts (below), the Nether portal screen (L-148), Connected Textures
+drawn with generated sprites and texture sets (L-164: resource packs and a
+reload while in a world are unchecked), text fields with a caret (L-172)
+and the calculator (L-171). A release ZIP is built from main as usual.
 
 ### L-147 and L-150 (2026-10-12, local only)
 
@@ -381,6 +381,38 @@ type 3, scale 1.333, with the font's own material).
 ---
 
 ## Feature work and research
+
+### L-174 Chat messages placed like Java Edition, through the HUD layout
+Kind: Research, then Design. From the maintainer's notes (2026-10-13); not
+chosen for building, no release.
+Goal: show the ordinary chat messages at the bottom left as on Java
+Edition, ideally placed by drag in Lamium's HUD layout.
+Proposal (not decided): only the message display at first (not the chat
+input screen): Vanilla or Custom, Custom with a bottom-left preset and free
+placement; width, line count and scale later.
+Research first: `hud_screen.json` has a `chat_panel`; Lamium already finds
+vanilla HUD controls with `VisualTree::getControlByName()`. Find whether
+that panel alone can be moved while vanilla keeps its messages,
+background and fading, and when to apply the position (UIControl position
+API and timing unknown). Moving the whole `chat_stack` would move other
+elements (the coordinates). Check HUD re-layout, resource packs, screen
+sizes and GUI scales, and the return to vanilla when off. A chat of
+Lamium's own is out of scope.
+
+### L-173 Quick shapes: a beacon's range at a glance, shapes that are not saved
+Kind: Design. From the maintainer's notes (2026-10-13); not chosen for
+building, no release.
+Goal: see a beacon's range without making a shape (kind, center, radius,
+saving).
+Proposal (not decided): looking at a beacon, one action shows its range as
+an overlay; the pyramid's levels set the size where they can be read, else
+the shown size is marked as assumed. Shapes gain temporary ("quick")
+shapes that are drawn but not saved, and can be kept as named shapes when
+wanted; the same works for distances, radii and building guides.
+Open: the range's vertical extent and edges as Bedrock behaves (check in
+game), how long a quick shape lives (until cleared, rejoin, dimension
+change), and where the action lives (key, radial menu). The Shapes editing
+and saving flow stays as it is.
 
 ### L-170 Enchantment order planner
 Kind: Design, then Research (strong model). Requested by the maintainer
@@ -827,6 +859,13 @@ Settings and ids
    safe path exists.
 3. Placement modes (Ready once step 2 finds a path): the four modes, anchor
    on the first placed block, faces and Status line.
+Input from the maintainer's notes (2026-10-13), for the redesign: protect
+by a fixed height chosen on the spot. From the looked-at block or the feet,
+"keep everything at or below this Y" or "break only above this Y", with the
+boundary plane previewed and moved with the wheel. Unlike the press anchor
+or the height band, it stays in world coordinates until cleared. Open:
+clearing it, dimension changes, combining it with fixed ranges; ordinary
+mining and the existing modes must keep working.
 
 ### L-91 Shield glint missing in Lamium's item icons
 Kind: Research. Found by the maintainer 2026-10-02 while checking L-75;
@@ -1228,6 +1267,15 @@ theme is clean-up and integration together.
 - Shapes on the minimap are an option (maintainer 2026-10-11): many shapes
   would crowd it. Still open, decided when the step comes: one Lamium menu
   key or per-feature keys into the same menu (C).
+Input from the maintainer's notes (2026-10-13): when levelling ground the
+existing features would help but take too long to set up. Aim for calling
+up the needed action while working rather than configuring a feature
+first. The schematic's spatial operations (a base point from the looked-at
+block or the feet, two points for a range, a Y boundary moved with the
+wheel, the radial menu and "repeat the last adjustment with the wheel")
+could serve Breaking restrictions and Shapes too. Keep features
+independent; never mix "the layers shown" with "the region where an action
+is allowed"; key conflicts, contexts and UI weight to be checked.
 
 ### L-105 Performance: find the real bottleneck before optimizing
 Kind: Research **(strong model)**. Chosen by the maintainer 2026-10-07 from
