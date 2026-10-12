@@ -21,6 +21,10 @@
 #include "mc/deps/core_graphics/enums/TextureFormat.h"
 #include "mc/deps/json/Value.h"
 #include "mc/resources/ResourcePackManager.h"
+#include "mc/deps/core/resource/ResourceLocationPair.h"
+#define STB_IMAGE_WRITE_STATIC
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include <stb_image_write.h>
 #include <atomic>
 #include <cstdint>
 #include <format>
@@ -35,10 +39,13 @@ std::string const spriteName = "lamium_ct_glass_15";
 std::string const spritePath = "textures/blocks/lamium_ct_glass_15";
 std::mutex mutex;
 std::shared_ptr<cg::ImageBuffer> composed; // guarded by mutex
+// The same pixels as RGBA rows and as a PNG file, for the pack loader.
+std::vector<std::uint32_t> composedPixels; int composedWidth = 0, composedHeight = 0; std::string composedPng; // guarded by mutex
 std::atomic<int> generation{0};
 int uvGeneration = -1;                      // guarded by mutex
 std::optional<TextureUVCoordinateSet> uvCache; // guarded by mutex
 std::atomic<int> requestLogs{0};
+std::atomic<int> packLogs{0};
 
 void log(std::string const& text) {
     try { Runtime::instance().self().getLogger().info("CT sprite: {}", text); } catch (...) {}
@@ -69,10 +76,25 @@ std::shared_ptr<cg::ImageBuffer> compose(cg::ImageBuffer const& source) {
     for (int y = 0; y < height; ++y)
         for (int x = 0; x < width; ++x)
             out[static_cast<size_t>(y) * width + x] = in[static_cast<size_t>(sourceIndex(y, height)) * width + sourceIndex(x, width)];
+    std::string png;
+    stbi_write_png_to_func([](void* context, void* data, int size) { static_cast<std::string*>(context)->append(static_cast<char*>(data), size); },
+                           &png, width, height, 4, out.data(), width * 4);
     mce::Image image(width, height, mce::ImageFormat::RGBA8Unorm, mce::ImageUsage::SRGB);
     image.mAlphaUsage = mce::AlphaUsage::Transparent;
     image.setRawImage(mce::Blob(reinterpret_cast<std::uint8_t const*>(out.data()), out.size() * sizeof(std::uint32_t)));
+    {
+        std::lock_guard lock(mutex);
+        composedPixels = out;
+        composedWidth = width;
+        composedHeight = height;
+        composedPng = png;
+    }
+    log(std::format("png {} bytes", png.size()));
     return std::make_shared<cg::ImageBuffer>(std::move(image));
+}
+bool isSprite(ResourceLocation const& location) {
+    auto path = pathOf(location);
+    return path == spritePath || path == spritePath + ".png";
 }
 std::string firstTexture(Json::Value const& entry) {
     auto const& textures = entry["textures"];
@@ -118,6 +140,7 @@ LL_TYPE_INSTANCE_HOOK(SpriteAtlas, ll::memory::HookPriority::Normal, TextureAtla
     } catch (...) { log("preparing the sprite threw; atlas built unchanged"); copy = root; }
     ++generation;
     requestLogs = 0;
+    packLogs = 0;
     return origin(copy, std::move(status), finished, std::move(group), mip, packs, std::move(outFinal), std::move(outSources));
 }
 // Where the atlas build asks for images: logs the sprite's requests (and a few
@@ -136,6 +159,69 @@ LL_TYPE_INSTANCE_HOOK(SpriteImageSync, ll::memory::HookPriority::Normal, mce::Te
     if ((ours || path.find("glass") != std::string::npos) && requestLogs++ < 40)
         log(std::format("getCachedImageOrLoadSync '{}' fs {} -> {}", path, static_cast<int>(location.mFileSystem),
                         result ? "image" : "null"));
+    return result;
+}
+// The atlas reads its source images from the resource packs, not the texture
+// group cache (round 1, 2026-10-12: the sprite got its place but showed the
+// missing texture). Serve the composed image where the packs are asked.
+void packLog(std::string const& what, ResourceLocation const& location, bool served) {
+    if (packLogs++ < 60) log(std::format("{} '{}' -> {}", what, pathOf(location), served ? "served" : "not served"));
+}
+std::string pngCopy() { std::lock_guard lock(mutex); return composedPng; }
+using LoadPlain = bool (ResourcePackManager::*)(ResourceLocation const&, std::string&) const;
+LL_TYPE_INSTANCE_HOOK(SpritePackLoad, ll::memory::HookPriority::Normal, ResourcePackManager,
+    static_cast<LoadPlain>(&ResourcePackManager::$load), bool, ResourceLocation const& location, std::string& stream) {
+    if (isSprite(location)) {
+        auto png = pngCopy();
+        packLog("load", location, !png.empty());
+        if (!png.empty()) { stream = std::move(png); return true; }
+    }
+    return origin(location, stream);
+}
+using LoadExt = bool (ResourcePackManager::*)(ResourceLocation const&, std::string&, gsl::span<std::string const>) const;
+LL_TYPE_INSTANCE_HOOK(SpritePackLoadExt, ll::memory::HookPriority::Normal, ResourcePackManager,
+    static_cast<LoadExt>(&ResourcePackManager::$load), bool, ResourceLocation const& location, std::string& stream,
+    gsl::span<std::string const> extensions) {
+    if (isSprite(location)) {
+        auto png = pngCopy();
+        packLog(std::format("load+ext({})", extensions.size()), location, !png.empty());
+        if (!png.empty()) { stream = std::move(png); return true; }
+    }
+    return origin(location, stream, extensions);
+}
+using LoadPair = bool (ResourcePackManager::*)(ResourceLocationPair const&, std::string&, gsl::span<std::string const>) const;
+LL_TYPE_INSTANCE_HOOK(SpritePackLoadPair, ll::memory::HookPriority::Normal, ResourcePackManager,
+    static_cast<LoadPair>(&ResourcePackManager::$load), bool, ResourceLocationPair const& pair, std::string& stream,
+    gsl::span<std::string const> extensions) {
+    auto const& location = *pair.mResourceLocation;
+    if (isSprite(location)) {
+        auto png = pngCopy();
+        packLog("load pair", location, !png.empty());
+        if (!png.empty()) { stream = std::move(png); return true; }
+    }
+    return origin(pair, stream, extensions);
+}
+LL_TYPE_INSTANCE_HOOK(SpritePackTexture, ll::memory::HookPriority::Normal, ResourcePackManager,
+    &ResourcePackManager::$loadTexture, mce::Image, ResourceLocation const& location) {
+    if (isSprite(location)) {
+        std::lock_guard lock(mutex);
+        packLog("loadTexture", location, !composedPixels.empty());
+        if (!composedPixels.empty()) {
+            mce::Image image(composedWidth, composedHeight, mce::ImageFormat::RGBA8Unorm, mce::ImageUsage::SRGB);
+            image.mAlphaUsage = mce::AlphaUsage::Transparent;
+            image.setRawImage(mce::Blob(reinterpret_cast<std::uint8_t const*>(composedPixels.data()),
+                                        composedPixels.size() * sizeof(std::uint32_t)));
+            return image;
+        }
+    }
+    return origin(location);
+}
+using PackIndex = std::pair<int, std::string_view>;
+LL_TYPE_INSTANCE_HOOK(SpritePackIndex, ll::memory::HookPriority::Normal, ResourcePackManager,
+    &ResourcePackManager::$getPackStackIndexOfResource, PackIndex, ResourceLocation const& location,
+    gsl::span<std::string const> extensions) {
+    auto result = origin(location, extensions);
+    if (isSprite(location)) packLog(std::format("packStackIndex = {} '{}'", result.first, result.second), location, false);
     return result;
 }
 bool installed = false;
@@ -163,8 +249,10 @@ std::optional<TextureUVCoordinateSet> joinedGlass() {
 
 bool start() {
     if (installed) return true;
-    if (SpriteAtlas::hook() != 0 || SpriteImageSync::hook() != 0) {
-        SpriteAtlas::unhook(); SpriteImageSync::unhook();
+    if (SpriteAtlas::hook() != 0 || SpriteImageSync::hook() != 0 || SpritePackLoad::hook() != 0 || SpritePackLoadExt::hook() != 0
+        || SpritePackLoadPair::hook() != 0 || SpritePackTexture::hook() != 0 || SpritePackIndex::hook() != 0) {
+        SpriteAtlas::unhook(); SpriteImageSync::unhook(); SpritePackLoad::unhook(); SpritePackLoadExt::unhook();
+        SpritePackLoadPair::unhook(); SpritePackTexture::unhook(); SpritePackIndex::unhook();
         log("hooks failed");
         return false;
     }

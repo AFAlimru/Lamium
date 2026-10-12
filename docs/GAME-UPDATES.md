@@ -289,7 +289,7 @@ material names `beacon_beam_transparent`, `holo_hand_pointer`. Gated
 (Schematic ghost blocks; entity models in `GhostMarks.cpp`).
 
 ### `src/features/visuals/ConnectedSpritesTrace.cpp`
-Hooks: `SpriteAtlas`, `SpriteImageSync`
+Hooks: `SpriteAtlas`, `SpriteImageSync`, `SpritePackLoad`, `SpritePackLoadExt`, `SpritePackLoadPair`, `SpritePackTexture`, `SpritePackIndex`
 Trace (L-164 spike, `ctsprite_trace`).
 
 ### `src/features/visuals/ConnectedTexturesHooks.cpp`
