@@ -28,6 +28,7 @@
 #include "mc/network/MinecraftPacketIds.h"
 #include "mc/network/packet/CorrectPlayerMovePredictionPacket.h"
 #include "mc/network/packet/PlayerAuthInputPacket.h"
+#include <deque>
 #include <format>
 #include <string>
 #endif
@@ -51,12 +52,26 @@ bool reportedInput = false;
 // client's are guarded there, and client state is read only on its thread.
 std::atomic<std::thread::id> clientThread;
 #ifdef LAMIUM_EDGE_TRACE
-// L-160 trace: bounded lines while the guard is acting (and shortly after).
-int traceLines = 0, traceQuiet = 1000;
-void trace(std::string const& text) {
-    if (traceLines >= 600) return;
-    ++traceLines;
-    Runtime::instance().self().getLogger().info("L-160 {}", text);
+// L-160 trace: the last lines around the guard's activity are kept in memory
+// and written out only when the player falls soon after the guard acted.
+int traceQuiet = 1000, traceDumps = 0, traceSends = 0;
+std::deque<std::string> traceRing;
+bool traceFalling = false;
+float traceGroundY = 0;
+void trace(std::string text) {
+    traceRing.push_back(std::format("#{} {}", traceSends, std::move(text)));
+    if (traceRing.size() > 160) traceRing.pop_front();
+}
+void traceFall(float y, bool ground) {
+    if (ground) { traceGroundY = y; traceFalling = false; return; }
+    if (traceFalling || y > traceGroundY - 1.2f) return;
+    traceFalling = true;
+    if (traceQuiet > 100 || traceDumps >= 12) return;
+    ++traceDumps;
+    auto& logger = Runtime::instance().self().getLogger();
+    logger.info("L-160 fall {} after the guard acted {} sends ago; last {} lines:", traceDumps, traceQuiet, traceRing.size());
+    for (auto const& line : traceRing) logger.info("L-160 {}", line);
+    traceRing.clear();
 }
 char const* stateName(MoveInputState const& state, LocalPlayer& player) {
     auto& context = player.getEntityContext();
@@ -142,7 +157,7 @@ void guardMoveVector(MoveInputState const& state, Vec2& move) {
                 if (!player) return;
                 bool changed = before.x != move.x || before.z != move.z;
                 if (changed) traceQuiet = 0;
-                if (traceQuiet > 40) return;
+                if (traceQuiet > 100) return;
                 auto const& pos = player->getPosition();
                 auto const& delta = player->getPosDelta();
                 trace(std::format("calc {} flags [{}] analog {:.2f},{:.2f} move {:.2f},{:.2f} -> {:.2f},{:.2f} pos {:.3f},{:.3f} v {:.3f},{:.3f} ground {}",
@@ -231,14 +246,22 @@ using AuthInput = PlayerAuthInputPacketPayload::InputData;
 LL_TYPE_INSTANCE_HOOK(EdgeTraceSend, ll::memory::HookPriority::Normal, LoopbackPacketSender,
     &LoopbackPacketSender::$sendToServer, void, Packet& packet) {
     try {
-        if (packet.getId() == MinecraftPacketIds::PlayerAuthInputPacket && traceQuiet <= 40) {
+        if (packet.getId() == MinecraftPacketIds::PlayerAuthInputPacket) {
+            ++traceSends;
             ++traceQuiet;
             auto& auth = static_cast<PlayerAuthInputPacket&>(packet);
+            auto client = ll::service::getClientInstance();
+            auto* player = client ? client->getLocalPlayer() : nullptr;
+            if (player) traceFall(auth.mPos->y, player->isOnGround());
+            if (traceQuiet > 100) { origin(packet); return; }
             auto& data = *auth.mInputData;
             std::string flags;
             for (auto [flag, name] : {std::pair{AuthInput::Up, "U"}, {AuthInput::Down, "D"}, {AuthInput::Left, "L"},
                                       {AuthInput::Right, "R"}, {AuthInput::UpLeft, "UL"}, {AuthInput::UpRight, "UR"},
-                                      {AuthInput::Sprinting, "S"}, {AuthInput::Sneaking, "Sn"}, {AuthInput::HorizontalCollision, "HC"}})
+                                      {AuthInput::Sprinting, "S"}, {AuthInput::Sneaking, "Sn"}, {AuthInput::HorizontalCollision, "HC"},
+                                      {AuthInput::VerticalCollision, "VC"}, {AuthInput::PerformItemInteraction, "Item"},
+                                      {AuthInput::PerformBlockActions, "Block"}, {AuthInput::StartJumping, "Jump"},
+                                      {AuthInput::HandledTeleport, "Tp"}})
                 if (data.contains(flag)) { flags += name; flags += ' '; }
             trace(std::format("send move {:.2f},{:.2f} raw {:.2f},{:.2f} analog {:.2f},{:.2f} pos {:.3f},{:.3f},{:.3f} delta {:.3f},{:.3f} flags [{}]",
                 auth.mMove->x, auth.mMove->z, auth.mRawMoveVector->x, auth.mRawMoveVector->z, auth.mAnalogMoveVector->x,
@@ -252,7 +275,7 @@ LL_TYPE_INSTANCE_HOOK(EdgeTraceCorrection, ll::memory::HookPriority::Normal, Cli
         &ClientNetworkHandler::$handle),
     void, NetworkIdentifier const& source, CorrectPlayerMovePredictionPacket const& packet) {
     try {
-        if (traceQuiet <= 80)
+        if (traceQuiet <= 200)
             trace(std::format("correction pos {:.3f},{:.3f},{:.3f} delta {:.3f},{:.3f},{:.3f} ground {}", packet.mPos->x,
                 packet.mPos->y, packet.mPos->z, packet.mPosDelta->x, packet.mPosDelta->y, packet.mPosDelta->z, static_cast<bool>(packet.mOnGround)));
     } catch (...) {}
