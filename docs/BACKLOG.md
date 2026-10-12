@@ -78,7 +78,9 @@ L-item wins. Every entry names what the task is, not only its number.
      Find by key in Hotkeys done; L-160 Edge Guard on BDS done; L-161
      slab merges and the edge margin setting done; L-162 rare fall after a
      server correction (research); L-156 is linked to L-133 (same look, split faces, research
-     together; past attempts on L-133 failed).
+     together; past attempts on L-133 failed). L-164 (2026-10-12) proposes
+     drawing connected faces as one quad with generated sprites, which
+     would remove the split; its spike comes before more split fixes.
    - Bugs: L-123 elytra stretched on the inventory model after FreeCamera
      (parked 2026-10-10 after two rounds); L-91 shield
      glint in Lamium's icons (parked after one round; leather fixed).
@@ -90,6 +92,9 @@ L-item wins. Every entry names what the task is, not only its number.
      arrow-count HUD (done).
      Choose the next item with the maintainer; this list does not approve
      an implementation or set a release target. L-151 to L-154 stay later.
+     Imported for spec work the same day: L-165 Mass Craft, L-166 villager
+     trade helpers, L-167 in-world language and resource packs (Design or
+     Research; specs to be agreed with the maintainer).
 2. **Schematic — L-93 follow-ups:** the screen review and the 0.1.8
    rendering work shipped in 0.1.8. Open: L-114 the Check tab preview's
    mistake look and see-through emphasis, L-115 entity models beyond the
@@ -129,11 +134,11 @@ L-item wins. Every entry names what the task is, not only its number.
    on 2026-10-11; server checks stay listed below as known gaps (Release policy does not require a full
    regression).
 
-Ideas that are not yet chosen (for example a fall-rescue elytra and
-Mass Craft) stay in the maintainer's notes and enter
+Ideas that are not yet chosen (for example a fall-rescue elytra) stay in
+the maintainer's notes and enter
 this file once chosen. The candidates imported on 2026-10-12 are now
 tracked here for design/research; their open choices remain open.
-Mass Craft ranks below Map because resource packs already cover part of it.
+Mass Craft (L-165) ranks below Map because resource packs already cover part of it.
 
 Task-picking rule: bugs first; otherwise work on what the execution order
 names. Cheap models skip strong-model, Design and Research work. Follow the
@@ -175,8 +180,8 @@ unmet gates for versions already published. Registry pickup for 0.1.4 to
   HUD, L-144 hotbar in the HUD editor, paused-feature notices. The
   maintainer's smoke test passed on the release-ZIP DLL `71db2f0f...ae49c`.
   No settings migration. Tag CI passed; the GitHub release carries both
-  assets with matching digests. Next: check that the registry PR picks up
-  `v0.2.0` and that LeviLauncher/Bedrinth offer it.
+  assets with matching digests. LeviLauncher offers 0.2.0 (maintainer
+  2026-10-12); Bedrinth not checked.
 - 0.1.9 was released on 2026-10-11 (`v0.1.9` at `8bf28c0`; asset SHA-256
   `c0bbc358...a4b`): L-96 Connected Textures (panes with the one-texel
   stretch; split panes parked as L-133), L-128 player list, L-127 inventory
@@ -360,6 +365,9 @@ and both are dark gradients rather than wrong texels; research them as one
 question (what per-quad value the renderer interpolates or sorts differently
 for split faces), but confirm the shared cause before reusing L-133 results.
 Do not treat old pane experiments as a proven fix or cause for this report.
+L-164's spike (one quad with a generated sprite, 2026-10-12) also answers
+whether the split is the trigger here: draw a bookshelf that way under
+Vibrant Visuals.
 Keep investigation bounded; native render changes must fail open.
 Exact reproduction, affected extent and cause remain unverified by an agent;
 no fix or post-fix runtime check yet.
@@ -404,6 +412,152 @@ type 3, scale 1.333, with the font's own material).
 
 ## Feature work and research
 
+### L-167 Change the language and resource packs from inside a world
+Kind: Research, then Design (strong model). Imported from the maintainer's
+notes (2026-09-25) on 2026-10-12; not chosen for building, no release.
+Goal: switch the game's display language, and look at or change the global
+resource pack stack, without leaving the world or server first.
+Research first, before any spec: what 26.51 already allows from the pause
+menu's settings (language list, Global Resources) and where it stops. Do
+not build what vanilla already does.
+Agent's proposal (not decided), in two parts that are judged separately:
+1. Language (smaller): if vanilla refuses in-world, offer the same language
+   list from Lamium (a settings row or the pause menu) and apply it through
+   the game's own path (`GeneralSettingsScreenController::_chooseLanguage`,
+   `MinecraftGame::onLanguageChanged`, `ResourcePackManager::onLanguageChanged`,
+   `FontRepository::onLanguageChanged`), never by writing option memory.
+   Lamium's own UI follows the new language on the next frame. Check that
+   item names, signs, chat and open screens refresh, and that L-130 English
+   search still works.
+2. Resource packs (larger): first a read-only view of the active global
+   stack in-world. Changing it is not hot reloaded: queue the change, leave
+   the world through vanilla's exit, apply the stack
+   (`ResourcePackManager::setStack`, the same path as the Global Resources
+   screen), then rejoin the same local world. Rejoining a server is only
+   offered if the game keeps its address without Lamium storing it. World
+   and server packs are never changed or skipped.
+Open (maintainer): which part is wanted (motivation: checking names in
+English is already covered by L-130), where the entry lives (Lamium settings
+or a pause-menu button), and whether a leave/rejoin flow is acceptable.
+Fail open: if the game's own apply path cannot be found, show nothing.
+
+### L-166 Villager trade helpers
+Kind: Design, then Research (strong model). Imported from the maintainer's
+notes (2026-09-25) on 2026-10-12; not chosen for building, no release.
+Builds on L-129 (every trader level shown); separate from L-154's inventory
+gestures.
+Goal: fewer clicks for repeated trades in the vanilla trade screen.
+Agent's proposal (not decided):
+1. Trade repeatedly: a modifier click on a trade in the list (gesture open,
+   below) trades it as many times as allowed: until the offer is sold out
+   (uses reach max uses), the inputs in the inventory run out, the output
+   no longer fits, or a limit. Each round goes through vanilla's own trade
+   request (the server-side trade request already carries a craft count,
+   `CraftHandlerTrade::mNumCrafts`), Lamium does not build trade
+   transactions, and the next round starts only after the inventory and the
+   offer's uses changed on authoritative state. Locked trades (L-129) are
+   never traded. The output is never dropped: stop when it would not fit.
+2. Later, only if wanted: remember a favourite trade per profession and
+   select it when the screen opens; show the remaining uses before an offer
+   sells out.
+Out of scope: trading with several villagers at once, moving villagers,
+restock timers, anything that changes prices.
+Research entry: `Trade2ScreenController` (`_onContainerSlotPressed`, the
+`TradeItemCollections`, `_getBaseItemCountForTrade`), `Trade2ContainerManagerModel`,
+`UpdateTradePacket` after each trade (does `uses` update, how fast).
+Validation: local world and BDS, with latency; sold-out mid-run, full
+inventory, closing the screen mid-run, two-input trades, enchanted books.
+Open (maintainer): the gesture (agent's guess: Shift+click on the trade
+row; check it does not clash with vanilla's own shift handling), whether
+"as many as possible" or a count, default on or off, and whether part 2 is
+wanted at all.
+
+### L-165 Mass Craft: craft a recipe many times at once
+Kind: Design, then Research (strong model). In the notes since 2026-09-22;
+imported on 2026-10-12. Not chosen for building, no release. It still needs
+the conversation about purpose and scope that a larger feature starts with
+(see the top of this file).
+Goal: turn a whole inventory of ingredients into products with one action
+(logs into planks, iron into blocks), instead of repeating fill-the-grid and
+take-the-output by hand.
+Vanilla baseline to measure first: what one recipe-book click and one
+shift-take of the output already do on 26.51 (how many crafts per action,
+where the output goes, what happens when it does not fit). Craft requests
+already carry a craft count (`ItemStackRequestActionCraftBase::mNumCrafts`),
+so vanilla may already do more per action than it looks.
+Agent's proposal (not decided):
+- A "Craft all" action on a recipe in the recipe book repeats vanilla's own
+  steps (`CraftingScreenController::_handleRecipeSelect`, then
+  `_handleCraftItem(ItemCraftType::All)`) until the ingredients run out,
+  the output would not fit or the player stops it. Lamium never builds
+  crafting transactions; the server validates every round.
+- One round at a time: the next starts only after the inventory changed as
+  expected (ingredients down, output up) on authoritative state; a mismatch
+  or timeout stops with a toast. A per-tick bound keeps the rate modest.
+- Stops on: screen closed, any click or key by the player, focus loss,
+  world or dimension change.
+- Never drops items: check room for the output before each round.
+- Screens: the 2x2 inventory grid and the crafting table first. Stonecutter,
+  loom, smithing and furnaces are later or out.
+- A small progress toast ("Crafting 320/640"), and the total at the end.
+Watch out for: recipes with leftovers (buckets, bottles), recipes that
+accept several ingredient kinds (any log), the OreUI recipe book versus the
+JSON UI screen (L-130 found only the latter covered), servers that limit
+request rates (help-text warning like Auto Attack's).
+Open (maintainer): the gesture (agent's guess: Ctrl+click on a recipe; check
+L-41/L-103 gestures), all-or-count, default on or off, and whether a "craft
+the last recipe again" key is wanted. Crafting from nearby chests is out.
+
+### L-164 Connected Textures: one quad per face with generated sprites
+Kind: Research (strong model), then a rebuild of L-96's method layer.
+Raised by the maintainer 2026-10-12: the per-block fixes keep running into
+the same dark shading (L-133 panes, L-156 bookshelves under Vibrant
+Visuals); should Lamium take a general connected-texture design instead
+(the maintainer referred to Continuity for Java)?
+Finding: every dark result so far appears only where Lamium splits one face
+into several quads (split cells for bookshelves and sandstone, split panes).
+Unsplit faces never showed it. Four pane rounds could not find which value
+the renderer interpolates across the extra vertices, and the cause sits in
+render code whose inputs the SDK does not show.
+What a general design changes: the face keeps vanilla's single quad and
+only its texture changes, to a sprite chosen from the neighbor mask. That
+removes the split as a class of problem instead of chasing each case, and
+makes blocks a matter of rule data. What Lamium does not take over: reading
+other connected-texture formats from resource packs (Bedrock packs do not
+carry them; a large scope with no current demand).
+Proposal (agent, 2026-10-12; adopt after the spike):
+1. Sprites generated from the loaded texture, not shipped: at atlas build,
+   each rule texture gets one variant per needed mask, baked with today's
+   look (glass: the border strips refilled from the middle texels; 15 extra
+   variants for the 4-side mask; bookshelves left/right: 3; sandstone top:
+   1). Resource-pack textures are used automatically and no game texture is
+   redistributed. The terrain atlas already supports images made at build
+   time (`TextureAtlas::mRuntimeImageGenerators`,
+   `RuntimeImageGeneratorInfo` with a generator callback); atlas names
+   resolve through `BlockGraphics::getTextureUVCoordinateSet`.
+2. Tessellation: the face hooks pass the variant's UV set to the original
+   face call; no extra quads. Panes use the same variants for their glass
+   faces, which also replaces the one-texel stretch.
+3. Pure rule table (`tests/`): block -> texture slots, connection predicate,
+   method (4-side mask, horizontal, vertical, top only; the 47-tile mask
+   with inner corners only if a block needs it), border widths and fill
+   sources. Adding a block is a table row.
+4. Variants exist whenever the game version is verified, so the switch
+   still only rebuilds chunks. Large textures (above 64 px) skip
+   generation and draw vanilla, to bound atlas memory.
+Spike (stop and report after two failed rounds): register one generated
+sprite for plain glass, draw a glass face with it, and check normal and
+Vibrant Visuals, a resource pack, a resource reload, and the game's mips.
+Vibrant Visuals also needs the texture set (normal/MER maps) of a variant;
+find whether `PBRTextureDataManager` / `TextureAtlasItemTextureSetTranslation`
+gives generated sprites one, or the variant must copy the base texture's.
+If generated sprites cannot be added safely: keep split cells only where
+the dark shading has not been seen, and use the stretch under Vibrant
+Visuals (choice for the maintainer then).
+After it holds: move glass, panes, bookshelves and sandstone over, delete
+the split-cell code, and recheck L-133 and L-156 against it before closing
+them.
+
 ### L-163 A Lamium-drawn inventory screen
 Kind: Research, then Design (strong model). Raised by the maintainer
 2026-10-12 after L-149 (opening the vanilla inventory in a portal is refused
@@ -439,7 +593,8 @@ for it or when the integration review takes it up.
 
 ### L-133 Connected Textures: split glass panes without dark halves
 Kind: Research. Opened 2026-10-11 from L-96. Linked: L-156 (split
-bookshelves dark under Vibrant Visuals with the same look, 2026-10-12).
+bookshelves dark under Vibrant Visuals with the same look, 2026-10-12) and
+L-164 (one quad per face with generated sprites, which avoids the split).
 Status: parked 2026-10-11 after four trial rounds; panes ship with the stretch.
 Panes draw joined glass by moving the texture inward (a 1-texel stretch,
 `4ef3d51`); glass blocks, bookshelves and sandstone draw split at the
@@ -1175,6 +1330,5 @@ Not implemented; preserve the current storage and inventory-screen behavior.
   translations updated to the latest main, Night Vision and unaffected
   markers for the map tint, and the provenance statement. Nothing is
   discussed further until it is split.
-- Not started, not yet triaged: Mass Craft. It needs a Design pass before
-  it becomes a task (Schematic became L-93). (Fast Attack/Use became L-34;
-  Scroll Transfer became L-41.)
+- Mass Craft became L-165 (2026-10-12). (Schematic became L-93; Fast
+  Attack/Use became L-34; Scroll Transfer became L-41.)

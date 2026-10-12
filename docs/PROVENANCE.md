@@ -78,7 +78,8 @@ it) while doing so.
   Wheelie, Jade / WAILA, AppleSkin, Xaero's Minimap and World Map.
 - Continuity (Java): its design as described publicly is the source of the
   L-96 layering idea (connection rules apart from texture methods, a
-  47-tile method later). Its source is not opened.
+  47-tile method later) and of L-164's question (one quad per face with a
+  chosen sprite instead of split quads). Its source is not opened.
 - Sodium, ImmediatelyFast, Lithium and EntityCulling (Java): their published
   approaches are the source of the L-105 hypotheses (mesh rebuild
   scheduling, batching, caching, occlusion culling). Their source is not
