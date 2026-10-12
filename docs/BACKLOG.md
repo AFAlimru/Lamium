@@ -77,10 +77,8 @@ L-item wins. Every entry names what the task is, not only its number.
      these before new features; L-155 and L-158 done 2026-10-12; L-159
      Find by key in Hotkeys done; L-160 Edge Guard on BDS done; L-161
      slab merges and the edge margin setting done; L-162 rare fall after a
-     server correction (research); L-156 is linked to L-133 (same look, split faces, research
-     together; past attempts on L-133 failed). L-164 (2026-10-12) proposes
-     drawing connected faces as one quad with generated sprites, which
-     would remove the split; its spike comes before more split fixes.
+     server correction (research); L-156 and L-133 were fixed by L-164 (connected faces drawn as one quad
+     with sprites generated into the terrain atlas, done 2026-10-13).
    - Bugs: L-123 elytra stretched on the inventory model after FreeCamera
      (parked 2026-10-10 after two rounds); L-91 shield
      glint in Lamium's icons (parked after one round; leather fixed).
@@ -343,37 +341,6 @@ re-runs its recent ticks after a correction (`ReplayableActorInput` captures
 apply during that re-run. Next: trace `calculateMoveVector` calls during the
 re-run (which state, which position) and whether the captured input is the
 guarded one; fail open if the replay path cannot be told apart.
-
-### L-156 Low bookshelves above glass become dark under Vibrant Visuals
-Kind: Bug, Research (strong model).
-Status: open. Maintainer's actual-play report, 2026-10-12, Lamium 0.2.0.
-Reported conditions: Vibrant Visuals enabled, glass below, lower bookshelves
-become dark. Screenshot: `スクリーンショット 2026-10-12 014000.png`
-(report attachment), showing dark vertical areas in the bookshelf faces.
-The maintainer says the appearance closely resembles the existing darkening
-issue (L-133). This is a comparison of symptoms, not evidence of a shared
-cause. L-133 concerns split translucent panes; bookshelves also use split
-Connected Textures geometry but are a separate reproduction.
-Maintainer follow-up, 2026-10-12: Connected Textures on/off compared; the
-dark vertical bands appear only with Vibrant Visuals and Connected Textures
-both on, so Lamium's split bookshelf geometry is implicated under Vibrant
-Visuals (shadows/normals of the split faces are the first suspects).
-Next: glass present/absent, bookshelf height/view direction, time of day
-(sun shadow direction), and sandstone (also split) under the same setup. Record
-lighting, Night Vision and resource packs. Separate vanilla lighting from
-Lamium tessellation or renderer-state effects before changing the path.
-Linked to L-133 (maintainer 2026-10-12: the look is too similar to treat
-separately). Both appear only when Lamium splits a face into several quads,
-and both are dark gradients rather than wrong texels; research them as one
-question (what per-quad value the renderer interpolates or sorts differently
-for split faces), but confirm the shared cause before reusing L-133 results.
-Do not treat old pane experiments as a proven fix or cause for this report.
-L-164's spike answered it (round 4, 2026-10-12): bookshelf sides drawn as
-one quad with a generated sprite show no dark bands under Vibrant Visuals;
-the one-sided split next to them does. The fix is L-164's method.
-Keep investigation bounded; native render changes must fail open.
-Exact reproduction, affected extent and cause remain unverified by an agent;
-no fix or post-fix runtime check yet.
 
 ### L-123 FreeCamera stretches the worn elytra on the inventory player model
 Kind: Bug, low priority. Reported from use 2026-10-09 (maintainer's notes).
@@ -710,72 +677,6 @@ chests is out.
 Open (maintainer): whether a "craft the last recipe again" key is wanted
 (agent: not in the first version).
 
-### L-164 Connected Textures: one quad per face with generated sprites
-Kind: Research (strong model), then a rebuild of L-96's method layer.
-Raised by the maintainer 2026-10-12: the per-block fixes keep running into
-the same dark shading (L-133 panes, L-156 bookshelves under Vibrant
-Visuals); should Lamium take a general connected-texture design instead
-(the maintainer referred to Continuity for Java)?
-Finding: every dark result so far appears only where Lamium splits one face
-into several quads (split cells for bookshelves and sandstone, split panes).
-Unsplit faces never showed it. Four pane rounds could not find which value
-the renderer interpolates across the extra vertices, and the cause sits in
-render code whose inputs the SDK does not show.
-What a general design changes: the face keeps vanilla's single quad and
-only its texture changes, to a sprite chosen from the neighbor mask. That
-removes the split as a class of problem instead of chasing each case, and
-makes blocks a matter of rule data. What Lamium does not take over: reading
-other connected-texture formats from resource packs (Bedrock packs do not
-carry them; a large scope with no current demand).
-Proposal (agent, 2026-10-12; adopt after the spike):
-1. Sprites generated from the loaded texture, not shipped: at atlas build,
-   each rule texture gets one variant per needed mask, baked with today's
-   look (glass: the border strips refilled from the middle texels; 15 extra
-   variants for the 4-side mask; bookshelves left/right: 3; sandstone top:
-   1). Resource-pack textures are used automatically and no game texture is
-   redistributed. The terrain atlas already supports images made at build
-   time (`TextureAtlas::mRuntimeImageGenerators`,
-   `RuntimeImageGeneratorInfo` with a generator callback); atlas names
-   resolve through `BlockGraphics::getTextureUVCoordinateSet`.
-2. Tessellation: the face hooks pass the variant's UV set to the original
-   face call; no extra quads. Panes use the same variants for their glass
-   faces, which also replaces the one-texel stretch.
-3. Pure rule table (`tests/`): block -> texture slots, connection predicate,
-   method (4-side mask, horizontal, vertical, top only; the 47-tile mask
-   with inner corners only if a block needs it), border widths and fill
-   sources. Adding a block is a table row.
-4. Variants exist whenever the game version is verified, so the switch
-   still only rebuilds chunks. Large textures (above 64 px) skip
-   generation and draw vanilla, to bound atlas memory.
-Spike (stop and report after two failed rounds): register one generated
-sprite for plain glass, draw a glass face with it, and check normal and
-Vibrant Visuals, a resource pack, a resource reload, and the game's mips.
-Vibrant Visuals also needs the texture set (normal/MER maps) of a variant;
-find whether `PBRTextureDataManager` / `TextureAtlasItemTextureSetTranslation`
-gives generated sprites one, or the variant must copy the base texture's.
-Spike status (2026-10-12, VALIDATION-LOG): a generated sprite works for
-plain glass, also under Vibrant Visuals (round 3, `67e9f26`). How: add a
-`texture_data` entry in `TextureAtlas::_createAtlas` for the terrain atlas,
-answer `ResourcePackManager::getPackStackIndexOfResource` for the sprite's
-image extensions with the base texture's pack, and serve a PNG from
-`load(ResourceLocationPair, ..., extensions)`; the texture group cache is
-not used by the atlas. Next: a bookshelf side variant under Vibrant
-Visuals (PBR texture sets, and the L-156 question).
-Round 4 (`d126608`, 2026-10-12): bookshelf sides joined on both sides drawn
-with a sprite show no dark bands under Vibrant Visuals, while a one-sided
-(split) join next to them does: the split is the trigger of L-156. The
-sprites carry no texture set (the bases have one in pack 13) and no
-surface difference was seen. Spike answered: adopt the generated-sprite
-method. A real build should give each sprite a texture set derived from
-the base's (color pointing at the sprite, MER/normal maps baked the same
-way) so blocks with stronger PBR maps match.
-If generated sprites cannot be added safely: keep split cells only where
-the dark shading has not been seen, and use the stretch under Vibrant
-Visuals (choice for the maintainer then).
-After it holds: move glass, panes, bookshelves and sandstone over, delete
-the split-cell code, and recheck L-133 and L-156 against it before closing
-them.
-
 ### L-163 A Lamium-drawn inventory screen
 Kind: Research, then Design (strong model). Raised by the maintainer
 2026-10-12 after L-149 (opening the vanilla inventory in a portal is refused
@@ -808,41 +709,6 @@ off. Agent's proposal: switches for Waypoints, Schematics and Shapes in the
 world map's top bar (remembered across openings), rather than a settings
 option, since the map is where that choice is made. Add when players ask
 for it or when the integration review takes it up.
-
-### L-133 Connected Textures: split glass panes without dark halves
-Kind: Research. Opened 2026-10-11 from L-96. Linked: L-156 (split
-bookshelves dark under Vibrant Visuals with the same look, 2026-10-12) and
-L-164 (one quad per face with generated sprites, which avoids the split).
-Status: parked 2026-10-11 after four trial rounds; panes ship with the stretch.
-Panes draw joined glass by moving the texture inward (a 1-texel stretch,
-`4ef3d51`); glass blocks, bookshelves and sandstone draw split at the
-texture's scale. Split panes (`17cedc6`..`20b9059`) looked right up close but
-translucent panes blended dark on one half of each block depending on the
-view: facing south at an east-west pane the west half, facing east at a
-north-south pane the south half; facing north or west nothing. Night Vision
-hid it. Ruled out with dumps and trial builds: the split values (positions,
-UVs, colors, light, normals, facing), redrawing the pane versus appending
-copies to the tessellator, and giving every cell its face's quad info
-(center included). The likely cause is the translucent face sorting and
-culling (`RenderChunkSorter::sortAndCullFaces`, `FaceInfo` with a `reverse`
-bit, `RenderChunkGeometry` face sorting metadata); its inputs are not
-visible in the SDK headers. Stained glass blocks, also split and blended,
-show nothing. A stained pane cross shows seams to its arms even with the
-feature off: vanilla, not Lamium's.
-Trials 2026-10-11 (`99a3089`..`84f4335`, split panes restored, then reverted):
-the dark half is the arm whose glass is cut at a joined edge (west arm of
-east-west panes, south arm of north-south ones). Reversing the quads inside
-the appended copies, keeping the largest cell in the first draw's place, and
-showing every cell its own texels all stayed dark; appended copies folded to
-a point with unsplit glass did not. Every quad has `facing` 6 and `twoFace`
-0. Up close the dark band is a smooth gradient, darkest at the seam about
-two texels from the joined edge, as if a value interpolated from the seam
-vertices. So splitting a pane's glass face into quads is the trigger, not
-the copies, their order, sort data or texels; the vertex data Lamium writes
-matches vanilla. Hypothesis, unchecked: the game derives per-vertex lighting
-from vertex positions after tessellation (the `uv1` values are near 0 in
-daylight), and the new mid-face vertices get dark values. Parked: the gain
-over the one-texel stretch is small.
 
 ### L-132 Move while the inventory screen is open
 Kind: Research, then Feature. Requested by the maintainer 2026-10-10;

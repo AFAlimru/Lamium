@@ -12,6 +12,25 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-164 Connected Textures with generated sprites (2026-10-13)
+
+By the maintainer, local, screenshots.
+- `028b1ed` (DLL `2e3947c2...5a95210`): glass (clear, stained, tinted) joins
+  without inner lines and keeps its outer frame in L shapes and single
+  rows; panes joined across and up show no dark half (L-133) and no
+  stretch; bookshelves with a neighbor on one side only show no dark bands
+  under Vibrant Visuals (L-156); stacked sandstone loses its band; the
+  switch changes the look at once. OK. Under Vibrant Visuals large joined
+  areas caught light flatly (bookshelves, sandstone, glass). Log: 275
+  sprites for 21 textures, all in place, base places match vanilla.
+- `6274b53` (DLL `ca4b0d23...4fa6c15`): sprites get the base's texture set
+  with their maps baked the same way; joined faces now catch light like
+  single blocks under Vibrant Visuals, and nothing changed with it off.
+  Log: bookshelf's texture set has a `metalness_emissive_roughness_subsurface`
+  map; 275 texture sets with 275 baked maps. OK.
+Not seen: resource packs (other textures or sizes), a resource reload while
+in a world, servers, the unverified-version fallback.
+
 ## L-164 spike round 4: bookshelf sides, Vibrant Visuals (2026-10-12)
 
 By the maintainer, local, `d126608` (`ctsprite_trace`, DLL
