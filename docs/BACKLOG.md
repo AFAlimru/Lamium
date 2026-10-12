@@ -421,6 +421,13 @@ lines, older ones through Up/Down); when it opens over a container screen
 (second step) it sits left of that window so it does not cover it. Text
 editing comes from L-172, so L-172 goes first. Spec complete; Ready
 (strong model) once L-172 is in.
+Built 2026-10-13 (`e664562`, `bef8059`): variant A, the sidebar item
+"Calculator" (opens it; Esc returns), checked in game (VALIDATION-LOG).
+Maintainer after use: the hints are too small and cut off; copying only the
+value is not enough (the line and the chest amount too); the history lists
+newest first while Up goes back, which reads upside down; only three lines
+are visible; with the chest-side placement moot, the panel can be larger.
+Second mockup: [demos/calculator-v2.html](demos/calculator-v2.html).
 
 ### L-170 Enchantment order planner
 Kind: Design, then Research (strong model). Requested by the maintainer
