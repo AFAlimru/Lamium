@@ -80,6 +80,14 @@ it) while doing so.
   L-96 layering idea (connection rules apart from texture methods, a
   47-tile method later) and of L-164's question (one quad per face with a
   chosen sprite instead of split quads). Its source is not opened.
+- Librarian Trade Finder (Java, GPL-3.0): its repository description,
+  named by the maintainer 2026-10-12, is the source of the L-168 idea.
+  Its source is not opened.
+- enchant-order (a web tool, MIT): the problem it solves, named by the
+  maintainer 2026-10-12, is the source of the L-170 idea. Its source is not
+  opened; Lamium's anvil rules are checked against the game.
+- CalcMod (Java, MIT): its Modrinth description, named by the maintainer
+  2026-10-12, is the source of the L-171 idea. Its source is not opened.
 - Sodium, ImmediatelyFast, Lithium and EntityCulling (Java): their published
   approaches are the source of the L-105 hypotheses (mesh rebuild
   scheduling, batching, caching, occlusion culling). Their source is not

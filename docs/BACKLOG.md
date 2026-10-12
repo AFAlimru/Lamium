@@ -94,7 +94,10 @@ L-item wins. Every entry names what the task is, not only its number.
      an implementation or set a release target. L-151 to L-154 stay later.
      Imported for spec work the same day: L-165 Mass Craft, L-166 villager
      trade helpers, L-167 in-world language and resource packs (Design or
-     Research; specs to be agreed with the maintainer).
+     Research; specs to be agreed with the maintainer). Requested next, same
+     status: L-168 trade finder (reroll villagers), L-169 Item Transfer in
+     more screens and bulk transfer, L-170 enchantment order planner, L-171
+     calculator.
 2. **Schematic — L-93 follow-ups:** the screen review and the 0.1.8
    rendering work shipped in 0.1.8. Open: L-114 the Check tab preview's
    mistake look and see-through emphasis, L-115 entity models beyond the
@@ -411,6 +414,127 @@ type 3, scale 1.333, with the font's own material).
 ---
 
 ## Feature work and research
+
+### L-171 Calculator
+Kind: Design. Requested by the maintainer 2026-10-12; not chosen for
+building, no release.
+Goal: a quick calculator inside the game; playing often needs arithmetic
+(stacks, coordinates, farm rates) and there is no way to do it in game now.
+Agent's proposal (not decided):
+- A hotkey (unbound) opens a small Lamium panel with one text field; the
+  result updates while typing. Enter keeps the line in a short history
+  (about 10, this session only), a button copies the result. Nothing is
+  ever sent to chat or the server.
+- Arithmetic: + - * / % ^, parentheses, decimals, `ans` for the last
+  result; functions sqrt, abs, floor, ceil, round, min, max.
+- Minecraft units as words after a number: `st` (64), `sb` (a shulker box,
+  27 stacks), `dc` (a double chest, 54 stacks); item counts are also shown
+  as "19 st + 18" and in shulker boxes. Ticks and seconds (20 per second).
+  Overworld/Nether coordinates (x8, /8) as functions.
+- Optional: the player's `x y z` as variables.
+- Pure expression parser and unit formatting in a header with tests; the
+  panel uses the existing text field (IME already works, L-84).
+Open (maintainer): the entry point (a panel from a hotkey, or typing in
+chat with a prefix that Lamium keeps local; the chat route risks sending by
+mistake), which unit words (and Japanese aliases), history kept across
+restarts or not, and whether coordinates variables are wanted.
+
+### L-170 Enchantment order planner
+Kind: Design, then Research (strong model). Requested by the maintainer
+2026-10-12; not chosen for building, no release.
+Goal: given an item and the enchantments wanted, show the order of anvil
+combinations that costs the least experience and avoids steps the anvil
+refuses as too expensive.
+Agent's proposal (not decided):
+- Data from the game, so new enchantments need no Lamium update: the
+  registry `Enchant::mEnchants()` gives each enchantment's id, max level
+  (`getMaxLevel`), rarity (`Frequency`, which sets the anvil multiplier),
+  compatibility (`isCompatibleWith`) and whether it can go on the item.
+- Anvil rules (prior-work penalty doubling per use, per-level multipliers,
+  books against items, the refusal threshold) as a pure, tested table.
+  Bedrock's rules are not assumed to equal another edition's: check every
+  rule against the cost the anvil screen shows (`AnvilScreenController`)
+  before trusting the planner.
+- Solver: a pure, bounded search over combination trees (exhaustive up to
+  about 10 inputs, which covers every real item), minimizing total levels
+  with no step at or above the refusal threshold; ties prefer fewer steps.
+- UI: a Lamium screen; pick the item (held item preselected), tick the
+  enchantments and levels (incompatible ones greyed), optionally "use the
+  books I carry" (read from the inventory, with their existing prior-work
+  penalty). The result is a numbered list of steps with each step's cost
+  and the total.
+- Later, if wanted: highlight the next pair in the anvil screen.
+Open (maintainer): whether the first version plans only from scratch (books
+assumed fresh) or from the inventory too, where the screen opens (hotkey,
+from the anvil screen), and whether the anvil highlight is wanted.
+
+### L-169 Item Transfer in more screens, and bulk transfer
+Kind: Design, then Research (strong model). Requested by the maintainer
+2026-10-12; extends L-41/L-103 (DESIGN "Inventory transfer"). L-154's other
+gestures stay later.
+Goals:
+1. Screens that do not work today: dispenser, dropper, hopper, the furnace
+   family (furnace, blast furnace, smoker), brewing stand, and others found
+   while testing (crafter, beacon, shulker box to check). Check each first:
+   the current transfer acts only in "storage screens".
+2. Bulk transfer: move everything, or everything of one kind, between the
+   container and the inventory with one action.
+Vanilla already has take-all and place-all handlers in the container
+screens (`ContainerScreenController::_handleTakeAll`, `_handlePlaceAll`,
+`_handleAutoPlace(amount, ...)`, the per-screen `_registerAutoPlaceOrder`
+and `_registerCoalesceOrder`); the maintainer reports that only a
+controller binding reaches them and that a resource pack can show them.
+Research first whether Lamium can call them from a key or gesture (queued
+to the client thread, AGENTS rule 2) and what they move exactly; prefer
+them over Lamium-built sweeps where they do the right thing.
+Agent's proposal (not decided):
+- Routing for slots with roles: furnaces send fuel to the fuel slot and
+  smeltable items to the input (an item that is both: input first, as
+  vanilla's shift-click; to check), and only take from the output; brewing
+  stands send bottles, the ingredient and blaze powder to their slots. The
+  existing four gestures keep their meaning; a gesture with no valid
+  destination does nothing.
+- Bulk: a key or modified click on the container side "take all", on the
+  inventory side "put all"; with the hovered item, only that kind. An
+  option keeps the hotbar out of "put all" (default: hotbar kept).
+- Same safety as today: one request at a time, confirmed from
+  authoritative state, stops on screen close, cursor item or a rejected
+  request.
+Open (maintainer): the bulk keys or gestures (and whether they need their
+own switches), hotbar handling, which screens are wanted first, and
+whether "fill existing stacks only" is wanted as well.
+
+### L-168 Trade finder: reroll a villager until a wanted trade appears
+Kind: Design, then Research (strong model). Requested by the maintainer
+2026-10-12 for later; separate from L-166 (trading once a good villager is
+found). Not chosen for building, no release.
+Goal: find a wanted trade (for example a librarian's enchanted book at a
+given level and price) by resetting a villager's profession again and
+again, for every profession, inside Lamium's UI.
+Background: a villager that has never been traded with loses its
+profession when its workstation is broken and rolls new trades when it
+takes one again. On Bedrock the client receives every trade of every level
+when the trade screen opens (L-129 research), so even level-5 offers can be
+checked at level 1. Research first: when trades are rolled on 26.51 (on
+taking the profession or on the first opening), how long the villager takes
+to claim a placed workstation, and whether a server sends the same.
+Agent's proposal (not decided), in two stages:
+1. Assist (no automation): a list of wanted offers (item, enchantment and
+   level for books, maximum price). Each time a trade screen opens, Lamium
+   checks the received offers (L-129's parsing) and announces a match with
+   a toast and sound; otherwise it says what was offered. The player breaks
+   and places the workstation by hand.
+2. Loop (only if wanted): with the player looking at a villager and its
+   workstation, Lamium repeats break, place, open the trade screen, read,
+   close, until a match or a stop. Every step goes through vanilla's own
+   actions (break and build), waits for authoritative results, and stops on
+   any player input, a missing workstation item, a different villager, a
+   traded (locked) villager, low durability (L-62), or world/dimension
+   change. Default off; help text warns that servers may treat the loop as
+   automation.
+Open (maintainer): whether stage 2 is wanted, how wanted offers are entered
+(a picker from the game's item and enchantment lists), where the list is
+saved, and whether matches are kept as a short log.
 
 ### L-167 Change the language and resource packs from inside a world
 Kind: Research, then Design (strong model). Imported from the maintainer's
@@ -1292,7 +1416,8 @@ Model event sequences in pure logic before touching gameplay input; menus
 and focus changes must not leave stale held inputs. Not implemented.
 
 ### L-154 Additional inventory transfer gestures
-Kind: Design; choose a concrete gesture before implementation.
+Kind: Design; choose a concrete gesture before implementation. Bulk
+transfer and more screens moved to L-169 (2026-10-12).
 Candidates: matching-item bulk transfer, leaving one item behind, modified
 clicks, dragging to drop items and keyboard-directed moves. Do not assign
 chords or change existing gestures yet. Clarify source/destination, cursor
