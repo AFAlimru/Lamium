@@ -26,6 +26,13 @@ void settingsRowsTests() {
     check(ui::translations::find(ui::actionTranslationKey(input::Action::FreeCameraSpeedUp,true),"ja_JP") == "速度を上げる"
           && ui::translations::find(ui::actionTranslationKey(input::Action::FreeCameraSpeedDown,true),"ja_JP") == "速度を下げる",
           "Japanese detail speed action labels are natural commands");
+    for (size_t i = 0; i < static_cast<size_t>(input::Action::Count); ++i) {
+        auto action = static_cast<input::Action>(i);
+        if (input::retired(action)) continue;
+        for (auto locale : {"en_US", "ja_JP", "zh_CN"})
+            check(!ui::translations::find(ui::actionTranslationKey(action), locale).empty(),
+                  std::format("action {} has a {} label", input::actions[i].id, locale).c_str());
+    }
     ui::SearchQuery query;
     std::set<std::string_view> expanded;
     for (auto const& feature : ui::features) expanded.insert(feature.id);
