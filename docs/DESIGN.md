@@ -539,8 +539,9 @@ exactly one switch, one mode and one set of keys:
 
 - Stops walking off edges like sneaking, without sneaking, also on servers:
   the move input the server reads is guarded, not only the client's motion.
-- Stops with the box at least 0.02 block over the block, also while sneaking
-  (a box that only touches an edge is no support on a server).
+- Stops with the box at least 0.1 block over the block, also while sneaking
+  (a box that only touches an edge is no support on a server, and a server's
+  position can drift a few hundredths further out than the client's).
 - A slab that would merge with the slab the player stands on and push them
   out sideways (their center beside that cell) is not placed; with the
   center over the cell the merge lifts the player and is allowed.

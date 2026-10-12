@@ -336,6 +336,11 @@ the player's own cell and they fell; not seen locally. The maintainer
 suspects the BDS-only fall predates this change. Next: a trace build logging
 `useItemOn` decisions and `buildBlock` calls, to see whether BDS placement
 reaches the hook and what it decides.
+Trace (VALIDATION-LOG): the check runs and refuses; one BDS fall came from a
+server correction 0.04 further out than the client at 0.026 overlap, the
+other from a merge whose check was not logged. Next build: the overlap margin
+grows to 0.1 block and the merge check also runs in `startBuildBlock` and
+`buildBlock`, before the client may ask the server to place.
 
 ### L-156 Low bookshelves above glass become dark under Vibrant Visuals
 Kind: Bug, Research (strong model).

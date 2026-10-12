@@ -12,6 +12,20 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-161 slab merge refusal on BDS (2026-10-12)
+
+By the maintainer, normal build `b36cf7b` (DLL `f7c89965...51084cc6`): on
+BDS a slab still went into the player's own cell and they fell; in a local
+world it did not. Trace build `3d021db` (DLL `3fb28139...b1533210b`): the
+`useItemOn` check ran for the local player with a slab and refused the
+pushing merges it saw (both `buildBlock` calls then returned false), and
+allowed merges under the player's center. Two BDS falls: (1) the player
+stood 0.026 block over a slab and a server correction placed them 0.04
+further out, off the block; (2) the slab under the player became a full
+block while their center was outside it; the placement lines had hit the
+trace's 300-line cap, so whether that merge passed the check is unknown.
+Not seen locally.
+
 ## L-160 slab merge push-out; vanilla sneak check (2026-10-12)
 
 By the maintainer, trace build of `3c5d202` (DLL `fa261000...b0ea917d`), BDS,

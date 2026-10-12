@@ -55,7 +55,9 @@ constexpr double groundFriction = 0.546;
 // The move-input guard keeps the feet this far over the block, not touching
 // its edge: released from sneaking right at an edge, a server drops a player
 // whose box only touches the block (seen on BDS, L-160).
-constexpr float overlapMargin = 0.02f;
+// 0.1, not 0.02: on BDS the server's position drifted 0.04 further out than
+// the client's at an edge and the player fell after its correction (L-161).
+constexpr float overlapMargin = 0.1f;
 bool installed = false;
 bool reportedServerCopy = false;
 bool reportedInput = false;
@@ -76,7 +78,7 @@ void trace(std::string text) {
 // Placement lines are rare: written at once, bounded.
 int tracePlaceLines = 0;
 void traceNow(std::string const& text) {
-    if (tracePlaceLines >= 300) return;
+    if (tracePlaceLines >= 3000) return;
     ++tracePlaceLines;
     Runtime::instance().self().getLogger().info("L-161 {}", text);
 }
@@ -282,11 +284,6 @@ bool refusesMerge(Player& actor, ItemStack const& item, BlockPos const& pos, uch
     if (!runtime.enabled() || !runtime.snapshot()->interaction.edgeGuard) return false;
     auto client = ll::service::getClientInstance();
     auto* player = client ? client->getLocalPlayer() : nullptr;
-#ifdef LAMIUM_EDGE_TRACE
-    traceNow(std::format("useItemOn called: local {} walking {} sneaking {} held block {} slab {}",
-        player && static_cast<Player*>(player) == &actor, player && walking(*player), player && player->isSneaking(),
-        item.mBlock != nullptr, item.mBlock && item.mBlock->getBlockType().isSlabBlock()));
-#endif
     if (!player || static_cast<Player*>(player) != &actor || !walking(*player)) return false;
     Block const* held = item.mBlock;
     if (!held || !held->getBlockType().isSlabBlock()) return false;
@@ -309,7 +306,7 @@ bool refusesMerge(Player& actor, ItemStack const& item, BlockPos const& pos, uch
     // The clicked slab merges only through its top or bottom face.
     bool refused = ((face == 0 || face == 1) && pushes(pos)) || pushes(next);
 #ifdef LAMIUM_EDGE_TRACE
-    traceNow(std::format("useItemOn pos {},{},{} face {} slab here {} next {},{},{} slab {} box x {:.3f}..{:.3f} y {:.3f} z {:.3f}..{:.3f} -> {}",
+    traceNow(std::format("check pos {},{},{} face {} slab here {} next {},{},{} slab {} box x {:.3f}..{:.3f} y {:.3f} z {:.3f}..{:.3f} -> {}",
         pos.x, pos.y, pos.z, face, region.getBlock(pos).getBlockType().isSlabBlock(), next.x, next.y, next.z,
         region.getBlock(next).getBlockType().isSlabBlock(), box.min.x, box.max.x, box.min.y, box.min.z, box.max.z,
         refused ? "refused" : "allowed"));
@@ -320,6 +317,29 @@ bool refuses(Player& actor, ItemStack const& item, BlockPos const& pos, uchar fa
     try {
         return versionSensitiveAllowed("Edge Guard (movement request)") && refusesMerge(actor, item, pos, face);
     } catch (...) { return false; }
+}
+// Building starts before useItemOn and may already ask the server; refuse
+// there too, with the item in the building hand (as FreeCamera does).
+ItemStack const& heldIn(Player& actor, HandSlot hand) {
+    return hand == HandSlot::Offhand ? actor.getOffhandSlot() : actor.getSelectedItem();
+}
+LL_TYPE_INSTANCE_HOOK(EdgeGuardBuildHook, ll::memory::HookPriority::Normal, GameMode,
+    &GameMode::$buildBlock, bool, BlockPos const& pos, uchar face, HandSlot hand, bool simTick) {
+    if (refuses(mPlayer, heldIn(mPlayer, hand), pos, face)) return false;
+    return origin(pos, face, hand, simTick);
+}
+LL_TYPE_INSTANCE_HOOK(EdgeGuardSurvivalBuildHook, ll::memory::HookPriority::Normal, SurvivalMode,
+    &SurvivalMode::$buildBlock, bool, BlockPos const& pos, uchar face, HandSlot hand, bool simTick) {
+    if (refuses(mPlayer, heldIn(mPlayer, hand), pos, face)) return false;
+    return origin(pos, face, hand, simTick);
+}
+LL_TYPE_INSTANCE_HOOK(EdgeGuardStartBuildHook, ll::memory::HookPriority::Normal, GameMode,
+    &GameMode::$startBuildBlock, void, BlockPos const& pos, uchar face, HandSlot hand) {
+    if (!refuses(mPlayer, heldIn(mPlayer, hand), pos, face)) origin(pos, face, hand);
+}
+LL_TYPE_INSTANCE_HOOK(EdgeGuardSurvivalStartBuildHook, ll::memory::HookPriority::Normal, SurvivalMode,
+    &SurvivalMode::$startBuildBlock, void, BlockPos const& pos, uchar face, HandSlot hand) {
+    if (!refuses(mPlayer, heldIn(mPlayer, hand), pos, face)) origin(pos, face, hand);
 }
 LL_TYPE_INSTANCE_HOOK(EdgeGuardPlaceHook, ll::memory::HookPriority::Normal, GameMode,
     &GameMode::$useItemOn, InteractionResult, ItemStack& item, BlockPos const& pos, uchar face,
@@ -428,8 +448,15 @@ void start() {
         EdgeGuardHook::unhook(true);
         throw std::runtime_error("Could not install the edge guard input hook");
     }
-    if (EdgeGuardPlaceHook::hook(true) != 0 || EdgeGuardSurvivalPlaceHook::hook(true) != 0) {
+    if (EdgeGuardPlaceHook::hook(true) != 0 || EdgeGuardSurvivalPlaceHook::hook(true) != 0
+        || EdgeGuardBuildHook::hook(true) != 0 || EdgeGuardSurvivalBuildHook::hook(true) != 0
+        || EdgeGuardStartBuildHook::hook(true) != 0 || EdgeGuardSurvivalStartBuildHook::hook(true) != 0) {
         EdgeGuardPlaceHook::unhook(true);
+        EdgeGuardSurvivalPlaceHook::unhook(true);
+        EdgeGuardBuildHook::unhook(true);
+        EdgeGuardSurvivalBuildHook::unhook(true);
+        EdgeGuardStartBuildHook::unhook(true);
+        EdgeGuardSurvivalStartBuildHook::unhook(true);
         EdgeGuardInputHook::unhook(true);
         EdgeGuardHook::unhook(true);
         throw std::runtime_error("Could not install the edge guard placement hooks");
@@ -438,7 +465,9 @@ void start() {
 }
 void stop() {
     if (!installed) return;
-    bool place = EdgeGuardPlaceHook::unhook(true), survival = EdgeGuardSurvivalPlaceHook::unhook(true);
+    bool place = EdgeGuardPlaceHook::unhook(true) & EdgeGuardSurvivalPlaceHook::unhook(true);
+    bool survival = EdgeGuardBuildHook::unhook(true) & EdgeGuardSurvivalBuildHook::unhook(true)
+        & EdgeGuardStartBuildHook::unhook(true) & EdgeGuardSurvivalStartBuildHook::unhook(true);
     bool input = EdgeGuardInputHook::unhook(true), movement = EdgeGuardHook::unhook(true);
     if (place && survival && input && movement) installed = false;
 }
