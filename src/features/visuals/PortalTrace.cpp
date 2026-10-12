@@ -7,6 +7,9 @@
 #include "mc/client/game/IClientInstance.h"
 #include "mc/client/player/LocalPlayer.h"
 #include "mc/world/actor/player/Player.h"
+#include "mc/client/game/ClientInputCallbacks.h"
+#include "mc/client/gui/screens/SceneStack.h"
+#include <Windows.h>
 #include <format>
 #include <string>
 
@@ -73,13 +76,54 @@ LL_TYPE_INSTANCE_HOOK(PortalCanOpen, ll::memory::HookPriority::Normal, Player, &
     } catch (...) {}
     return result;
 }
+// Experiment 4 (trace builds only): who closes the inventory in a portal,
+// and does the inventory key reach the player? Caller stacks as offsets from
+// the game module, with the offsets of candidate functions logged at start.
+std::string stack() {
+    void* frames[12]{};
+    auto count = CaptureStackBackTrace(2, 12, frames, nullptr);
+    auto base = reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));
+    std::string out;
+    for (USHORT i = 0; i < count; ++i) out += std::format(" +{:x}", reinterpret_cast<uintptr_t>(frames[i]) - base);
+    return out;
+}
+LL_TYPE_INSTANCE_HOOK(PortalSchedulePop, ll::memory::HookPriority::Normal, SceneStack, &SceneStack::_schedulePopScreen, void,
+    int total, std::optional<OreUI::RouteAction> route, std::vector<std::string> const& expected) {
+    try { log(std::format("schedulePopScreen {} screen {} stack{}", total, screen(), stack())); } catch (...) {}
+    origin(total, std::move(route), expected);
+}
+LL_TYPE_STATIC_HOOK(PortalInventoryKey, ll::memory::HookPriority::Normal, ClientInputCallbacks,
+    &ClientInputCallbacks::handleInventoryButtonPress, void, IClientInstance& client, CraftingType craft) {
+    try { log(std::format("handleInventoryButtonPress screen {}", screen())); } catch (...) {}
+    origin(client, craft);
+    try { log(std::format("after handleInventoryButtonPress screen {}", screen())); } catch (...) {}
+}
+LL_TYPE_INSTANCE_HOOK(PortalOpenInventory, ll::memory::HookPriority::Normal, LocalPlayer, &LocalPlayer::$openInventory, void) {
+    try { log(std::format("openInventory ({}) stack{}", fields(*this), stack())); } catch (...) {}
+    origin();
+}
 void start() {
+    try {
+        auto base = reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));
+        auto at = [&](void* p) { return reinterpret_cast<uintptr_t>(p) - base; };
+        log(std::format("functions: normalTick +{:x} handleInsidePortal +{:x} tickWorld +{:x} aiStep +{:x} openInventory +{:x} inventoryKey +{:x}",
+            at(ll::memory::resolveIdentifier(&LocalPlayer::$normalTick)), at(ll::memory::resolveIdentifier(&LocalPlayer::$handleInsidePortal)),
+            at(ll::memory::resolveIdentifier(&LocalPlayer::$tickWorld)), at(ll::memory::resolveIdentifier(&LocalPlayer::$aiStep)),
+            at(ll::memory::resolveIdentifier(&LocalPlayer::$openInventory)),
+            at(ll::memory::resolveIdentifier(&ClientInputCallbacks::handleInventoryButtonPress))));
+    } catch (...) {}
+    PortalSchedulePop::hook();
+    PortalInventoryKey::hook();
+    PortalOpenInventory::hook();
     PortalCanOpen::hook();
     PortalInside::hook();
     PortalTick::hook();
     Runtime::instance().self().getLogger().warn("Portal diagnostics enabled (L-148/L-149)");
 }
 void stop() {
+    PortalSchedulePop::unhook(true);
+    PortalInventoryKey::unhook(true);
+    PortalOpenInventory::unhook(true);
     PortalCanOpen::unhook(true);
     PortalInside::unhook(true);
     PortalTick::unhook(true);

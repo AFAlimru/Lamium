@@ -295,7 +295,8 @@ struct Settings {
         overlays.hitboxDistance = std::clamp(overlays.hitboxDistance, 8.f, 128.f);
         if (!std::isfinite(interaction.elytraReturnSeconds)) interaction.elytraReturnSeconds = 3;
         interaction.elytraReturnSeconds = std::clamp(std::round(interaction.elytraReturnSeconds * 2) / 2, 0.f, 10.f);
-        // Per-line backgrounds exist only for the line elements (Info, Status).
+        // Per-line backgrounds exist only for the line elements (Info, Status,
+        // the player list, Durability).
         auto normalizeElement = [](ui::HudElement& element, ui::HudElement defaultValue, bool lines = false) {
             if (!std::isfinite(element.dx)) element.dx = defaultValue.dx;
             if (!std::isfinite(element.dy)) element.dy = defaultValue.dy;
@@ -311,7 +312,7 @@ struct Settings {
         normalizeElement(hud.status, ui::defaultHudElement(ui::HudElementId::Status), true);
         normalizeElement(hud.toast, ui::defaultHudElement(ui::HudElementId::Toast));
         normalizeElement(hud.magnification, ui::defaultHudElement(ui::HudElementId::Magnification));
-        normalizeElement(hud.durability, ui::defaultHudElement(ui::HudElementId::Durability));
+        normalizeElement(hud.durability, ui::defaultHudElement(ui::HudElementId::Durability), true);
         normalizeElement(hud.minimap, ui::defaultHudElement(ui::HudElementId::Minimap));
         normalizeElement(hud.schematic, ui::defaultHudElement(ui::HudElementId::Schematic));
         normalizeElement(hud.playerList, ui::defaultHudElement(ui::HudElementId::PlayerList), true);

@@ -45,6 +45,19 @@ void settingsRowsTests() {
         check(std::ranges::any_of(found, [](auto const& row) { return row.action == input::Action::ChunkBorders; }),
               "find by key sees default bindings");
     }
+    // Every choice an option offers survives normalization: the Durability
+    // HUD offered "Per line" while normalize still reset it to the default.
+    for (auto const& option : settings::options) {
+        Settings value;
+        if (!std::holds_alternative<settings::ChoiceValue>(option.read(value))) continue;
+        for (int step = 0; step < 8; ++step) {
+            option.adjust(value, 1);
+            auto chosen = std::get<settings::ChoiceValue>(option.read(value)).label;
+            value.normalize();
+            check(std::get<settings::ChoiceValue>(option.read(value)).label == chosen,
+                  std::format("option {} keeps {} after normalization", option.id, chosen).c_str());
+        }
+    }
     // Every name the UI resolves from the catalogs exists in all three
     // languages (L-158): checked from the catalogs, not the tables.
     for (auto locale : {"en_US", "ja_JP", "zh_CN"}) {

@@ -490,6 +490,10 @@ Goal: open and use the ordinary inventory while inside a Nether portal.
   "inside" false, so neither drives it. Next trace: `Player::
   canOpenContainerScreen` logged when it refuses and answered yes for the
   local player (a likely check for both opening and closing).
+- Result: it was never called in a portal; still closed and refused. Next
+  trace: `SceneStack::_schedulePopScreen` with the caller stack (offsets in
+  the game module, beside the offsets of candidate functions), the
+  inventory key handler and `LocalPlayer::openInventory`.
 
 ### L-150 Arrow-count HUD
 Kind: Design (small), then Ready after counting and visibility are agreed.
@@ -529,6 +533,9 @@ Goal: show the arrows available to the player without opening inventory.
   mockup; no need to shrink the text. Also asked for a per-line background
   for the Durability HUD (only card and none so far); built 2026-10-12
   (band per row, right-aligned on the right side, as the Info HUD).
+  First build: "Per line" could not be chosen (settings normalization still
+  limited Durability to card/none); fixed, with a test that every offered
+  choice survives normalization.
 
 ### L-146 Layer switches on the world map (with the next integration review)
 Kind: Design. Raised by the maintainer 2026-10-11 before the 0.2.0 release;
