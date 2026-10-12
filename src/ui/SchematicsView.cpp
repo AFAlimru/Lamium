@@ -445,17 +445,6 @@ int stackSizeOf(schematic::MaterialLine const& line) {
     auto const* stack = schematic::items::iconStack(line.icon);
     return stack ? std::max(1, static_cast<int>(stack->getMaxStackSize())) : 64;
 }
-// "1 chest + 4 stacks + 16", number first (L-93 screen review).
-std::string amountText(std::uint64_t count, int maxStack) {
-    auto a = schematic::amountOf(count, maxStack);
-    std::vector<std::string> parts;
-    if (a.chests) parts.push_back(translated(a.chests == 1 ? "amount.chest" : "amount.chests", a.chests));
-    if (a.stacks) parts.push_back(translated(a.stacks == 1 ? "amount.stack" : "amount.stacks", a.stacks));
-    if (a.items || parts.empty()) parts.push_back(std::to_string(a.items));
-    std::string out;
-    for (auto const& part : parts) out += (out.empty() ? "" : " + ") + part;
-    return out;
-}
 std::map<std::string, std::uint64_t> carriedItems();
 // Materials still to gather: remaining minus what the player carries.
 struct Missing { schematic::MaterialLine const* line; std::uint64_t missing; };

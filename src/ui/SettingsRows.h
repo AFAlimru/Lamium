@@ -66,6 +66,7 @@ inline constexpr auto features = std::to_array<FeatureInfo>({
     {"inventoryHud", "feature.inventoryHud", "help.inventoryHud", "information.inventoryHud", false, input::Action::ToggleInventoryHud},
     {"usedSlots", "feature.usedSlots", "help.usedSlots", "information.usedSlots", false, input::Action::ToggleUsedSlots},
     {"statusEffects", "feature.statusEffects", "help.statusEffects", "information.effectsHud", false, input::Action::ToggleStatusEffects},
+    {"calculator", "feature.calculator", "help.calculator", "", false, input::Action::OpenCalculator},
     {"offhandSlot", "feature.offhandSlot", "help.offhandSlot", "information.offhandSlot", false, input::Action::ToggleOffhandSlot},
     {"saturation", "feature.saturation", "help.saturation", "information.saturation", false, input::Action::ToggleSaturation},
     {"debugView", "feature.debugView", "help.debugView", "information.debug", false, input::Action::DebugView},

@@ -156,6 +156,7 @@ void executeAction(IClientInstance& client, input::Action action) {
         else ui::showMessageToast(ui::translated("schematic.toast.noArea"));
         return;
     }
+    if (action == input::Action::OpenCalculator) { ui::openCalculator(client); return; }
     if (action == input::Action::OpenWorldMap) {
         if (runtime.preferences().map.worldMap) ui::openWorldMap(client);
         else ui::showMessageToast(ui::translated("worldMap.off"));

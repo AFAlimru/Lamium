@@ -5,6 +5,7 @@
 #include "ui/SearchQuery.h"
 #include "ui/ShapesLayout.h"
 #include "ui/Widgets.h"
+#include <cstdint>
 #include <string>
 class MinecraftUIRenderContext;
 namespace lamium::ui {
@@ -36,6 +37,9 @@ void drawEditField(MinecraftUIRenderContext& context, float x, float top, float 
 bool placeCaret(MinecraftUIRenderContext& context, TextEdit& field, float x, float y);
 // Called when no field is being edited, so an old place cannot take clicks.
 void forgetEditField();
+// "1 chest + 4 stacks + 16", number first (L-93 screen review; also the
+// calculator, L-171).
+std::string amountText(std::uint64_t count, int maxStack = 64);
 // The scrollbar of a view's list when it does not fit.
 void drawListScrollbar(MinecraftUIRenderContext& context, ShapesLayout const& l);
 }

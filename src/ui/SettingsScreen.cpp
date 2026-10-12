@@ -41,6 +41,7 @@
 #include "features/map/MapStore.h"
 #include "features/map/WorldMap.h"
 #include "ui/SearchQuery.h"
+#include "ui/CalculatorView.h"
 #include "ui/NumberInput.h"
 #include "ui/Widgets.h"
 #include "overlay/ShapeSession.h"
@@ -154,11 +155,14 @@ int schematicMenuClosedAt = -1; // the level shown when it last closed
 // World map (L-60): replaces the whole panel; the add prompt opened from it
 // returns to it.
 bool worldMapOpen = false, promptOnMap = false;
+// The calculator panel (L-171): replaces everything else while open.
+bool calculatorOpen = false;
 // The text field the keyboard edits now and what tells its owner it changed
 // (L-172), in the order text events are routed.
 struct FocusedText { TextEdit* field = nullptr; void (*changed)() = nullptr; };
 FocusedText focusedText() {
     if (table_view::capturing()) return {};
+    if (calculatorOpen) return {&calculator_view::field(), calculator_view::edited};
     if (prompt) return {&prompt->name, [] {}};
     if (savePrompt) return {&savePrompt->name, [] { savePrompt->overwrite = false; }};
     if (worldMapOpen)
@@ -250,7 +254,7 @@ void releaseTextKeyboard() {
     }
 }
 void syncTextKeyboard(float x, float y) {
-    bool wanted = !closing && !table_view::capturing() && (table_view::searchFocused() || numericEditing() || shapes_view::editingName() || waypoints_view::editingName() || prompt
+    bool wanted = !closing && !table_view::capturing() && (calculatorOpen || table_view::searchFocused() || numericEditing() || shapes_view::editingName() || waypoints_view::editingName() || prompt
         || savePrompt
         || (worldMapOpen && map::world::editingName()));
     bool number = numericEditing();
@@ -337,6 +341,7 @@ LL_TYPE_INSTANCE_HOOK(SettingsSearchText, ll::memory::HookPriority::Normal, UISc
         // Coalesce native text events before persisting the whole workspace.
         // Never flush the world sidecar from inside a text callback.
         logControlText(text);
+        if (calculatorOpen) { calculator_view::type(text); return; }
         if (prompt) { prompt->name.type(text); return; }
         if (savePrompt) { if (savePrompt->name.type(text)) savePrompt->overwrite = false; return; }
         if (worldMapOpen && map::world::editingName()) { map::world::typeText(text); return; }
@@ -361,6 +366,7 @@ void clear() {
     schematicMenu.reset();
     if (worldMapOpen) map::world::close();
     worldMapOpen = false; promptOnMap = false; pendingWheels.clear();
+    calculatorOpen = false;
     mapFromSettings = false;
     waypoints_view::reset();
     schematics_view::reset();
@@ -939,6 +945,20 @@ void render(ll::event::UIRenderEvent& event) {
         if (pendingClick && !pendingClick->right && placeCaret(context, *target.field, pendingClick->x, pendingClick->y))
             pendingClick.reset();
     } else forgetEditField();
+    if (calculatorOpen) {
+        pendingRelease = false;
+        if (!closing) {
+            if (auto click = std::exchange(pendingClick, std::nullopt); click && !click->right) calculator_view::click(click->x, click->y, size);
+            for (int key : std::exchange(pendingKeys, {}))
+                if (calculatorOpen && !closing && calculator_view::key(key) == calculator_view::Result::Close) close();
+        }
+        if (!scene || !calculatorOpen) return;
+        displayedInverseScale = current.getGuiData()->mInvGuiScale;
+        auto at = calculator_view::fieldPosition(size);
+        syncTextKeyboard(at.x, at.y);
+        calculator_view::render(context, size, view.mPointerLocationPrevious);
+        return;
+    }
     if (worldMapOpen && !prompt) {
         // Press before release: a quick click delivers both between two
         // frames and must not leave a drag running.
@@ -1179,6 +1199,14 @@ void openSchematicMenu(IClientInstance& current) {
     schematicMenu = SchematicMenu{};
     schematicMenu->show(schematic::menu::openAt(preferences.schematic.menuReopen, schematicMenuClosedAt));
 }
+void openCalculator(IClientInstance& current) {
+    std::lock_guard lock(mutex);
+    if (scene) return; // From gameplay only; over container screens is a later step (L-171).
+    open(current);
+    if (!scene) return;
+    calculatorOpen = true;
+    calculator_view::begin();
+}
 void openWorldMap(IClientInstance& current) {
     std::lock_guard lock(mutex);
     if (scene) return;
@@ -1317,9 +1345,26 @@ void start() {
         }
         // Let key-up through so keys pressed before opening cannot stick.
         if (!event.isDown()) return;
+        // The calculator copies its result, not the line (L-171).
+        if (calculatorOpen && event.keyCode() == 0x43 && heldCtrl()) {
+            event.cancel();
+            calculator_view::copyResult();
+            return;
+        }
         if (auto target = focusedText(); target.field && textEditKey(event.keyCode(), heldCtrl())) {
             event.cancel();
             if (editText(*target.field, event.keyCode(), heldCtrl())) target.changed();
+            return;
+        }
+        if (calculatorOpen) {
+            auto key = event.keyCode();
+            bool selectAll = key == 0x41 && heldCtrl();
+            bool command = key == 0x08 || key == 0x1b || key == 0x0d || key == 0x26 || key == 0x28 || selectAll;
+            if (textKeyboardOwned && !command) return;
+            event.cancel();
+            if (key == 0x08) { if (calculator_view::field().backspace()) calculator_view::edited(); }
+            else if (selectAll) calculator_view::field().selectAll();
+            else pendingKeys.push_back(key);
             return;
         }
         if (prompt) {

@@ -43,6 +43,8 @@ int main() try {
     connectedTexturesTests();
     extern void textEditTests();
     textEditTests();
+    extern void calculatorTests();
+    calculatorTests();
     extern void toolChoiceTests();
     toolChoiceTests();
     extern void weaponChoiceTests();

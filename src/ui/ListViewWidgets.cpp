@@ -1,4 +1,7 @@
 #include "ui/ListViewWidgets.h"
+#include "ui/ItemAmount.h"
+#include "ui/Localization.h"
+#include <vector>
 #include "mc/client/renderer/screen/MinecraftUIRenderContext.h"
 #include <algorithm>
 #include <chrono>
@@ -77,6 +80,16 @@ bool placeCaret(MinecraftUIRenderContext& context, TextEdit& field, float x, flo
     return true;
 }
 void forgetEditField() { lastField = {}; }
+std::string amountText(std::uint64_t count, int maxStack) {
+    auto a = amountOf(count, maxStack);
+    std::vector<std::string> parts;
+    if (a.chests) parts.push_back(translated(a.chests == 1 ? "amount.chest" : "amount.chests", a.chests));
+    if (a.stacks) parts.push_back(translated(a.stacks == 1 ? "amount.stack" : "amount.stacks", a.stacks));
+    if (a.items || parts.empty()) parts.push_back(std::to_string(a.items));
+    std::string out;
+    for (auto const& part : parts) out += (out.empty() ? "" : " + ") + part;
+    return out;
+}
 void drawListScrollbar(MinecraftUIRenderContext& context, ShapesLayout const& l) {
     if (l.listCount <= l.listVisible) return;
     float listRight = l.listLeft + l.listWidth;

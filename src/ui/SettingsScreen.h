@@ -18,6 +18,8 @@ void openSchematicSave(IClientInstance& client);
 // The schematic menu over the world (L-93).
 void openSchematicMenu(IClientInstance& client);
 void openWorldMap(IClientInstance& client);
+// The calculator panel over the world (L-171).
+void openCalculator(IClientInstance& client);
 bool ownsInput();
 void cancelInputCapture();
 }

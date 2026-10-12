@@ -102,7 +102,8 @@ void settingsRowsTests() {
         if (auto primary = ui::primaryAction(feature))
             check(input::actions[static_cast<size_t>(*primary)].feature == feature.id
                 && (!feature.toggle.empty() || sessions.contains(feature.id) || feature.id == "settings"
-                    || feature.id == "caveView" || feature.id == "schematicMenu" || feature.id == "playerList"), // Named commands: a key without a switch.
+                    || feature.id == "caveView" || feature.id == "schematicMenu" || feature.id == "playerList"
+                    || feature.id == "calculator"), // Named commands: a key without a switch.
                 "a parent key belongs to the feature's own state or screen opener");
     for (auto id : {"restrictions", "mapText"}) {
         auto found = std::find_if(ui::features.begin(), ui::features.end(),
