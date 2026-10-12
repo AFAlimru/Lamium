@@ -956,7 +956,7 @@ void render(ll::event::UIRenderEvent& event) {
             pendingClick.reset();
     } else forgetEditField();
     if (calculatorOpen) {
-        pendingRelease = false;
+        if (std::exchange(pendingRelease, false)) calculator_view::release();
         if (!closing) {
             if (auto click = std::exchange(pendingClick, std::nullopt); click && !click->right) calculator_view::click(click->x, click->y, size);
             for (int key : std::exchange(pendingKeys, {}))
@@ -1311,7 +1311,7 @@ void start() {
         }
         event.cancel();
         if (calculatorOpen && wheel) {
-            if (scaled) calculator_view::wheel(event.buttonData() > 0 ? 1 : -1, x, y);
+            calculator_view::wheel(event.buttonData() > 0 ? 1 : -1);
             return;
         }
         if (schematicMenu && wheel) {

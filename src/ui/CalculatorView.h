@@ -21,8 +21,11 @@ Result key(int key);
 void copyValue();
 void copyLine();
 void click(float x, float y, glm::vec2 size);
-// The wheel over the history scrolls it (the panel as last drawn).
-void wheel(int direction, float x, float y);
+// The wheel over the history scrolls it. Wheel events carry no position, so
+// the pointer as last drawn decides.
+void wheel(int direction);
+// The mouse button went up: a scrollbar drag ends.
+void release();
 void render(MinecraftUIRenderContext& context, glm::vec2 size, glm::vec2 pointer);
 // Where the native keyboard's text box goes.
 glm::vec2 fieldPosition(glm::vec2 size);

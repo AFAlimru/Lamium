@@ -68,7 +68,7 @@ constexpr std::array<std::array<Key, 6>, 7> grid{{
       {"2", "2", Kind::Digit, ""}, {"3", "3", Kind::Digit, ""}, {"\xe2\x88\x92", " - ", Kind::Operator, ""}}},
     {{{"nether", "nether(", Kind::Function, "calc.tip.nether"}, {"ow", "ow(", Kind::Function, "calc.tip.ow"}, {"0", "0", Kind::Digit, ""},
       {".", ".", Kind::Digit, ""}, {"ans", "ans", Kind::Variable, "calc.tip.ans"}, {"+", " + ", Kind::Operator, ""}}},
-    {{{"ticks", "ticks(", Kind::Function, "calc.tip.ticks"}, {"secs", "secs(", Kind::Function, "calc.tip.secs"}, {",", ", ", Kind::Operator, ""},
+    {{{"ticks", "ticks(", Kind::Function, "calc.tip.ticks"}, {"secs", "secs(", Kind::Function, "calc.tip.secs"}, {",", ", ", Kind::Operator, "calc.tip.comma"},
       {"pi", "pi", Kind::Variable, ""}, {"%", " % ", Kind::Operator, "calc.tip.remainder"}, {"=", "equals", Kind::Equals, ""}}},
 }};
 Rgb inkOf(Kind kind) {
@@ -94,6 +94,8 @@ int menuFor = -2;
 std::string note;                      // "Copied: ..."
 std::chrono::steady_clock::time_point noteUntil;
 Layout last;                           // as last drawn, for the wheel
+glm::vec2 lastPointer{-1, -1};
+bool dragging = false;                 // the history scrollbar is held
 
 void recalculate() {
     variables.ans = history.empty() ? std::nullopt : std::optional(history.back().value);
@@ -160,6 +162,50 @@ void clampScroll(Layout const& l) {
 bool inside(float x, float y, float left, float top, float w, float h) { return x >= left && x < left + w && y >= top && y < top + h; }
 // A card's copy button, beside its expression line.
 float cardCopyX(Layout const& l) { return l.rightX() + l.rightWidth() - 5 - 4 - Layout::copyWidth - Layout::arrowWidth - 1; }
+// The history scrollbar's track, at the column's right edge.
+bool onScrollbar(Layout const& l, float x, float y) {
+    return x >= l.rightX() + l.rightWidth() - 6 && x <= l.rightX() + l.rightWidth() + 1 && y >= l.cardsTop() && y <= l.bottom();
+}
+void scrollTo(Layout const& l, float y) {
+    int span = static_cast<int>(history.size()) - visibleCards(l);
+    if (span <= 0) { scrolled = 0; return; }
+    float fraction = std::clamp((l.bottom() - y) / (l.bottom() - l.cardsTop()), 0.f, 1.f);
+    scrolled = static_cast<int>(std::lround(fraction * static_cast<float>(span)));
+}
+// A small triangle pointing down, for the copy menu's button.
+void downArrow(MinecraftUIRenderContext& context, float cx, float cy, Rgb color) {
+    fill(context, cx - 2.5f, cy, 5, 1, color);
+    fill(context, cx - 1.5f, cy + 1, 3, 1, color);
+    fill(context, cx - .5f, cy + 2, 1, 1, color);
+}
+// The game font draws "×", "−" and "⌫" small and off center (2026-10-13), so
+// those keys are drawn as shapes; long names shrink to fit their key.
+void drawKeyLabel(MinecraftUIRenderContext& context, Key const& k, float x, float y, float w, float h) {
+    float cx = std::floor(x + w / 2), cy = std::floor(y + h / 2);
+    Rgb ink = inkOf(k.kind);
+    if (k.insert == " * ") {
+        for (int i = 0; i < 5; ++i) {
+            fill(context, cx - 2 + i, cy - 2 + i, 1, 1, ink);
+            fill(context, cx + 2 - i, cy - 2 + i, 1, 1, ink);
+        }
+        return;
+    }
+    if (k.insert == " - ") { fill(context, cx - 3, cy, 6, 1, ink); return; }
+    if (k.insert == "back") {
+        // A left arrow: head and shaft.
+        for (int i = 0; i < 3; ++i) fill(context, cx - 3 + i, cy - i, 1, 1 + 2 * i, ink);
+        fill(context, cx, cy, 4, 1, ink);
+        return;
+    }
+    std::string text(k.label);
+    float width = textWidth(context, text), room = w - 4;
+    float scale = width > room ? std::max(.6f, room / width) : 1.f;
+    labelScaled(context, x, y + (h - 10 * scale) / 2 + boxTextInset() * scale - scale, w, text, scale, ink, Align::Center);
+}
+void arrowButton(MinecraftUIRenderContext& context, float x, float y, float w, float h, bool over, bool open) {
+    drawSmallButton(context, x, y, w, h, "", over, palette::keyFill, open ? palette::accent : palette::keyEdge);
+    downArrow(context, x + w / 2, y + h / 2 - 1, open ? palette::accent : palette::text);
+}
 }
 
 void begin() {
@@ -227,6 +273,11 @@ void click(float x, float y, glm::vec2 size) {
     }
     if (inside(x, y, l.helpX(), l.top + 4, 12, 12)) { helpOpen = !helpOpen; return; }
     if (helpOpen) { helpOpen = false; return; }
+    if (static_cast<int>(history.size()) > visibleCards(l) && onScrollbar(l, x, y)) {
+        dragging = true;
+        scrollTo(l, y);
+        return;
+    }
     // The result's copy button: the value, or the menu.
     if (result.value && inside(x, y, l.copyX(), l.resultY() + 1, Layout::copyWidth, 12)) { copyValue(); return; }
     if (result.value && inside(x, y, l.copyX() + Layout::copyWidth + 1, l.resultY() + 1, Layout::arrowWidth, 12)) { menuFor = -1; return; }
@@ -244,11 +295,12 @@ void click(float x, float y, glm::vec2 size) {
         return;
     }
 }
-void wheel(int direction, float x, float y) {
-    if (!inside(x, y, last.rightX(), last.cardsTop(), last.rightWidth(), last.bottom() - last.cardsTop())) return;
+void wheel(int direction) {
+    if (!inside(lastPointer.x, lastPointer.y, last.rightX(), last.cardsTop(), last.rightWidth() + 2, last.bottom() - last.cardsTop())) return;
     scrolled += direction > 0 ? 1 : -1; // wheel up shows older cards
     clampScroll(last);
 }
+void release() { dragging = false; }
 glm::vec2 fieldPosition(glm::vec2 size) {
     auto l = Layout::at(size);
     return {l.leftX() + 3, l.fieldY()};
@@ -266,6 +318,8 @@ void render(MinecraftUIRenderContext& context, glm::vec2 size, glm::vec2 pointer
     recalculate();
     auto l = Layout::at(size);
     last = l;
+    lastPointer = pointer;
+    if (dragging) scrollTo(l, pointer.y);
     clampScroll(l);
     float x = l.leftX(), lw = Layout::leftWidth;
     panel(context, l.left, l.top, l.width, l.height, .88f);
@@ -285,8 +339,8 @@ void render(MinecraftUIRenderContext& context, glm::vec2 size, glm::vec2 pointer
         drawSmallButton(context, l.copyX(), l.resultY() + 1, Layout::copyWidth, 12, translated("calc.copy"),
                         inside(pointer.x, pointer.y, l.copyX(), l.resultY() + 1, Layout::copyWidth, 12));
         float ax = l.copyX() + Layout::copyWidth + 1;
-        drawSmallButton(context, ax, l.resultY() + 1, Layout::arrowWidth, 12, "v", inside(pointer.x, pointer.y, ax, l.resultY() + 1, Layout::arrowWidth, 12),
-                        palette::keyFill, menuFor == -1 ? palette::accent : palette::keyEdge);
+        arrowButton(context, ax, l.resultY() + 1, Layout::arrowWidth, 12, inside(pointer.x, pointer.y, ax, l.resultY() + 1, Layout::arrowWidth, 12),
+                    menuFor == -1);
         if (auto amount = chests(*result.value); !amount.empty()) label(context, x, l.amountY(), lw, amount, palette::dim);
     } else if (result.error != calculator::Error::Empty) {
         label(context, x, l.resultY() + 3, lw, errorText(), palette::warning);
@@ -302,7 +356,7 @@ void render(MinecraftUIRenderContext& context, glm::vec2 size, glm::vec2 pointer
             bool equals = k.kind == Kind::Equals;
             fill(context, kx, ky, l.cell(), rh, equals ? palette::accentDeep : over ? Rgb{.23f, .23f, .24f} : palette::keyFill);
             frame(context, kx, ky, l.cell(), rh, equals ? palette::accent : palette::keyEdge);
-            label(context, kx, ky + (rh - 10) / 2 + boxTextInset() - 1, l.cell(), std::string(k.label), inkOf(k.kind), Align::Center);
+            drawKeyLabel(context, k, kx, ky, l.cell(), rh);
             if (over && !k.tip.empty()) { tip = k.tip; tipX = kx; tipY = ky - 13; }
         }
 
@@ -326,9 +380,8 @@ void render(MinecraftUIRenderContext& context, glm::vec2 size, glm::vec2 pointer
         if (buttons) {
             float cx = cardCopyX(l);
             drawSmallButton(context, cx, *top + 3, Layout::copyWidth, 10, translated("calc.copy"), inside(pointer.x, pointer.y, cx, *top + 3, Layout::copyWidth, 10));
-            drawSmallButton(context, cx + Layout::copyWidth + 1, *top + 3, Layout::arrowWidth, 10, "v",
-                            inside(pointer.x, pointer.y, cx + Layout::copyWidth + 1, *top + 3, Layout::arrowWidth, 10), palette::keyFill,
-                            menuFor == index ? palette::accent : palette::keyEdge);
+            arrowButton(context, cx + Layout::copyWidth + 1, *top + 3, Layout::arrowWidth, 10,
+                        inside(pointer.x, pointer.y, cx + Layout::copyWidth + 1, *top + 3, Layout::arrowWidth, 10), menuFor == index);
         }
     }
     if (static_cast<int>(history.size()) > visibleCards(l)) {
@@ -337,9 +390,13 @@ void render(MinecraftUIRenderContext& context, glm::vec2 size, glm::vec2 pointer
         float thumb = std::max(10.f, track * share);
         float span = static_cast<float>(history.size()) - static_cast<float>(visibleCards(l));
         float from = l.bottom() - thumb - (track - thumb) * (static_cast<float>(scrolled) / span);
-        fill(context, rx + rw - 3, l.cardsTop(), 2, track, palette::white, .08f);
-        fill(context, rx + rw - 3, from, 2, thumb, palette::keyEdge);
+        bool overBar = dragging || onScrollbar(l, pointer.x, pointer.y);
+        fill(context, rx + rw - 3, l.cardsTop(), 2, track, palette::white, overBar ? .14f : .08f);
+        fill(context, rx + rw - (overBar ? 4 : 3), from, overBar ? 3 : 2, thumb, overBar ? palette::text : palette::keyEdge);
     }
+    // Text is drawn when flushed: flush what lies under the overlays first, so
+    // their backgrounds cover it (help showed the history through it).
+    context.flushText(0, std::nullopt);
     // ---- Over everything: the copy menu, help, the tip and the note ----
     if (menuFor != -2 && (menuFor == -1 ? result.value.has_value() : cardY(l, menuFor).has_value())) {
         float mx = (menuFor == -1 ? l.copyX() : cardCopyX(l)) + Layout::copyWidth + Layout::arrowWidth + 1 - 110;
