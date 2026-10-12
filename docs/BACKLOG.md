@@ -74,7 +74,8 @@ L-item wins. Every entry names what the task is, not only its number.
    - New 0.2.0 reports (2026-10-12): L-155 untranslated Connected Textures
      action in search, L-156 dark bookshelves above glass under Vibrant
      Visuals, L-157 intermittently hard-to-see Chunk Borders. Fix/research
-     these before new features; L-156's relation to L-133 is unconfirmed.
+     these before new features; L-155 fixed, awaiting the in-game check;
+     L-156 is linked to L-133 (same look, split faces, research together).
    - Bugs: L-123 elytra stretched on the inventory model after FreeCamera
      (parked 2026-10-10 after two rounds); L-91 shield
      glint in Lamium's icons (parked after one round; leather fixed).
@@ -328,7 +329,10 @@ table order; check all registered actions for the same omission and extend
 translation coverage tests if needed. Keep saved action IDs unchanged.
 When built, verify search and Hotkeys in all three languages, with and
 without a binding; labels must show words rather than raw translation keys.
-No fix or post-fix runtime check yet.
+Fixed 2026-10-12 (source): labels added for connectedtextures and, found by
+the same check, inventoryhud and usedslots; SettingsRowsTests now requires an
+English, Japanese and Simplified Chinese label for every non-retired action.
+Post-fix runtime check pending.
 The immediate missing-label fix stays here; L-158 owns systemic prevention.
 
 ### L-156 Low bookshelves above glass become dark under Vibrant Visuals
@@ -349,6 +353,11 @@ Next: glass present/absent, bookshelf height/view direction, time of day
 (sun shadow direction), and sandstone (also split) under the same setup. Record
 lighting, Night Vision and resource packs. Separate vanilla lighting from
 Lamium tessellation or renderer-state effects before changing the path.
+Linked to L-133 (maintainer 2026-10-12: the look is too similar to treat
+separately). Both appear only when Lamium splits a face into several quads,
+and both are dark gradients rather than wrong texels; research them as one
+question (what per-quad value the renderer interpolates or sorts differently
+for split faces), but confirm the shared cause before reusing L-133 results.
 Do not treat old pane experiments as a proven fix or cause for this report.
 Keep investigation bounded; native render changes must fail open.
 Exact reproduction, affected extent and cause remain unverified by an agent;
@@ -492,7 +501,8 @@ option, since the map is where that choice is made. Add when players ask
 for it or when the integration review takes it up.
 
 ### L-133 Connected Textures: split glass panes without dark halves
-Kind: Research. Opened 2026-10-11 from L-96.
+Kind: Research. Opened 2026-10-11 from L-96. Linked: L-156 (split
+bookshelves dark under Vibrant Visuals with the same look, 2026-10-12).
 Status: parked 2026-10-11 after four trial rounds; panes ship with the stretch.
 Panes draw joined glass by moving the texture inward (a 1-texel stretch,
 `4ef3d51`); glass blocks, bookshelves and sandstone draw split at the
