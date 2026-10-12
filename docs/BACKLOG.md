@@ -351,6 +351,11 @@ yet checked; sprinting may end when the forward key is cleared at an edge.
 Checked 2026-10-12 (`68d2211`): stops on BDS and locally; bridging was
 sometimes pulled slightly back. Next build: keep the largest safe share of
 the input instead of dropping it, and brake only as hard as needed.
+Checked (`1870ca1`): no pull back; still fell on BDS after sneaking to an
+edge and letting go (the box only touches the block, which the server treats
+as no support). Next build: the input guard also runs while sneaking and keeps
+0.02 block of overlap; feet only touching an edge step back onto the block;
+the sent analog input undoes sneaking's 0.3 scale. Slab bridging unverified.
 
 ### L-156 Low bookshelves above glass become dark under Vibrant Visuals
 Kind: Bug, Research (strong model).

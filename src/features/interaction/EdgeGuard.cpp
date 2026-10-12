@@ -35,6 +35,7 @@
 #include <atomic>
 #include <stdexcept>
 #include <thread>
+#include <tuple>
 #include <vector>
 
 namespace lamium::interaction::edgeGuard {
@@ -45,6 +46,10 @@ constexpr float stepHeight = 0.6f;
 // Ground friction of ordinary blocks (block 0.6 times 0.91): the velocity kept
 // per tick. Slipperier blocks slide further than the input guard expects.
 constexpr double groundFriction = 0.546;
+// The move-input guard keeps the feet this far over the block, not touching
+// its edge: released from sneaking right at an edge, a server drops a player
+// whose box only touches the block (seen on BDS, L-160).
+constexpr float overlapMargin = 0.02f;
 bool installed = false;
 bool reportedServerCopy = false;
 bool reportedInput = false;
@@ -86,7 +91,7 @@ std::string flagText(MoveInputState const& state) {
     using F = MoveInputState::Flag;
     std::string out;
     for (auto [flag, name] : {std::pair{F::Up, "U"}, {F::Down, "D"}, {F::Left, "L"}, {F::Right, "R"}, {F::UpLeft, "UL"},
-                              {F::UpRight, "UR"}, {F::JumpDown, "J"}, {F::SprintDown, "S"}})
+                              {F::UpRight, "UR"}, {F::JumpDown, "J"}, {F::SprintDown, "S"}, {F::SneakDown, "Sh"}})
         if (state.mFlagValues->test(static_cast<size_t>(flag))) { out += name; out += ' '; }
     return out;
 }
@@ -98,8 +103,8 @@ bool isLocal(StrictEntityContext const& entity, LocalPlayer& player) {
         && static_cast<uint const&>(entity.mRegistryId) == static_cast<uint const&>(own.mRegistry.mId);
 }
 // Walking on the ground, the case both guards cover.
-bool walking(LocalPlayer& player) {
-    return player.isOnGround() && !player.isSneaking() && !player.isFlying() && !player.isGliding()
+bool walking(LocalPlayer& player, bool sneakingToo = false) {
+    return player.isOnGround() && (sneakingToo || !player.isSneaking()) && !player.isFlying() && !player.isGliding()
         && !player.isSwimming() && !player.isInWater() && !player.getVehicle();
 }
 void guard(StrictEntityContext const& entity, AABBShapeComponent const& shape, MoveRequestComponent& request,
@@ -145,7 +150,7 @@ void guard(StrictEntityContext const& entity, AABBShapeComponent const& shape, M
 // the vector itself is guarded where vanilla computes it from the input state
 // (sent and simulated alike). Only the local player's own states are touched.
 void guardMoveVector(MoveInputState const& state, Vec2& move) {
-    if (std::this_thread::get_id() != clientThread.load() || (move.x == 0 && move.z == 0)) return;
+    if (std::this_thread::get_id() != clientThread.load()) return;
 #ifdef LAMIUM_EDGE_TRACE
     Vec2 before = move;
     struct Report {
@@ -158,10 +163,12 @@ void guardMoveVector(MoveInputState const& state, Vec2& move) {
                 bool changed = before.x != move.x || before.z != move.z;
                 if (changed) traceQuiet = 0;
                 if (traceQuiet > 100) return;
+                char const* name = stateName(state, *player);
+                if (std::string_view{name} == "other") return; // Many calls a tick; they filled the ring.
                 auto const& pos = player->getPosition();
                 auto const& delta = player->getPosDelta();
                 trace(std::format("calc {} flags [{}] analog {:.2f},{:.2f} move {:.2f},{:.2f} -> {:.2f},{:.2f} pos {:.3f},{:.3f} v {:.3f},{:.3f} ground {}",
-                    stateName(state, *player), flagText(state), state.mAnalogMoveVector->x, state.mAnalogMoveVector->z,
+                    name, flagText(state), state.mAnalogMoveVector->x, state.mAnalogMoveVector->z,
                     before.x, before.z, move.x, move.z, pos.x, pos.z, delta.x, delta.z, player->isOnGround()));
             } catch (...) {}
         }
@@ -177,24 +184,34 @@ void guardMoveVector(MoveInputState const& state, Vec2& move) {
     auto input = context.tryGetComponent<MoveInputComponent>();
     bool own = (raw && &state == &*raw->mRawInput)
         || (input && (&state == &*input->mInputState || &state == &*input->mRawInputState));
-    if (!own || !walking(*player)) return;
+    // Sneaking too: the guard then keeps the margin, so letting go of sneak
+    // at an edge does not leave the player only touching it.
+    if (!own || !walking(*player, true)) return;
     if (state.mFlagValues->test(static_cast<size_t>(MoveInputState::Flag::JumpDown))) return; // May leave on purpose.
     auto const& box = player->getAABB();
     auto const& region = player->getDimensionBlockSourceConst();
     std::vector<AABB> shapes;
     auto supported = [&](double dx, double dz) {
-        AABB probe{Vec3{box.min.x + static_cast<float>(dx), box.min.y - stepHeight, box.min.z + static_cast<float>(dz)},
-                   Vec3{box.max.x + static_cast<float>(dx), box.min.y, box.max.z + static_cast<float>(dz)}};
+        AABB probe{Vec3{box.min.x + overlapMargin + static_cast<float>(dx), box.min.y - stepHeight,
+                        box.min.z + overlapMargin + static_cast<float>(dz)},
+                   Vec3{box.max.x - overlapMargin + static_cast<float>(dx), box.min.y,
+                        box.max.z - overlapMargin + static_cast<float>(dz)}};
         shapes.clear();
         region.fetchCollisionShapes(shapes, probe, false, nullptr, nullptr);
         return !shapes.empty();
     };
-    if (!supported(0, 0)) return;
     double yaw = player->getRotation().y;
     auto [x, z] = worldMove(move.x, move.z, yaw);
-    auto const& velocity = player->getPosDelta();
-    double accel = std::max(0.1, static_cast<double>(player->getSpeed()));
-    auto [gx, gz] = guardInput(x, z, velocity.x, velocity.z, accel, groundFriction, supported);
+    double gx = x, gz = z;
+    if (supported(0, 0)) {
+        auto const& velocity = player->getPosDelta();
+        double accel = std::max(0.1, static_cast<double>(player->getSpeed()));
+        std::tie(gx, gz) = guardInput(x, z, velocity.x, velocity.z, accel, groundFriction, supported);
+    } else if (auto back = stepBack(supported)) {
+        std::tie(gx, gz) = *back; // Only touching an edge: back onto the block.
+    } else {
+        return; // Already over a drop: do not freeze in the air.
+    }
     if (gx == x && gz == z) return;
     auto [strafe, forward] = inputMove(gx, gz, yaw);
     move.x = static_cast<float>(strafe);
@@ -208,8 +225,11 @@ void guardMoveVector(MoveInputState const& state, Vec2& move) {
     auto& sent = const_cast<MoveInputState&>(state);
     for (auto flag : {Flag::Up, Flag::Down, Flag::Left, Flag::Right, Flag::UpLeft, Flag::UpRight, Flag::DownLeft, Flag::DownRight})
         sent.mFlagValues->set(static_cast<size_t>(flag), false);
-    *sent.mAnalogMoveVector = move;
-    if (raw && &state == &*raw->mRawInput) *raw->mRawMove = move;
+    // The sent input is scaled for sneaking again (0.3, seen in the trace).
+    float scale = player->isSneaking() ? 0.3f : 1.0f;
+    Vec2 analog{move.x / scale, move.z / scale};
+    *sent.mAnalogMoveVector = analog;
+    if (raw && &state == &*raw->mRawInput) *raw->mRawMove = analog;
     if (!reportedInput) {
         reportedInput = true;
         runtime.self().getLogger().info("Edge Guard: guarding the move input");

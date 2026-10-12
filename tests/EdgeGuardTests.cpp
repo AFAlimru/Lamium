@@ -69,6 +69,12 @@ void edgeGuardTests() {
     auto [alongX, alongZ] = guardInput(1, 1, .2, 0, a, f, [](double dx, double) { return 0.6 + dx < 1.0; });
     check(0.6 + (.2 * f + alongX * a) / (1 - f) < 1.0 && alongX < 1 && alongZ > .5,
           "walking diagonally at an edge keeps the parallel input and only a safe share toward the edge");
+    using lamium::interaction::stepBack;
+    // Feet at x in [0.8, 1.4], only touching ground that ends at x = 0.8.
+    auto touching = [](double dx, double) { return 0.8 + dx < 0.8 - 1e-9; };
+    auto back = stepBack(touching);
+    check(back && back->first < 0 && back->second == 0, "feet only touching an edge step back onto the block");
+    check(!stepBack([](double, double) { return false; }), "no support nearby gives no step back");
     auto [stillX, stillZ] = guardInput(0, 0, 0, 0, a, f, ground);
     check(stillX == 0 && stillZ == 0, "standing still stays still");
 }

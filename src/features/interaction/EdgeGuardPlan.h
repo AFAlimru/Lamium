@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <cmath>
 #include <numbers>
+#include <optional>
 #include <utility>
 
 namespace lamium::interaction {
@@ -33,6 +34,18 @@ inline std::pair<double, double> worldMove(double strafe, double forward, double
 inline std::pair<double, double> inputMove(double x, double z, double yawDegrees) {
     double yaw = yawDegrees * std::numbers::pi / 180, c = std::cos(yaw), s = std::sin(yaw);
     return {x * c + z * s, -x * s + z * c};
+}
+
+// Feet left without support but near it (only touching an edge after
+// sneaking): a world input that steps back onto the block, if one is near.
+template <class Supported>
+std::optional<std::pair<double, double>> stepBack(Supported&& supported, double reach = 0.1, double strength = 0.5) {
+    for (auto [dx, dz] : {std::pair{1.0, 0.0}, {-1.0, 0.0}, {0.0, 1.0}, {0.0, -1.0}})
+        if (supported(dx * reach, dz * reach)) return std::pair{dx * strength, dz * strength};
+    constexpr double d = 0.70710678118654752;
+    for (auto [dx, dz] : {std::pair{d, d}, {d, -d}, {-d, d}, {-d, -d}})
+        if (supported(dx * reach, dz * reach)) return std::pair{dx * strength, dz * strength};
+    return std::nullopt;
 }
 
 // Edge Guard on a server (BACKLOG L-160): the server moves the player from

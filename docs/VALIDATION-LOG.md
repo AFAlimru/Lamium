@@ -12,6 +12,17 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-160 falls on BDS after sneaking (2026-10-12)
+
+By the maintainer, trace build of `410353a` (DLL `ddfed996...0fa8f1ef`):
+bridging no longer pulled back (`1870ca1`), but the player sometimes fell on
+BDS only (not locally). Reproduced as: sneak to an edge, then let go of
+sneak. Trace: vanilla sneaking stops with the box exactly touching the block
+edge (feet at -107.700, -0.700); one to two ticks after sneak was released
+the server's correction had the player falling (ground false), although the
+client's guard braked. Slab bridging was not reproduced (no materials;
+`/give` was refused because the earlier session was not an operator).
+
 ## L-160 input state rewrite (2026-10-12)
 
 By the maintainer, trace build of `68d2211` (DLL `f7580692...15edea76`), test
