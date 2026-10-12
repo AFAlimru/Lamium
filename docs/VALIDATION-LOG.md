@@ -12,6 +12,13 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-158 shared label resolution (2026-10-12)
+
+By the maintainer, local, `be0b1f1` (DLL SHA-256 `5b285364...0eec2eee`).
+Settings search for the child label "速度を上げる" finds FreeCamera's speed
+row; Hotkeys search still finds the speed actions; toggle toasts show the
+feature name as before. All reported OK.
+
 ## L-155 action labels (2026-10-12)
 
 By the maintainer, local, `3767542` (DLL SHA-256 `12ef4e1a...a01194`).

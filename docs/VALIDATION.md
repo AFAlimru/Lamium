@@ -105,7 +105,7 @@ game result.
 | Feature | Last confirmed | Not yet checked |
 |---|---|---|
 | Simplified Chinese UI (L-90) | 2026-10-02, local: text fit, baseline and behavior on `ca25c2c` | Native review of the wording |
-| Settings screen, search, layout B (L-50, L-52, L-81) | 2026-09-27, local; 2026-09-30: edits finish with the frame, range warning cleared on moving (`1cdb481`); 2026-10-06: header version, tooltip and copy, no page-name breadcrumb (L-101, `ff55b9f`); 2026-10-12: three missing action labels fixed in three languages (L-155, `3767542`) | Individual binding edits |
+| Settings screen, search, layout B (L-50, L-52, L-81) | 2026-09-27, local; 2026-09-30: edits finish with the frame, range warning cleared on moving (`1cdb481`); 2026-10-06: header version, tooltip and copy, no page-name breadcrumb (L-101, `ff55b9f`); 2026-10-12: three missing action labels fixed in three languages (L-155, `3767542`); search by a child row's shown label, toasts unchanged (L-158, `be0b1f1`) | Individual binding edits |
 | Dedicated Hotkeys/Shapes/HUD openers (L-02 follow-up) | Source and tests only (2026-09-28) | In game |
 | Toggle toasts; message toast | 2026-09-30, local | |
 | Version-sensitive gates and the unverified-game test build (L-137) | 2026-10-11, local: the gated features behave as before on the verified game (0.2.0 regression check 1, `2aea267`); the `--unverified_game=y` build of `891b798`: all nine capabilities stay vanilla with one log line each, the rest of their features work, no crash; `ddac26c`: paused marks in toggle toasts and settings rows, header warning, join toast | A real different game executable (next game update) |
