@@ -12,6 +12,15 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-148 Nether portal screen hidden (2026-10-12)
+
+By the maintainer, local, `cd47a29` (DLL `78c1f9c4...c3ff37ad`): with Hide
+effects on the purple portal screen does not show and the transfer works as
+usual; with the child off it shows; the child's key toast reads "Hide the
+Nether portal screen". OK. Earlier trace runs the same day: the effect time
+zeroed after each tick removed the screen without changing the transfer
+time.
+
 ## Durability HUD per-line background (2026-10-12)
 
 By the maintainer, local, trace build of `2466a02` (DLL `bc8847c6...df404a`):

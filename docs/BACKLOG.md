@@ -85,7 +85,7 @@ L-item wins. Every entry names what the task is, not only its number.
    - Paused: L-132 move while the inventory screen is open (research
      paused after eight trial rounds).
    - New design/research candidates imported from the maintainer's notes
-     on 2026-10-12: L-147 Status Effects HUD, L-148 portal overlay hiding (built),
+     on 2026-10-12: L-147 Status Effects HUD, L-148 portal overlay hiding (done),
      L-149 inventory access in portals (parked) and L-150 arrow-count HUD.
      Choose the next item with the maintainer; this list does not approve
      an implementation or set a release target. L-151 to L-154 stay later.
@@ -396,6 +396,28 @@ type 3, scale 1.333, with the font's own material).
 
 ## Feature work and research
 
+### L-163 A Lamium-drawn inventory screen
+Kind: Research, then Design (strong model). Raised by the maintainer
+2026-10-12 after L-149 (opening the vanilla inventory in a portal is refused
+by the server) and L-132 (moving with the vanilla inventory open failed).
+Not started; recorded for later.
+Idea: draw an inventory-like screen in Lamium and move items through the
+same client inventory path Lamium already uses without a screen
+(`inventory::game` moves; Auto Elytra and Hand Restock). Evidence: Auto
+Elytra swapped items while the player stood in a portal (local world), and
+Hand Restock works on BDS. Such a screen could open in portals and let the
+player move (a different input routing than the vanilla screen).
+Costs and risks: slot rendering (Inventory HUD parts exist), click, right
+click split, shift click, drag spreading, number keys, armor and offhand
+slots, tooltips; 2x2 crafting is much harder and should stay out at first;
+loss or duplication if a move is not confirmed from authoritative state
+(DESIGN engineering rules); servers with their own anti-cheat may refuse;
+version sensitivity.
+Suggested order: (1) a spike moving one item from a Lamium screen in a
+portal and while walking, locally and on BDS; (2) if it holds, a minimal
+screen (main inventory, hotbar, armor, offhand; click and shift click; no
+crafting); (3) a mockup agreed before the real build.
+
 ### L-147 Status Effects HUD
 Kind: Design, with Research for native data and vanilla HUD visibility.
 Status: imported from the maintainer's notes on 2026-10-12; not implemented.
@@ -430,43 +452,6 @@ and movable through the existing HUD Layout Editor.
   Maintainer: the picks are fine (decided 2026-10-12). Next: research the
   local player's effect list (amplifier, remaining ticks, infinite, beacon
   ambient flag) and how to hide only vanilla's effect icons; then build.
-
-### L-148 Hide the Nether portal overlay
-Kind: Research, then Design/Ready once the drawing route is established.
-Status: imported from the maintainer's notes on 2026-10-12; not implemented.
-Goal: optionally hide the purple screen overlay without changing portal
-contact, the time in the portal or dimension transfer.
-- Proposed home: a child of Hide effects, independent of L-149. Its proposed
-  default is off; settle this explicitly against the existing rule that
-  Hide effects children default selected before implementation.
-- Identify the purple overlay's draw route; existing nausea hiding does not
-  establish portal support. L-79's unresolved frame routes are a caution.
-- Leave distortion control to vanilla accessibility settings unless a
-  separate need is established. Do not change portal or server state.
-- Checks when built: hiding/restoration with child and master, other effects,
-  portal entry/exit and dimension transitions, supported graphics modes and
-  resource packs. Unsupported routes retain vanilla drawing.
-- Built 2026-10-12: Hide effects child "Nether portal screen" (default on,
-  key unbound); after `LocalPlayer::normalTick` the portal effect time and its
-  previous value go back to 0 (gate "Hide effects (portal screen)"). In-game
-  check of the normal build pending.
-- Leads (SDK, 2026-10-12, unverified): `LocalPlayer::mPortalEffectTime` /
-  `mOPortalEffectTime` (likely the overlay's strength), `mEnablePortalEffect`,
-  and `LocalPlayer::handleInsidePortal`. Trace build `--portal_trace=y`
-  (`src/features/visuals/PortalTrace.cpp`) logs them per tick with the top
-  screen name; awaiting a run through a portal.
-- Trace run 2026-10-12 (survival, local): touching the portal,
-  `handleInsidePortal` sets `mEnablePortalEffect`; from the next
-  `normalTick` the effect time rises 0.0125 per tick (0 to 1 in about 4 s,
-  transfer at 1.0), and in that same tick the open inventory closed
-  (inventory_screen -> hud_screen). Next trace build: the effect time is set
-  back to 0 after every tick, to see whether the overlay goes, the inventory
-  stays open and the transfer still happens.
-- Result 2026-10-12 (maintainer, survival): with the effect time zeroed after
-  every tick the purple overlay is gone and the transfer works as before; the
-  inventory is still closed on entry and cannot be opened inside. So hiding
-  the overlay is feasible this way (a client-only value; writing it needs a
-  version gate). The closing is separate (L-149).
 
 ### L-150 Arrow-count HUD
 Kind: Design (small), then Ready after counting and visibility are agreed.
