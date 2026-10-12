@@ -21,7 +21,8 @@ sneak. Trace: vanilla sneaking stops with the box exactly touching the block
 edge (feet at -107.700, -0.700); one to two ticks after sneak was released
 the server's correction had the player falling (ground false), although the
 client's guard braked. Slab bridging was not reproduced (no materials;
-`/give` was refused because the earlier session was not an operator).
+`/give` had been refused earlier; the reason was not confirmed, and the
+player is now listed as operator in permissions.json).
 
 ## L-160 input state rewrite (2026-10-12)
 
