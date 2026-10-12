@@ -28,14 +28,16 @@ void durabilityHudTests() {
               == std::vector{Slot::MainHand, Slot::Head, Slot::Chest, Slot::Legs, Slot::Feet},
           "a worn elytra is an ordinary chest row among the armor rows");
     Sample wings{true, 59, 432, Weapon::Elytra};
-    Samples gliding{pick, shield, helmet, wings, legs, boots};
-    check(slots(rows(gliding, false, false, true)) == std::vector{Slot::MainHand, Slot::Chest},
-          "gliding adds the elytra row with armor rows off");
-    check(slots(rows(gliding, false, true, true))
+    Samples flying{pick, shield, helmet, wings, legs, boots};
+    check(slots(rows(flying, false, false, true)) == std::vector{Slot::MainHand, Slot::Chest},
+          "the elytra switch shows a worn elytra with armor rows off");
+    check(slots(rows(flying, false, true, false)) == std::vector{Slot::MainHand, Slot::Head, Slot::Legs, Slot::Feet},
+          "armor rows leave the elytra to its own switch");
+    check(slots(rows(flying, false, true, true))
               == std::vector{Slot::MainHand, Slot::Head, Slot::Chest, Slot::Legs, Slot::Feet},
-          "gliding with armor rows on keeps one chest row");
+          "with both on the elytra keeps the chest position");
     check(slots(rows(worn, false, false, true)) == std::vector{Slot::MainHand},
-          "gliding adds no row for a chestplate");
+          "the elytra switch adds no row for a chestplate");
 
     check(weaponOf("minecraft:bow") == Weapon::Bow && weaponOf("minecraft:crossbow") == Weapon::Crossbow
               && weaponOf("minecraft:elytra") == Weapon::Elytra && weaponOf("minecraft:trident") == Weapon::Other,
@@ -82,7 +84,7 @@ void durabilityHudTests() {
     check(defaults.information.durabilityAmmo && defaults.information.durabilityElytra
               && !decodeSettings(R"({"information":{"durabilityAmmo":false}})").information.durabilityAmmo
               && !decodeSettings(R"({"information":{"durabilityElytra":false}})").information.durabilityElytra,
-          "ammo and the gliding elytra row show by default and their switches load");
+          "ammo and the elytra row show by default and their switches load");
     check(decodeSettings(R"({"information":{"durabilityLook":9}})").information.durabilityLook == 2,
           "an unknown look is clamped");
     auto* look = settings::find("information.durabilityLook");

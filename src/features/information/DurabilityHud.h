@@ -38,9 +38,9 @@ inline bool usable(Sample const& sample) { return sample.damageable && sample.ma
 inline Row row(Slot slot, Sample const& sample) {
     return {slot, sample.max - std::clamp(sample.damage, 0, sample.max), sample.max};
 }
-// An elytra is an ordinary chest row. While gliding it shows even with armor
-// rows off, for its fireworks (L-150; its own switch, maintainer 2026-10-12).
-inline std::vector<Row> rows(Samples const& samples, bool offhand, bool armor, bool gliding = false) {
+// A worn elytra has its own switch, apart from the armor pieces, and keeps
+// the chest position (L-150, maintainer 2026-10-12).
+inline std::vector<Row> rows(Samples const& samples, bool offhand, bool armor, bool elytra = true) {
     std::vector<Row> out;
     auto add = [&](Slot slot) {
         auto const& sample = samples[static_cast<size_t>(slot)];
@@ -48,8 +48,9 @@ inline std::vector<Row> rows(Samples const& samples, bool offhand, bool armor, b
     };
     add(Slot::MainHand);
     if (offhand) add(Slot::Offhand);
-    if (armor) for (auto slot : {Slot::Head, Slot::Chest, Slot::Legs, Slot::Feet}) add(slot);
-    else if (gliding && samples[static_cast<size_t>(Slot::Chest)].weapon == Weapon::Elytra) add(Slot::Chest);
+    bool wings = samples[static_cast<size_t>(Slot::Chest)].weapon == Weapon::Elytra;
+    for (auto slot : {Slot::Head, Slot::Chest, Slot::Legs, Slot::Feet})
+        if (slot == Slot::Chest && wings ? elytra : armor) add(slot);
     return out;
 }
 // ---- Ammo beside a bow, crossbow or elytra row (L-150) ----

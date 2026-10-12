@@ -532,6 +532,14 @@ Goal: show the arrows available to the player without opening inventory.
   row deserves its own switch. Changed: ammo icons at three quarters, zero
   in the warning color, a "Elytra while gliding" child (default on) instead
   of tying the gliding row to "Show ammo". Unchecked.
+- Checked 2026-10-12 (`c670147`). Measured on the earlier screenshot, the
+  ammo icons were about 1.2 times the tools though drawn at the same scale:
+  the freshly made icon stacks kept the pickup pop the HUD clears on its
+  copies. Now cleared (also on the crossbow mark) and drawn 1:1, with the
+  same 4-unit gap before the count as the tools. Maintainer: split armor
+  and elytra instead of a gliding row: "Armor" covers helmet, chestplate,
+  leggings, boots; "Elytra" (default on) shows a worn elytra at the chest
+  position. Unchecked.
 
 ### L-146 Layer switches on the world map (with the next integration review)
 Kind: Design. Raised by the maintainer 2026-10-11 before the 0.2.0 release;

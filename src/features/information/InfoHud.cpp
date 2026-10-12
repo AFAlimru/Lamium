@@ -428,9 +428,10 @@ std::optional<ui::hud_editor::Box> drawDurability(MinecraftUIRenderContext& cont
         ItemInstance const* charged = source.mChargedItem.get();
         if (samples[i].weapon == dur::Weapon::Crossbow && charged && !charged->isNull() && charged->mItem) {
             try { charges[i].reinit(charged->getTypeName(), 1, charged->getAuxValue()); } catch (...) { charges[i] = ItemStack(); }
+            charges[i].mShowPickUp = false;
+            charges[i].mWasPickedUp = false;
         }
     };
-    bool gliding = false;
     dur::AmmoCounts ammo;
     auto* player = context.mClient.getLocalPlayer();
     if (player) {
@@ -441,9 +442,8 @@ std::optional<ui::hud_editor::Box> drawDurability(MinecraftUIRenderContext& cont
         sample(dur::Slot::Chest, player->getArmor(ArmorSlot::Torso));
         sample(dur::Slot::Legs, player->getArmor(ArmorSlot::Legs));
         sample(dur::Slot::Feet, player->getArmor(ArmorSlot::Feet));
-        gliding = settings.durabilityElytra && player->isGliding();
     }
-    auto rows = dur::rows(samples, settings.durabilityOffhand, settings.durabilityArmor, gliding);
+    auto rows = dur::rows(samples, settings.durabilityOffhand, settings.durabilityArmor, settings.durabilityElytra);
     auto ammoOf = [&](dur::Row const& row) {
         return settings.durabilityAmmo ? dur::ammoFor(samples[static_cast<size_t>(row.slot)].weapon) : std::vector<dur::Ammo>{};
     };
@@ -478,15 +478,17 @@ std::optional<ui::hud_editor::Box> drawDurability(MinecraftUIRenderContext& cont
     std::vector<float> rowWidths;
     // Ammo sits right of the durability: more space before it, the item icon
     // and its total close together.
-    // Ammo icons are three quarters of the item icons: the arrow and rocket
-    // fill their squares and looked larger than the tools (2026-10-12).
-    float ammoGap = 8 * z, ammoIconGap = z, ammoSize = 12 * z;
+    float ammoGap = 8 * z;
     std::array<ItemStack, 2> ammoIcons;
     auto ammoIcon = [&](dur::Ammo kind) -> ItemStack const& {
         auto& stack = ammoIcons[static_cast<size_t>(kind)];
         if (stack.isNull()) {
             try { stack.reinit(kind == dur::Ammo::Arrows ? "minecraft:arrow" : "minecraft:firework_rocket", 1, 0); }
             catch (...) { stack = ItemStack(); }
+            // A new stack plays the pickup pop, drawn about a fifth larger
+            // than the tools beside it (measured 2026-10-12).
+            stack.mShowPickUp = false;
+            stack.mWasPickedUp = false;
         }
         return stack;
     };
@@ -496,7 +498,7 @@ std::optional<ui::hud_editor::Box> drawDurability(MinecraftUIRenderContext& cont
         float w = icon + (dur::showsBar(look) ? gap + barW : 0);
         if (!texts.back().empty()) w += gap + ui::textWidthScaled(context, texts.back(), z);
         for (auto kind : ammoOf(row))
-            w += ammoGap + ammoSize + ammoIconGap + ui::textWidthScaled(context, std::to_string(ammo.of(kind)), z);
+            w += ammoGap + icon + gap + ui::textWidthScaled(context, std::to_string(ammo.of(kind)), z);
         rowWidths.push_back(w + 2 * z);
         contentW = std::max(contentW, w + 2 * z);
     }
@@ -542,9 +544,9 @@ std::optional<ui::hud_editor::Box> drawDurability(MinecraftUIRenderContext& cont
             if (renderer) {
                 auto const& stack = ammoIcon(kind);
                 if (!stack.isNull())
-                    inspection::render::drawItemIcon(context, {&stack, std::round(cx), std::round(y + (rowH - ammoSize) / 2), z * .75f}, 17);
+                    inspection::render::drawItemIcon(context, {&stack, std::round(cx), std::round(y + z), z}, 17);
             }
-            cx += ammoSize + ammoIconGap;
+            cx += icon + gap;
             int total = ammo.of(kind);
             auto text = std::to_string(total);
             // None left: the warning color, as a full used-slot counter.

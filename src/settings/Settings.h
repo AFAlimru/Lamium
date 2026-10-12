@@ -208,7 +208,7 @@ struct Settings {
         bool durabilityOffhand = true;
         bool durabilityArmor = true;
         bool durabilityAmmo = true; // Arrows and fireworks beside bows, crossbows and elytra (L-150)
-        bool durabilityElytra = true; // The elytra row while gliding, even with armor rows off
+        bool durabilityElytra = true; // A worn elytra, apart from the armor rows
         bool offhandSlot = false;      // Offhand item beside the hotbar (L-75)
         bool offhandSlotEmpty = false; // Keep the empty frame when nothing is held
         // Player list columns (L-128), all shown by default.
