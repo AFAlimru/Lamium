@@ -494,6 +494,13 @@ Goal: open and use the ordinary inventory while inside a Nether portal.
   trace: `SceneStack::_schedulePopScreen` with the caller stack (offsets in
   the game module, beside the offsets of candidate functions), the
   inventory key handler and `LocalPlayer::openInventory`.
+- Result (2026-10-12): in a portal the inventory key handler runs but never
+  reaches `LocalPlayer::openInventory` (outside it does), so the refusal is
+  inside `ClientInputCallbacks::handleInventoryButtonPress`. The close comes
+  from a UI tick path (`_schedulePopScreen` via game offsets +22415a0,
+  +4df8519, +4e17616), not from player code; a chat close took another path.
+  Next trace names those offsets against 143 candidate functions (every
+  screen controller `$tick`, `ClientInputCallbacks`, `LocalPlayer`).
 
 ### L-150 Arrow-count HUD
 Kind: Design (small), then Ready after counting and visibility are agreed.
@@ -535,7 +542,8 @@ Goal: show the arrows available to the player without opening inventory.
   (band per row, right-aligned on the right side, as the Info HUD).
   First build: "Per line" could not be chosen (settings normalization still
   limited Durability to card/none); fixed, with a test that every offered
-  choice survives normalization.
+  choice survives normalization. Checked in game 2026-10-12: per line works,
+  bands line up on the right edge when moved to the right.
 
 ### L-146 Layer switches on the world map (with the next integration review)
 Kind: Design. Raised by the maintainer 2026-10-11 before the 0.2.0 release;

@@ -10,6 +10,9 @@
 #include "mc/client/game/ClientInputCallbacks.h"
 #include "mc/client/gui/screens/SceneStack.h"
 #include <Windows.h>
+#include <algorithm>
+#include <vector>
+#include "features/visuals/PortalCandidates.inc"
 #include <format>
 #include <string>
 
@@ -79,12 +82,40 @@ LL_TYPE_INSTANCE_HOOK(PortalCanOpen, ll::memory::HookPriority::Normal, Player, &
 // Experiment 4 (trace builds only): who closes the inventory in a portal,
 // and does the inventory key reach the player? Caller stacks as offsets from
 // the game module, with the offsets of candidate functions logged at start.
+// An imported game function's pointer leads to a jump stub; follow it.
+uintptr_t realAddress(void* p) {
+    auto* b = static_cast<unsigned char*>(p);
+    for (int i = 0; i < 4 && b; ++i) {
+        if (b[0] == 0xFF && b[1] == 0x25) b = *reinterpret_cast<unsigned char**>(b + 6 + *reinterpret_cast<int32_t*>(b + 2));
+        else if (b[0] == 0xE9) b = b + 5 + *reinterpret_cast<int32_t*>(b + 1);
+        else if (b[0] == 0x48 && b[1] == 0xFF && b[2] == 0x25) b = *reinterpret_cast<unsigned char**>(b + 7 + *reinterpret_cast<int32_t*>(b + 3));
+        else break;
+    }
+    return reinterpret_cast<uintptr_t>(b);
+}
+template <class F> uintptr_t candidate(F f) { return realAddress(ll::memory::resolveIdentifier(f)); }
+struct Candidate { char const* name; uintptr_t address; };
+std::vector<Candidate> candidates;
+void loadCandidates() {
+    candidates = {LAMIUM_PORTAL_CANDIDATES};
+    std::sort(candidates.begin(), candidates.end(), [](auto const& a, auto const& b) { return a.address < b.address; });
+}
+// The nearest candidate function starting at or below an address, if close.
+std::string nameOf(uintptr_t address) {
+    Candidate const* best = nullptr;
+    for (auto const& c : candidates) if (c.address <= address) best = &c;
+    if (!best || address - best->address > 0x3000) return {};
+    return std::format("={}+{:x}", best->name, address - best->address);
+}
 std::string stack() {
     void* frames[12]{};
     auto count = CaptureStackBackTrace(2, 12, frames, nullptr);
     auto base = reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));
     std::string out;
-    for (USHORT i = 0; i < count; ++i) out += std::format(" +{:x}", reinterpret_cast<uintptr_t>(frames[i]) - base);
+    for (USHORT i = 0; i < count; ++i) {
+        auto a = reinterpret_cast<uintptr_t>(frames[i]);
+        out += std::format(" +{:x}{}", a - base, nameOf(a));
+    }
     return out;
 }
 LL_TYPE_INSTANCE_HOOK(PortalSchedulePop, ll::memory::HookPriority::Normal, SceneStack, &SceneStack::_schedulePopScreen, void,
@@ -94,7 +125,7 @@ LL_TYPE_INSTANCE_HOOK(PortalSchedulePop, ll::memory::HookPriority::Normal, Scene
 }
 LL_TYPE_STATIC_HOOK(PortalInventoryKey, ll::memory::HookPriority::Normal, ClientInputCallbacks,
     &ClientInputCallbacks::handleInventoryButtonPress, void, IClientInstance& client, CraftingType craft) {
-    try { log(std::format("handleInventoryButtonPress screen {}", screen())); } catch (...) {}
+    try { log(std::format("handleInventoryButtonPress screen {} stack{}", screen(), stack())); } catch (...) {}
     origin(client, craft);
     try { log(std::format("after handleInventoryButtonPress screen {}", screen())); } catch (...) {}
 }
@@ -104,13 +135,10 @@ LL_TYPE_INSTANCE_HOOK(PortalOpenInventory, ll::memory::HookPriority::Normal, Loc
 }
 void start() {
     try {
+        loadCandidates();
         auto base = reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));
-        auto at = [&](void* p) { return reinterpret_cast<uintptr_t>(p) - base; };
-        log(std::format("functions: normalTick +{:x} handleInsidePortal +{:x} tickWorld +{:x} aiStep +{:x} openInventory +{:x} inventoryKey +{:x}",
-            at(ll::memory::resolveIdentifier(&LocalPlayer::$normalTick)), at(ll::memory::resolveIdentifier(&LocalPlayer::$handleInsidePortal)),
-            at(ll::memory::resolveIdentifier(&LocalPlayer::$tickWorld)), at(ll::memory::resolveIdentifier(&LocalPlayer::$aiStep)),
-            at(ll::memory::resolveIdentifier(&LocalPlayer::$openInventory)),
-            at(ll::memory::resolveIdentifier(&ClientInputCallbacks::handleInventoryButtonPress))));
+        log(std::format("{} candidate functions; handleInsidePortal at +{:x}", candidates.size(),
+            candidate(&LocalPlayer::$handleInsidePortal) - base));
     } catch (...) {}
     PortalSchedulePop::hook();
     PortalInventoryKey::hook();

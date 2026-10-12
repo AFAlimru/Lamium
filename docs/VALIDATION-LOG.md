@@ -12,6 +12,12 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Durability HUD per-line background (2026-10-12)
+
+By the maintainer, local, trace build of `2466a02` (DLL `bc8847c6...df404a`):
+"Per line" can be chosen for the Durability HUD; each row gets its own band;
+moved to the right side the bands line up on the right edge. OK.
+
 ## Overlays over the vanilla selection outline (2026-10-12)
 
 By the maintainer, local, `da218bd` (DLL `bcdc66b2...31e650e0a`): Chunk Border
