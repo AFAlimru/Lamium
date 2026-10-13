@@ -12,6 +12,31 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Pack changes kept old block textures: bisect (2026-10-14)
+
+Isolated BDS with the required magenta-dirt pack; the global test pack
+(yellow dirt, cyan stone) active. Maintainer checks; "case" = join the BDS,
+leave, enter a local world in the same session.
+- Unmodded Minecraft (no LeviLauncher): global packs return after the BDS
+  and after re-enabling them in a session.
+- LeviLauncher, Lamium moved out (ChiyanMap, LHolo, LeviSchematic loaded):
+  case shows yellow dirt (correct).
+- `35b2692` + `feature_skip` (DLL SHA-256
+  `4dcb8701004ea00badf1d4e51269e4ed3643d43d87c0877a04729e5010523dcd`):
+  skipping Connected Textures: still wrong. Skipping the map, waypoints,
+  schematic ghosts and target icons: the local world keeps magenta dirt.
+  Skipping 20 more features: local yellow/cyan then the BDS shows yellow
+  dirt and vanilla stone; after a restart the BDS's magenta dirt stays in
+  the local world. Skipping all 50: correct. Skipping only "Settings
+  screen" (which also draws the HUD, minimap included): correct.
+- Only textures both packs replace (dirt) stuck at the first one loaded;
+  stone changed correctly.
+- Cause found in code: the minimap's block colors, radar faces, the
+  saturation outline and Connected Textures read images by path through
+  `TextureGroup::getCachedImageOrLoadSync`; that cache is reused when the
+  terrain atlas is rebuilt for a new pack stack. Fix `241f635` reads them
+  from the packs directly. Not yet checked in game.
+
 ## L-167 Skip server resource packs, product build (2026-10-14)
 
 Maintainer check on `b1e03d1`, all trace options off. Deployed DLL SHA-256
