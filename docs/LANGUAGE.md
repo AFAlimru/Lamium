@@ -66,8 +66,15 @@ Next runtime checkpoint:
 3. If convenient, join the maintainer's BDS with a required pack and record
    receipt/stack logs. This step does not disable it or prove removal safe.
 
-No runtime trace evidence has been collected. Do not mark language apply or
-server pack disabling as working from these hooks compiling.
+Baseline checked 2026-10-13 on `e93d154` (VALIDATION-LOG): the maintainer
+confirms title-screen Japanese -> English -> Japanese changes display/fonts
+normally and Lamium settings opens in the local world. OreUI, not the JSON
+controller, performs the selection. The log shows I18n selection -> game
+observer -> font update, then the pack-language callback; the saved language
+is still old inside the I18n call and is updated by the next selection.
+There are 29 supported languages. In-world application and restart
+persistence remain unverified. World join reports no required packs and
+zero resource packs, so server-required-pack research has no runtime evidence.
 
 ## Server-required pack research
 

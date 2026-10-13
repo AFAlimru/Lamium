@@ -12,6 +12,28 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-167 vanilla language selection baseline (2026-10-13)
+
+Maintainer check on `e93d154`, with `language_trace=y` only. Source/deployed
+DLL SHA-256 `8081322c3246a2603d3324a9d5d60e681d3f23f9347ff4381b631a0eb7655d70`.
+Minecraft 1.26.51.01, LeviLamina Client 26.51.7, Windows x64, local world.
+- Maintainer confirms title-screen Settings Japanese -> English -> Japanese
+  switches display and fonts normally; after entering a local world,
+  Lamium settings opens normally. Language is absent from pause settings,
+  as reported before this build.
+- Log at 23:11:59 / 23:12:06 shows `I18nImpl::chooseLanguage`, then the
+  MinecraftGame observer and FontRepository update, followed by
+  ResourcePackManager's language callback. I18n changes from ja_JP to en_US
+  and back. During each choose call, the saved option still holds the old
+  language; by the next selection it holds the previous selection.
+- The actual settings screen is OreUI (`ui://./hbui/index.html`); the JSON
+  GeneralSettings controller's selection hook is not seen. I18n reports 29
+  supported languages. No crash or font regression reported.
+- World join information contains required=false and zero resource packs.
+  This is not a required-server-pack test. Pack removal, Global Resources
+  editing, restart persistence, in-world language changes, cached feature
+  names and BDS language switching remain unverified.
+
 ## L-166 controlled BDS delays, interruption and re-entry (2026-10-13)
 
 Agent Computer Use with the maintainer performing modified row clicks and
