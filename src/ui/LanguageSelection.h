@@ -40,16 +40,16 @@ struct LanguageContext {
         return !cancelled && active && now.active && dimension == now.dimension && code == now.code;
     }
 };
-// Full-width list using the settings panel's existing dimensions and widgets.
-inline ShapesLayout languageLayout(float width, float height, int count, int first) {
-    auto table = SettingsTable::fit(width, height, count, first);
+// The list takes the settings table's place (header, sidebar and footer
+// stay): its heading row holds the path and Back, rows below it.
+inline ShapesLayout languageLayout(SettingsTable const& t, int count, int first) {
     ShapesLayout l;
-    if (!table.usable()) return l;
-    l.left = table.left; l.top = table.top; l.width = table.width; l.height = table.height;
-    l.closeX = table.closeX;
-    l.footerTop = table.footerTop;
-    l.listLeft = table.left; l.listWidth = table.width;
-    l.rowsTop = table.top + SettingsTable::headerHeight;
+    if (!t.usable()) return l;
+    l.left = l.listLeft = t.tableLeft; l.width = l.listWidth = t.tableWidth;
+    l.top = t.theadTop; l.height = t.footerTop - t.theadTop;
+    l.closeX = t.rowsRight() - SettingsTable::pad - ShapesLayout::closeWidth;
+    l.rowsTop = t.rowsTop;
+    l.footerTop = t.footerTop;
     l.listCount = std::max(0, count);
     l.listVisible = std::max(0, static_cast<int>((l.footerTop - l.rowsTop - 2) / SettingsTable::rowHeight));
     l.listFirst = SettingsTable::clampFirst(first, count, l.listVisible);

@@ -765,7 +765,7 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
         if (auto paused = pausedHeader(); !paused.empty())
             label(context,t.versionX+versionWidth,t.top+6,t.versionWidth-versionWidth+2,std::move(paused),palette::warning);
     }
-    if (!shapesView() && !waypointsView() && !schematicsView()) {
+    if (!shapesView() && !waypointsView() && !schematicsView() && !language_view::opened()) {
     fill(context,t.searchX,t.top+4,t.searchWidth,12,Rgb{0,0,0},.45f);
     frame(context,t.searchX,t.top+4,t.searchWidth,12,searchFocused_() || (findingKey && hotkeysView()) ? palette::accent : palette::keyEdge);
     if (findingKey && hotkeysView())
@@ -821,6 +821,11 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
         }
     }
 
+    if (language_view::opened()) {
+        language_view::renderContent(context, t, pointer);
+        drawVersionTip(context, t, hover);
+        return;
+    }
     if (shapesView() || waypointsView() || schematicsView()) {
         if (shapesView()) shapes_view::renderContent(context, size, pointer, t);
         else if (waypointsView()) waypoints_view::renderContent(context, size, pointer, t);

@@ -32,9 +32,13 @@ void languageSelectionTests() {
     check(!asked.permits({"ja_JP", 0, false}, false), "a closed screen cancels");
     check(!LanguageContext{"ja_JP", 0, false}.permits({"ja_JP", 0, true}, false), "a request from a closed screen does not apply");
 
-    auto l = languageLayout(640, 360, 29, 0);
+    auto t = SettingsTable::fit(640, 360, 60, 0, 13);
+    auto l = languageLayout(t, 29, 0);
     check(l.width > 0 && l.listVisible > 0 && l.rowsTop + l.listVisible * SettingsTable::rowHeight <= l.footerTop,
         "language rows end above the footer");
-    check(languageLayout(640, 360, 29, 100).listFirst + l.listVisible == 29, "the first row is clamped");
-    check(languageLayout(100, 100, 29, 0).width <= 0, "too-small windows draw nothing");
+    check(l.left == t.tableLeft && l.width == t.tableWidth && l.top == t.theadTop && l.footerTop == t.footerTop,
+        "the list takes the settings rows' place; sidebar, header and footer stay");
+    check(l.closeX + ShapesLayout::closeWidth <= t.rowsRight() && l.closeX > t.nameX, "Back sits at the end of the heading row");
+    check(languageLayout(t, 29, 100).listFirst + l.listVisible == 29, "the first row is clamped");
+    check(languageLayout(SettingsTable::fit(100, 100, 29, 0), 29, 0).width <= 0, "too-small windows draw nothing");
 }

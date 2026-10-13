@@ -962,7 +962,11 @@ void render(ll::event::UIRenderEvent& event) {
     if (language_view::opened()) {
         releaseTextKeyboard();
         if (!closing) {
-            if (auto click = std::exchange(pendingClick, std::nullopt); click && !click->right) language_view::click(click->x, click->y);
+            // Outside the list the sidebar, Close and the rest work as usual.
+            if (auto click = std::exchange(pendingClick, std::nullopt); click && !language_view::click(click->x, click->y, click->right)) {
+                language_view::reset();
+                table_view::click(click->x, click->y, click->right);
+            }
             for (auto wheel : std::exchange(pendingWheels, {})) if (language_view::opened()) language_view::wheel(wheel.direction);
             if (std::exchange(pendingRelease, false)) language_view::release();
             for (int key : std::exchange(pendingKeys, {})) if (language_view::opened()) language_view::key(key);
@@ -970,8 +974,7 @@ void render(ll::event::UIRenderEvent& event) {
         pendingSearch = false;
         if (!scene) return;
         displayedInverseScale = current.getGuiData()->mInvGuiScale;
-        if (language_view::opened()) language_view::render(context, size, view.mPointerLocationPrevious);
-        else table_view::render(context, current, size, view.mPointerLocationPrevious);
+        table_view::render(context, current, size, view.mPointerLocationPrevious);
         return;
     }
     if (calculatorOpen) {
@@ -1098,11 +1101,6 @@ void render(ll::event::UIRenderEvent& event) {
     // No HUD under the settings list: the overlap made both hard to read.
     displayedInverseScale = current.getGuiData()->mInvGuiScale;
     glm::vec2 pointer = view.mPointerLocationPrevious;
-    if (language_view::opened()) {
-        releaseTextKeyboard();
-        language_view::render(context, size, pointer);
-        return;
-    }
     if (hudEditorView()) {
         releaseTextKeyboard();
         hud_editor::render(context, size.x, size.y, pointer.x, pointer.y);

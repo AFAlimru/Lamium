@@ -39,6 +39,9 @@ void poll() {
     else notice = "language.failed";
     request.reset();
 }
+bool overBack(float x, float y) {
+    return x >= last.closeX && x < last.closeX + ShapesLayout::closeWidth && y >= last.top && y < last.rowsTop;
+}
 }
 bool begin() {
     reset();
@@ -56,19 +59,20 @@ void reset() {
     selection = {}; last = {}; notice = {};
     open = false; dragging = false;
 }
-void click(float x, float y) {
-    if (last.width <= 0) return;
-    if (x >= last.closeX && x < last.closeX + ShapesLayout::closeWidth
-        && y >= last.top && y < last.rowsTop) { back(); return; }
-    if (last.onScrollbar(x, y)) { selection.first = last.firstAt(y); dragging = true; return; }
-    if (x < last.listLeft || x >= last.listLeft + last.listWidth || y < last.rowsTop) return;
+bool click(float x, float y, bool right) {
+    if (last.width <= 0 || x < last.left || x >= last.left + last.width || y < last.top || y >= last.footerTop) return false;
+    if (right) return true;
+    if (overBack(x, y)) { back(); return true; }
+    if (last.onScrollbar(x, y)) { selection.first = last.firstAt(y); dragging = true; return true; }
+    if (y < last.rowsTop) return true;
     int offset = static_cast<int>((y - last.rowsTop) / ShapesLayout::rowHeight);
-    if (offset >= last.listVisible || offset + last.listFirst >= last.listCount || busy()) return;
+    if (offset >= last.listVisible || offset + last.listFirst >= last.listCount || busy()) return true;
     selection.select(offset + last.listFirst);
     choose();
+    return true;
 }
 void key(int key) {
-    if (key == 0x1b) { back(); return; }
+    if (key == 0x1b || key == 0x08) { back(); return; }
     if (busy()) return;
     switch (key) {
     case 0x26: selection.move(-1, last.listVisible); break;
@@ -84,37 +88,44 @@ void wheel(int amount) {
     selection.first = SettingsTable::clampFirst(selection.first + amount, static_cast<int>(selection.choices.size()), last.listVisible);
 }
 void release() { dragging = false; }
-void render(MinecraftUIRenderContext& context, glm::vec2 size, glm::vec2 pointer) {
+void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, glm::vec2 pointer) {
     poll();
-    last = languageLayout(size.x, size.y, static_cast<int>(selection.choices.size()), selection.first);
+    last = languageLayout(t, static_cast<int>(selection.choices.size()), selection.first);
     if (last.width <= 0) return;
     if (dragging) selection.first = last.firstAt(pointer.y);
     selection.first = last.listFirst = SettingsTable::clampFirst(selection.first, last.listCount, last.listVisible);
     auto current = game_language::currentCode();
-    panel(context, last.left, last.top, last.width, last.height);
-    label(context, last.left + ShapesLayout::pad, last.top + 5, last.closeX - last.left - 2 * ShapesLayout::pad,
-        translated("feature.gameLanguage"));
-    drawSmallButton(context, last.closeX, last.top + 4, ShapesLayout::closeWidth, capHeight,
-        translated("cancelShort"), pointer.x >= last.closeX && pointer.y >= last.top && pointer.y < last.rowsTop);
-    float codeWidth = SettingsTable::fit(size.x, size.y, 0, 0).keyWidth;
+
+    // Heading row: where this list belongs, and the way back to it.
+    label(context, t.nameX, t.theadTop + 2, last.closeX - t.nameX - SettingsTable::gap,
+        translated("section.interface") + "  >  " + translated("feature.gameLanguage"), palette::faint);
+    drawSmallButton(context, last.closeX, t.theadTop, ShapesLayout::closeWidth, 11,
+        "< " + translated("section.interface"), overBack(pointer.x, pointer.y));
+    fill(context, t.tableLeft, t.rowsTop - 1, t.tableWidth, 1, palette::white, .14f);
+
+    float codeWidth = t.keyWidth;
     for (int i = last.listFirst; i < last.listFirst + last.listVisible && i < last.listCount; ++i) {
         auto const& choice = selection.choices[i];
-        float y = last.listRowY(i), x = last.listLeft + ShapesLayout::pad;
+        float y = last.listRowY(i);
         bool hovered = pointer.x >= last.listLeft && pointer.x < last.listLeft + last.listWidth
             && pointer.y >= y && pointer.y < y + ShapesLayout::rowHeight;
         rowBackground(context, last.listLeft + 1, y, last.listWidth - 2, ShapesLayout::rowHeight, selection.selected == i, hovered);
-        label(context, x, y + 3, last.listWidth - codeWidth - 3 * ShapesLayout::pad, choice.name,
+        label(context, t.nameX, y + 3, t.keyX - t.nameX - SettingsTable::gap, choice.name,
             choice.code == current ? palette::accent : palette::text);
-        label(context, last.listLeft + last.listWidth - codeWidth - 2 * ShapesLayout::pad, y + 3, codeWidth,
-            choice.code, choice.code == current ? palette::accent : palette::faint, Align::Right);
+        label(context, t.keyX, y + 3, codeWidth, choice.code, choice.code == current ? palette::accent : palette::faint);
     }
     drawListScrollbar(context, last);
+
+    // Footer, as in the table: status first, hints below.
+    fill(context, t.left, t.footerTop, t.width, 1, palette::white, .14f);
+    float textLeft = t.left + SettingsTable::pad, textWidth = t.width - 2 * SettingsTable::pad;
     auto text = busy() ? translated("language.applying") : !notice.empty() ? translated(notice)
         : translated("language.current", game_language::currentName());
-    paragraph(context, last.left + ShapesLayout::pad, last.footerTop + 3, last.width - 2 * ShapesLayout::pad,
-        text, last.height < 230 ? 1 : 2, notice.empty() ? palette::dim : palette::warning);
-    if (last.height >= 230) label(context, last.left + ShapesLayout::pad, last.footerTop + 29,
-        last.width - 2 * ShapesLayout::pad, translated("language.hint"), palette::faint);
+    label(context, textLeft, t.footerTop + 3, textWidth, text, notice.empty() ? palette::text : palette::warning);
+    if (!t.shortFooter) {
+        label(context, textLeft, t.footerTop + 16, textWidth, translated("help.gameLanguage"), palette::dim);
+        label(context, textLeft, t.footerTop + 30, textWidth, translated("language.hint"), palette::faint);
+    }
     context.flushText(0, std::nullopt);
 }
 }
