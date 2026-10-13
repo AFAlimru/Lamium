@@ -121,6 +121,8 @@ int main() try {
     hudElementTests();
     extern void hudEditorLayoutTests();
     hudEditorLayoutTests();
+    extern void chatPositionTests();
+    chatPositionTests();
     extern void infoLinesTests();
     infoLinesTests();
     extern void targetDetailTests();

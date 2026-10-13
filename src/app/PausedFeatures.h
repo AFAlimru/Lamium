@@ -12,12 +12,12 @@
 namespace lamium::paused {
 enum class Level { No, Partly, Fully };
 // Feature ids as in ui::features.
-inline constexpr std::array<std::string_view, 9> gatedFeatures{
+inline constexpr std::array<std::string_view, 10> gatedFeatures{
     "nightVision", "edgeGuard", "connectedTextures", "freecamera", "hideEffects", "schematic", "repeatTrades", "gameLanguage",
-    "skipServerPacks"};
+    "skipServerPacks", "chatPosition"};
 inline Level onUnverified(std::string_view feature) {
     if (feature == "nightVision" || feature == "edgeGuard" || feature == "connectedTextures" || feature == "repeatTrades"
-        || feature == "gameLanguage" || feature == "skipServerPacks") return Level::Fully;
+        || feature == "gameLanguage" || feature == "skipServerPacks" || feature == "chatPosition") return Level::Fully;
     if (feature == "freecamera" || feature == "hideEffects" || feature == "schematic") return Level::Partly;
     return Level::No;
 }
@@ -29,6 +29,7 @@ inline std::vector<std::string_view> inUse(Settings const& s) {
     if (s.lighting.nightVision) out.push_back("nightVision");
     if (s.interaction.edgeGuard) out.push_back("edgeGuard");
     if (s.visuals.connectedTextures) out.push_back("connectedTextures");
+    if (s.information.chatPosition) out.push_back("chatPosition");
     if (s.inventory.repeatTrades) out.push_back("repeatTrades");
     if (s.visuals.skipServerPacks) out.push_back("skipServerPacks");
     auto const& v = s.visuals;

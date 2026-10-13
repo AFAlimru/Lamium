@@ -299,6 +299,12 @@ Contents:
   line bands also use the shared Background opacity setting described above.
   Text color is not a per-element option.
 
+Chat placement (L-174, decided 2026-10-14): a saved, default-off Chat
+position switch moves ordinary HUD messages to the lower left and adds a
+position-only element to HUD layout. Native text, background, font size,
+shadow, fading and input/history screen remain vanilla. See
+[CHAT-POSITION.md](CHAT-POSITION.md) for the first step's boundary.
+
 ## World overlays (Decided unless noted)
 
 - (Decided 2026-10-12) Against the vanilla block selection outline (the black

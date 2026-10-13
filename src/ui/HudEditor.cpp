@@ -49,6 +49,7 @@ std::string_view elementName(HudElementId id) {
     case HudElementId::Inventory: return "feature.inventoryHud";
     case HudElementId::UsedSlots: return "feature.usedSlots";
     case HudElementId::StatusEffects: return "feature.statusEffects";
+    case HudElementId::Chat: return "feature.chatPosition";
     default: return "hudEditor.toast";
     }
 }
@@ -65,6 +66,7 @@ HudElement& layoutElement(Settings::Hud& hud, HudElementId id) {
     case HudElementId::Inventory: return hud.inventory;
     case HudElementId::UsedSlots: return hud.usedSlots;
     case HudElementId::StatusEffects: return hud.statusEffects;
+    case HudElementId::Chat: return hud.chat;
     default: return hud.toast;
     }
 }
@@ -117,11 +119,14 @@ Box drawToolbar(MinecraftUIRenderContext& context, Settings const& value, Box el
     std::string backgroundText = background ? optionText(*background, value) : std::string{};
     std::string shadowText = shadow ? splitLabel(translated(shadow->label)).name : std::string{};
     std::string linesText = translated("hudEditor.lines");
+    bool positionOnly = id == HudElementId::Chat;
     float snapW = textWidth(context, snapText) + 17, scaleW = textWidth(context, "150%") + 24;
-    float backgroundW = textWidth(context, backgroundText) + 8;
-    float shadowW = textWidth(context, shadowText) + switchWidth + 10;
+    if (positionOnly) scaleW = 0;
+    float backgroundW = background ? textWidth(context, backgroundText) + 8 : 0;
+    float shadowW = shadow ? textWidth(context, shadowText) + switchWidth + 10 : 0;
     float linesW = id == HudElementId::Info ? textWidth(context, linesText) + 17 : 0;
-    float width = pad + snapW + gap + scaleW + gap + backgroundW + gap + shadowW + (linesW ? gap + linesW : 0) + pad;
+    float width = pad + snapW + (scaleW ? gap + scaleW : 0) + (backgroundW ? gap + backgroundW : 0)
+        + (shadowW ? gap + shadowW : 0) + (linesW ? gap + linesW : 0) + pad;
     if (!spot || element.overlaps(Box{spot->x, spot->y, width, barHeight}))
         spot = toolbarSpot(element, width, barHeight, screenW, screenH);
     Box bar{spot->x, spot->y, width, barHeight};
@@ -136,16 +141,18 @@ Box drawToolbar(MinecraftUIRenderContext& context, Settings const& value, Box el
     };
     auto snap = add(snapW, Command::OpenSnap);
     button(context, snap, snapText, popover == Popover::Snap || hovering(snap, px, py), palette::keyEdge, true);
-    // Scale: arrows at both ends of one field.
-    Box scaleBox{x, y, scaleW, itemHeight};
-    fill(context, scaleBox.x, scaleBox.y, scaleBox.w, scaleBox.h, palette::keyFill, .9f);
-    frame(context, scaleBox.x, scaleBox.y, scaleBox.w, scaleBox.h, palette::keyEdge);
-    controls.push_back({{scaleBox.x, y, 10, itemHeight}, Command::ScaleDown});
-    controls.push_back({{scaleBox.x + scaleW - 10, y, 10, itemHeight}, Command::ScaleUp});
-    arrow(context, scaleBox.x + 3, y + 3, true);
-    arrow(context, scaleBox.x + scaleW - 7, y + 3, false);
-    label(context, scaleBox.x + 10, y + boxTextInset(), scaleW - 20, scaleText, palette::text, Align::Center);
-    x += scaleW + gap;
+    if (!positionOnly) {
+        // Scale: arrows at both ends of one field.
+        Box scaleBox{x, y, scaleW, itemHeight};
+        fill(context, scaleBox.x, scaleBox.y, scaleBox.w, scaleBox.h, palette::keyFill, .9f);
+        frame(context, scaleBox.x, scaleBox.y, scaleBox.w, scaleBox.h, palette::keyEdge);
+        controls.push_back({{scaleBox.x, y, 10, itemHeight}, Command::ScaleDown});
+        controls.push_back({{scaleBox.x + scaleW - 10, y, 10, itemHeight}, Command::ScaleUp});
+        arrow(context, scaleBox.x + 3, y + 3, true);
+        arrow(context, scaleBox.x + scaleW - 7, y + 3, false);
+        label(context, scaleBox.x + 10, y + boxTextInset(), scaleW - 20, scaleText, palette::text, Align::Center);
+        x += scaleW + gap;
+    }
     if (background) {
         auto box = add(backgroundW, Command::Background);
         button(context, box, backgroundText, hovering(box, px, py));

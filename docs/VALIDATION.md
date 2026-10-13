@@ -69,6 +69,12 @@ game result.
 
 ## Information and overlays
 
+Chat position (L-174): first implementation on 2026-10-14; no runtime
+confirmation yet. Check text/background translation and native fading,
+layout dragging/reset/persistence, coordinates and input/history unchanged,
+OFF restoration, GUI scales, Pocket UI, packs, world/dimension/focus changes
+and servers. The checklist is in [CHAT-POSITION.md](CHAT-POSITION.md).
+
 | Feature | Last confirmed | Not yet checked |
 |---|---|---|
 | Info HUD lines (L-04, L-05, L-56, L-98) | 2026-09-25, local; 2026-10-06: shared line height, per-line bands (Japanese and English, right-aligned on the right), background opacity, General headings, nearer-edge anchors on `f63be4e`; 2026-10-07: hides with F1 and returns, also in FreeCamera (L-107, `18e2cc8`) | Defaults (Info per line, Status card, Debug View per line) on a fresh settings file |

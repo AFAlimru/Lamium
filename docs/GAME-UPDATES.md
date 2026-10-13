@@ -55,6 +55,7 @@ use. A new gate gets its feature there as well.
 | Schematic entity models (actor renderers) | `GhostMarks.cpp` | missing entities as dashed frames | everything else |
 | Game language (native apply) | `GameLanguage.cpp` | no in-world language list; vanilla title-screen Settings > Language | everything else |
 | Skip server resource packs (pack stack packet) | `ServerPacks.cpp` | server packs applied as vanilla | the setting and key (no effect) |
+| Chat position (HUD control positions) | `ChatPosition.cpp` | vanilla chat position | the setting, key and layout preview |
 
 ## Playbook for a new Minecraft or LeviLamina version
 
@@ -132,6 +133,15 @@ Meaning: `HudMobEffectsRenderer` draws the HUD's effect icons on the right
 (the hud screen's `mob_effects_renderer`). Skipped only while the Status
 Effects HUD read the effects that frame; a change only stops the hiding or
 hides those icons with the HUD showing the same effects (L-147).
+
+### `src/features/information/ChatPosition.cpp`
+Hooks: `ChatHudRender`
+Meaning: `ScreenView::render` consumes the current control positions; the
+HUD has `chat_panel` immediately under an unclipped `chat_stack`, separate
+from coordinates and the paper doll. The measured subtree is translated
+only for this render call and restored before returning. Gated (Chat
+position); missing controls, clipping or more than 512 subtree controls
+leave it vanilla. Initial runtime check still pending (L-174).
 
 ### `src/features/information/FrameTiming.cpp`
 Hooks: `FrameCompleted`

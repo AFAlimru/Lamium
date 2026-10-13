@@ -29,6 +29,7 @@ build named there and may include superseded experiments.
 | Area | Document |
 |---|---|
 | Settings, HUD and input foundation | [UX-FOLLOWUP.md](UX-FOLLOWUP.md) |
+| Native HUD chat placement | [CHAT-POSITION.md](CHAT-POSITION.md) |
 | Parent switches, command rows and keys | [SETTINGS-KEYMAP.md](SETTINGS-KEYMAP.md) |
 | Freelook and FreeCamera | [CAMERA.md](CAMERA.md) |
 | Shapes, chunk borders, hitboxes and persistence | [OVERLAYS.md](OVERLAYS.md) |

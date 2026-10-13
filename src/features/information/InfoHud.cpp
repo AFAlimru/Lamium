@@ -1,4 +1,5 @@
 #include "features/information/InfoHud.h"
+#include "features/information/ChatPosition.h"
 #include "features/information/PlayerInfo.h"
 #include "features/information/FrameTiming.h"
 #include "features/information/NetworkInfo.h"
@@ -1404,6 +1405,7 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
     auto const& runtime = *snapshot;
     cardOpacity = static_cast<float>(runtime.ui.hudBackgroundOpacity) / 100.f;
     auto const& hud = preview ? preview->layout : runtime.hud;
+    if (preview) box(ui::HudElementId::Chat) = chatPosition::preview(context, width, height, hud.chat);
     auto viewRay = [&](double reach) -> std::optional<ViewRay> {
         auto* player = context.mClient.getLocalPlayer();
         if (!player) return std::nullopt;

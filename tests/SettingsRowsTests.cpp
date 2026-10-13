@@ -1,5 +1,6 @@
 #include "app/PausedFeatures.h"
 #include "ui/SettingsRows.h"
+#include "ui/HudEditorLayout.h"
 #include "ui/SettingsNavigation.h"
 #include "ui/Translations.h"
 #include <format>
@@ -198,7 +199,8 @@ void settingsRowsTests() {
     check(options.size() == listed && actions.size() == live, "all settings and actions are reachable");
     check(input::retired(input::Action::CaptureBreaking) && input::retired(input::Action::ResetBreaking)
           && !input::retired(input::Action::CycleBreakingMode), "only the L-15 capture and reset actions are retired");
-    check(layouts.size() == 12, "every HUD element is reachable from the settings list");
+    check(layouts == std::set<ui::HudElementId>(ui::hud_editor::drawOrder.begin(), ui::hud_editor::drawOrder.end()),
+          "every HUD element is reachable from the settings list");
     {
         auto sort = std::find_if(rows.begin(), rows.end(), [](auto const& row) {
             return row.heading() && row.feature->id == "sorting";

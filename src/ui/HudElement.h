@@ -11,7 +11,7 @@ namespace lamium::ui {
 // Elements are info lines, target, status, toast and the zoom magnification.
 // The debug view is not an element: it is fixed to the screen edges. Pure
 // math; InfoHud draws. Append new ids: they index saved boxes.
-enum class HudElementId { Info, Target, Status, Toast, Magnification, Durability, Minimap, Schematic, PlayerList, Inventory, UsedSlots, StatusEffects };
+enum class HudElementId { Info, Target, Status, Toast, Magnification, Durability, Minimap, Schematic, PlayerList, Inventory, UsedSlots, StatusEffects, Chat };
 enum class Anchor {
     TopLeft, TopCenter, TopRight,
     MiddleLeft, Center, MiddleRight,
@@ -66,6 +66,7 @@ inline constexpr HudElement defaultHudElement(HudElementId id) {
     // Right middle, where the game shows its effect icons, below the
     // automation status (L-147, maintainer 2026-10-12).
     case HudElementId::StatusEffects: return {Anchor::MiddleRight, -hudInset, 48, 100, ElementBackground::Card, true};
+    case HudElementId::Chat: return {Anchor::BottomLeft, hudInset, -40, 100, ElementBackground::None, true};
     // Above the armor and absorption rows over the hotbar.
     default: return {Anchor::BottomCenter, 0, -72, 100, ElementBackground::Card, false};
     }
@@ -83,6 +84,7 @@ inline constexpr std::string_view hudElementKey(HudElementId id) {
     case HudElementId::Inventory: return "inventory";
     case HudElementId::UsedSlots: return "usedSlots";
     case HudElementId::StatusEffects: return "statusEffects";
+    case HudElementId::Chat: return "chat";
     default: return "toast";
     }
 }

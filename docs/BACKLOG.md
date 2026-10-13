@@ -78,7 +78,8 @@ L-item wins. Every entry names what the task is, not only its number.
      L-167 in-world language (chosen: native-path research in progress), L-168 trade
      finder, L-169 Item Transfer in more screens and bulk moves, L-170
      enchantment order planner, L-173 quick shapes and beacon range, L-174
-     chat position, L-163 a Lamium-drawn inventory screen. L-151 to L-154
+     chat position (chosen 2026-10-14; initial runtime check pending), L-163
+     a Lamium-drawn inventory screen. L-151 to L-154
      stay later. This list approves no implementation and sets no release.
    - Done since 0.2.0 (BACKLOG-DONE): L-155, L-157 to L-161, L-147, L-148,
      L-150, L-164 with L-133 and L-156, L-171 calculator, L-172 text
@@ -147,7 +148,9 @@ every server gap before a release.
 
 ### Since 0.2.1 (unreleased)
 
-Nothing yet.
+L-174 Chat position: initial default-off implementation; runtime check
+pending. Before including it in a release, check native text/background
+translation, fading, placement/reset and OFF restoration (CHAT-POSITION.md).
 
 ### Shipped in 0.2.1 (smoke-tested; remaining gaps in VALIDATION.md)
 
@@ -412,8 +415,7 @@ type 3, scale 1.333, with the font's own material).
 ## Feature work and research
 
 ### L-174 Chat messages placed like Java Edition, through the HUD layout
-Kind: Research, then Design. From the maintainer's notes (2026-10-13); not
-chosen for building, no release.
+Kind: Research, then Ready (strong model). Chosen 2026-10-14; no release selected.
 Goal: show the ordinary chat messages at the bottom left as on Java
 Edition, ideally placed by drag in Lamium's HUD layout.
 Proposal (not decided): only the message display at first (not the chat
@@ -427,6 +429,12 @@ API and timing unknown). Moving the whole `chat_stack` would move other
 elements (the coordinates). Check HUD re-layout, resource packs, screen
 sizes and GUI scales, and the return to vanilla when off. A chat of
 Lamium's own is out of scope.
+Decided (maintainer 2026-10-14): first version has a saved, default-off
+Chat position switch, moves the ordinary messages to the bottom left on
+enable, and allows free placement in HUD layout. Background, font size,
+shadow and fading stay vanilla; the chat input screen is outside this scope.
+No width, line-count or appearance controls in this step. Research and
+the first implementation checkpoint: [CHAT-POSITION.md](CHAT-POSITION.md).
 
 ### L-173 Quick shapes: a beacon's range at a glance, shapes that are not saved
 Kind: Design. From the maintainer's notes (2026-10-13); not chosen for

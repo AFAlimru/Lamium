@@ -109,6 +109,7 @@ Json encode(Settings const& settings) {
                          {"inventoryHotbar", settings.information.inventoryHotbar},
                          {"usedSlotsHotbar", settings.information.usedSlotsHotbar},
                          {"effectsHud", settings.information.effectsHud},
+                         {"chatPosition", settings.information.chatPosition},
                          {"effectsNames", settings.information.effectsNames},
                          {"effectsWarning", settings.information.effectsWarning},
                          {"effectsHideVanilla", settings.information.effectsHideVanilla},
@@ -202,7 +203,8 @@ Json encode(Settings const& settings) {
                    {"playerList", encodeHudElement(settings.hud.playerList)},
                    {"inventory", encodeHudElement(settings.hud.inventory)},
                    {"usedSlots", encodeHudElement(settings.hud.usedSlots)},
-                   {"statusEffects", encodeHudElement(settings.hud.statusEffects)}}},
+                   {"statusEffects", encodeHudElement(settings.hud.statusEffects)},
+                   {"chat", encodeHudElement(settings.hud.chat)}}},
         {"map", {{"minimap", settings.map.minimap}, {"range", map::blocksAcross(settings.map.zoom)}, {"size", settings.map.size},
                  {"rotate", settings.map.rotate},
                  {"round", settings.map.round}, {"coordinates", settings.map.coordinates},
@@ -309,6 +311,7 @@ Settings decodeSettings(std::string_view text) {
         value.information.usedSlots = info.value("usedSlots", value.information.usedSlots);
         value.information.inventoryHotbar = info.value("inventoryHotbar", value.information.inventoryHotbar);
         value.information.usedSlotsHotbar = info.value("usedSlotsHotbar", value.information.usedSlotsHotbar);
+        value.information.chatPosition = info.value("chatPosition", value.information.chatPosition);
         value.information.effectsHud = info.value("effectsHud", value.information.effectsHud);
         value.information.effectsNames = info.value("effectsNames", value.information.effectsNames);
         value.information.effectsWarning = info.value("effectsWarning", value.information.effectsWarning);
@@ -540,6 +543,7 @@ Settings decodeSettings(std::string_view text) {
         element("playerList", value.hud.playerList, ui::HudElementId::PlayerList);
         element("inventory", value.hud.inventory, ui::HudElementId::Inventory);
         element("usedSlots", value.hud.usedSlots, ui::HudElementId::UsedSlots);
+        element("chat", value.hud.chat, ui::HudElementId::Chat);
         element("statusEffects", value.hud.statusEffects, ui::HudElementId::StatusEffects);
     }
     value.normalize();
