@@ -123,6 +123,14 @@ stack during play reloads meshes, atlases, UI, languages and entity/block
 resources safely. A server's pack can supply custom content and UI, so
 removing the whole stack can make received gameplay state unrenderable.
 
+Runtime result (2026-10-14, VALIDATION-LOG): on BDS with a required test
+pack, the client completes the normal download/acceptance and the server
+then sends the stack to apply (`ResourcePackStackPacket`). A research build
+that empties that packet's resource packs before the client handles it
+joins and stays connected; the pack is not applied (normal dirt). The
+in-world Global Resources page then shows a gray content area. Declining a
+required pack instead is expected to disconnect and was not tried.
+
 Before an implementation choice: distinguish optional packs from required
 ones, cosmetic replacements from required content definitions, handshake
 behavior from post-join local rendering, and joining without applying from

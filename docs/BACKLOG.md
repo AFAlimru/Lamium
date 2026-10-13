@@ -597,6 +597,10 @@ Settings > Global Resources lists the active packs but offers no control to
 change them, and no stack change happens in the world. Vanilla's in-world
 JSON settings also drops the Language tab with a static
 `not $is_pregame` condition; the controller still holds the language list.
+Server packs (2026-10-14): accepting a required pack and not applying it
+locally works on BDS for a cosmetic test pack (research build only); in-world
+Global Resources then shows a gray page. Hang: 12 in-world switches in 23 s
+froze the game; the title screen does not (VALIDATION-LOG).
 Open (maintainer): where the language entry should live (Lamium settings
 as now, a vanilla in-world settings tab, or the pause menu) and the resource
 pack scope (read-only list first, or queue-exit-apply-rejoin).

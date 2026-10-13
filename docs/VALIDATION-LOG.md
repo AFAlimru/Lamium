@@ -12,6 +12,31 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-167 required server pack: accepted, not applied locally (2026-10-14)
+
+Agent-prepared isolated BDS 1.26.51.1 (`texturepack-required=true`, world
+`lamium-packs` with one Lamium-made test pack that only turns dirt magenta).
+Minecraft 1.26.51.01, LeviLamina Client 26.51.7, Windows x64.
+- Baseline on `2c77a5c` with `language_trace=y` (DLL SHA-256
+  `16abdd0477cb4f60a39985051cca14ec46d8f03d9dd43976059fc844edd9abf0`): the
+  maintainer accepts the download prompt; dirt is magenta. The trace line
+  cap was used up earlier in that session, so this join has no trace.
+- The same game at the title screen: rapid vanilla language switching does
+  not hang and feels faster than in-world switching.
+- Research build `2c77a5c` + `language_trace=y server_pack_skip=y` (DLL
+  SHA-256 `fe9ab8a1c5c1561c4db2fad7470fb34ac2b986d9b998f49948e7cbcdf84a8ea3`):
+  no download prompt (pack cached from the baseline). Log: pack info
+  required=true entries=1; server stack resources=1 required=true; the
+  research build empties it; Level stack set with 0 entries. BDS logs a
+  normal connect/spawn and a disconnect only when the maintainer leaves
+  about two minutes later.
+- The maintainer joins normally, dirt has its normal texture, walking for
+  1-2 minutes shows no missing textures or UI problems. Exception: in-world
+  Settings > Global Resources shows only the top menu; its content area is
+  plain gray.
+- Not checked: a first join without a cached pack, packs with custom
+  blocks/items/entities or UI, servers other than BDS.
+
 ## L-167 framed language list and a hang after repeated switching (2026-10-14)
 
 Maintainer check on `2c77a5c` with `language_trace=y` (server pack skip off).
