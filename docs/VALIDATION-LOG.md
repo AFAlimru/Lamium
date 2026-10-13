@@ -30,6 +30,10 @@ dirt). Minecraft 1.26.51.01, LeviLamina Client 26.51.7, Windows x64.
   magenta, stone vanilla (the global pack is not applied), and in-world
   Global Resources shows the gray page. So the gray page and the dropped
   global pack on a required-pack server are vanilla, not Lamium's skip.
+- Unmodded Minecraft (started normally, not through LeviLauncher; no
+  LeviLamina or mods) joining the same BDS: the maintainer's own global
+  pack is not applied, the server's pack is, and in-world Global Resources
+  shows the gray page. This confirms the behavior is vanilla.
 - Open: whether Lamium or vanilla global-pack crash recovery (after the
   forced exits) caused the 0-entry Global stack in the first session.
 
