@@ -12,6 +12,22 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-167 Skip server resource packs, product build (2026-10-14)
+
+Maintainer check on `b1e03d1`, all trace options off. Deployed DLL SHA-256
+`ccf8700298365689c01a3c3c87582b3a4f5c2f3400c637d42b7c449de91a8542`.
+Minecraft 1.26.51.01, LeviLamina Client 26.51.7, Windows x64, isolated BDS
+1.26.51.1 with the required magenta-dirt test pack; the global test pack
+(yellow dirt) active.
+- Switch off: joining the BDS shows magenta dirt, no notice.
+- Switch on, rejoin: joins normally, dirt normal, the toast "Server
+  resource packs not applied (1)" appears.
+- Then a local world in the same session: vanilla look, the global test
+  pack not applied although Global Resources lists it; no notice. Same
+  symptom as the earlier trace session, where the pack had been activated
+  at the title screen in that session. Whether vanilla does the same after
+  leaving a required-pack server, without Lamium, is unchecked.
+
 ## L-167 global packs with a required server pack; a lost global pack (2026-10-14)
 
 Agent-made global test pack (yellow dirt, cyan stone) in the instance's
