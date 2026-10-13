@@ -74,8 +74,8 @@ L-item wins. Every entry names what the task is, not only its number.
    - Bugs: L-123 elytra stretched on the inventory model after FreeCamera and
      L-91 shield glint in Lamium's icons (both parked); L-132 moving with
      the inventory screen open (paused after eight rounds).
-   - L-166 villager trade helpers: part 1's read-only diagnostics await the
-     first runtime check before automatic trading is built.
+   - L-166 villager trade helpers: part 1 (Shift + right click) works
+     locally; BDS, full inventory, two-input and interruption checks remain.
    - Specs to agree with the maintainer before building: L-165 Mass Craft,
      L-167 in-world language, L-168 trade
      finder, L-169 Item Transfer in more screens and bulk moves, L-170
@@ -577,10 +577,13 @@ Fail open: if the game's own apply path cannot be found, show nothing.
 ### L-166 Villager trade helpers
 Kind: Research (strong model) for part 1; Design for optional follow-ups.
 Imported from the maintainer's notes (2026-09-25) on 2026-10-12.
-Status 2026-10-13: maintainer chose part 1 through the first required runtime
-check. Read-only diagnostics prepared (`repeat_trade_trace`); automatic
-trading is not built yet. First check: the vanilla event/request path and
-authoritative offer-use updates, locally then on BDS. Research and checklist:
+Status 2026-10-13: after the initial diagnostic checkpoint, the maintainer
+authorized agent Computer Use for runtime checks and completing part 1.
+The vanilla request path and predicted client offer uses are observed locally;
+the one-at-a-time implementation and its Shift + right-click trigger
+(remapped at the row's input component) are locally verified. Completion
+requires matching request acknowledgments and inventory deltas, with server
+offer uses checked by reopening on BDS. Research and checklist:
 [TRADE-HELPERS.md](TRADE-HELPERS.md). Part 2 remains undecided; no release.
 Builds on L-129 (every trader level shown); separate from L-154's inventory
 gestures.
@@ -605,8 +608,9 @@ Research entry: `Trade2ScreenController` (`_onContainerSlotPressed`, the
 `UpdateTradePacket` after each trade (does `uses` update, how fast).
 Validation: local world and BDS, with latency; sold-out mid-run, full
 inventory, closing the screen mid-run, two-input trades, enchanted books.
-Decided (maintainer 2026-10-12): right click on a trade row trades it as
-often as allowed; left click and Shift stay vanilla; default on.
+Decided (maintainer 2026-10-12, trigger revised 2026-10-13): Shift + right click
+on a trade row trades it as often as allowed; left click and plain right click
+stay vanilla (Shift + right click on a row does nothing in vanilla); default on.
 Open (maintainer): whether part 2 is wanted at all.
 
 ### L-165 Mass Craft: craft a recipe many times at once

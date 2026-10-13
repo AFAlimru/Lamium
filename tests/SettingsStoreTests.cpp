@@ -316,6 +316,9 @@ void settingsStoreTests() {
               "real-time display can include the date");
     }
     auto old = decodeSettings(R"({"version":1,"camera":{"zoom":true,"magnification":3.5,"wheelStep":0.5}})");
+    check(old.inventory.repeatTrades, "repeated trading defaults on in existing settings");
+    auto disabledTrading = decodeSettings(R"({"version":1,"inventory":{"repeatTrades":false}})");
+    check(!disabledTrading.inventory.repeatTrades, "repeated trading loads an explicit disabled setting");
     check(old.camera.magnification == 3.5f && !old.lighting.nightVision,
           "adding lighting must preserve existing camera settings");
     check(old.inventory.sorting && old.inventory.sortContainers && old.inventory.transfer
@@ -346,6 +349,7 @@ void settingsStoreTests() {
         check(lamium::paused::onUnverified("nightVision") == Level::Fully && lamium::paused::onUnverified("freecamera") == Level::Partly
               && lamium::paused::onUnverified("zoom") == Level::No, "fully, partly or not paused");
         lamium::Settings s;
+        s.inventory.repeatTrades = false;
         s.lighting.nightVision = true;
         s.visuals.hideEffects = true;
         s.visuals.hideWater = s.visuals.hideLava = s.visuals.hidePowderSnow = s.visuals.hideDistanceFog = false;
@@ -355,6 +359,10 @@ void settingsStoreTests() {
         check(used.size() == 1 && used[0] == "nightVision", "the join toast names switched-on gated features, not particles alone");
         s.visuals.hideWeather = true;
         check(lamium::paused::inUse(s).size() == 2, "a gated hide effect counts");
+        s.inventory.repeatTrades = true;
+        check(lamium::paused::inUse(s).size() == 3
+              && lamium::paused::onUnverified("repeatTrades") == Level::Fully,
+              "repeated trades are named and fully paused on unverified games");
     }
     {
         auto loaded = decodeSettings(R"({"map":{"zoom":9,"rotate":true},"hud":{"minimap":{"dx":-30}}})");
@@ -465,6 +473,8 @@ void settingsStoreTests() {
         std::filesystem::path path;
         ~Cleanup() { std::error_code ignored; std::filesystem::remove(path, ignored); }
     } cleanup{path};
+    writeSettings(path, disabledTrading);
+    check(!readSettings(path).inventory.repeatTrades, "disabled repeated trading survives saving");
     {
         auto encoded = [&](Settings const& value) {
             writeSettings(path, value);

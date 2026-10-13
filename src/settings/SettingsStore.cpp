@@ -168,6 +168,7 @@ Json encode(Settings const& settings) {
                         {"lockedTrades", settings.inspection.lockedTrades},
                         {"englishSearch", settings.inspection.englishSearch}}},
         {"inventory", {{"sorting", settings.inventory.sorting}, {"sortContainers", settings.inventory.sortContainers},
+                       {"repeatTrades", settings.inventory.repeatTrades},
                        {"offhandSwap", settings.inventory.offhandSwap},
                        {"deathRestore", settings.inventory.deathRestore},
                        {"deathRestoreAll", settings.inventory.deathRestoreAll},
@@ -487,6 +488,7 @@ Settings decodeSettings(std::string_view text) {
     }
     if (data.contains("inventory")) {
         value.inventory.sorting = data.at("inventory").value("sorting", value.inventory.sorting);
+        value.inventory.repeatTrades = data.at("inventory").value("repeatTrades", value.inventory.repeatTrades);
         value.inventory.offhandSwap = data.at("inventory").value("offhandSwap", value.inventory.offhandSwap);
         value.inventory.deathRestore = data.at("inventory").value("deathRestore", value.inventory.deathRestore);
         value.inventory.deathRestoreAll = data.at("inventory").value("deathRestoreAll", value.inventory.deathRestoreAll);

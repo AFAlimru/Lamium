@@ -545,10 +545,11 @@ exactly one switch, one mode and one set of keys:
   A sweep also stops if a source count changes before its request runs.
   Mouse release stops gathering slots but lets already visited ones finish.
 
-## Repeated villager trading (Decided 2026-10-12, L-166; not implemented)
+## Repeated villager trading (Decided 2026-10-12, trigger 2026-10-13, L-166)
 
-- Right click on an unlocked trade row trades it as often as allowed,
-  default on. Left click and Shift keep vanilla behavior.
+- Shift + right click on an unlocked trade row trades it as often as
+  allowed, default on. Left click and plain right click keep vanilla
+  behavior; any key or click stops a run.
 - Use vanilla's trade request and confirm each round from authoritative
   inventory and offer state. Stop when sold out, inputs run out or output
   cannot fit; never drop output to continue.

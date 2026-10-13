@@ -3,6 +3,7 @@
 #include "features/interaction/PermanentSneak.h"
 #include "features/interaction/PeriodicInput.h"
 #include "features/inventory/FakeOffhand.h"
+#include "features/inventory/RepeatTrades.h"
 #include "input/Binding.h"
 #include "input/Actions.h"
 #include "app/Runtime.h"
@@ -22,6 +23,7 @@
 #include "mc/client/game/MinecraftGame.h"
 #include "mc/deps/input/HIDController.h"
 #include "mc/deps/input/MouseAction.h"
+#include <algorithm>
 #include <mutex>
 #include <stdexcept>
 #include <utility>
@@ -70,6 +72,7 @@ bool opensMenu(Action action) {
         || action == Action::SaveSchematicArea || action == Action::SchematicMenu;
 }
 void invalidate() {
+    inventory::repeatTrades::cancel();
     interaction::periodic::interrupt();
     inventory::fakeOffhand::rightChord(false);
     inventory::game::TransferSession::cancel();
@@ -143,6 +146,13 @@ void startCustomInput() {
     installed = true;
     auto& bus = ll::event::EventBus::getInstance();
     listeners[0] = bus.emplaceListener<ll::event::input::KeyInputEvent>([](auto& event) {
+        // Auto-repeat of a held key (Shift for Shift + right click) is not new input.
+        static std::vector<int> physical;
+        if (!event.isDown()) std::erase(physical, event.keyCode());
+        else if (std::ranges::find(physical, event.keyCode()) == physical.end()) {
+            physical.push_back(event.keyCode());
+            inventory::repeatTrades::cancel();
+        }
         bool consumed = process({Device::Key, event.keyCode()}, event.isDown(), event.isCancelled(),
             event.controller().mTextboxIsFocused || event.controller().mTextboxIsSelected);
         if (!event.isDown() && (event.keyCode() == 0x10 || event.keyCode() == 0x11
@@ -159,6 +169,7 @@ void startCustomInput() {
         Token token = wheel ? Token{Device::Wheel, event.buttonData() > 0 ? 1 : -1}
             : Token{Device::Mouse, button > MouseAction::ActionWheel ? button - 1 : button};
         bool down = wheel || event.buttonData() == MouseAction::DataDown;
+        if (down) inventory::repeatTrades::cancel();
         bool consumed = process(token, down, event.isCancelled());
         auto const& keys = held.value();
         bool shift = contains(keys, Token{Device::Key, 0x10}) || contains(keys, Token{Device::Key, 0xA0})

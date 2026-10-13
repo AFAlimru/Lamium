@@ -12,10 +12,10 @@
 namespace lamium::paused {
 enum class Level { No, Partly, Fully };
 // Feature ids as in ui::features.
-inline constexpr std::array<std::string_view, 6> gatedFeatures{
-    "nightVision", "edgeGuard", "connectedTextures", "freecamera", "hideEffects", "schematic"};
+inline constexpr std::array<std::string_view, 7> gatedFeatures{
+    "nightVision", "edgeGuard", "connectedTextures", "freecamera", "hideEffects", "schematic", "repeatTrades"};
 inline Level onUnverified(std::string_view feature) {
-    if (feature == "nightVision" || feature == "edgeGuard" || feature == "connectedTextures") return Level::Fully;
+    if (feature == "nightVision" || feature == "edgeGuard" || feature == "connectedTextures" || feature == "repeatTrades") return Level::Fully;
     if (feature == "freecamera" || feature == "hideEffects" || feature == "schematic") return Level::Partly;
     return Level::No;
 }
@@ -27,6 +27,7 @@ inline std::vector<std::string_view> inUse(Settings const& s) {
     if (s.lighting.nightVision) out.push_back("nightVision");
     if (s.interaction.edgeGuard) out.push_back("edgeGuard");
     if (s.visuals.connectedTextures) out.push_back("connectedTextures");
+    if (s.inventory.repeatTrades) out.push_back("repeatTrades");
     auto const& v = s.visuals;
     if (v.hideEffects && (v.hideWater || v.hideLava || v.hidePowderSnow || v.hideDistanceFog || v.hideWeather || v.hideNausea
                           || v.hidePortal))

@@ -30,6 +30,7 @@
 #include "features/lighting/NightVision.h"
 #include "features/inspection/Inspection.h"
 #include "features/inventory/Inventory.h"
+#include "features/inventory/RepeatTrades.h"
 #include "features/inventory/game/ConsumptionTrace.h"
 #include "features/inventory/game/LegacyFlowTrace.h"
 #include "features/inventory/ToolSwitch.h"
@@ -121,6 +122,7 @@ Feature const features[] = {
     {"Locked trades", inspection::lockedTrades::start, inspection::lockedTrades::stop},
     {"English search", inspection::englishSearch::start, inspection::englishSearch::stop},
     {"Inventory", inventory::start, inventory::stop},
+    {"Repeated trading", inventory::repeatTrades::start, inventory::repeatTrades::stop},
     {"Settings screen", started<ui::start>, ui::stop},
     {"Custom input", started<input::startCustomInput>, input::stopCustomInput},
     {"World overlay", started<overlay::start>, overlay::stop},
@@ -225,6 +227,7 @@ bool Runtime::save(Settings value) {
         bool cameraChanged = !(settings.camera == value.camera);
         if (settings.interaction.breaking != value.interaction.breaking
             || settings.interaction.breakingMode != value.interaction.breakingMode) interaction::breaking::reset();
+        if (settings.inventory.repeatTrades != value.inventory.repeatTrades) inventory::repeatTrades::cancel();
         settings = value;
         published.store(std::make_shared<Settings const>(settings));
         if (cameraChanged) CameraSessions::instance().configure(settings);

@@ -46,6 +46,7 @@ use. A new gate gets its feature there as well.
 | Connected Textures (chunk mesh vertices) | `ConnectedTexturesHooks.cpp` | glass with borders | the setting (no effect) |
 | Night Vision (light texture data) | `NightVision.cpp` | vanilla light | the key and setting (no effect) |
 | Edge Guard (movement request) | `EdgeGuard.cpp` (movement request and move vector), `EdgeGuardHistory.cpp` (replay input capture) | vanilla movement and history capture | the setting (no effect) |
+| Repeated trades (trade row handlers) | `RepeatTrades.cpp` | vanilla single trading | the setting and key |
 | Hide effects (fog and camera medium) | `HideEffects.cpp` `MediumFogVisibility` | water/lava/powder snow fog, distance fog | the other hide effects |
 | Hide effects (weather densities) | `HideEffects.cpp` `WeatherVisibility` | rain and snow drawn | the other hide effects |
 | Hide effects (portal screen) | `HideEffects.cpp` `PortalScreenVisibility` | the purple Nether portal screen | the other hide effects |
@@ -274,6 +275,15 @@ Trace.
 Hooks: `ResponseHook`
 Meaning: item stack responses report a request's id and result.
 
+### `src/features/inventory/RepeatTrades.cpp`
+Hooks: `RepeatTradeRow`, `RepeatTradeInput`, `RepeatTradeTick`, `RepeatTradeLeave`, `RepeatTradeRefresh`
+Meaning: the global Shift + right-click button ID, remapped to the row's own
+right-click mapping only on components that map it to the trade-row event;
+Trade2 row event IDs and collection indexes, ingredient preparation,
+the native auto-trade callback, and predicted offer uses reconciled against
+successful owned request responses and resulting inventory. Gated (Repeated
+trades); unknown routes stay vanilla. No transaction is constructed by Lamium.
+
 ### `src/features/inventory/game/RestockTrace.cpp`
 Hooks: `CreateHud`
 Trace.
@@ -327,7 +337,7 @@ Hooks: `CollectionBindHook`, `GlobalBindHook`, `TradeHook`
 Trace.
 
 ### `src/features/research/RepeatTradeTrace.cpp`
-Hooks: `RepeatOffer`, `RepeatButton`, `RepeatSlotPressed`, `RepeatTick`, `RepeatLeave`, `RepeatRequestBatch`, `RepeatResponse`, `RepeatInventorySlot`, `RepeatInventoryContent`
+Hooks: `RepeatOffer`, `RepeatButton`, `RepeatSlotPressed`, `RepeatTick`, `RepeatLeave`, `RepeatRequestBatch`, `RepeatResponse`, `RepeatInventorySlot`, `RepeatInventoryContent`, `RepeatNotify`, `RepeatActorEvent`, `RepeatAutoPlace`, `RepeatViewButton`, `RepeatComponentButton`, `RepeatPressedMapping`
 Trace (L-166, read-only; `repeat_trade_trace`, independent of `trade_trace`).
 
 ### `src/features/schematic/GhostActors.cpp`

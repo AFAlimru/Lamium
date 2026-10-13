@@ -74,6 +74,7 @@ struct Settings {
     } inspection;
     struct Inventory {
         bool sorting = true;
+        bool repeatTrades = true;
         bool offhandSwap = true; // The Swap with offhand key works (L-94)
         bool deathRestore = false; // Put picked-up items back in their death-time slots (L-109, experimental)
         bool deathRestoreAll = false; // Also the main inventory; off: the hotbar, armor and offhand

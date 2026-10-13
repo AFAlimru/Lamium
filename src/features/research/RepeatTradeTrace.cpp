@@ -8,12 +8,17 @@
 #include "ll/api/memory/Hook.h"
 #include "ll/api/service/TargetedBedrock.h"
 #include "mc/client/game/ClientInstance.h"
+// ScreenButtonMapping must be complete before InputComponent's vector member.
+#include "mc/client/gui/controls/ScreenButtonMapping.h"
+#include "mc/client/gui/controls/InputComponent.h"
 #include "mc/client/gui/controls/UIPropertyBag.h"
+#include "mc/client/gui/screens/ScreenView.h"
 #include "mc/client/gui/screens/ScreenController.h"
 #include "mc/client/gui/screens/ScreenEvent.h"
 #include "mc/client/gui/screens/controllers/Trade2ScreenController.h"
 #include "mc/client/network/ClientNetworkHandler.h"
 #include "mc/client/network/LegacyClientNetworkHandler.h"
+#include "mc/client/player/LocalPlayer.h"
 #include "mc/deps/input/MouseAction.h"
 #include "mc/deps/json/Value.h"
 #include "mc/deps/nbt/CompoundTag.h"
@@ -26,6 +31,8 @@
 #include "mc/network/packet/ItemStackResponsePacket.h"
 #include "mc/network/packet/ItemStackRequestPacketPayload.h"
 #include "mc/network/packet/UpdateTradePacket.h"
+#include "mc/network/packet/ActorEventPacket.h"
+#include "mc/entity/components_json_legacy/EconomyTradeableComponent.h"
 #include "mc/world/containers/managers/controllers/ContainerManagerController.h"
 #include "mc/world/containers/managers/models/ContainerManagerModel.h"
 #include "mc/world/inventory/network/ItemStackRequestBatch.h"
@@ -33,6 +40,9 @@
 #include "mc/world/inventory/network/ItemStackRequestData.h"
 #include "mc/world/inventory/network/crafting/ItemStackRequestActionCraftBase.h"
 #include "mc/world/item/ItemStack.h"
+#include "mc/world/item/trading/MerchantRecipeList.h"
+#include "mc/world/level/Level.h"
+#include <Windows.h>
 #include <atomic>
 #include <chrono>
 #include <format>
@@ -45,7 +55,8 @@
 namespace lamium::researchTrace::repeatTrade {
 namespace {
 using Clock = std::chrono::steady_clock;
-TraceBudget inputBudget, screenBudget, requestBudget, responseBudget, offerBudget, rowBudget;
+TraceBudget inputBudget, screenBudget, requestBudget, responseBudget, offerBudget, rowBudget, notifyBudget,
+    viewBudget, componentBudget;
 std::atomic<int64_t> observedAt{0};
 std::atomic<unsigned> sequence{0};
 std::mutex seenMutex;
@@ -166,6 +177,20 @@ LL_TYPE_INSTANCE_HOOK(RepeatTick, ll::memory::HookPriority::Normal, Trade2Screen
             int(recipe.mMaxUses), int(recipe.mBuyCountA), int(recipe.mBuyCountB), slots);
         std::lock_guard lock{seenMutex};
         if (seen.size() < 200 && seen.insert(state).second) log(screenBudget, 300, "{}", state);
+        auto client = ll::service::getClientInstance();
+        auto* player = client ? client->getLocalPlayer() : nullptr;
+        auto* actor = player ? player->getLevel().fetchEntity(mEntityUniqueID.get(), false) : nullptr;
+        auto* offers = actor ? actor->getTradeOffers() : nullptr;
+        if (offers) {
+            std::string rows;
+            unsigned count = 0;
+            for (auto const& offer : offers->mRecipeList.get()) {
+                if (++count > 32) break;
+                rows += std::format(" {}={}/{}", offer.mRecipeNetId->mRawId, int(offer.mUses), int(offer.mMaxUses));
+            }
+            auto line = std::format("client-offers entity={}{}", mEntityUniqueID->rawID, rows);
+            if (seen.size() < 200 && seen.insert(line).second) log(notifyBudget, 200, "{}", line);
+        }
     } catch (...) {}
     return result;
 }
@@ -235,28 +260,141 @@ LL_TYPE_INSTANCE_HOOK(RepeatInventoryContent, ll::memory::HookPriority::Normal, 
     try { if (recent()) log(responseBudget, 300, "inventory-content-applied container={}",
         int(packet.mInventoryId)); } catch (...) {}
 }
-struct Hook { int (*install)(bool); bool (*remove)(bool); bool installed = false; };
+LL_TYPE_INSTANCE_HOOK(RepeatNotify, ll::memory::HookPriority::Normal, EconomyTradeableComponent,
+    &EconomyTradeableComponent::notifyTrade, void, int index, int trades) {
+    try {
+        if (recent()) {
+            auto* offers = mOffers.get();
+            auto const* recipe = offers && index >= 0 && size_t(index) < offers->mRecipeList->size()
+                ? &offers->mRecipeList.get()[size_t(index)] : nullptr;
+            log(notifyBudget, 200, "notify-before client={} entity={} index={} count={} uses={}",
+                mOwner.getLevel().isClientSide(), mOwner.getOrCreateUniqueID().rawID, index, trades,
+                recipe ? int(recipe->mUses) : -1);
+        }
+    } catch (...) {}
+    origin(index, trades);
+    try {
+        if (recent()) {
+            auto* offers = mOffers.get();
+            auto const* recipe = offers && index >= 0 && size_t(index) < offers->mRecipeList->size()
+                ? &offers->mRecipeList.get()[size_t(index)] : nullptr;
+            log(notifyBudget, 200, "notify-after client={} entity={} index={} count={} uses={}",
+                mOwner.getLevel().isClientSide(), mOwner.getOrCreateUniqueID().rawID, index, trades,
+                recipe ? int(recipe->mUses) : -1);
+        }
+    } catch (...) {}
+}
+LL_TYPE_INSTANCE_HOOK(RepeatActorEvent, ll::memory::HookPriority::Normal, ClientNetworkHandler,
+    &ClientNetworkHandler::$handle, void, NetworkIdentifier const& source, ActorEventPacket const& packet) {
+    try { if (recent()) log(notifyBudget, 200, "actor-event-received runtime={} event={} data={}",
+        packet.mRuntimeId->rawID, int(packet.mEventId), int(packet.mData)); } catch (...) {}
+    origin(source, packet);
+    try { if (recent()) log(notifyBudget, 200, "actor-event-applied runtime={} event={} data={}",
+        packet.mRuntimeId->rawID, int(packet.mEventId), int(packet.mData)); } catch (...) {}
+}
+LL_TYPE_INSTANCE_HOOK(RepeatAutoPlace, ll::memory::HookPriority::Normal, ContainerScreenController,
+    &ContainerScreenController::_handleAutoPlace, void, int amount, std::string const& collection, int index) {
+    try {
+        if (tradeScreen()) {
+            observedAt = nowMs();
+            log(screenBudget, 300, "auto-place collection={} index={} amount={}", collection, index, amount);
+        }
+    } catch (...) {}
+    origin(amount, collection, index);
+    try {
+        if (tradeScreen()) log(screenBudget, 300, "auto-place-return collection={} index={} amount={}", collection, index, amount);
+    } catch (...) {}
+}
+// Modified row clicks never reach ScreenController; these show whether they
+// arrive as a different global button or are rejected by the row's mapping.
+constexpr uint selectRow = 2196830738u, tradeRow = 4096534505u;
+std::string modifiers() {
+    constexpr int down = 0x8000;
+    return std::format("shift={} ctrl={} alt={}", bool(GetAsyncKeyState(VK_SHIFT) & down),
+        bool(GetAsyncKeyState(VK_CONTROL) & down), bool(GetAsyncKeyState(VK_MENU) & down));
+}
+bool rowComponent(InputComponent const& component) {
+    for (auto const& mapping : component.mButtonMappings.get())
+        if (mapping.toButtonId == tradeRow || mapping.toButtonId == selectRow) return true;
+    return false;
+}
+std::string mappingText(ScreenButtonMapping const& mapping) {
+    return std::format("{}->{} type={} scope={} consume={} select={} deselect={} alt={} ignore={} mode={}",
+        uint(mapping.fromButtonId), uint(mapping.toButtonId), int(mapping.type), int(mapping.scope),
+        bool(mapping.consumeEvent), bool(mapping.handleSelection), bool(mapping.handleDeselection),
+        bool(mapping.alternateInputScope), bool(mapping.ignoreInputScope), int(mapping.inputModeCondition));
+}
+LL_TYPE_INSTANCE_HOOK(RepeatViewButton, ll::memory::HookPriority::Normal, ScreenView,
+    &ScreenView::handleButtonEvent, void, uint id, ::ButtonState state, ::FocusImpact focus) {
+    try {
+        if (tradeScreen()) {
+            observedAt = nowMs();
+            log(viewBudget, 400, "view-button id={} state={} focus={} {}", id, int(state), int(focus), modifiers());
+        }
+    } catch (...) {}
+    origin(id, state, focus);
+}
+LL_TYPE_INSTANCE_HOOK(RepeatComponentButton, ll::memory::HookPriority::Normal, InputComponent,
+    &InputComponent::handleButtonEvent, ::ButtonHandleResult, ::VisualTree& tree, ::UIAnimationController& animation,
+    ::ScreenInputContext& context, uint id, ::ButtonState state, ::glm::vec2 const& pointer, ::InputMode mode,
+    bool tts) {
+    bool row = false;
+    try {
+        row = tradeScreen() && rowComponent(*this);
+        if (row) {
+            observedAt = nowMs();
+            std::string mappings;
+            for (auto const& mapping : mButtonMappings.get()) mappings += " [" + mappingText(mapping) + "]";
+            std::lock_guard lock{seenMutex};
+            if (seen.size() < 200 && seen.insert("map" + mappings).second)
+                log(componentBudget, 400, "row-mappings{}", mappings);
+        }
+    } catch (...) {}
+    auto result = origin(tree, animation, context, id, state, pointer, mode, tts);
+    try {
+        if (row) log(componentBudget, 400, "row-button id={} state={} mode={} at={:.0f},{:.0f} result={} {}", id,
+            int(state), int(mode), pointer.x, pointer.y, int(result), modifiers());
+    } catch (...) {}
+    return result;
+}
+LL_TYPE_INSTANCE_HOOK(RepeatPressedMapping, ll::memory::HookPriority::Normal, InputComponent,
+    &InputComponent::_shouldHandlePressedMapping, bool, ::ScreenButtonMapping const& mapping, uint id,
+    ::ButtonState state, ::glm::vec2 const& pointer, ::InputMode mode) {
+    auto result = origin(mapping, id, state, pointer, mode);
+    try {
+        if ((mapping.toButtonId == tradeRow || mapping.toButtonId == selectRow) && tradeScreen())
+            log(componentBudget, 400, "row-pressed-check id={} mapping=[{}] state={} result={} {}", id,
+                mappingText(mapping), int(state), result, modifiers());
+    } catch (...) {}
+    return result;
+}
+struct Hook { int (*install)(bool); bool (*remove)(bool); bool installed = false; bool optional = false; };
 Hook hooks[] = {
     {RepeatOffer::hook, RepeatOffer::unhook}, {RepeatButton::hook, RepeatButton::unhook},
     {RepeatSlotPressed::hook, RepeatSlotPressed::unhook}, {RepeatTick::hook, RepeatTick::unhook},
     {RepeatLeave::hook, RepeatLeave::unhook}, {RepeatRequestBatch::hook, RepeatRequestBatch::unhook},
     {RepeatResponse::hook, RepeatResponse::unhook}, {RepeatInventorySlot::hook, RepeatInventorySlot::unhook},
-    {RepeatInventoryContent::hook, RepeatInventoryContent::unhook}
+    {RepeatInventoryContent::hook, RepeatInventoryContent::unhook},
+    {RepeatNotify::hook, RepeatNotify::unhook}, {RepeatActorEvent::hook, RepeatActorEvent::unhook},
+    {RepeatAutoPlace::hook, RepeatAutoPlace::unhook},
+    {RepeatViewButton::hook, RepeatViewButton::unhook}, {RepeatComponentButton::hook, RepeatComponentButton::unhook},
+    {RepeatPressedMapping::hook, RepeatPressedMapping::unhook, false, true}
 };
 ll::event::ListenerPtr mouseListener, keyListener;
 }
 void start() {
     try {
         for (auto& hook : hooks) if (!hook.installed) {
-            if (hook.install(true) != 0) throw std::runtime_error("Could not install repeat trade diagnostics");
-            hook.installed = true;
+            if (hook.install(true) == 0) hook.installed = true;
+            else if (hook.optional) Runtime::instance().self().getLogger().warn("L-166 optional trade diagnostic hook unavailable");
+            else throw std::runtime_error("Could not install repeat trade diagnostics");
         }
         auto& bus = ll::event::EventBus::getInstance();
         if (!mouseListener) mouseListener = bus.emplaceListener<ll::event::input::MouseInputEvent>([](auto& event) {
             if (recent() && event.actionButtonId() != MouseAction::ActionMove
                 && event.actionButtonId() != MouseAction::ActionMoveRelative)
-                log(inputBudget, 150, "mouse button={} data={} cancelled={}",
-                    event.actionButtonId(), event.buttonData(), event.isCancelled());
+                log(inputBudget, 150, "mouse button={} data={} cancelled={} {}",
+                    int(event.actionButtonId()), int(event.buttonData()), event.isCancelled(), modifiers());
         });
         if (!keyListener) keyListener = bus.emplaceListener<ll::event::input::KeyInputEvent>([](auto& event) {
             if (recent() && (event.keyCode() == 0x10 || event.keyCode() == 0x11 || event.keyCode() == 0x1B
@@ -264,7 +402,7 @@ void start() {
                 log(inputBudget, 150, "key code={} down={} cancelled={}", event.keyCode(), event.isDown(), event.isCancelled());
         });
         if (!mouseListener || !keyListener) throw std::runtime_error("Could not subscribe repeat trade diagnostics");
-        Runtime::instance().self().getLogger().warn("L-166 read-only repeat trade diagnostics enabled; no automatic trades");
+        Runtime::instance().self().getLogger().warn("L-166 read-only trade diagnostics enabled");
     } catch (...) { stop(); throw; }
 }
 void stop() {

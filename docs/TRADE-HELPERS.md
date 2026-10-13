@@ -1,14 +1,17 @@
 # Villager trade helpers
 
 Current work: [BACKLOG L-166](BACKLOG.md#l-166-villager-trade-helpers).
-Runtime coverage stays in VALIDATION.md; no L-166 game result yet.
+Runtime coverage stays in VALIDATION.md. Repeated trading has a local runtime
+pass; BDS, interrupted runs, full inventory and two-input offers are being
+checked before completion.
 
 ## Contract
 
-The maintainer chose the repeated-trade part on 2026-10-13, through its
-first required runtime check. Right-clicking an unlocked trade row should
-trade it repeatedly, default on. Left click and Shift retain vanilla
-behavior. Favourites and remaining-use presentation are still undecided.
+The maintainer chose the repeated-trade part on 2026-10-13, then authorized
+Computer Use for runtime checks and completing it. Shift + right-clicking an
+unlocked trade row should trade it repeatedly, default on. Left click, plain
+right click and Shift retain vanilla behavior. Favourites and remaining-use
+presentation are still undecided.
 
 Use the game's own trade requests. Start another round only after the
 request succeeds and authoritative inventory and offer state confirm it.
@@ -16,6 +19,33 @@ Stop on sold-out offers, missing inputs, insufficient output space, a
 rejected/untracked/timed-out request, screen close, focus loss, world or
 dimension change, or disabling the feature. Never drop output to continue.
 No game pointers are retained across frames or used from window input events.
+
+## Implementation
+
+`RepeatTradeState.h` owns the pure request phases and exact cost/output/use
+checks. The native job holds entity, dimension, recipe, row and generation
+IDs plus owned counts/layout values. Each UI tick reacquires the active
+controller, actor offers and the 36 inventory slots plus both inputs.
+
+The verified vanilla row operations are single entries in
+`mButtonInteractedEventCallbackMap`: selection/refill and one automatic
+trade. Their IDs and model layout are protected by the game-version gate;
+missing or ambiguous handlers preserve vanilla input. Preparation waits for
+all owned placement responses (or a genuinely unchanged no-op), then each
+trade waits for its own request IDs and exact resulting counts. Client offer
+uses are predicted before submission; a successful native trade response
+confirms that round, and a uses mismatch stops. Never advance on counts or
+predicted uses while a response is pending. The existing tracker supplies a
+five-second timeout and never owns packet creation or retries.
+
+The next request group starts on a later tick. Physical key/mouse presses,
+wheel input, focus loss and settings changes invalidate the generation;
+screen leave, world exit and offer refresh release observation ownership.
+Dimension/entity/recipe changes stop when reacquired. Output capacity is
+checked after native refill; one refill may free a consumed ingredient slot,
+but no trade is sent if output still cannot fit. Disabled or unsupported
+paths leave ordinary trading intact. Settings include an unbound toggle key
+and English, Japanese and Simplified Chinese labels.
 
 ## Current research (2026-10-13)
 
@@ -46,8 +76,107 @@ Before implementing automatic requests, determine in game:
 4. Output routing (inventory or cursor), full-inventory refusal and two-input
    trades, including an enchanted book. These decide the safe request path.
 
-## First runtime checkpoint
+### First observed path (2026-10-13, local, Computer Use)
 
+On `a1773c6` with `repeat_trade_trace`, the weapon smith's coal offer starts
+at uses 3/16 and coal price 15. The ordinary Trade button sends CraftRecipe
+(type 12, one craft) and puts its emerald in the inventory, acknowledged by
+ItemStackResponse. Right click on its row already trades once through
+CraftRecipeAuto (type 13, one craft); left click refills the ingredients
+without another emerald. The row bag contains `#collections` with
+`trade_tiers` and `trades`, and `#enabled`. The right-click down event is
+ID 4096534505, source 710676172; its up event has no request. These IDs are
+an observation to resolve against vanilla's names, not a portable API.
+
+Three manual trades produced emerald counts 3 -> 4 -> 5 -> 6. Their request
+IDs -7, -9 and -17 received success responses. No updated UpdateTradePacket
+was received for those trades. `mVisualOffer` remains unset (show=false,
+recipe=0), so it cannot supply the real current offer here. A follow-up
+trace reads the trader's client offer list and observes `notifyTrade` and
+ActorEventPacket, to distinguish prediction from a server notification.
+No automatic-trade behavior, full-inventory test or server result yet.
+
+### Auto-place spike result (2026-10-13, local, maintainer)
+
+Resolved by runtime observation; the hypothesis is confirmed but limited.
+Shift-clicking a trade row sends nothing. Shift-clicking the result slot
+calls `_handleAutoPlace(2147483647, trade2_result_item, 0)` once, and one
+request batch with CraftRecipe crafts=4 succeeds with matching client and
+server `notifyTrade` (uses 5 -> 9). The 4 crafts equal the 64 coal in the
+ingredient slot at price 15; inventory holdings are not restocked in this
+path. So single-request multi-craft is real but slot-limited: it cannot
+replace the refill loop for trading up to holdings. Possible future use is
+bigger per-round steps (refill, then one multi-craft) instead of one craft
+per round; unverified, not adopted. Full-inventory refusal on this path is
+still unchecked.
+
+## Trigger (resolved 2026-10-13)
+
+Shift + right click is not consumed by the game: it arrives as its own
+global button (1485818800, plain right click is 710676172) and reaches each
+trade row's `InputComponent`, whose mappings simply do not list it.
+`RepeatTradeRow` hooks `InputComponent::handleButtonEvent` and, only on a
+component that maps 710676172 to the trade-row event, passes the press on
+as 710676172. Rows queue their screen event, so a handled remapped press
+marks only the next row press (250 ms); an unmodified row press clears it.
+That press starts a run, or is swallowed when no run can start (vanilla
+does nothing there). Other controls, such as inventory slots, keep vanilla
+Shift + right click. Key auto-repeat of the held Shift is not new input and
+does not cancel a run. Verified locally (VALIDATION-LOG).
+
+The notes below are the handoff that led here.
+
+### What the current build does
+
+- `src/features/inventory/RepeatTrades.cpp` (+ pure `RepeatTradeState.h`,
+  `tests/RepeatTradeTests.cpp`): on its trigger it swallows the row
+  right-click down event and returns Refresh, then each UI tick re-invokes
+  vanilla's own row handlers (`2196830738` select/refill, `4096534505`
+  single auto-trade) from `mButtonInteractedEventCallbackMap`. Lamium never
+  builds trade transactions. Every round waits for owned `ItemStackResponse`
+  success plus exact inventory delta plus predicted uses+1; any mismatch,
+  timeout (5 s), sold-out, missing inputs, no output room (one refill
+  allowed), screen leave, focus loss, world/dimension/entity/recipe change,
+  `UpdateTradePacket`, physical input, settings-off, or unverified game
+  stops the run. Trace build `606FA98F` deployed to the `1.26.51.01 LIP`
+  instance.
+- Verified locally: one trigger runs coal 9 -> 16/16 and axes 16 -> 1
+  emerald with 5 outputs; locked rows and input-less rows send nothing;
+  cursor stays empty. (The Shift trigger did not work then; see above.)
+
+### Verified vanilla behavior (1.26.51.01, local)
+
+- Row right-click: one `CraftRecipeAuto` (type 13), crafts=1, acknowledged.
+  Row left-click: refill only. Trade button: one `CraftRecipe` (type 12).
+- `notifyTrade` fires client-side before the request (prediction) and
+  server-side after (authoritative); both observed with matching counts.
+  No `UpdateTradePacket` follows ordinary trades. `mVisualOffer` stays
+  unset (show=false), unusable as evidence.
+- Result-slot Shift+click: `_handleAutoPlace(2147483647,
+  trade2_result_item, 0)` then one batch, `CraftRecipe` crafts=N (N=4 seen:
+  64 coal at price 15 -> 4 emeralds, 4 coal left). Slot-limited; inventory
+  is NOT restocked (maintainer-held bulk coal untouched).
+- Every modified click on a trade ROW never reaches
+  `ScreenController::$handleEvent` (later explained: no row mapping, above): 5 right-click samples with Shift held
+  (mouse downs logged, zero button events), Shift+left, and Ctrl+right
+  (mouse logged, zero button events). Unmodified row clicks and result-slot
+  Shift+click DO arrive (buttons `4096534505`, `2033374506`). Shift+Trade
+  button arrival is untested; redo needs unconditional mouse-click logging
+  (current trace gates mouse logs on a 10 s activity window).
+  Log: `<instance>/mods/Lamium/logs/lamium.log` on `1.26.51.01 LIP`.
+
+### Constraints for any proposal
+
+- One round at a time through vanilla's own handlers; no self-built
+  `ItemStackRequest` payloads (BACKLOG L-166). Post-hoc verification from
+  authoritative state (response + inventory + uses); fail open to vanilla.
+- `versionSensitiveAllowed("Repeated trades (trade row handlers)")` at every
+  invocation; a new hook/API gets a `GAME-UPDATES.md` entry.
+- No game pointers across frames or from input events; cancel on physical
+  input; default-on setting with EN/JA/ZH help text (`Translations*.h`,
+  order-sensitive); `SettingsStoreTests`/`TranslationsTest` must pass.
+
+## First runtime checkpoint
 Build with `xmake f --repeat_trade_trace=y -y`, then `xmake build Lamium`.
 This is an independent, read-only trace; leave the old `trade_trace` off.
 It never sends requests, modifies button behavior or automates trades.

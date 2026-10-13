@@ -12,6 +12,107 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-166 Shift + right-click row trigger (2026-10-13, local)
+
+By the maintainer on Minecraft 1.26.51.01 (LeviLauncher instance
+`1.26.51.01`), existing local test world. Uncommitted L-166 work on
+`a1773c6`, `--repeat_trade_trace=y`; source and deployed DLL hashes matched.
+- Diagnostic build `b1eef22ade01181a3e30b0436536f34e066c12537c99a35e6fa8e83142c397d6`:
+  Shift + right click reaches `ScreenView::handleButtonEvent` as global
+  button 1485818800 (plain right click: 710676172) and reaches the trade
+  rows' `InputComponent`s. Their mappings are 3024615655->2196830738
+  (pressed), 710676172->4096534505 (pressed) and 3745745897->2196830738
+  (focused); nothing maps 1485818800, so no screen event follows.
+- Row remap build `af7be411ff29211ffa4994327d219f9cdad85f6cda63dcb50c2725dab83289b5`:
+  Shift + right click started a run and sent the refill, then stopped
+  ("context changed"): Shift's key auto-repeat counted as new input. Seen in
+  game as selection only. Locked row: nothing. Plain right click: one vanilla
+  trade. Inventory Shift + right click: vanilla stack move.
+- Build `5196a9fa90a7e9d729a1663e08c9044feac24a5ef501d77108d0c39969f2485c`
+  (key auto-repeat no longer cancels): Shift + right click on a usable row
+  trades until sold out or inputs run out; a row without inputs trades
+  nothing; a key or click during a run stops it.
+- Not checked: BDS, full inventory, two-input/book offers, settings-off,
+  screen close/focus loss/dimension change mid-run, the normal build.
+
+## L-166 auto-place spike result (2026-10-13, local)
+
+By the maintainer on `1.26.51.01 LIP`, existing local test world. Trace build
+with the `RepeatAutoPlace` diagnostic; source and deployed DLL SHA-256
+`28893a80cedf6e86db6b3a0f11b84f811380244cf50fcb921a1146e3b5156f7a`.
+- Shift-clicking a trade row does nothing: no request batch follows.
+- Shift-clicking the result slot calls
+  `_handleAutoPlace(2147483647, trade2_result_item, 0)` once. Client-side
+  `notifyTrade` predicts uses 5 -> 9, then one request batch with
+  CraftRecipe crafts=4 succeeds and server-side `notifyTrade` confirms
+  uses 5 -> 9 with 4 emeralds out.
+- The 4 crafts match the 64 coal in the ingredient slot at price 15
+  (64 -> 4 left). The maintainer held much more coal in inventory and only
+  the slot contents were traded: no restock from inventory in this path.
+- Memo verdict: single-request multi-craft is real, but slot-limited. It
+  cannot replace the refill loop for trading up to holdings; it could only
+  serve as bigger per-round steps after a refill.
+- Not checked: full-inventory refusal on this path.
+
+## L-166 first repeated-trade runtime pass (2026-10-13, local)
+
+Agent Computer Use, Minecraft 1.26.51.01, LeviLamina Client 26.51.7,
+existing local test world. Implementation based on `a1773c6` with uncommitted
+L-166 changes, only `repeat_trade_trace` on. Source and deployed DLL SHA-256:
+`5127f9181731ad7c4038ddd873b060b0125b0423a1f9c886c13be46343c9dd5b`.
+- One right-click on coal runs seven separate vanilla automatic-recipe
+  requests, uses 9 -> 16/16, emeralds 9 -> 16, total coal 514 -> 409.
+  Every next request follows the previous owned success response and exact
+  inventory delta; the run stops at the offer limit. Cursor stays empty.
+- Left-clicking the axe row refills/selects its emeralds without buying.
+  Right click buys five unstackable axes, emeralds 16 -> 1, uses 0 -> 5/12,
+  then stops for insufficient inputs. Each output occupies an inventory slot.
+- Right click on the visible locked level-3 row does nothing. Right click
+  on an unlocked iron row without iron stops before any trade request.
+- Earlier candidates preserved vanilla one-trade behavior because they
+  looked only in the pressed callback map. The verified row handlers are
+  single callbacks in the interacted map (IDs 2196830738 and 4096534505).
+- This pass does not establish BDS, full-inventory refusal, two-input/book,
+  settings-off, interrupted-run or trace-disabled behavior. Later source
+  adds explicit cancellation on physical key/mouse input and dimension ID.
+
+## L-166 client offer prediction research (2026-10-13)
+
+Agent Computer Use in the same local test world, Minecraft 1.26.51.01,
+LeviLamina Client 26.51.7. Read-only trace based on `a1773c6` with additional
+offer/notify diagnostics; source and deployed DLL SHA-256
+`8081f24def058d4f22ad20a12cbd89529d836fa929e0c82837a80f4911b4e033`.
+- The client actor's offer list begins at 6/16 for the coal recipe. A manual
+  right-click calls client-side `notifyTrade(0,1)` before sending the request,
+  changing uses to 7/16. The local server independently changes 6 -> 7.
+- Request -7 succeeds with coal 49 in the ingredient slot and emeralds 7.
+  No trade-notification ActorEvent or UpdateTradePacket was observed for it.
+- Client uses alone are prediction. An automatic round must wait for its
+  request IDs and exact ingredient/output deltas; reopening on BDS still
+  needs to verify the offer counter agrees with the server. No automatic
+  behavior or BDS/full-inventory result is established by this trace.
+
+## L-166 vanilla trade request research (2026-10-13)
+
+Observed by the agent through Computer Use, authorized by the maintainer,
+in the existing local test world on Minecraft 1.26.51.01, LeviLamina Client
+26.51.7, Windows x64. Read-only trace from `a1773c6`, only
+`--repeat_trade_trace=y`; source and deployed DLL SHA-256 both
+`f07983c72b979e5abe09d2d3377df16f76259154c496a38ddbd69f2bde6fc876`.
+- The weapon smith's coal offer costs 15, with uses 3/16 on opening.
+  Trade button: one CraftRecipe (type 12); right-click row: one
+  CraftRecipeAuto (type 13). Left-click row refills ingredients without
+  executing another trade. Each ordinary request remains vanilla-owned.
+- Three manual trades: emeralds 3 -> 4 -> 5 -> 6, requests -7/-9/-17
+  accepted with inventory slot amounts after vanilla applied the response.
+- No UpdateTradePacket was received after those trades. The screen's
+  mVisualOffer stays unset (show=false, recipe=0), so it is not usable as
+  current-offer evidence. Follow-up diagnostics inspect client actor offers,
+  notifyTrade and ActorEventPacket for the authoritative-use update.
+- Not checked: automatic repeated trading (not implemented), Shift trading,
+  full inventory, sold-out/locked cases, two-input books, BDS or latency.
+  The world was saved and the client closed normally after this round.
+
 ## L-162 normal-build BDS smoke and margin 0.02 sneak release (2026-10-13)
 
 By the maintainer on test BDS 1.26.51.1, Minecraft 1.26.51.01,

@@ -33,6 +33,8 @@ int main() try {
     debugLinesTests();
     extern void lockedTradesTests();
     lockedTradesTests();
+    extern void repeatTradeTests();
+    repeatTradeTests();
     extern void englishSearchTests();
     englishSearchTests();
     extern void playerListTests();
