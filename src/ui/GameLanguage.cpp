@@ -6,7 +6,7 @@
 #include "features/schematic/GhostRenderer.h"
 #include "features/schematic/SchematicItems.h"
 #include "ll/api/service/TargetedBedrock.h"
-#include "ll/api/thread/ClientThreadExecutor.h"
+#include "app/ClientTasks.h"
 #include "mc/client/game/ClientInstance.h"
 #include "mc/client/options/IOptionRegistry.h"
 #include "mc/client/player/LocalPlayer.h"
@@ -89,7 +89,7 @@ std::shared_ptr<Request> apply(std::string code) {
     auto request = std::make_shared<Request>();
     request->code = std::move(code);
     request->expected = context();
-    ll::thread::ClientThreadExecutor::getDefault().execute([request] { run(*request); });
+    clientTasks::post([request] { run(*request); });
     return request;
 }
 }

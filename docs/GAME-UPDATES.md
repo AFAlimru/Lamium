@@ -90,6 +90,12 @@ on that a rebuild cannot catch (**Meaning**), or **Rebuild** when the SDK
 signatures are all it relies on. *Trace* files compile only with a trace
 or probe build option (`xmake.lua`) and never ship in a release.
 
+### `src/app/ClientTasks.cpp`
+Hooks: `ClientTasksMenuUpdate`
+Meaning: `MinecraftGame::update` runs on the client thread every frame, also
+before a world is joined, where LeviLamina's client thread executor does not
+run (L-175, 2026-10-14).
+
 ### `src/features/camera/CameraInteraction.cpp`
 Hooks: `LookStartBreak`, `LookContinueBreak`, `LookFinishBreak`, `LookStartBuild`, `LookContinueBuild`, `LookBuild`, `LookUse`, `LookUseAttack`, `LookUseOn`, `LookInteract`, `LookAttack`, `SurvivalStartBreak`, `SurvivalFinishBreak`, `SurvivalStartBuild`, `SurvivalBuild`, `SurvivalUse`, `SurvivalUseAttack`, `SurvivalUseOn`, `SurvivalInteract`, `SurvivalAttack`, `BodyHit`
 Meaning: Freelook and FreeCamera redirect interactions to the body's view;
@@ -403,9 +409,8 @@ client applies (emptying it leaves vanilla textures, checked on BDS
 2026-10-14). Gated: the packet change.
 
 ### `src/input/CustomInput.cpp`
-Hooks: `CustomInputFocusLost`, `CustomInputMenuFlush`
-Rebuild. `MinecraftGame::update` also runs before a world is joined, where
-LeviLamina's client thread executor does not (L-175).
+Hooks: `CustomInputFocusLost`
+Rebuild.
 
 ### `src/overlay/WorldOverlay.cpp`
 Hooks: `WorldLines`

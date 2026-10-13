@@ -971,7 +971,7 @@ void render(ll::event::UIRenderEvent& event) {
             fill(context, titleEntry.x, titleEntry.y, w, h, Rgb{0, 0, 0}, over ? .7f : .53f);
             // Plain white without Lamium's shadow, as LeviLamina's line.
             labelScaled(context, titleEntry.x + 1.75f, titleEntry.y + 2.5f, w, text, 1.f, palette::white, Align::Left, false);
-            if (over) fill(context, titleEntry.x + 1.75f, titleEntry.y + 10.5f, w - 3.5f, .5f, palette::white);
+            if (over) fill(context, titleEntry.x + 1.75f, titleEntry.y + 10.5f, w - 3.5f, textStroke(), palette::white);
             context.flushText(0, std::nullopt);
         } else titleEntry.shown = false;
         return;

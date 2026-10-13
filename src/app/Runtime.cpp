@@ -1,4 +1,5 @@
 #include "app/Runtime.h"
+#include "app/ClientTasks.h"
 #ifdef LAMIUM_FEATURE_SKIP
 #include <filesystem>
 #include <fstream>
@@ -116,6 +117,8 @@ struct Feature {
 template <auto Start>
 bool started() { Start(); return true; }
 Feature const features[] = {
+    // Lamium's queue to the client thread; the features below post to it.
+    {"Client tasks", clientTasks::start, clientTasks::stop},
     // Installed before Camera, in the order the shared hook list used.
     {"Camera diagnostics", started<camera::trace::start>, camera::trace::stop},
     {"Camera", [] { return CameraSessions::instance().start(); }, [] { CameraSessions::instance().stop(); }},

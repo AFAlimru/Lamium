@@ -73,6 +73,11 @@ void drawRun(MinecraftUIRenderContext& context, Font& font, float x, float y, fl
 }
 }
 float boxTextInset() { return japaneseLocale() ? 0.f : 1.f; }
+float textStroke() {
+    auto const& code = *getI18n().getCurrentLanguage()->mCode;
+    bool smooth = code.starts_with("ja") || code.starts_with("zh") || code.starts_with("ko");
+    return smooth ? .5f : 1.f;
+}
 float shapeTextDrop() { return japaneseLocale() ? 1.f : 0.f; }
 float labelWidth(MinecraftUIRenderContext& context, std::string_view text, float size) {
     if (!(size > 0) || !std::isfinite(size)) size = 1;
