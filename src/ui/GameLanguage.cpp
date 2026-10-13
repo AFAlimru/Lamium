@@ -56,11 +56,10 @@ void run(Request& request) noexcept {
             inspection::englishSearch::forget();
             schematic::items::forget();
             schematic::ghosts::invalidateResources();
-            // OreUI's observed order: I18n notifies game/font observers first;
-            // the pack-language callback and the saved preference follow.
+            // Choosing notifies game, font and pack observers itself (traced
+            // in-world); the saved preference follows, as in OreUI.
             getI18n().chooseLanguage(request.code);
             if (currentCode() != request.code) { request.result.store(Result::Failed); return; }
-            client->getResourcePackManager().onLanguageChanged();
         }
         options.setLanguage(request.code);
         options.saveIfNeeded();

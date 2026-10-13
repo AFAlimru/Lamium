@@ -590,8 +590,16 @@ option, I18n, game/font/pack observers and pack stack changes without changing
 any return value or argument. The title-screen baseline is recorded.
 Language part done 2026-10-13 (`9651b4e`, seen in a local world, kept
 after restart): General settings > Game language. Not separately seen:
-English Search after a change, schematic ghosts, BDS. Next: the resource
-pack part, once the maintainer picks it up.
+English Search after a change, schematic ghosts, BDS. All 29 game
+languages listed since `cedccf6` (seen).
+Resource packs, vanilla baseline (2026-10-13, VALIDATION-LOG): in-world
+Settings > Global Resources lists the active packs but offers no control to
+change them, and no stack change happens in the world. Vanilla's in-world
+JSON settings also drops the Language tab with a static
+`not $is_pregame` condition; the controller still holds the language list.
+Open (maintainer): where the language entry should live (Lamium settings
+as now, a vanilla in-world settings tab, or the pause menu) and the resource
+pack scope (read-only list first, or queue-exit-apply-rejoin).
 Contract, findings and next checks: [LANGUAGE.md](LANGUAGE.md).
 Added research request (maintainer 2026-10-13): whether a server-required
 resource pack can be disabled locally without general pack-stack editing.

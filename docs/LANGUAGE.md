@@ -24,9 +24,11 @@ again there: same language as when asked, same dimension, the settings
 screen still open, the gate `Game language (native apply)` allowed, the
 code supported, and no schematic save running (resource changes invalidate its
 live readers). It then follows the order vanilla OreUI was seen to use:
-`I18n::chooseLanguage`, confirm the current language changed, then
-`ResourcePackManager::onLanguageChanged`, then `IOptionRegistry::setLanguage`
-and `saveIfNeeded`. Success is read back from I18n and the option, not from
+`I18n::chooseLanguage` (it runs the game, font and pack-language observers
+itself), confirm the current language changed, then
+`IOptionRegistry::setLanguage` and `saveIfNeeded`. `cedccf6` and earlier
+also called `ResourcePackManager::onLanguageChanged`, which the in-world
+trace showed running twice; `chooseLanguage` already calls it. Success is read back from I18n and the option, not from
 a return value. Before applying, English Search's names, schematic item
 names and schematic ghost resources are dropped so they are rebuilt in the
 new language.

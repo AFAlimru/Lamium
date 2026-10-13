@@ -12,6 +12,24 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-167 all game languages and in-world Global Resources (2026-10-13)
+
+Maintainer check on `6d536e4` with `language_trace=y`. Source/deployed DLL
+SHA-256 `7d9f888a25de561bb7cf4a51502c20125caae2bf2461a5e7efc45db37ce0f84a`.
+Minecraft 1.26.51.01, LeviLamina Client 26.51.7, Windows x64, local world.
+- Game language lists 29 languages; switching to languages other than
+  Japanese/English works without freezing. Log: en_US, ja_JP, fi_FI, nb_NO,
+  el_GR, tr_TR and back, each `applied=true`.
+- Each in-world apply logged the pack-language callback twice: once from
+  `I18n::chooseLanguage`, once from Lamium's explicit call (removed after
+  this check).
+- Pause > Settings is the JSON screen
+  `screen_world_controls_and_settings_fullscreen - global_texture_pack_tab`
+  (global=false, resourceTab=true; the controller also holds all 29
+  languages). The maintainer sees Global Resources listing active packs but
+  no control to activate, deactivate or reorder them. No pack stack change
+  is logged while in the world.
+
 ## L-167 in-world Game language list (2026-10-13)
 
 Maintainer check on `9651b4e`, all trace options off. Source/deployed DLL
