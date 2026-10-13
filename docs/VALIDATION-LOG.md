@@ -12,6 +12,26 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-162 history-capture fix, solo smoke checks (2026-10-13)
+
+By the maintainer in solo play, Minecraft 1.26.51.01, LeviLamina Client
+26.51.7, Windows x64. Same diagnostic build `d59f16b`, `--edge_trace=y`,
+DLL SHA-256 `476dc27c76b6943d19fac13f13df06da4e0dcefe77cf8f5314f6f30acc780077`
+(deployed copy still matches the tested build).
+- Maintainer confirmed all four checks again in solo play: ordinary edges
+  stop, slab bridging has no pullback or fall, jumping leaves, sneak release
+  does not fall, disabling restores ordinary movement, and enabling then
+  rejoining restores the stop.
+- The new session log identifies a local world and reports both the local
+  server-copy guard and the raw history-capture guard running. The first
+  guarded approach records raw history input without horizontal direction
+  flags and guarded analog values (for example (0.098,-0.086)).
+- No correction window or fall dump was recorded in this solo session.
+  This expands local-world smoke coverage; server correction replay and
+  the original rare fall remain unverified in the fix build.
+The solo log is saved separately from the preceding BDS run. The authorized
+additional BDS run remains pending; solo play does not replace that check.
+
 ## L-162 history-capture fix, smoke checks and capture verified (2026-10-13)
 
 By the maintainer on the local test BDS 1.26.51.1, Minecraft 1.26.51.01,

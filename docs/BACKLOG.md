@@ -425,7 +425,11 @@ restores the stop. The trace verifies guarded raw input during capture and
 physical raw movement outside it. No correction window was recorded;
 replay and the original rare fall remain unverified. The maintainer agreed
 to a few more minutes of diagonal edge approaches and slab bridging with
-the same diagnostic build. Keep L-162 open until correction replay is checked.
+the same diagnostic build. A subsequent solo-play run passes all four
+checks too; its separate log verifies guarded raw history input and the
+local server-copy guard, with no correction window or fall dump. The
+additional BDS correction check remains pending. Keep L-162 open until
+correction replay is checked.
 
 ### L-123 FreeCamera stretches the worn elytra on the inventory player model
 Kind: Bug, low priority. Reported from use 2026-10-09 (maintainer's notes).
