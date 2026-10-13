@@ -343,8 +343,9 @@ was restored to `8b8823d`, with WASD, key-release and edge stopping confirmed.
 Read-only diagnostic build `a32e9bb` then passes those checks and several
 minutes of BDS bridging. Its actual capture/application hooks attach and
 connect two guarded captures to full direction-key replay in three correction
-windows. Next substitute an owned copy at actual input capture, without
-changing live physical input. The original rare fall is not reproduced;
+windows. The next candidate substitutes an owned copy at actual input
+capture, without changing live physical input; runtime validation is pending.
+The original rare fall is not reproduced;
 this item stays open.
 Seen once on the local test BDS (trace of `2dc7e45`, VALIDATION-LOG "L-161
 margin 0.1"): after a +0.047 block server correction, the client's next
@@ -520,10 +521,28 @@ boundary, pass an owned component copy whose horizontal raw fields agree
 with its guarded processed input. Preserve non-horizontal raw fields and
 the original live component, and retain all ownership/capability checks.
 This avoids both the ineffective earlier frame-snapshot substitution and
-the physical-input feedback that broke WASD. Not built or runtime-verified
-yet. Completion requires normal controls and evidence that correction replay
+the physical-input feedback that broke WASD. The candidate is now implemented
+in `EdgeGuardHistory.cpp` with an owned-copy helper. Pure and SDK-type tests
+verify independent stored input, preserved non-horizontal fields, later
+device refresh/key release, analog input and a modeled correction replay.
+Normal and diagnostic builds, LamiumTests, LamiumNativeTests and the hook
+inventory check pass; actual capture ownership and correction replay
+remain runtime-unverified. Completion requires normal controls and evidence that correction replay
 uses the guarded captured input, with remaining rare/large-correction and
 other-server coverage stated explicitly.
+The actual-capture copy diagnostic DLL is deployed for the next BDS check;
+source and deployed SHA-256:
+`2fd64e3bbbd9706a8ef4e5b5d66a5aadd275d6ace9950c9e1abfad66d4ec05ed`.
+Configuration is reset to `--edge_trace=n`. The normal candidate is saved
+locally (SHA-256
+`c811d03c3a48298c2485309f1c9fe444b8f566db349a22bc83c107dfbf6678cc`);
+it is not a runtime-verified recovery build. The previously tested read-only
+baseline remains saved separately.
+Next check: WASD and key-release stopping first; Edge Guard on, margin 0.10,
+diagonal edge approaches and slab bridging for several minutes, then jump,
+sneak release, disable and enable/rejoin. Inspect the one-time capture-copy
+message and actual replay raw/processed input in correction windows. A fall
+is not needed; no success or completed fix is claimed from the builds alone.
 
 ### L-123 FreeCamera stretches the worn elytra on the inventory player model
 Kind: Bug, low priority. Reported from use 2026-10-09 (maintainer's notes).

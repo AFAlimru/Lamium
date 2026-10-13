@@ -53,6 +53,8 @@ int main() try {
     edgeGuardTests();
     extern void edgeGuardTraceTests();
     edgeGuardTraceTests();
+    extern void edgeGuardReplayTests();
+    edgeGuardReplayTests();
     extern void restockPlanTests();
     restockPlanTests();
     extern void equipmentPlanTests();

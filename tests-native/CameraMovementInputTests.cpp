@@ -9,6 +9,8 @@ void check(bool value, char const* message) {
 int main() try {
     extern void nativeEdgeGuardTraceTests();
     nativeEdgeGuardTraceTests();
+    extern void nativeEdgeGuardReplayTests();
+    nativeEdgeGuardReplayTests();
     using Flag = MoveInputState::Flag;
     RawMoveInputComponent raw{};
     auto& flags = *raw.mRawInput->mFlagValues;

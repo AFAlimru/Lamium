@@ -1,5 +1,6 @@
 #include "features/interaction/EdgeGuard.h"
 #include "features/interaction/EdgeGuardPlan.h"
+#include "features/interaction/EdgeGuardHistory.h"
 #include "app/Runtime.h"
 #include "app/Versions.h"
 #include "ll/api/memory/Hook.h"
@@ -46,7 +47,6 @@
 #include <format>
 #include <string>
 #include <array>
-#include <Windows.h>
 #endif
 #include <atomic>
 #include <stdexcept>
@@ -201,61 +201,27 @@ LL_TYPE_INSTANCE_HOOK(EdgeTracePostApply, ll::memory::HookPriority::Normal, IRep
     origin(entity);
     try { if (traceActive()) traceEntity("postApply after", entity, this); } catch (...) {}
 }
-bool traceReadable(void const* address, size_t length, bool executable, bool game) {
-    MEMORY_BASIC_INFORMATION page{};
-    if (!VirtualQuery(address, &page, sizeof(page)) || page.State != MEM_COMMIT
-        || (page.Protect & (PAGE_GUARD | PAGE_NOACCESS))
-        || (game && page.AllocationBase != GetModuleHandleW(nullptr))) return false;
-    auto begin = reinterpret_cast<std::uintptr_t>(address), base = reinterpret_cast<std::uintptr_t>(page.BaseAddress);
-    if (begin < base || length > page.RegionSize || begin - base > page.RegionSize - length) return false;
-    auto protection = page.Protect & 0xff;
-    return !executable || protection == PAGE_EXECUTE || protection == PAGE_EXECUTE_READ
-        || protection == PAGE_EXECUTE_READWRITE || protection == PAGE_EXECUTE_WRITECOPY;
-}
-template <class Member>
-std::optional<size_t> traceInputSlot(Member member) {
-    if constexpr (sizeof(Member) != sizeof(void*)) return std::nullopt;
-    else {
-        auto* code = static_cast<uint8_t const*>(ll::memory::toFuncPtr(member));
-        if (!traceReadable(code, 16, true, false)) return std::nullopt;
-        return replayInputSlot(std::span{code, size_t{16}});
-    }
-}
 void bindInputTrace(IReplayableActorInput& input) {
     if (traceInputUnavailable) return;
     auto unavailable = [](char const* reason) {
         traceInputUnavailable = true;
         Runtime::instance().self().getLogger().warn("L-162 input diagnostics unavailable: {}", reason);
     };
-    auto capture = traceInputSlot(static_cast<void (IReplayableActorInput::*)(MoveInputComponent const&)>(&IReplayableActorInput::capture));
-    auto pre = traceInputSlot(&IReplayableActorInput::preApplyInput), post = traceInputSlot(&IReplayableActorInput::postApplyInput);
-    if (!capture || !pre || !post || capture == pre || capture == post || pre == post) {
-        unavailable("unsupported compiler virtual-call thunk"); return;
-    }
-    auto** table = *reinterpret_cast<void***>(&input);
-    size_t last = std::max({*capture, *pre, *post});
-    if (!traceReadable(table, (last + 1) * sizeof(void*), false, true)) {
-        unavailable("input table is outside readable game data"); return;
-    }
-    std::array<size_t, 3> slots{*capture, *pre, *post};
-    std::array<std::uintptr_t, 3> targets{};
-    for (size_t i = 0; i < slots.size(); ++i) {
-        auto* target = table[slots[i]];
-        if (!traceReadable(target, 1, true, true)) { unavailable("input target is outside executable game code"); return; }
-        targets[i] = reinterpret_cast<std::uintptr_t>(target);
-    }
+    auto slots = history::inputSlots();
+    auto targets = history::inputTargets(input);
+    if (!slots || !targets) { unavailable("unverified compiler slots or game input targets"); return; }
     if (traceInputInstalled) {
-        if (targets != std::array{traceCaptureTarget, tracePreTarget, tracePostTarget})
+        if (*targets != std::array{traceCaptureTarget, tracePreTarget, tracePostTarget})
             unavailable("selected input implementation changed");
         return;
     }
-    traceCaptureTarget = targets[0]; tracePreTarget = targets[1]; tracePostTarget = targets[2];
+    traceCaptureTarget = (*targets)[0]; tracePreTarget = (*targets)[1]; tracePostTarget = (*targets)[2];
     if (EdgeTraceCapture::hook(true) != 0 || EdgeTracePreApply::hook(true) != 0 || EdgeTracePostApply::hook(true) != 0) {
         EdgeTraceCapture::unhook(true); EdgeTracePreApply::unhook(true); EdgeTracePostApply::unhook(true);
         unavailable("could not attach input diagnostics"); return;
     }
     traceInputInstalled = true;
-    Runtime::instance().self().getLogger().info("L-162 input diagnostics attached (compiler slots {},{},{}); read only", *capture, *pre, *post);
+    Runtime::instance().self().getLogger().info("L-162 input diagnostics attached (compiler slots {},{},{}); read only", (*slots)[0], (*slots)[1], (*slots)[2]);
 }
 LL_TYPE_INSTANCE_HOOK(EdgeTraceSelectedInput, ll::memory::HookPriority::Normal, ReplayStateComponent,
     &ReplayStateComponent::getCurrentCapturedInput, IReplayableActorInput*) {
@@ -436,7 +402,9 @@ void guardMoveVector(MoveInputState const& state, Vec2& move) {
         || (input && (&state == &*input->mInputState || &state == &*input->mRawInputState));
     // Sneaking too: the guard then keeps the margin, so letting go of sneak
     // at an edge does not leave the player only touching it.
-    if (!own || !walking(*player, true)) return;
+    if (!own) return;
+    history::observe();
+    if (!walking(*player, true)) return;
     if (state.mFlagValues->test(static_cast<size_t>(MoveInputState::Flag::JumpDown))) return; // May leave on purpose.
     auto const& box = player->getAABB();
     auto const& region = player->getDimensionBlockSourceConst();
@@ -685,6 +653,10 @@ LL_TYPE_INSTANCE_HOOK(EdgeTraceCorrection, ll::memory::HookPriority::Normal, Cli
     origin(source, packet);
 }
 #endif
+namespace history {
+bool onClientThread() noexcept { return std::this_thread::get_id() == clientThread.load(); }
+bool walking(LocalPlayer& player) { return edgeGuard::walking(player, true); }
+}
 void start() {
     if (installed) return;
 #ifdef LAMIUM_EDGE_TRACE
@@ -736,6 +708,7 @@ void stop() {
     bool survival = EdgeGuardBuildHook::unhook(true) & EdgeGuardSurvivalBuildHook::unhook(true)
         & EdgeGuardStartBuildHook::unhook(true) & EdgeGuardSurvivalStartBuildHook::unhook(true);
     bool input = EdgeGuardInputHook::unhook(true), movement = EdgeGuardHook::unhook(true);
-    if (place && survival && input && movement) installed = false;
+    bool capture = history::stop();
+    if (place && survival && input && movement && capture) installed = false;
 }
 }

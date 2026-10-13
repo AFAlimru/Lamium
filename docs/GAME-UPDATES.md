@@ -45,7 +45,7 @@ use. A new gate gets its feature there as well.
 | FreeCamera terrain (native culler request) | `FreeCameraCulling.cpp` | underground terrain hidden as vanilla culls it | FreeCamera itself |
 | Connected Textures (chunk mesh vertices) | `ConnectedTexturesHooks.cpp` | glass with borders | the setting (no effect) |
 | Night Vision (light texture data) | `NightVision.cpp` | vanilla light | the key and setting (no effect) |
-| Edge Guard (movement request) | `EdgeGuard.cpp` (movement request, move vector and history input) | vanilla movement and history capture | the setting (no effect) |
+| Edge Guard (movement request) | `EdgeGuard.cpp` (movement request and move vector), `EdgeGuardHistory.cpp` (replay input capture) | vanilla movement and history capture | the setting (no effect) |
 | Hide effects (fog and camera medium) | `HideEffects.cpp` `MediumFogVisibility` | water/lava/powder snow fog, distance fog | the other hide effects |
 | Hide effects (weather densities) | `HideEffects.cpp` `WeatherVisibility` | rain and snow drawn | the other hide effects |
 | Hide effects (portal screen) | `HideEffects.cpp` `PortalScreenVisibility` | the purple Nether portal screen | the other hide effects |
@@ -169,10 +169,9 @@ and face (the held item read from the building hand). Gated (Edge Guard).
 L-162 history mutations are removed: guarding only `ActorHistory::addFrame`
 did not prevent full physical keys reappearing during replay, and persisting
 processed horizontal input in `mRawInputState` broke normal WASD operation.
-The live input guard remains as before these experiments; no extra history
-input writes or capture hooks remain in normal builds. Actual replay input
-capture/application and its relation to the prepared snapshot still need
-to be established before another fix is connected.
+The live input guard remains as before these experiments. The actual capture
+copy candidate is isolated in `EdgeGuardHistory.cpp`; live physical input
+and the prepared entity snapshot are never substituted.
 Trace-only (L-162): `ActorHistory::addFrame`,
 `ActorHistory::prepareEntityForRewindFromCapture`,
 `ClientPlayerRewindSystem::applyHistoryChangesToLiveEntity` and
@@ -191,6 +190,22 @@ game code; unsupported forms, changed implementations or attachment failure
 are logged and left alone. Only function addresses persist, no input/entity
 pointers. Capture records local processed/raw inputs; application records
 the actual replay entity before and after vanilla applies stored input.
+
+### `src/features/interaction/EdgeGuardHistory.cpp`
+Hooks: `EdgeGuardCaptureHook`
+Meaning: the actual selected `IReplayableActorInput::capture` copies the
+local player's `MoveInputComponent` for later correction replay. Under the
+Edge Guard capability, exact local component, client-thread and walking
+checks, pass an owned component copy whose raw horizontal flags and analog
+vector agree with its already processed input. Jumping stays vanilla;
+non-horizontal flags, look and other component fields are preserved. Live
+input is never written. This avoids the rejected persistent-input feedback.
+Resolve the selected implementation through `getCurrentCapturedInput`,
+using the same bounded compiler-thunk decoder and readable/executable game
+page checks as the diagnostics. Unsupported or changed targets and hook
+failures leave capture vanilla. Only code addresses persist. The capture
+must own the supplied values rather than retain a component reference;
+runtime replay validation of this candidate is pending (L-162).
 
 ### `src/features/visuals/PortalTrace.cpp`
 Hooks: `PortalPackets`, `PortalInsideCheck`, `PortalScreenValid`, `PortalCraftingScreenValid`, `PortalModelValid`, `PortalCraftingValid`, `PortalSchedulePop`, `PortalInventoryKey`, `PortalOpenInventory`, `PortalCanOpen`, `PortalInside`, `PortalTick`
