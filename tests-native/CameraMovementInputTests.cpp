@@ -7,6 +7,8 @@ void check(bool value, char const* message) {
     if (!value) throw std::runtime_error(message);
 }
 int main() try {
+    extern void edgeGuardHistoryTests();
+    edgeGuardHistoryTests();
     using Flag = MoveInputState::Flag;
     RawMoveInputComponent raw{};
     auto& flags = *raw.mRawInput->mFlagValues;
@@ -61,7 +63,7 @@ int main() try {
     *pad.mRawMove = Vec2{.5f, -.25f};
     check(lamium::camera::freecameraInputAxes(pad) == lamium::DetachedCameraMotion::Vector{.5, 0, -.25},
           "analog vector is the fallback without flags");
-    std::cout << "Native camera movement extraction checks passed\n";
+    std::cout << "Native camera movement extraction and Edge Guard history checks passed\n";
     return 0;
 } catch (std::exception const& error) {
     std::cerr << error.what() << '\n';

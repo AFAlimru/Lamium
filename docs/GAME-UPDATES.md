@@ -45,7 +45,7 @@ use. A new gate gets its feature there as well.
 | FreeCamera terrain (native culler request) | `FreeCameraCulling.cpp` | underground terrain hidden as vanilla culls it | FreeCamera itself |
 | Connected Textures (chunk mesh vertices) | `ConnectedTexturesHooks.cpp` | glass with borders | the setting (no effect) |
 | Night Vision (light texture data) | `NightVision.cpp` | vanilla light | the key and setting (no effect) |
-| Edge Guard (movement request) | `EdgeGuard.cpp` (movement request and move vector) | vanilla movement | the setting (no effect) |
+| Edge Guard (movement request) | `EdgeGuard.cpp` (movement request, move vector and history input) | vanilla movement and history capture | the setting (no effect) |
 | Hide effects (fog and camera medium) | `HideEffects.cpp` `MediumFogVisibility` | water/lava/powder snow fog, distance fog | the other hide effects |
 | Hide effects (weather densities) | `HideEffects.cpp` `WeatherVisibility` | rain and snow drawn | the other hide effects |
 | Hide effects (portal screen) | `HideEffects.cpp` `PortalScreenVisibility` | the purple Nether portal screen | the other hide effects |
@@ -159,13 +159,22 @@ Hooks: `FinishBreak`, `StopBreak`, `ChangeDimension`
 Meaning: breaking goes through `GameMode::destroyBlock` once per block.
 
 ### `src/features/interaction/EdgeGuard.cpp`
-Hooks: `EdgeGuardHook`, `EdgeGuardInputHook`, `EdgeGuardPlaceHook`, `EdgeGuardSurvivalPlaceHook`, `EdgeGuardBuildHook`, `EdgeGuardSurvivalBuildHook`, `EdgeGuardStartBuildHook`, `EdgeGuardSurvivalStartBuildHook`, `EdgeTraceSend`, `EdgeTraceCorrection`, `EdgeTraceBuild`, `EdgeTraceSurvivalBuild`, `EdgeTraceHistoryFrame`, `EdgeTracePrepare`, `EdgeTraceApply`, `EdgeTraceReplay`
+Hooks: `EdgeGuardHook`, `EdgeGuardInputHook`, `EdgeGuardHistoryHook`, `EdgeGuardPlaceHook`, `EdgeGuardSurvivalPlaceHook`, `EdgeGuardBuildHook`, `EdgeGuardSurvivalBuildHook`, `EdgeGuardStartBuildHook`, `EdgeGuardSurvivalStartBuildHook`, `EdgeTraceSend`, `EdgeTraceCorrection`, `EdgeTraceBuild`, `EdgeTraceSurvivalBuild`, `EdgeTraceHistoryFrame`, `EdgeTracePrepare`, `EdgeTraceApply`, `EdgeTraceReplay`
 Meaning: the movement request's fields and collision shapes in
 `fetchCollisionShapes`; `PlayerMovement::calculateMoveVector` giving the move
 vector the client both simulates and sends (move x positive to the left), called
 with the local player's own input states; `startBuildBlock`, `buildBlock` and
 `useItemOn` (base and survival) before a slab is placed, with the clicked block
 and face (the held item read from the building hand). Gated (Edge Guard).
+`ActorHistory::addFrame` captures raw move input before that tick's movement
+calculation. For the exact local entity/registry on the client thread, an
+owned raw-input copy is calculated through vanilla, then guarded from the
+current position and velocity. Only a changed copy replaces horizontal raw
+fields during capture; the live input is restored afterwards. Replay
+otherwise rebuilds full movement from captured direction keys (L-162).
+No input or pointer is cached between frames or worlds; missing components
+fail open. Jump, sneak and other raw fields are preserved; jumping or no
+longer walking leaves the copy unchanged. Gated (Edge Guard).
 Trace-only (L-162): `ActorHistory::addFrame`,
 `ActorHistory::prepareEntityForRewindFromCapture`,
 `ClientPlayerRewindSystem::applyHistoryChangesToLiveEntity` and

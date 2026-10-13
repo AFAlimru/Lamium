@@ -12,6 +12,34 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-162 second diagnostic round, guarded input lost in replay (2026-10-13)
+
+By the maintainer on the local test BDS 1.26.51.1, Minecraft 1.26.51.01,
+LeviLamina Client 26.51.7, Windows x64. Build `8b8823d`, `--edge_trace=y`,
+DLL SHA-256 `7f10147c19e878b0ced7d4da94c70c2e8d6ca0e15c35e2ca6b760b67c4e238d0`
+(source and deployed copy matched).
+- Maintainer: margin 0.10 stops at ordinary edges, slab bridging has no
+  pullback or fall, jumping may leave. All three checks passed again.
+- All three exported history diagnostics attached. Five correction windows
+  were recorded without a fall. History frame inputs retained the guarded
+  processed input but physical direction keys in `mRawInputState`.
+- Example, correction tick 410: captured processed move (0.030,0.036), no
+  direction flags; captured raw input Down/Right, analog (0,0). Preparation
+  tied live entity 2/11 to rewind entity 2/2621454. During replay the copied
+  state calculated (-0.707,-0.707) twice, ignoring the guarded analog move.
+  Later windows show the same loss with other directions and corrections.
+- Another case (tick 1557) retained processed (-0.141,0.168) in the prepared
+  rewind entity, but raw Down/Left rebuilt (0.707,-0.707); replay then moved
+  live z from 104.805 to 104.706. No fall was observed.
+This establishes loss of the guarded horizontal input during history replay,
+not reproduction of the original rare fall. History is captured before
+that tick's movement calculation. The candidate fix guards an owned local
+raw-input copy from the current frame's position and velocity, substitutes
+its horizontal fields only during capture, then restores live raw input.
+Its runtime check remains pending.
+Other servers, slippery blocks and large/late corrections remain unchecked.
+The round's log is saved locally before the next run.
+
 ## L-162 first diagnostic round, no fall (2026-10-13)
 
 By the maintainer on the local test BDS 1.26.51.1, Minecraft 1.26.51.01,

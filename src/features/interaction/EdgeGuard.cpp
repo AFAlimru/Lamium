@@ -12,6 +12,8 @@
 #include "mc/deps/ecs/gamerefs_entity/EntityRegistry.h"
 #include "mc/deps/ecs/strict/StrictEntityContext.h"
 #include "mc/deps/vanilla_components/AABBShapeComponent.h"
+#include "mc/deps/vanilla_components/ActorDataFlagComponent.h"
+#include "mc/entity/components/SneakingComponent.h"
 #include "mc/deps/vanilla_components/IConstBlockSource.h"
 #include "mc/deps/vanilla_components/MoveRequestComponent.h"
 #include "mc/entity/components/MoveInputComponent.h"
@@ -19,6 +21,7 @@
 #include "mc/entity/systems/move_collision_system/MoveCollisionSystem.h"
 #include "mc/input/MoveInputState.h"
 #include "mc/world/actor/provider/PlayerMovement.h"
+#include "mc/world/actor/ActorHistory.h"
 #include "mc/world/gamemode/GameMode.h"
 #include "mc/world/gamemode/InteractionResult.h"
 #include "mc/world/gamemode/SurvivalMode.h"
@@ -35,7 +38,6 @@
 #include "mc/network/packet/CorrectPlayerMovePredictionPacket.h"
 #include "mc/network/packet/PlayerAuthInputPacket.h"
 #include "mc/entity/systems/EntitySystems.h"
-#include "mc/world/actor/ActorHistory.h"
 #include "mc/entity/systems/ClientPlayerRewindSystem.h"
 #include "mc/deps/vanilla_components/StateVectorComponent.h"
 #include <deque>
@@ -69,6 +71,48 @@ bool reportedInput = false;
 // A local world's server computes move vectors on its own thread; only the
 // client's are guarded there, and client state is read only on its thread.
 std::atomic<std::thread::id> clientThread;
+bool reportedHistory = false;
+void guardMoveVector(MoveInputState const& state, Vec2& move, bool historyCopy = false);
+// History is saved before the tick computes movement. Guard its raw input
+// from this frame's position, not the previous tick's processed vector.
+LL_TYPE_INSTANCE_HOOK(EdgeGuardHistoryHook, ll::memory::HookPriority::High, ActorHistory,
+    &ActorHistory::addFrame, void, EntityContext& entity, uint64 frame, EntityRegistry& registry) {
+    MoveInputState* raw = nullptr;
+    std::optional<MoveInputState> replacement;
+    try {
+        if (std::this_thread::get_id() == clientThread.load()) {
+            auto& runtime = Runtime::instance();
+            auto client = ll::service::getClientInstance();
+            auto* player = client ? client->getLocalPlayer() : nullptr;
+            if (runtime.enabled() && runtime.snapshot()->interaction.edgeGuard && player
+                && versionSensitiveAllowed("Edge Guard (movement request)")) {
+                auto const& own = player->getEntityContext();
+                if (&entity.mRegistry == &own.mRegistry && entity.mEntity == own.mEntity) {
+                    auto input = entity.tryGetComponent<MoveInputComponent>();
+                    auto data = entity.tryGetComponent<ActorDataFlagComponent>();
+                    auto sneak = entity.tryGetComponent<SneakingComponent>();
+                    if (input && data) {
+                        replacement = *input->mRawInputState;
+                        auto move = PlayerMovement::calculateMoveVector(*replacement, player->isFlying(), *data,
+                            player->isInWater(), sneak ? &*sneak : nullptr);
+                        auto before = move;
+                        guardMoveVector(*replacement, move, true);
+                        if (move.x != before.x || move.z != before.z) {
+                            raw = &*input->mRawInputState;
+                            if (!reportedHistory) {
+                                reportedHistory = true;
+                                runtime.self().getLogger().info("Edge Guard: guarding the raw input captured in movement history");
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    } catch (...) { raw = nullptr; replacement.reset(); }
+    if (raw && replacement)
+        withReplayInput(*raw, *replacement, [&] { origin(entity, frame, registry); });
+    else origin(entity, frame, registry);
+}
 #ifdef LAMIUM_EDGE_TRACE
 // L-160 trace: the last lines around the guard's activity are kept in memory
 // and written out only when the player falls soon after the guard acted.
@@ -273,7 +317,7 @@ void guard(StrictEntityContext const& entity, AABBShapeComponent const& shape, M
 // L-160: a server moves the player from the move vector the client sends, so
 // the vector itself is guarded where vanilla computes it from the input state
 // (sent and simulated alike). Only the local player's own states are touched.
-void guardMoveVector(MoveInputState const& state, Vec2& move) {
+void guardMoveVector(MoveInputState const& state, Vec2& move, bool historyCopy) {
     if (std::this_thread::get_id() != clientThread.load()) {
 #ifdef LAMIUM_EDGE_TRACE
         if (traceReplayDepth) ++traceOtherCalc;
@@ -326,7 +370,7 @@ void guardMoveVector(MoveInputState const& state, Vec2& move) {
     auto& context = player->getEntityContext();
     auto raw = context.tryGetComponent<RawMoveInputComponent>();
     auto input = context.tryGetComponent<MoveInputComponent>();
-    bool own = (raw && &state == &*raw->mRawInput)
+    bool own = historyCopy || (raw && &state == &*raw->mRawInput)
         || (input && (&state == &*input->mInputState || &state == &*input->mRawInputState));
     // Sneaking too: the guard then keeps the margin, so letting go of sneak
     // at an edge does not leave the player only touching it.
@@ -594,6 +638,11 @@ void start() {
         EdgeGuardHook::unhook(true);
         throw std::runtime_error("Could not install the edge guard input hook");
     }
+    if (EdgeGuardHistoryHook::hook(true) != 0) {
+        EdgeGuardInputHook::unhook(true);
+        EdgeGuardHook::unhook(true);
+        throw std::runtime_error("Could not install the edge guard history hook");
+    }
     if (EdgeGuardPlaceHook::hook(true) != 0 || EdgeGuardSurvivalPlaceHook::hook(true) != 0
         || EdgeGuardBuildHook::hook(true) != 0 || EdgeGuardSurvivalBuildHook::hook(true) != 0
         || EdgeGuardStartBuildHook::hook(true) != 0 || EdgeGuardSurvivalStartBuildHook::hook(true) != 0) {
@@ -604,6 +653,7 @@ void start() {
         EdgeGuardStartBuildHook::unhook(true);
         EdgeGuardSurvivalStartBuildHook::unhook(true);
         EdgeGuardInputHook::unhook(true);
+        EdgeGuardHistoryHook::unhook(true);
         EdgeGuardHook::unhook(true);
         throw std::runtime_error("Could not install the edge guard placement hooks");
     }
@@ -620,7 +670,7 @@ void stop() {
     bool place = EdgeGuardPlaceHook::unhook(true) & EdgeGuardSurvivalPlaceHook::unhook(true);
     bool survival = EdgeGuardBuildHook::unhook(true) & EdgeGuardSurvivalBuildHook::unhook(true)
         & EdgeGuardStartBuildHook::unhook(true) & EdgeGuardSurvivalStartBuildHook::unhook(true);
-    bool input = EdgeGuardInputHook::unhook(true), movement = EdgeGuardHook::unhook(true);
-    if (place && survival && input && movement) installed = false;
+    bool input = EdgeGuardInputHook::unhook(true), movement = EdgeGuardHook::unhook(true), history = EdgeGuardHistoryHook::unhook(true);
+    if (place && survival && input && movement && history) installed = false;
 }
 }

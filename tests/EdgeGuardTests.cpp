@@ -1,5 +1,6 @@
 #include "features/interaction/EdgeGuardPlan.h"
 #include <cmath>
+#include <stdexcept>
 void check(bool, char const*);
 
 void edgeGuardTests() {
@@ -88,4 +89,25 @@ void edgeGuardTests() {
     check(!mergePushesOff(above, -84, 67, 81), "standing on top of the cell does not count as inside it");
     auto [stillX, stillZ] = guardInput(0, 0, 0, 0, a, f, ground);
     check(stillX == 0 && stillZ == 0, "standing still stays still");
+
+    using lamium::interaction::withReplayInput;
+
+    struct Input { bool outward, jump, sneak; double analog; bool operator==(Input const&) const = default; };
+    Input rawInput{true, true, true, 0}, historical{false, true, true, -.01};
+    auto snapshot = withReplayInput(rawInput, historical, [&] { return rawInput; });
+    check(snapshot == historical && rawInput == Input{true, true, true, 0},
+          "history receives guarded horizontal input with jump and sneak preserved; live input is restored");
+    try { withReplayInput(rawInput, historical, [] { throw std::runtime_error("capture failed"); }); } catch (...) {}
+    check(rawInput == Input{true, true, true, 0}, "a failed capture also restores live device input");
+    // With 0.139 blocks of physical overlap, a 0.047 correction and one
+    // replay tick, the raw full input leaves the edge; the guarded brake does not.
+    auto replayOverlap = [](double input) { return .139 - .047 - (.05 * .546 + input * .1); };
+    auto [capturedBrake, capturedZ] = guardInput(1, 0, .05, 0, a, f,
+        [](double dx, double) { return .139 - dx > .10; });
+    (void)capturedZ;
+    Input bridgeKeys{true, false, false, 0}, bridgeGuard{false, false, false, capturedBrake};
+    auto bridgeHistory = withReplayInput(bridgeKeys, bridgeGuard, [&] { return bridgeKeys; });
+    check(replayOverlap(bridgeKeys.outward ? 1 : bridgeKeys.analog) < 0
+          && replayOverlap(bridgeHistory.outward ? 1 : bridgeHistory.analog) > 0,
+          "a correction replay uses the guarded brake rather than reconstructing full movement from direction keys");
 }

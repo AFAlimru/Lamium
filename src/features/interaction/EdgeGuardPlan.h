@@ -6,6 +6,20 @@
 #include <utility>
 
 namespace lamium::interaction {
+// The capture sees the replacement; live device input is restored even if
+// the capture unwinds. No reference survives this call.
+template <class Input, class Capture>
+decltype(auto) withReplayInput(Input& raw, Input const& replacement, Capture&& capture) {
+    Input saved = raw;
+    struct Restore {
+        Input& target;
+        Input const& saved;
+        ~Restore() { target = saved; }
+    } restore{raw, saved};
+    raw = replacement;
+    return std::forward<Capture>(capture)();
+}
+
 // Edge Guard (BACKLOG L-40): shorten a horizontal move until the player's
 // feet stay supported, the way sneaking stops at an edge. `supported(dx, dz)`
 // answers whether ground lies within the step height under the feet shifted

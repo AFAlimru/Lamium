@@ -333,6 +333,10 @@ found later are handled as bugs.
 
 ### L-162 Edge Guard: fall after a server correction re-runs recent ticks
 Kind: Bug, Research (strong model). Split from L-161, 2026-10-12; rare.
+Current status 2026-10-13: round 2 establishes guarded horizontal input
+being lost during history replay; a capture fix is built for runtime
+validation (details below). The original rare fall is not reproduced and
+this item remains open.
 Seen once on the local test BDS (trace of `2dc7e45`, VALIDATION-LOG "L-161
 margin 0.1"): after a +0.047 block server correction, the client's next
 position was 0.17 block further out, off the block, and it fell. The client
@@ -382,6 +386,37 @@ returns to `--edge_trace=n`; restore the instance's normal DLL after testing.
 Round 2 diagnostic builds and LamiumTests pass; it is deployed for another
 short run at margin 0.10. Source and deployed DLL SHA-256:
 `7f10147c19e878b0ced7d4da94c70c2e8d6ca0e15c35e2ca6b760b67c4e238d0`.
+Round 2 checked 2026-10-13: the same three smoke checks passed, with five
+corrections and no fall. Preparation ties each copied replay entity to the
+local player. The copied processed input is guarded, but its raw direction
+keys rebuild full input during replay (for example guarded (0.030,0.036)
+becomes (-0.707,-0.707)). History capture retains those raw keys. The live
+collision guard sometimes clamps the replay, but does not prevent this
+loss of the guarded input. This identifies a concrete bug without proving
+the earlier rare fall's cause.
+Candidate fix: `EdgeGuardHistoryHook` (normal build) guards an owned copy of
+the local raw input at `ActorHistory::addFrame`, which runs before that
+tick's movement calculation. Vanilla calculates the copy's move vector and
+the existing input guard uses the current live position and velocity. Only
+if the guard changes it, horizontal raw fields are substituted during
+capture, then restored. Exact entity/registry and client-thread ownership,
+feature enable and the capability gate are required; missing data stays
+vanilla. Jump, sneak and look fields stay as captured, and the existing
+jump/walking exclusions apply. No input or game pointer is retained across
+frames, worlds or dimensions. Pure tests cover scoped restoration and a
+correction-replay example; SDK tests cover independent snapshot copies and
+restoration after unwinding.
+Next: trace build to check raw history now agrees with the guarded input,
+replay no longer rebuilds full direction-key movement, and the three smoke
+checks plus disable, sneak release and rejoin remain normal. Do not mark
+the rare fall fixed from build/tests or no-fall smoke alone.
+The final normal and diagnostic builds, LamiumTests, LamiumNativeTests and
+hook inventory check pass. The fix's trace DLL is deployed for validation;
+source and deployed SHA-256:
+`476dc27c76b6943d19fac13f13df06da4e0dcefe77cf8f5314f6f30acc780077`.
+Configuration is back to `--edge_trace=n`; the normal DLL is retained locally
+for restoring the instance after the diagnostic run. Runtime fix validation
+remains pending.
 
 ### L-123 FreeCamera stretches the worn elytra on the inventory player model
 Kind: Bug, low priority. Reported from use 2026-10-09 (maintainer's notes).
