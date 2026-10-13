@@ -337,9 +337,11 @@ Current status 2026-10-13: round 2 establishes guarded horizontal input
 being lost during history replay. The scoped capture candidate passes the
 four smoke checks in BDS and solo play, but the additional BDS run records
 full direction keys in eight of nine correction replays. It is insufficient.
-The next candidate keeps guarded horizontal fields available after normal
-input calculation (details below). The original rare fall is not reproduced
-and this item remains open.
+The second candidate (`981f630`) broke normal WASD operation and has been
+removed along with the ineffective scoped capture candidate. The instance
+is restored to diagnostic build `8b8823d`; recovery confirmation is pending.
+Next establish actual replay input capture/application before connecting
+another fix. The original rare fall is not reproduced; this item stays open.
 Seen once on the local test BDS (trace of `2dc7e45`, VALIDATION-LOG "L-161
 margin 0.1"): after a +0.047 block server correction, the client's next
 position was 0.17 block further out, off the block, and it fell. The client
@@ -434,7 +436,7 @@ corrections: prepared raw snapshot input is guarded, while eight replays
 still calculate full Down movement (0,-1). This scoped substitution is
 insufficient; the live history raw fields still contain physical direction
 keys when later replay input is captured. No fall dump was recorded.
-Second candidate: remove `EdgeGuardHistoryHook`. At the existing
+Second candidate (rejected and removed after its runtime check): remove `EdgeGuardHistoryHook`. At the existing
 `calculateMoveVector` hook, after guarding the exact local processed input
 state, copy only its eight horizontal flags and encoded analog vector to
 `MoveInputComponent::mRawInputState`. Do this even if the earlier device
@@ -456,6 +458,28 @@ Next BDS check: diagonal approaches and slab bridging at margin 0.10 for
 several minutes, plus jump, sneak release, disable and enable/rejoin. Trace
 must show whether synchronized raw fields reach actual replay input,
 not just the prepared snapshot. No runtime success claimed yet.
+Second-candidate result: `981f630` on BDS broke WASD; the maintainer could
+only slide slowly relative to the view direction and could not run the
+four checks. The trace retains the synchronized analog value across normal
+raw move calculations, consistent with feedback into device processing.
+The assumption that vanilla would refresh this field independently next
+tick was wrong. Field-copy tests did not cover that runtime dependency.
+Both candidate mutations are removed from source, along with their
+candidate-specific helper/tests. The instance is restored to `8b8823d`
+diagnostics (DLL SHA-256
+`7f10147c19e878b0ced7d4da94c70c2e8d6ca0e15c35e2ca6b760b67c4e238d0`).
+Do not deploy either saved failed candidate as a normal-build restoration.
+Next: verify normal WASD and edge stopping are restored, then trace the
+actual `IReplayableActorInput` capture/application boundary, which is
+distinct from the prepared entity snapshot. Keep live physical/history raw
+input untouched across frames. No further movement fix is runtime-verified.
+The reverted normal build, LamiumTests, LamiumNativeTests and hook inventory
+check pass; trace configuration is off. A clean normal artifact is saved
+(SHA-256 `cdc270e3ab5e8cd3a195b754dbe10b73b7f58d02cf45d2c723cb8d72dfa03c51`),
+while the instance uses the previously tested `8b8823d` diagnostic artifact.
+SDK investigation found exported `ReplayStateComponent::getCurrentCapturedInput`
+as a potential observation point for the actual selected replay input;
+no hook or mutation has been added there yet.
 
 ### L-123 FreeCamera stretches the worn elytra on the inventory player model
 Kind: Bug, low priority. Reported from use 2026-10-09 (maintainer's notes).

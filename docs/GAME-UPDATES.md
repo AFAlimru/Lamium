@@ -166,15 +166,13 @@ vector the client both simulates and sends (move x positive to the left), called
 with the local player's own input states; `startBuildBlock`, `buildBlock` and
 `useItemOn` (base and survival) before a slab is placed, with the clicked block
 and face (the held item read from the building hand). Gated (Edge Guard).
-After calculating the exact local `mInputState` on the client thread, its
-horizontal direction flags and encoded analog vector are copied to
-`MoveInputComponent::mRawInputState`. They remain available to later replay
-input capture, until vanilla's next device refresh. Temporarily guarding
-only `ActorHistory::addFrame` preserved the entity snapshot but did not
-prevent full physical keys reappearing during replay (L-162); that hook is
-removed. No input or pointer is cached between frames or worlds. Missing
-components fail open; jump, sneak and look fields are preserved, and the
-existing walking/jump exclusions apply. Gated (Edge Guard).
+L-162 history mutations are removed: guarding only `ActorHistory::addFrame`
+did not prevent full physical keys reappearing during replay, and persisting
+processed horizontal input in `mRawInputState` broke normal WASD operation.
+The live input guard remains as before these experiments; no extra history
+input writes or capture hooks remain in normal builds. Actual replay input
+capture/application and its relation to the prepared snapshot still need
+to be established before another fix is connected.
 Trace-only (L-162): `ActorHistory::addFrame`,
 `ActorHistory::prepareEntityForRewindFromCapture`,
 `ClientPlayerRewindSystem::applyHistoryChangesToLiveEntity` and

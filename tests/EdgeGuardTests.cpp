@@ -1,7 +1,5 @@
 #include "features/interaction/EdgeGuardPlan.h"
 #include <cmath>
-#include <array>
-#include <bitset>
 void check(bool, char const*);
 
 void edgeGuardTests() {
@@ -90,24 +88,4 @@ void edgeGuardTests() {
     check(!mergePushesOff(above, -84, 67, 81), "standing on top of the cell does not count as inside it");
     auto [stillX, stillZ] = guardInput(0, 0, 0, 0, a, f, ground);
     check(stillX == 0 && stillZ == 0, "standing still stays still");
-
-    std::bitset<6> physical{0b111111}, guarded{0b000010};
-    double rawAnalog = 0, guardedAnalog = -.01;
-    lamium::interaction::copyHorizontalInput(physical, rawAnalog, guarded, guardedAnalog, std::array<size_t, 4>{0,1,2,3});
-    check(physical == std::bitset<6>{0b110010} && rawAnalog == -.01,
-          "horizontal history synchronization preserves unrelated physical flags and copies analog movement");
-    // With 0.139 blocks of physical overlap, a 0.047 correction and one
-    // replay tick, the raw full input leaves the edge; the guarded brake does not.
-    auto replayOverlap = [](double input) { return .139 - .047 - (.05 * .546 + input * .1); };
-    auto [capturedBrake, capturedZ] = guardInput(1, 0, .05, 0, a, f,
-        [](double dx, double) { return .139 - dx > .10; });
-    (void)capturedZ;
-    std::bitset<1> bridgeKeys{1}, bridgeGuard{};
-    double bridgeAnalog = 0;
-    lamium::interaction::copyHorizontalInput(bridgeKeys, bridgeAnalog, bridgeGuard, capturedBrake, std::array<size_t, 1>{0});
-    auto bridgeHistory = bridgeAnalog;
-    bridgeKeys.set();
-    bridgeAnalog = 0;
-    check(replayOverlap(1) < 0 && replayOverlap(bridgeHistory) > 0,
-          "a correction replay uses the guarded brake rather than reconstructing full movement from direction keys");
 }

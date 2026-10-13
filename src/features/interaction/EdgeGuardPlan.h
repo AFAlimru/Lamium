@@ -6,15 +6,6 @@
 #include <utility>
 
 namespace lamium::interaction {
-// Preserve unrelated physical flags while making later history captures
-// rebuild the same horizontal movement as the processed input.
-template <class Flags, class Vector, class Directions>
-void copyHorizontalInput(Flags& targetFlags, Vector& targetAnalog, Flags const& sourceFlags,
-                         Vector const& sourceAnalog, Directions const& directions) {
-    for (auto index : directions) targetFlags.set(index, sourceFlags.test(index));
-    targetAnalog = sourceAnalog;
-}
-
 // Edge Guard (BACKLOG L-40): shorten a horizontal move until the player's
 // feet stay supported, the way sneaking stops at an edge. `supported(dx, dz)`
 // answers whether ground lies within the step height under the feet shifted

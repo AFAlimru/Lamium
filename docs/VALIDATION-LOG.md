@@ -12,6 +12,31 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-162 persistent raw-input candidate breaks WASD; reverted (2026-10-13)
+
+By the maintainer on test BDS 1.26.51.1, Minecraft 1.26.51.01,
+LeviLamina Client 26.51.7, Windows x64. Build `981f630`, `--edge_trace=y`,
+DLL SHA-256 `49dab77189696704dd485d5206eebab2a86b2c243af75ce3c8467a30d78cda89`
+(deployed copy matched).
+- Maintainer: WASD no longer controls movement; only slow sliding relative
+  to the view direction remains. The four smoke checks could not be run.
+- Trace: after synchronization at send counter 55, raw input has no
+  direction flags and analog (0.136,-0.033). Frame captures and normal raw
+  move calculations at counters 56 and 57 retain that same analog input.
+  This supports feedback of the guarded value into later physical-input
+  processing; the precise device-update dependency is not established.
+- Both L-162 movement candidates are removed from source. The instance
+  was restored, while Minecraft was closed, to previously tested diagnostic
+  build `8b8823d`, DLL SHA-256
+  `7f10147c19e878b0ced7d4da94c70c2e8d6ca0e15c35e2ca6b760b67c4e238d0`
+  (saved source and deployed copy matched). This has diagnostic history
+  reads, with neither candidate's extra history-input mutation.
+The failed run's log is saved. Recovery after this deployment still needs
+the maintainer's confirmation; earlier checks on `8b8823d` passed. L-162
+remains open. Do not use the saved persistent-input normal or trace builds
+for restoration or release. Next establish the actual replay input capture
+and application boundary independently of entity snapshot preparation.
+
 ## L-162 history-capture candidate, BDS correction replay still bypasses input (2026-10-13)
 
 By the maintainer on test BDS 1.26.51.1, Minecraft 1.26.51.01,

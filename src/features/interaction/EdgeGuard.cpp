@@ -44,7 +44,6 @@
 #include <string>
 #endif
 #include <atomic>
-#include <array>
 #include <stdexcept>
 #include <thread>
 #include <tuple>
@@ -71,7 +70,6 @@ bool reportedInput = false;
 // A local world's server computes move vectors on its own thread; only the
 // client's are guarded there, and client state is read only on its thread.
 std::atomic<std::thread::id> clientThread;
-bool reportedHistory = false;
 #ifdef LAMIUM_EDGE_TRACE
 // L-160 trace: the last lines around the guard's activity are kept in memory
 // and written out only when the player falls soon after the guard acted.
@@ -335,28 +333,6 @@ void guardMoveVector(MoveInputState const& state, Vec2& move) {
     // at an edge does not leave the player only touching it.
     if (!own || !walking(*player, true)) return;
     if (state.mFlagValues->test(static_cast<size_t>(MoveInputState::Flag::JumpDown))) return; // May leave on purpose.
-    auto syncHistoryInput = [&] {
-        if (!input || &state != &*input->mInputState) return;
-        using Flag = MoveInputState::Flag;
-        constexpr std::array directions{
-            static_cast<size_t>(Flag::Up), static_cast<size_t>(Flag::Down),
-            static_cast<size_t>(Flag::Left), static_cast<size_t>(Flag::Right),
-            static_cast<size_t>(Flag::UpLeft), static_cast<size_t>(Flag::UpRight),
-            static_cast<size_t>(Flag::DownLeft), static_cast<size_t>(Flag::DownRight)};
-        auto& history = *input->mRawInputState;
-        bool changed = history.mAnalogMoveVector->x != state.mAnalogMoveVector->x
-            || history.mAnalogMoveVector->z != state.mAnalogMoveVector->z;
-        for (auto index : directions) changed |= history.mFlagValues->test(index) != state.mFlagValues->test(index);
-        copyHorizontalInput(*history.mFlagValues, *history.mAnalogMoveVector,
-            *state.mFlagValues, *state.mAnalogMoveVector, directions);
-#ifdef LAMIUM_EDGE_TRACE
-        if (changed && traceQuiet <= 100) traceInput("history synchronized", *input, nullptr);
-#endif
-        if (changed && !reportedHistory) {
-            reportedHistory = true;
-            runtime.self().getLogger().info("Edge Guard: keeping guarded raw input for movement history");
-        }
-    };
     auto const& box = player->getAABB();
     auto const& region = player->getDimensionBlockSourceConst();
     std::vector<AABB> shapes;
@@ -390,7 +366,7 @@ void guardMoveVector(MoveInputState const& state, Vec2& move) {
     } else {
         return; // Already over a drop: do not freeze in the air.
     }
-    if (gx == x && gz == z) { syncHistoryInput(); return; }
+    if (gx == x && gz == z) return;
     auto [strafe, forward] = inputMove(gx, gz, yaw);
     move.x = static_cast<float>(strafe);
     move.z = static_cast<float>(forward);
@@ -408,7 +384,6 @@ void guardMoveVector(MoveInputState const& state, Vec2& move) {
     Vec2 analog{move.x / scale, move.z / scale};
     *sent.mAnalogMoveVector = analog;
     if (raw && &state == &*raw->mRawInput) *raw->mRawMove = analog;
-    syncHistoryInput();
     if (!reportedInput) {
         reportedInput = true;
         runtime.self().getLogger().info("Edge Guard: guarding the move input");
