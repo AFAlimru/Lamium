@@ -958,8 +958,9 @@ void render(ll::event::UIRenderEvent& event) {
             glm::vec2 pointer = view.mPointerLocationPrevious;
             bool over = pointer.x >= titleEntry.x && pointer.x < titleEntry.x + w && pointer.y >= titleEntry.y
                 && pointer.y < titleEntry.y + h;
-            fill(context, titleEntry.x, titleEntry.y, w, h, Rgb{0, 0, 0}, over ? .65f : .5f);
-            label(context, titleEntry.x + 2, titleEntry.y + 1, w, text, palette::white);
+            fill(context, titleEntry.x, titleEntry.y, w, h, Rgb{0, 0, 0}, over ? .75f : .6f);
+            // Plain white without Lamium's shadow, as LeviLamina's line.
+            labelScaled(context, titleEntry.x + 2, titleEntry.y + 1, w, text, 1.f, palette::white, Align::Left, false);
             if (over) fill(context, titleEntry.x + 2, titleEntry.y + 10, w - 4, 1, palette::white);
             context.flushText(0, std::nullopt);
         } else titleEntry.shown = false;
