@@ -12,7 +12,27 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
-## L-167 in-world language change interval (2026-10-14)
+## L-167 global packs with a required server pack; a lost global pack (2026-10-14)
+
+Agent-made global test pack (yellow dirt, cyan stone) in the instance's
+shared resource_packs; BDS as in the required-pack entry below (magenta
+dirt). Minecraft 1.26.51.01, LeviLamina Client 26.51.7, Windows x64.
+- `2084bc9` + `language_trace=y` (DLL SHA-256
+  `e24cf90959c5f8deaeacfa4bca4db588e9f82e767e06ff226f372e6dcec167dc`):
+  calculator Close button closes. The maintainer activates the test pack at
+  the title screen (log: Global stack set with 1 entry), enters a local
+  world: dirt and stone are vanilla. Log: at world start the Global stack is
+  set again with 0 entries; `global_resource_packs.json` still lists it.
+  This session followed earlier forced exits (the language hang).
+- Same game with Lamium moved out of mods (ChiyanMap, LHolo, LeviSchematic
+  still loaded): the local world shows yellow dirt and cyan stone; Global
+  Resources lists the packs. Joining the BDS with the required pack: dirt
+  magenta, stone vanilla (the global pack is not applied), and in-world
+  Global Resources shows the gray page. So the gray page and the dropped
+  global pack on a required-pack server are vanilla, not Lamium's skip.
+- Open: whether Lamium or vanilla global-pack crash recovery (after the
+  forced exits) caused the 0-entry Global stack in the first session.
+
 
 Maintainer check on `1109e35`, all trace options off. Deployed DLL SHA-256
 `0f42327a6d0d2141a680e0ab5facc5426a712940d5234139a6d3c7852ca1f9d6`.
