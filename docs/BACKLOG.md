@@ -334,9 +334,11 @@ found later are handled as bugs.
 ### L-162 Edge Guard: fall after a server correction re-runs recent ticks
 Kind: Bug, Research (strong model). Split from L-161, 2026-10-12; rare.
 Current status 2026-10-13: round 2 establishes guarded horizontal input
-being lost during history replay; a capture fix is built for runtime
-validation (details below). The original rare fall is not reproduced and
-this item remains open.
+being lost during history replay. The capture fix passes the maintainer's
+four smoke checks and captures guarded raw input, but its first run recorded
+no correction window. A further diagnostic run is authorized to verify
+replay (details below). The original rare fall is not reproduced and this
+item remains open.
 Seen once on the local test BDS (trace of `2dc7e45`, VALIDATION-LOG "L-161
 margin 0.1"): after a +0.047 block server correction, the client's next
 position was 0.17 block further out, off the block, and it fell. The client
@@ -415,8 +417,15 @@ hook inventory check pass. The fix's trace DLL is deployed for validation;
 source and deployed SHA-256:
 `476dc27c76b6943d19fac13f13df06da4e0dcefe77cf8f5314f6f30acc780077`.
 Configuration is back to `--edge_trace=n`; the normal DLL is retained locally
-for restoring the instance after the diagnostic run. Runtime fix validation
-remains pending.
+for restoring the instance after the diagnostic run.
+Fix build `d59f16b` checked 2026-10-13: margin 0.10 stops at ordinary edges,
+slab bridging has no pullback or fall, jumping leaves, sneak release does
+not fall, disabling restores vanilla movement, and enabling then rejoining
+restores the stop. The trace verifies guarded raw input during capture and
+physical raw movement outside it. No correction window was recorded;
+replay and the original rare fall remain unverified. The maintainer agreed
+to a few more minutes of diagonal edge approaches and slab bridging with
+the same diagnostic build. Keep L-162 open until correction replay is checked.
 
 ### L-123 FreeCamera stretches the worn elytra on the inventory player model
 Kind: Bug, low priority. Reported from use 2026-10-09 (maintainer's notes).

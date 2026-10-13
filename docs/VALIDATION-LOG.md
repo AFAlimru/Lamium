@@ -12,6 +12,32 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-162 history-capture fix, smoke checks and capture verified (2026-10-13)
+
+By the maintainer on the local test BDS 1.26.51.1, Minecraft 1.26.51.01,
+LeviLamina Client 26.51.7, Windows x64. Build `d59f16b`, `--edge_trace=y`,
+DLL SHA-256 `476dc27c76b6943d19fac13f13df06da4e0dcefe77cf8f5314f6f30acc780077`
+(source and deployed copy matched).
+- Maintainer: at margin 0.10, ordinary edges stop and slab bridging has no
+  pullback or fall. Jumping leaves the edge; releasing sneak at the edge
+  does not fall. Disabling restores ordinary movement; enabling and
+  rejoining restores the edge stop. All four checks passed.
+- All exported history diagnostics attached. The history-capture guard
+  ran. At frame tick 181, the raw history input had no horizontal direction
+  flags and guarded analog (-0.217,0.171), while the prior processed input
+  still held Right and move (-1,0). Subsequent frames likewise captured
+  freshly guarded raw analog values. Live packet raw movement remained
+  (-1,0), supporting restoration outside synchronous history capture.
+- No correction window was recorded in this run. Capturing guarded raw
+  input is verified; replay after a correction and the original rare fall
+  remain unverified. A fall dump contains full unguarded movement near the
+  disable check; its relation to that check is inferred from the reported
+  sequence, not an explicit setting-state trace.
+The log is saved locally. The maintainer agreed to a further few minutes
+of diagonal edge approaches and slab bridging with the same diagnostic
+build to collect a natural correction. Other servers, slippery blocks and
+large/late corrections remain unchecked.
+
 ## L-162 second diagnostic round, guarded input lost in replay (2026-10-13)
 
 By the maintainer on the local test BDS 1.26.51.1, Minecraft 1.26.51.01,
