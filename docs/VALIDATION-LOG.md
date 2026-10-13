@@ -12,6 +12,26 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-166 normal BDS sold-out and safe input return (2026-10-13)
+
+Agent Computer Use with the maintainer performing the right-click gestures.
+Minecraft 1.26.51.01, LeviLamina Client 26.51.7, isolated BDS 1.26.51.1
+test world. Normal build `481dc7d`, all trace options off; source/deployed
+DLL SHA-256 `88deafb6e351ea72afb637ca5373163835023c53d09f6489c4901849aefd8352`.
+- Repeat the full-inventory fixture from the preceding overflow report:
+  64 emeralds in the ingredient slot, 64 in inventory, all 36 inventory
+  slots occupied. Shift + right click produces no axe, both emerald stacks
+  remain 64, and BDS finds no dropped-item entity. Remove the test stone
+  before closing, because ordinary vanilla close can return overflow.
+- With space restored and 128 emeralds, plain right click buys one axe and
+  consumes three emeralds, then remains at one output while waiting.
+- One Shift + right click buys 11 more axes: 12 total, 92 emeralds remain.
+  The row displays sold out. Closing returns inputs to inventory as 64+28;
+  reopening still displays sold out. BDS finds no dropped-item entity.
+- Build, LamiumTests, LamiumNativeTests and the game-hook inventory check
+  pass. Two-input books, settings-off, delayed responses and interruption
+  checks remain pending; this entry does not complete L-166.
+
 ## L-166 full-inventory input overflow found (2026-10-13, BDS)
 
 Agent Computer Use with the maintainer performing the Shift + right-click

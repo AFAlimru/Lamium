@@ -75,7 +75,8 @@ L-item wins. Every entry names what the task is, not only its number.
      L-91 shield glint in Lamium's icons (both parked); L-132 moving with
      the inventory screen open (paused after eight rounds).
    - L-166 villager trade helpers: part 1 (Shift + right click) works
-     locally; BDS, full inventory, two-input and interruption checks remain.
+     locally and on normal BDS, including sold-out and safe full-inventory
+     refusal; two-input, settings-off, delay and interruption checks remain.
    - Specs to agree with the maintainer before building: L-165 Mass Craft,
      L-167 in-world language, L-168 trade
      finder, L-169 Item Transfer in more screens and bulk moves, L-170
@@ -581,9 +582,14 @@ Status 2026-10-13: after the initial diagnostic checkpoint, the maintainer
 authorized agent Computer Use for runtime checks and completing part 1.
 The vanilla request path and predicted client offer uses are observed locally;
 the one-at-a-time implementation and its Shift + right-click trigger
-(remapped at the row's input component) are locally verified. Completion
-requires matching request acknowledgments and inventory deltas, with server
-offer uses checked by reopening on BDS. Research and checklist:
+(remapped at the row's input component) are locally verified. Normal BDS
+`481dc7d` buys one axe with plain right click, then the remaining 11 with
+Shift + right click; reopening preserves sold-out state. The input-return
+preflight fixes full-inventory ingredient drops: the repeated gesture leaves
+both stacks unchanged and no dropped items. Two-input books, settings-off,
+delayed responses and interruptions remain; L-166 is not complete.
+Completion requires matching request acknowledgments and inventory deltas,
+with server offer state checked by reopening on BDS. Research and checklist:
 [TRADE-HELPERS.md](TRADE-HELPERS.md). Part 2 remains undecided; no release.
 Builds on L-129 (every trader level shown); separate from L-154's inventory
 gestures.

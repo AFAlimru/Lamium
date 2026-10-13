@@ -2,8 +2,9 @@
 
 Current work: [BACKLOG L-166](BACKLOG.md#l-166-villager-trade-helpers).
 Runtime coverage stays in VALIDATION.md. Repeated trading has a local runtime
-pass; BDS, interrupted runs, full inventory and two-input offers are being
-checked before completion.
+pass. Normal BDS also passes sold-out trading and full-inventory refusal
+after the input-return preflight fix. Interrupted runs, delayed responses,
+settings-off and two-input offers are being checked before completion.
 
 ## Contract
 
@@ -180,11 +181,11 @@ The notes below are the handoff that led here.
   input; default-on setting with EN/JA/ZH help text (`Translations*.h`,
   order-sensitive); `SettingsStoreTests`/`TranslationsTest` must pass.
 
-## First runtime checkpoint
+## Historical first runtime checkpoint
 Build with `xmake f --repeat_trade_trace=y -y`, then `xmake build Lamium`.
 This is an independent, read-only trace; leave the old `trade_trace` off.
 It never sends requests, modifies button behavior or automates trades.
-The normal build compiles the implementation out.
+The normal build compiles this diagnostic out; repeated trading remains enabled.
 
 `L-166` log lines carry a sequence and steady-clock milliseconds:
 mouse/modifier input; button and toggle event IDs and property bags;
