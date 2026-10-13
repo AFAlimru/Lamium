@@ -108,12 +108,13 @@ bool process(Token token, bool down, bool cancelled, bool textEditing = false) {
         return false;
     }
     bool const gameplay = gameplayScreen(current->getScreenName());
+    bool const outside = outsideWorldMenu(current->getScreenName(), current->getLocalPlayer() != nullptr);
     auto& tracker = inventory::game::ScreenTracker::getInstance();
     bool const container = tracker.current() && !inventory::game::TextInputTracker::getInstance().isEditing(tracker.currentView());
     ChordSet allowed;
     bool const freeCamera = CameraSessions::instance().blocksPerspective();
     for (size_t i = 0; i < allowed.size(); ++i)
-        if (actionAllowed(static_cast<Action>(i), gameplay, container, freeCamera)) allowed[i] = previous[i];
+        if (actionAllowed(static_cast<Action>(i), gameplay, container, freeCamera, outside)) allowed[i] = previous[i];
     // A different consumer (notably Zoom's wheel adjustment) may own this
     // event. Preserve held inputs, but always observe key-up releases.
     auto result = dispatch.update(allowed, held.value(), down && !cancelled ? std::optional<Token>(token) : std::nullopt, fresh);

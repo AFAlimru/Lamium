@@ -810,13 +810,14 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
             if (i == nav::count - SettingsTable::pinnedItems) fill(context,x+6,y-4,w-12,1,palette::white,.14f);
             if (active) { fill(context,x,y,w,t.navStep,palette::accent,.16f); fill(context,x,y,2,t.navStep,palette::accent); }
             else if (over) fill(context,x,y,w,t.navStep,palette::white,.07f);
-            std::string count = i > 0 && i < nav::hotkeys ? sectionCount(sections[i-1], preferences)
+            bool unavailable = nav::needsWorld(i) && !(screen::client() && screen::client()->getLocalPlayer());
+            std::string count = unavailable ? std::string{} : i > 0 && i < nav::hotkeys ? sectionCount(sections[i-1], preferences)
                 : i == nav::shapes ? std::to_string(overlay::shapes::list().size())
                 : i == nav::waypoints ? std::to_string(map::waypoints::current().waypoints.size())
                 : i == nav::schematics ? std::to_string(schematic::session::current().placements.size()) : std::string{};
             float countWidth = count.empty() ? 0 : textWidth(context, count) + 4;
             float ty = y + (t.navStep - 8) / 2;
-            label(context,x+7,ty,w-12-countWidth,navLabel(i,false),active || over ? palette::text : palette::dim);
+            label(context,x+7,ty,w-12-countWidth,navLabel(i,false),unavailable ? palette::faint : active || over ? palette::text : palette::dim);
             if (!count.empty()) label(context,x+w-5-countWidth,ty,countWidth,count,palette::faint,Align::Right);
         }
     }

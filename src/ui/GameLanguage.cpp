@@ -35,8 +35,8 @@ bool supported(std::string const& code) {
 LanguageContext context() {
     auto client = ll::service::getClientInstance();
     auto player = client ? client->getLocalPlayer() : nullptr;
-    return {currentCode(), player ? int(player->getDimensionId()) : 0,
-        player && Runtime::instance().enabled() && ownsInput()};
+    // Outside a world (L-175) there is no dimension; -1 tells a later join apart.
+    return {currentCode(), player ? int(player->getDimensionId()) : -1, Runtime::instance().enabled() && ownsInput()};
 }
 void run(Request& request) noexcept {
     try {

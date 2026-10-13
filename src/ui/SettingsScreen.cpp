@@ -212,6 +212,7 @@ void selectNav(int index, bool temporary = false) {
     table_view::endSearch();
     if (navigation.current == shapesNav && index != shapesNav) shapes_view::leave();
     index = std::clamp(index, 0, navCount - 1);
+    if (nav::needsWorld(index) && !(client && client->getLocalPlayer())) { error = translated("worldOnly"); return; }
     waypoints_view::setFromMap(false);
     if (index == worldMapNav) { enterWorldMap(true, false); return; }
     if (index == calculatorNav) { enterCalculator(true); return; }
@@ -1147,7 +1148,12 @@ void finishEditing() { finishNumber(); }
 bool heldCtrl() { return ui::heldCtrl(); }
 bool heldShift() { return ui::heldShift(); }
 void close() { ui::close(); }
-void nextNav(bool back) { selectNav((navigation.current + (back ? worldMapNav - 1 : 1)) % worldMapNav); }
+void nextNav(bool back) {
+    bool world = ui::client && ui::client->getLocalPlayer();
+    int index = navigation.current;
+    do index = (index + (back ? worldMapNav - 1 : 1)) % worldMapNav; while (!world && nav::needsWorld(index));
+    selectNav(index);
+}
 bool navClick(float x, float y) {
     auto hit = table_view::layout().hit(x, y, navCount, table_view::tabWidth());
     if (hit.zone == Zone::Nav) { ui::selectNav(hit.index); return true; }
@@ -1176,7 +1182,8 @@ void returnToMap() { enterWorldMap(mapFromSettings, true); }
 }
 void open(IClientInstance& current) {
     std::lock_guard lock(mutex);
-    if (scene || !gameplayScreen(current.getScreenName())) return;
+    if (scene || !(gameplayScreen(current.getScreenName())
+        || outsideWorldMenu(current.getScreenName(), current.getLocalPlayer() != nullptr))) return;
     CameraSessions::instance().suspendInput();
     error.clear(); rangeWarning.reset(); seen = false; closing = false; pendingClick.reset(); pendingKeys.clear(); pendingSearch = false;
     numberDirty = false; uiHeld.clear();
@@ -1184,6 +1191,8 @@ void open(IClientInstance& current) {
     table_view::open();
     // Category, expansion and scroll persist between openings in a session.
     navigation.reopenNormal();
+    // A world's view remembered from play: the general list outside a world.
+    if (nav::needsWorld(navigation.current) && !current.getLocalPlayer()) navigation.current = 0;
     table_view::rebuild(true);
     // This native information screen supplies focus/cursor ownership. It has no
     // form ID, packet, or server callback. Lamium draws and handles its own UI.

@@ -28,5 +28,9 @@ inline constexpr int worldMap = count - 3;
 inline constexpr int hud = count - 2;
 // Like the world map: opens the calculator panel, Esc returns (L-171).
 inline constexpr int calculator = count - 1;
+// Views made of one world's data; outside a world they do not open (L-175).
+inline constexpr bool needsWorld(int index) {
+    return index == shapes || index == waypoints || index == schematics || index == worldMap || index == hud;
+}
 }
 }

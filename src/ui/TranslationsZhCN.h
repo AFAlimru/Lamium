@@ -1382,6 +1382,7 @@ inline constexpr auto simplifiedChinese = std::to_array<Text>({
     {"language.cancelled", "未应用: 世界、维度或界面已改变。"},
     {"language.saving", "保存蓝图时不会应用。"},
     {"language.failed", "游戏未应用该语言。"},
+    {"worldOnly", "在世界中可用。"},
     {"language.wait", "在世界中频繁切换可能导致游戏卡死。请在 {} 秒后重试。"},
     {"feature.skipServerPacks", "不应用服务器资源包"},
     {"skipServerPacks", "不应用服务器资源包: {}"},

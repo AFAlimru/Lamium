@@ -236,7 +236,8 @@ inline Relation bindingRelation(Chord const& a, Chord const& b) {
 inline bool sameInputContext(Action a, Action b) {
     return a == Action::Transfer || b == Action::Transfer || (a == Action::Sort) == (b == Action::Sort);
 }
-inline bool actionAllowed(Action action, bool gameplay, bool container, bool freeCamera = false) {
+inline bool actionAllowed(Action action, bool gameplay, bool container, bool freeCamera = false, bool outsideWorld = false) {
+    if (action == Action::Settings && outsideWorld) return true;
     if (action == Action::FreeCameraSpeedUp || action == Action::FreeCameraSpeedDown) return gameplay && freeCamera;
     if (action == Action::Sort) return container;
     if (action == Action::Transfer) return gameplay || container;
