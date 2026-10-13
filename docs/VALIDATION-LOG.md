@@ -12,6 +12,29 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-175 title screen entry and language outside a world (2026-10-14)
+
+Maintainer checks with screenshots, all diagnostics off.
+- `6fc969a`: "Lamium 0.2.0" shows bottom right, hover underlines it, a
+  click opens the settings; stays after returning from other screens and
+  across UI profiles. Without a band it looked unlike LeviLamina's line.
+- `f560b37`/`11665ae`: band added; measured from screenshots the band was
+  about 93% opaque (drawn on several title-screen views per frame) and
+  taller than LeviLamina's, with an 8 px gap.
+- `bbbeb7c` (DLL SHA-256
+  `520656d191aa944e799b70f22e0560b4d32c6b8918bf8c96378f8a71e4eedadf`):
+  drawn once per frame at the measured opacity, height and text place;
+  matches LeviLamina's line. Choosing a language from the title screen
+  stayed at "Applying..." (executor not running outside a world).
+- `a4810bc`: the language applies from the title screen; L works at the
+  title screen and in worlds through the shared queue. The thin underline
+  looked too thin in English.
+- `5c35918` (DLL SHA-256
+  `2e1e4831ca639e1621af27f4f4a6c37a32942b30039bf9fb91f695eb26f5fc08`):
+  repeated switching from the title screen applies without a notice or
+  freeze; in a world the 10 s notice still appears; the underline is right
+  in English, Chinese and Korean (thin only in Japanese).
+
 ## L-175 Lamium settings outside a world (2026-10-14)
 
 Maintainer checks, Minecraft 1.26.51.01, LeviLamina Client 26.51.7.

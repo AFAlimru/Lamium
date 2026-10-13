@@ -391,19 +391,6 @@ type 3, scale 1.333, with the font's own material).
 
 ## Feature work and research
 
-### L-175 Lamium settings outside a world (title screen)
-Kind: Design, then Build. From the maintainer (2026-10-14); not chosen for
-building, no release.
-Goal: open the same Lamium settings screen from the title screen (and
-other menus outside a world) and change settings there, instead of only
-inside a world.
-Questions: how it is opened there (key, a button on the title screen),
-which views make sense without a world (waypoints, schematics, shapes and
-the world map need world data; settings, keys and HUD layout do not), and
-what the HUD layout editor previews without a HUD. Lamium's screen is
-drawn from in-world UI render events today; check what renders on the
-title screen (OreUI) before designing.
-
 ### L-174 Chat messages placed like Java Edition, through the HUD layout
 Kind: Research, then Design. From the maintainer's notes (2026-10-13); not
 chosen for building, no release.
