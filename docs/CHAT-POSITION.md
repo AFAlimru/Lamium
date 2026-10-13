@@ -15,7 +15,24 @@ line-count or appearance settings. The layout editor uses sample text, not
 saved chat contents. The feature is Experimental until runtime coverage is
 established. BACKLOG owns status; VALIDATION owns runtime evidence.
 
-## Research and first implementation (2026-10-14)
+## Current implementation and open defect (2026-10-14)
+
+The maintainer passed the initial three-step checklist on `5b5750c`, then
+reported a brief flicker of remaining messages when an older one expires.
+This establishes basic placement, editing/reset and OFF restoration, not
+the broader checks below. Evidence: VALIDATION-LOG.
+
+The follow-up replaces the subtree-wide pre-render translation with a
+render scope containing only owned screen/layout values. Native text and
+background render hooks find the panel through a bounded ancestor walk,
+read its current measured size after layout, translate only the component's
+cached position for its draw and restore it immediately. Parent-relative
+positions and dirty flags are left alone; no game pointers cross frames.
+Renamed native text/background controls fail open. This addresses the two
+suspected causes (pre-layout height and unnecessary cache invalidation),
+but the cause and the fix still need runtime confirmation.
+
+## Research and first implementation (2026-10-14, superseded by the fix above)
 
 - SDK 26.51.5 exposes `UIControl::mParentRelativePosition`,
   `mCachedPosition`, `mCachedPositionDirty`, `mSize`, `mChildren` and
@@ -44,7 +61,11 @@ established. BACKLOG owns status; VALIDATION owns runtime evidence.
 Build checkpoint: release DLL, LamiumTests and LamiumNativeTests pass; the hook inventory
 matches. No runtime result is claimed at this checkpoint.
 
-## Runtime checks (pending)
+## Runtime checks (initial 1-3 passed; expiry regression and broader checks pending)
+
+First repeat: send three short messages with time between them and watch
+the oldest fade/expire. The other messages and backgrounds should stay
+steady. Repeat with a wrapped message, then with Chat position OFF.
 
 1. Enable Chat position; send several messages and a wrapped long message.
    Text and backgrounds should appear together at the lower left and fade

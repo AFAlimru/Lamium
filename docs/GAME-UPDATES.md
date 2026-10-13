@@ -135,13 +135,15 @@ Effects HUD read the effects that frame; a change only stops the hiding or
 hides those icons with the HUD showing the same effects (L-147).
 
 ### `src/features/information/ChatPosition.cpp`
-Hooks: `ChatHudRender`
-Meaning: `ScreenView::render` consumes the current control positions; the
-HUD has `chat_panel` immediately under an unclipped `chat_stack`, separate
-from coordinates and the paper doll. The measured subtree is translated
-only for this render call and restored before returning. Gated (Chat
-position); missing controls, clipping or more than 512 subtree controls
-leave it vanilla. Initial runtime check still pending (L-174).
+Hooks: `ChatHudRender`, `ChatTextRender`, `ChatBackgroundRender`
+Meaning: the HUD has `chat_panel` immediately under an unclipped
+`chat_stack`, with native `chat_text`/`chat_background` components. The
+screen hook establishes the render scope; each component uses the panel's
+current measured size after native layout, translates only its cached
+position while drawing, then restores it without invalidating the tree.
+Gated (Chat position); renamed controls, clipping, invalid geometry or an
+ancestor walk beyond 16 controls leave it vanilla. Initial scope passed;
+the message-expiry flicker fix still needs the maintainer's check (L-174).
 
 ### `src/features/information/FrameTiming.cpp`
 Hooks: `FrameCompleted`

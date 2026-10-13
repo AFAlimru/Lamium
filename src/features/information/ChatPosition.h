@@ -13,6 +13,15 @@ inline std::optional<ui::hud_editor::Box> placed(float width, float height, floa
     auto at = ui::placeElement(width, height, chatW, chatH, element);
     return ui::hud_editor::Box{at.x, at.y, chatW, chatH};
 }
+inline std::optional<ui::hud_editor::Point> translated(float width, float height, ui::hud_editor::Box panel,
+                                                     ui::hud_editor::Point position, ui::HudElement const& element) {
+    for (float v : {panel.x, panel.y, position.x, position.y}) if (!std::isfinite(v)) return std::nullopt;
+    auto box = placed(width, height, panel.w, panel.h, element);
+    if (!box) return std::nullopt;
+    ui::hud_editor::Point point{position.x + box->x - panel.x, position.y + box->y - panel.y};
+    if (!std::isfinite(point.x) || !std::isfinite(point.y)) return std::nullopt;
+    return point;
+}
 void start() noexcept;
 void stop();
 // A sample in the editor; only owned geometry from play is remembered.

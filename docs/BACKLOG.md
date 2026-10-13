@@ -78,7 +78,7 @@ L-item wins. Every entry names what the task is, not only its number.
      L-167 in-world language (chosen: native-path research in progress), L-168 trade
      finder, L-169 Item Transfer in more screens and bulk moves, L-170
      enchantment order planner, L-173 quick shapes and beacon range, L-174
-     chat position (chosen 2026-10-14; initial runtime check pending), L-163
+     chat position (initial checklist passed; message-expiry flicker fix), L-163
      a Lamium-drawn inventory screen. L-151 to L-154
      stay later. This list approves no implementation and sets no release.
    - Done since 0.2.0 (BACKLOG-DONE): L-155, L-157 to L-161, L-147, L-148,
@@ -148,9 +148,9 @@ every server gap before a release.
 
 ### Since 0.2.1 (unreleased)
 
-L-174 Chat position: initial default-off implementation; runtime check
-pending. Before including it in a release, check native text/background
-translation, fading, placement/reset and OFF restoration (CHAT-POSITION.md).
+L-174 Chat position: initial checklist passed, but remaining messages
+briefly flicker when an older message expires. Recheck that transition on
+the component-render fix before release (CHAT-POSITION.md).
 
 ### Shipped in 0.2.1 (smoke-tested; remaining gaps in VALIDATION.md)
 
@@ -435,6 +435,12 @@ enable, and allows free placement in HUD layout. Background, font size,
 shadow and fading stay vanilla; the chat input screen is outside this scope.
 No width, line-count or appearance controls in this step. Research and
 the first implementation checkpoint: [CHAT-POSITION.md](CHAT-POSITION.md).
+Current (2026-10-14): the maintainer passed the three-step checklist on
+`5b5750c` (text/background placement and fading, layout/save/reset, OFF and
+coordinates/input unaffected), but remaining messages briefly flicker when
+an older message disappears. Fix in progress: apply translation at the
+native component draw, after layout, without forcing all position caches
+dirty each frame. Runtime recheck pending; keep this item open.
 
 ### L-173 Quick shapes: a beacon's range at a glance, shapes that are not saved
 Kind: Design. From the maintainer's notes (2026-10-13); not chosen for

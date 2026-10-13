@@ -69,11 +69,13 @@ game result.
 
 ## Information and overlays
 
-Chat position (L-174): first implementation on 2026-10-14; no runtime
-confirmation yet. Check text/background translation and native fading,
-layout dragging/reset/persistence, coordinates and input/history unchanged,
-OFF restoration, GUI scales, Pocket UI, packs, world/dimension/focus changes
-and servers. The checklist is in [CHAT-POSITION.md](CHAT-POSITION.md).
+Chat position (L-174): 2026-10-14 `5b5750c`, Minecraft 1.26.51.01;
+maintainer passed the supplied three-step checklist (text/background
+placement and fading, layout dragging/save/reset, OFF restoration and
+coordinates/input unaffected). Remaining messages briefly flicker when an
+older message expires; the component-render fix needs a recheck. GUI
+scales, Pocket UI, packs, world/dimension/focus changes and server coverage
+were not itemized. Checklist: [CHAT-POSITION.md](CHAT-POSITION.md).
 
 | Feature | Last confirmed | Not yet checked |
 |---|---|---|

@@ -12,6 +12,24 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-174 native chat placement: initial checklist and expiry flicker (2026-10-14)
+
+Maintainer report on `5b5750c`, DLL SHA-256
+`b204f68fc239f41ff7545ea5eff561686a556b9dd2c274361105e3893dc83235`,
+Minecraft 1.26.51.01, Windows x64; loader revision, UI profile, packs and
+local/server context were not reported. All diagnostics off.
+
+- The supplied three-step checklist passed: enabling puts native text and
+  backgrounds at the bottom left and fades normally; HUD layout dragging,
+  saving and reset work; OFF restores placement and coordinates and the
+  chat input screen are unaffected.
+- Exception: as messages disappear, the remaining messages briefly flicker
+  (the maintainer described it as possibly being redrawn). Cause is not
+  established. The first implementation forced position caches dirty after
+  every render and took the panel height before native render-time layout.
+- GUI scales, Pocket UI, packs, focus/world/dimension changes and server
+  coverage were not separately itemized. The follow-up fix is unverified.
+
 ## L-175 title screen entry and language outside a world (2026-10-14)
 
 Maintainer checks with screenshots, all diagnostics off.
