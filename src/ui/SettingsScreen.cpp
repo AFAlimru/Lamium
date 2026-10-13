@@ -950,15 +950,17 @@ void render(ll::event::UIRenderEvent& event) {
             information::traceHunger(context,view);
 #endif
         } else if (current.getScreenName() == "start_screen" && !current.getLocalPlayer()) {
-            // Above LeviLamina's own version line, in the same corner.
+            // On a dark band like LeviLamina's version line, just above it in
+            // the same corner; the whole band is the click target.
             auto text = "Lamium " + lamiumVersion();
-            float w = textWidth(context, text), h = 10;
-            titleEntry = {size.x - 3 - w, size.y - 3 - 2 * h, w, h, current.getGuiData()->mInvGuiScale, true};
+            float w = textWidth(context, text) + 4, h = 11;
+            titleEntry = {size.x - w, size.y - 2 * h - 1, w, h, current.getGuiData()->mInvGuiScale, true};
             glm::vec2 pointer = view.mPointerLocationPrevious;
             bool over = pointer.x >= titleEntry.x && pointer.x < titleEntry.x + w && pointer.y >= titleEntry.y
                 && pointer.y < titleEntry.y + h;
-            label(context, titleEntry.x, titleEntry.y, w + 2, text, over ? palette::text : palette::dim);
-            if (over) fill(context, titleEntry.x, titleEntry.y + 9, w, 1, palette::text);
+            fill(context, titleEntry.x, titleEntry.y, w, h, Rgb{0, 0, 0}, over ? .65f : .5f);
+            label(context, titleEntry.x + 2, titleEntry.y + 1, w, text, palette::white);
+            if (over) fill(context, titleEntry.x + 2, titleEntry.y + 10, w - 4, 1, palette::white);
             context.flushText(0, std::nullopt);
         } else titleEntry.shown = false;
         return;
