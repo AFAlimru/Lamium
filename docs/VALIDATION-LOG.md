@@ -12,6 +12,30 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-162 history-capture candidate, BDS correction replay still bypasses input (2026-10-13)
+
+By the maintainer on test BDS 1.26.51.1, Minecraft 1.26.51.01,
+LeviLamina Client 26.51.7, Windows x64. Build `d59f16b`, `--edge_trace=y`,
+DLL SHA-256 `476dc27c76b6943d19fac13f13df06da4e0dcefe77cf8f5314f6f30acc780077`
+(deployed copy still matches the tested build).
+- Maintainer confirmed all four checks on BDS: ordinary edges stop, slab
+  bridging has no pullback or fall, jumping leaves, sneak release does not
+  fall, disabling restores ordinary movement, and enabling then rejoining
+  restores the stop.
+- Nine correction windows were recorded, without a fall dump. Prepared
+  rewind entities retain guarded raw snapshot input, but eight windows
+  calculate full Down movement (0,-1) from another input state during
+  replay. At correction tick 418, prepared raw analog (-0.635,-0.395)
+  has no direction flags, yet both replay calculations use Down and (0,-1).
+  The live raw input at this point still contains Down and analog (0,0).
+- Thus the scoped frame-capture substitution does not fix actual replay
+  input loss. Smoke checks alone did not establish a fix. The original
+  rare fall remains unreproduced.
+The BDS log is saved separately. The next candidate removes the scoped
+history hook and keeps processed horizontal input in the live history raw
+fields after normal input calculation, preserving other physical fields.
+That candidate is not yet runtime-verified.
+
 ## L-162 history-capture fix, solo smoke checks (2026-10-13)
 
 By the maintainer in solo play, Minecraft 1.26.51.01, LeviLamina Client

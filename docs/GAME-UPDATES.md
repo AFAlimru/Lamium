@@ -159,22 +159,22 @@ Hooks: `FinishBreak`, `StopBreak`, `ChangeDimension`
 Meaning: breaking goes through `GameMode::destroyBlock` once per block.
 
 ### `src/features/interaction/EdgeGuard.cpp`
-Hooks: `EdgeGuardHook`, `EdgeGuardInputHook`, `EdgeGuardHistoryHook`, `EdgeGuardPlaceHook`, `EdgeGuardSurvivalPlaceHook`, `EdgeGuardBuildHook`, `EdgeGuardSurvivalBuildHook`, `EdgeGuardStartBuildHook`, `EdgeGuardSurvivalStartBuildHook`, `EdgeTraceSend`, `EdgeTraceCorrection`, `EdgeTraceBuild`, `EdgeTraceSurvivalBuild`, `EdgeTraceHistoryFrame`, `EdgeTracePrepare`, `EdgeTraceApply`, `EdgeTraceReplay`
+Hooks: `EdgeGuardHook`, `EdgeGuardInputHook`, `EdgeGuardPlaceHook`, `EdgeGuardSurvivalPlaceHook`, `EdgeGuardBuildHook`, `EdgeGuardSurvivalBuildHook`, `EdgeGuardStartBuildHook`, `EdgeGuardSurvivalStartBuildHook`, `EdgeTraceSend`, `EdgeTraceCorrection`, `EdgeTraceBuild`, `EdgeTraceSurvivalBuild`, `EdgeTraceHistoryFrame`, `EdgeTracePrepare`, `EdgeTraceApply`, `EdgeTraceReplay`
 Meaning: the movement request's fields and collision shapes in
 `fetchCollisionShapes`; `PlayerMovement::calculateMoveVector` giving the move
 vector the client both simulates and sends (move x positive to the left), called
 with the local player's own input states; `startBuildBlock`, `buildBlock` and
 `useItemOn` (base and survival) before a slab is placed, with the clicked block
 and face (the held item read from the building hand). Gated (Edge Guard).
-`ActorHistory::addFrame` captures raw move input before that tick's movement
-calculation. For the exact local entity/registry on the client thread, an
-owned raw-input copy is calculated through vanilla, then guarded from the
-current position and velocity. Only a changed copy replaces horizontal raw
-fields during capture; the live input is restored afterwards. Replay
-otherwise rebuilds full movement from captured direction keys (L-162).
-No input or pointer is cached between frames or worlds; missing components
-fail open. Jump, sneak and other raw fields are preserved; jumping or no
-longer walking leaves the copy unchanged. Gated (Edge Guard).
+After calculating the exact local `mInputState` on the client thread, its
+horizontal direction flags and encoded analog vector are copied to
+`MoveInputComponent::mRawInputState`. They remain available to later replay
+input capture, until vanilla's next device refresh. Temporarily guarding
+only `ActorHistory::addFrame` preserved the entity snapshot but did not
+prevent full physical keys reappearing during replay (L-162); that hook is
+removed. No input or pointer is cached between frames or worlds. Missing
+components fail open; jump, sneak and look fields are preserved, and the
+existing walking/jump exclusions apply. Gated (Edge Guard).
 Trace-only (L-162): `ActorHistory::addFrame`,
 `ActorHistory::prepareEntityForRewindFromCapture`,
 `ClientPlayerRewindSystem::applyHistoryChangesToLiveEntity` and

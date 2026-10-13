@@ -6,18 +6,13 @@
 #include <utility>
 
 namespace lamium::interaction {
-// The capture sees the replacement; live device input is restored even if
-// the capture unwinds. No reference survives this call.
-template <class Input, class Capture>
-decltype(auto) withReplayInput(Input& raw, Input const& replacement, Capture&& capture) {
-    Input saved = raw;
-    struct Restore {
-        Input& target;
-        Input const& saved;
-        ~Restore() { target = saved; }
-    } restore{raw, saved};
-    raw = replacement;
-    return std::forward<Capture>(capture)();
+// Preserve unrelated physical flags while making later history captures
+// rebuild the same horizontal movement as the processed input.
+template <class Flags, class Vector, class Directions>
+void copyHorizontalInput(Flags& targetFlags, Vector& targetAnalog, Flags const& sourceFlags,
+                         Vector const& sourceAnalog, Directions const& directions) {
+    for (auto index : directions) targetFlags.set(index, sourceFlags.test(index));
+    targetAnalog = sourceAnalog;
 }
 
 // Edge Guard (BACKLOG L-40): shorten a horizontal move until the player's

@@ -334,11 +334,12 @@ found later are handled as bugs.
 ### L-162 Edge Guard: fall after a server correction re-runs recent ticks
 Kind: Bug, Research (strong model). Split from L-161, 2026-10-12; rare.
 Current status 2026-10-13: round 2 establishes guarded horizontal input
-being lost during history replay. The capture fix passes the maintainer's
-four smoke checks and captures guarded raw input, but its first run recorded
-no correction window. A further diagnostic run is authorized to verify
-replay (details below). The original rare fall is not reproduced and this
-item remains open.
+being lost during history replay. The scoped capture candidate passes the
+four smoke checks in BDS and solo play, but the additional BDS run records
+full direction keys in eight of nine correction replays. It is insufficient.
+The next candidate keeps guarded horizontal fields available after normal
+input calculation (details below). The original rare fall is not reproduced
+and this item remains open.
 Seen once on the local test BDS (trace of `2dc7e45`, VALIDATION-LOG "L-161
 margin 0.1"): after a +0.047 block server correction, the client's next
 position was 0.17 block further out, off the block, and it fell. The client
@@ -396,7 +397,7 @@ becomes (-0.707,-0.707)). History capture retains those raw keys. The live
 collision guard sometimes clamps the replay, but does not prevent this
 loss of the guarded input. This identifies a concrete bug without proving
 the earlier rare fall's cause.
-Candidate fix: `EdgeGuardHistoryHook` (normal build) guards an owned copy of
+First candidate (superseded after the additional BDS run): `EdgeGuardHistoryHook` guards an owned copy of
 the local raw input at `ActorHistory::addFrame`, which runs before that
 tick's movement calculation. Vanilla calculates the copy's move vector and
 the existing input guard uses the current live position and velocity. Only
@@ -428,8 +429,33 @@ to a few more minutes of diagonal edge approaches and slab bridging with
 the same diagnostic build. A subsequent solo-play run passes all four
 checks too; its separate log verifies guarded raw history input and the
 local server-copy guard, with no correction window or fall dump. The
-additional BDS correction check remains pending. Keep L-162 open until
-correction replay is checked.
+additional BDS run subsequently passes all four checks, but records nine
+corrections: prepared raw snapshot input is guarded, while eight replays
+still calculate full Down movement (0,-1). This scoped substitution is
+insufficient; the live history raw fields still contain physical direction
+keys when later replay input is captured. No fall dump was recorded.
+Second candidate: remove `EdgeGuardHistoryHook`. At the existing
+`calculateMoveVector` hook, after guarding the exact local processed input
+state, copy only its eight horizontal flags and encoded analog vector to
+`MoveInputComponent::mRawInputState`. Do this even if the earlier device
+input calculation already applied the guard, so later capture retains the
+same movement. Vanilla refreshes device input next tick; no game pointer
+or input is retained across calls. Preserve jump, sneak, sprint and look
+fields; keep the client-thread, exact-state, walking/jump and capability
+checks. Pure/SDK tests cover field preservation and an independent delayed
+snapshot surviving the next device refresh. Runtime validation pending;
+keep L-162 open until correction replay is checked.
+Second-candidate normal and diagnostic builds, LamiumTests,
+LamiumNativeTests and the hook inventory check pass. The diagnostic DLL is
+deployed (source and deployed SHA-256
+`49dab77189696704dd485d5206eebab2a86b2c243af75ce3c8467a30d78cda89`).
+Configuration is reset to `--edge_trace=n`; the normal DLL is saved for
+restoration (SHA-256
+`d5b75af3c0190cc73ce046c1eee0790d9a9e420253aeea0f744aa0f4a1abac81`).
+Next BDS check: diagonal approaches and slab bridging at margin 0.10 for
+several minutes, plus jump, sneak release, disable and enable/rejoin. Trace
+must show whether synchronized raw fields reach actual replay input,
+not just the prepared snapshot. No runtime success claimed yet.
 
 ### L-123 FreeCamera stretches the worn elytra on the inventory player model
 Kind: Bug, low priority. Reported from use 2026-10-09 (maintainer's notes).
