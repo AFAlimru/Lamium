@@ -12,6 +12,72 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-166 controlled BDS delays, interruption and re-entry (2026-10-13)
+
+Agent Computer Use with the maintainer performing modified row clicks and
+the requested Alt+Tab/close gestures. Normal `481dc7d`, all trace options off;
+source/deployed DLL SHA-256
+`88deafb6e351ea72afb637ca5373163835023c53d09f6489c4901849aefd8352`.
+Minecraft 1.26.51.01, LeviLamina Client 26.51.7, isolated BDS 1.26.51.1.
+- Delay only the BDS thread named MC_SERVER; leave NetherNet communication
+  threads running. Helpers verify thread ownership/name, have a fixed
+  deadline, and resume their own suspension in finally. Connection remains
+  alive. This creates delayed server processing, not measured network RTT.
+- A 45-second hold with four ordinary books causes selection/refill but no
+  new enchanted books. After responses return and focus returns, holdings
+  stay at 200 emeralds, four ordinary books, eight enchanted books. The
+  maintainer kept Minecraft foreground for six seconds after the trigger;
+  normal logs do not isolate the timeout from subsequent focus loss.
+- With two-second holds separated by 0.2-second run windows, a fresh
+  modified click trades the remaining four books: 12 enchanted books total,
+  172 emeralds, no ordinary books; the book row is sold out. This finishes
+  before the attempted dimension interruption and counts only as delayed
+  trading/sold-out coverage.
+- A fresh smith starts with 240 coal at price 15. Two-second holds separated
+  by 0.01-second run windows produce three emeralds and 195 coal. A console
+  teleport then moves the player to a prepared Nether platform and back;
+  the trade screen closes, totals remain three/195, and no run restarts.
+  These snapshots do not prove the exact request phase at dimension change.
+- Hold server processing again, trigger the coal row, immediately Alt+Tab.
+  The selection changes from axe ingredients to 64 coal, but output remains
+  three emeralds. Restore server responses and focus: still three/195.
+- Repeat with the maintainer clicking the screen's × about one second after
+  the trigger: closed screen, three emeralds and 195 coal after responses
+  return. Physical Esc in the earlier attempt stopped Computer Use, so the
+  × gesture replaces that attempt.
+- Save/exit, join the same BDS again, wait and reopen the trader: still three
+  emeralds and 195 coal, no automatic restart. The final item-entity query
+  finds only a Lead, no coal or emerald drop. Remove the temporary Nether
+  ticking area; leave the isolated test world saved.
+- Coverage limits: real network latency/loss, exact runtime timeout cause,
+  forced world exit with a pending response, other servers and price changes.
+  Part 1 completion covers the implemented repeated-trade behavior and the
+  observed local/normal-BDS checks; these limits stay in pre-release checks.
+- Finish on Minecraft's main menu; stop only the agent's test BDS cleanly,
+  restore server.properties byte-for-byte from its pre-test backup, and
+  confirm the restored hash matches. All delay helpers have finished.
+  The normal deployed DLL remains unchanged with the hash above.
+
+## L-166 normal BDS settings-off and enchanted books (2026-10-13)
+
+Agent Computer Use with the maintainer performing Shift + right clicks.
+Same normal `481dc7d` build and source/deployed DLL SHA-256
+`88deafb6e351ea72afb637ca5373163835023c53d09f6489c4901849aefd8352`;
+Minecraft 1.26.51.01, LeviLamina Client 26.51.7, BDS 1.26.51.1 test world.
+- Turn Repeated trading off in Lamium's settings. Several modified clicks
+  on the librarian's 7 emeralds + 1 book offer do nothing: 256 emeralds,
+  8 ordinary books, no enchanted-book output. Closing returns the inputs
+  unchanged. Restore the setting to on.
+- One modified click then produces eight enchanted books in separate
+  inventory slots. Emeralds decrease 256 -> 200, ordinary books 8 -> 0;
+  the run stops for missing second input. Closing preserves these totals.
+  BDS finds no dropped-item entity.
+- A latency fixture that pauses all BDS threads for 20 seconds disconnects
+  the client before the maintainer can trade. The helper resumes every
+  acquired thread; this attempt establishes no delayed-trade behavior.
+  Client and test BDS are restarted for a more selective fixture.
+- Interrupted runs and delayed trade responses remain unchecked here.
+
 ## L-166 normal BDS sold-out and safe input return (2026-10-13)
 
 Agent Computer Use with the maintainer performing the right-click gestures.

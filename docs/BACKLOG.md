@@ -74,9 +74,6 @@ L-item wins. Every entry names what the task is, not only its number.
    - Bugs: L-123 elytra stretched on the inventory model after FreeCamera and
      L-91 shield glint in Lamium's icons (both parked); L-132 moving with
      the inventory screen open (paused after eight rounds).
-   - L-166 villager trade helpers: part 1 (Shift + right click) works
-     locally and on normal BDS, including sold-out and safe full-inventory
-     refusal; two-input, settings-off, delay and interruption checks remain.
    - Specs to agree with the maintainer before building: L-165 Mass Craft,
      L-167 in-world language, L-168 trade
      finder, L-169 Item Transfer in more screens and bulk moves, L-170
@@ -85,7 +82,7 @@ L-item wins. Every entry names what the task is, not only its number.
      stay later. This list approves no implementation and sets no release.
    - Done since 0.2.0 (BACKLOG-DONE): L-155, L-157 to L-161, L-147, L-148,
      L-150, L-164 with L-133 and L-156, L-171 calculator, L-172 text
-     fields.
+     fields, L-166 repeated villager trades (part 1).
 2. **Schematic — L-93 follow-ups:** the screen review and the 0.1.8
    rendering work shipped in 0.1.8. Open: L-114 the Check tab preview's
    mistake look and see-through emphasis, L-115 entity models beyond the
@@ -150,13 +147,14 @@ every server gap before a release.
 
 ### Since 0.2.0 (unreleased)
 
-Changed features for the next smoke test, all checked locally only:
+Changed features for the next smoke test; coverage is in VALIDATION.md:
 Edge Guard on a server (L-160, L-161 margin setting, L-162 replay/server input), Find by key (L-159),
 Chunk Borders and Hitboxes on walls (L-157), the Status effects HUD and
 ammo counts (below), the Nether portal screen (L-148), Connected Textures
 drawn with generated sprites and texture sets (L-164: resource packs and a
 reload while in a world are unchecked), text fields with a caret (L-172)
-and the calculator (L-171). A release ZIP is built from main as usual.
+and the calculator (L-171), repeated villager trading (L-166 part 1,
+normal local/BDS checks complete). A release ZIP is built from main as usual.
 
 ### L-162 Edge Guard follow-up coverage (2026-10-13)
 
@@ -166,6 +164,17 @@ and the calculator (L-171). A release ZIP is built from main as usual.
   the feet off support; incoming corrections are not clamped. The earlier
   +0.178 slab-bridging correction was not repeated at its identical location.
   If a fall recurs, preserve its environment/build/log before reopening work.
+
+### L-166 repeated trading follow-up coverage (2026-10-13)
+
+- Chosen part 1 is complete and checked locally and on the normal BDS build;
+  include it in the next changed-feature release smoke. No release selected.
+- Controlled response delays pause MC_SERVER with communication running.
+  Real network RTT/loss and other servers are untested. Normal logs do not
+  isolate the exact timeout phase or dimension cancellation from an earlier
+  stop; forced world exit with a pending response remains unchecked.
+- Discount/demand price changes and longer actual play remain coverage limits.
+  Favourites and remaining-use UI are separate undecided scope below.
 
 ### L-147 and L-150 (2026-10-12, local only)
 
@@ -576,48 +585,12 @@ Lamium settings row listing the game's languages).
 Fail open: if the game's own apply path cannot be found, show nothing.
 
 ### L-166 Villager trade helpers
-Kind: Research (strong model) for part 1; Design for optional follow-ups.
-Imported from the maintainer's notes (2026-09-25) on 2026-10-12.
-Status 2026-10-13: after the initial diagnostic checkpoint, the maintainer
-authorized agent Computer Use for runtime checks and completing part 1.
-The vanilla request path and predicted client offer uses are observed locally;
-the one-at-a-time implementation and its Shift + right-click trigger
-(remapped at the row's input component) are locally verified. Normal BDS
-`481dc7d` buys one axe with plain right click, then the remaining 11 with
-Shift + right click; reopening preserves sold-out state. The input-return
-preflight fixes full-inventory ingredient drops: the repeated gesture leaves
-both stacks unchanged and no dropped items. Two-input books, settings-off,
-delayed responses and interruptions remain; L-166 is not complete.
-Completion requires matching request acknowledgments and inventory deltas,
-with server offer state checked by reopening on BDS. Research and checklist:
-[TRADE-HELPERS.md](TRADE-HELPERS.md). Part 2 remains undecided; no release.
-Builds on L-129 (every trader level shown); separate from L-154's inventory
-gestures.
-Goal: fewer clicks for repeated trades in the vanilla trade screen.
-Agent's proposal (not decided):
-1. Trade repeatedly: a modifier click on a trade in the list (gesture open,
-   below) trades it as many times as allowed: until the offer is sold out
-   (uses reach max uses), the inputs in the inventory run out, the output
-   no longer fits, or a limit. Each round goes through vanilla's own trade
-   request (the server-side trade request already carries a craft count,
-   `CraftHandlerTrade::mNumCrafts`), Lamium does not build trade
-   transactions, and the next round starts only after the inventory and the
-   offer's uses changed on authoritative state. Locked trades (L-129) are
-   never traded. The output is never dropped: stop when it would not fit.
-2. Later, only if wanted: remember a favourite trade per profession and
-   select it when the screen opens; show the remaining uses before an offer
-   sells out.
-Out of scope: trading with several villagers at once, moving villagers,
-restock timers, anything that changes prices.
-Research entry: `Trade2ScreenController` (`_onContainerSlotPressed`, the
-`TradeItemCollections`, `_getBaseItemCountForTrade`), `Trade2ContainerManagerModel`,
-`UpdateTradePacket` after each trade (does `uses` update, how fast).
-Validation: local world and BDS, with latency; sold-out mid-run, full
-inventory, closing the screen mid-run, two-input trades, enchanted books.
-Decided (maintainer 2026-10-12, trigger revised 2026-10-13): Shift + right click
-on a trade row trades it as often as allowed; left click and plain right click
-stay vanilla (Shift + right click on a row does nothing in vanilla); default on.
-Open (maintainer): whether part 2 is wanted at all.
+Kind: Design for optional part 2; part 1 is complete/unreleased.
+Repeated trading is recorded in [BACKLOG-DONE](BACKLOG-DONE.md#l-166-villager-trade-helpers-part-1);
+current contract: [TRADE-HELPERS.md](TRADE-HELPERS.md), coverage: VALIDATION.md.
+Open (maintainer): whether to add favourites per profession and remaining-use
+presentation at all. No choice or implementation for those follow-ups is
+approved. Repeated trading's remaining coverage is under Pre-release checks.
 
 ### L-165 Mass Craft: craft a recipe many times at once
 Kind: Design, then Research (strong model). In the notes since 2026-09-22;

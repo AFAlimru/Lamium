@@ -1,10 +1,13 @@
 # Villager trade helpers
 
-Current work: [BACKLOG L-166](BACKLOG.md#l-166-villager-trade-helpers).
-Runtime coverage stays in VALIDATION.md. Repeated trading has a local runtime
-pass. Normal BDS also passes sold-out trading and full-inventory refusal
-after the input-return preflight fix. Interrupted runs, delayed responses,
-settings-off and two-input offers are being checked before completion.
+Repeated trading (L-166 part 1) is complete, unreleased; its record is in
+[BACKLOG-DONE](BACKLOG-DONE.md#l-166-villager-trade-helpers-part-1).
+Runtime coverage stays in VALIDATION.md. The normal build passes local/BDS
+trading, sold-out and material-limit stops, safe full-inventory refusal,
+settings-off and two-input enchanted books. Controlled BDS response delays,
+focus loss, closing and re-entry preserve the observed totals without an
+automatic restart. The delayed partial run also stays stopped through a
+Nether round trip. Coverage limits belong to BACKLOG's pre-release checks.
 
 ## Contract
 
@@ -131,7 +134,7 @@ does not cancel a run. Verified locally (VALIDATION-LOG).
 
 The notes below are the handoff that led here.
 
-### What the current build does
+### Implementation handoff before the normal BDS checks
 
 - `src/features/inventory/RepeatTrades.cpp` (+ pure `RepeatTradeState.h`,
   `tests/RepeatTradeTests.cpp`): on its trigger it swallows the row
