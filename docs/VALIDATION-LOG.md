@@ -41,6 +41,10 @@ leave, enter a local world in the same session.
   diagnostics off): local world yellow/cyan, then the BDS magenta dirt and
   vanilla stone, then the local world yellow/cyan again. Minimap colors,
   the saturation display and Connected Textures look as usual.
+- Same build, Skip server resource packs on: the BDS shows normal dirt and
+  the toast "Server resource packs not applied (1)"; leaving for a local
+  world brings back the global pack (yellow dirt, cyan stone). The earlier
+  vanilla look after skipping is not seen with the fix.
 
 ## L-167 Skip server resource packs, product build (2026-10-14)
 
