@@ -391,6 +391,19 @@ type 3, scale 1.333, with the font's own material).
 
 ## Feature work and research
 
+### L-175 Lamium settings outside a world (title screen)
+Kind: Design, then Build. From the maintainer (2026-10-14); not chosen for
+building, no release.
+Goal: open the same Lamium settings screen from the title screen (and
+other menus outside a world) and change settings there, instead of only
+inside a world.
+Questions: how it is opened there (key, a button on the title screen),
+which views make sense without a world (waypoints, schematics, shapes and
+the world map need world data; settings, keys and HUD layout do not), and
+what the HUD layout editor previews without a HUD. Lamium's screen is
+drawn from in-world UI render events today; check what renders on the
+title screen (OreUI) before designing.
+
 ### L-174 Chat messages placed like Java Edition, through the HUD layout
 Kind: Research, then Design. From the maintainer's notes (2026-10-13); not
 chosen for building, no release.
@@ -601,16 +614,22 @@ Server packs (2026-10-14): accepting a required pack and not applying it
 locally works on BDS for a cosmetic test pack (research build only); in-world
 Global Resources then shows a gray page. Hang: 12 in-world switches in 23 s
 froze the game; the title screen does not (VALIDATION-LOG).
-Open (maintainer): where the language entry should live (Lamium settings
-as now, a vanilla in-world settings tab, or the pause menu) and the resource
-pack scope (read-only list first, or queue-exit-apply-rejoin).
+Decided (maintainer 2026-10-14): the language entry stays in Lamium's
+General settings, drawn inside the settings frame; in-world switching stays
+with one change per 10 s and a notice (experimental). Server packs: one
+Lamium switch "do not apply server resource packs" for remote servers,
+taking effect on the next join, with a notice when packs were left out
+(the usual Lamium message toast, or a chat line only the player sees; the
+toast is the agent's default). Per-server and per-pack choice are not
+wanted now. Not built yet; the gray in-world Global Resources page needs a
+look when it is.
 Contract, findings and next checks: [LANGUAGE.md](LANGUAGE.md).
 Added research request (maintainer 2026-10-13): whether a server-required
 resource pack can be disabled locally without general pack-stack editing.
 Separate receiving/accepting packs from applying their visual resources.
-The existing no-change/no-skip boundary for world/server packs remains for
-implementation; this request approves feasibility research, not bypassing
-the handshake or adding a switch. No disabling is implemented.
+This request approved feasibility research only; the switch above was
+decided after the research (2026-10-14). The download/acceptance handshake
+is never changed or skipped; only local application is.
 Fail open: if the game's own apply path cannot be found, show nothing.
 
 ### L-166 Villager trade helpers
