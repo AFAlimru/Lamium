@@ -75,7 +75,8 @@ placement and fading, layout dragging/save/reset, OFF restoration and
 coordinates/input unaffected). On `b28a40d` the follow-up checklist passed:
 no flicker as messages expire, and wrapped long messages remain correct.
 Observed saved position is flush left, bottom offset -45; the chosen new
-default uses -44 for a 4-unit gap (reset/fresh-settings smoke check pending).
+default uses -44 for a 4-unit gap; the default-reset check passed on
+`dc3ac45` and the maintainer accepted closing the item. Fresh settings,
 GUI scales, Pocket UI,
 packs, world/dimension/focus changes and server coverage were not itemized.
 Checklist: [CHAT-POSITION.md](CHAT-POSITION.md).

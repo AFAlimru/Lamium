@@ -12,6 +12,20 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-174 final default reset accepted (2026-10-14)
+
+Maintainer report on `dc3ac45`, DLL SHA-256
+`f0f51371a77025a533a73730630cf05f8c1bc66d650c7dce53c9b8716a10a0fb`,
+deployed to the 1.26.51.01 LIP instance, Windows x64. Loader revision,
+UI profile, packs and local/server context were not reported. All diagnostics off.
+
+- The supplied default-reset check passed. The flush-left placement with
+  the chat bottom 44 GUI units above the screen edge is accepted, including
+  the 4-unit gap above two default Durability HUD rows.
+- The maintainer accepted closing L-174. No remaining defect was reported.
+- A fresh settings file and the broader UI/pack/server checks were not
+  separately reported; they remain coverage gaps, not completion blockers.
+
 ## L-174 expiry flicker fixed and default placement chosen (2026-10-14)
 
 Maintainer report on `b28a40d`, DLL SHA-256

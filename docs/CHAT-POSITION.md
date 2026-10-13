@@ -38,6 +38,8 @@ remain correct. This confirms the fix in the tested context; the broader
 checks below remain unitemized. The saved placement was left 0, bottom
 offset -45; the maintainer then chose a 4-unit upper gap for the default
 (left 0, bottom offset -44). Existing saved placement is retained.
+The default-reset check passed on `dc3ac45`; the maintainer accepted closing
+L-174. Fresh settings and the broader checks remain unitemized.
 
 ## Research and first implementation (2026-10-14, superseded by the fix above)
 
@@ -73,7 +75,7 @@ matches. No runtime result is claimed at this checkpoint.
 First repeat: send three short messages with time between them and watch
 the oldest fade/expire. The other messages and backgrounds should stay
 steady. Repeat with a wrapped message, then with Chat position OFF. Passed
-on `b28a40d`; the final default after reset is the next smoke-test check.
+on `b28a40d`; the final default after reset passed on `dc3ac45`.
 
 1. Enable Chat position; send several messages and a wrapped long message.
    Text and backgrounds should appear together at the lower left and fade

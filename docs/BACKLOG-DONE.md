@@ -760,6 +760,11 @@ Reset/fresh-settings default smoke and broader UI/pack/server checks remain
 in BACKLOG Pre-release checks and VALIDATION; no release selected.
 Current contract: [CHAT-POSITION.md](CHAT-POSITION.md).
 
+Follow-up 2026-10-14: reset to the final default passed on `dc3ac45`, DLL
+SHA-256 `f0f51371a77025a533a73730630cf05f8c1bc66d650c7dce53c9b8716a10a0fb`.
+The maintainer accepted closing L-174. Fresh settings and broader coverage
+remain in VALIDATION; the reset smoke gap above is now closed.
+
 Implementation history below retains the superseded defect/next-step state.
 
 Kind: Research, then Ready (strong model). Chosen 2026-10-14; no release selected.

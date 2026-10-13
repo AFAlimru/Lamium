@@ -148,9 +148,9 @@ every server gap before a release.
 ### Since 0.2.1 (unreleased)
 
 L-174 Chat position: native placement and the expiry/long-message fix
-passed the maintainer's checks. The chosen flush-left, bottom offset -44
-default needs its reset/fresh-settings smoke check; broader layout, pack
-and server coverage remains in VALIDATION (CHAT-POSITION.md).
+passed the maintainer's checks, including reset to the chosen flush-left,
+bottom offset -44 default on `dc3ac45`. Fresh settings and broader layout,
+pack and server coverage remain in VALIDATION (CHAT-POSITION.md).
 
 ### Shipped in 0.2.1 (smoke-tested; remaining gaps in VALIDATION.md)
 
