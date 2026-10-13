@@ -50,6 +50,7 @@
 #include "app/Runtime.h"
 #include "app/Desktop.h"
 #include "app/Versions.h"
+#include "input/CustomInput.h"
 #include "features/camera/CameraSessions.h"
 #include "features/inspection/render/ItemIcon.h"
 #include "features/information/InfoHud.h"
@@ -104,6 +105,9 @@ int editorReturn = 0;
 bool pendingRelease = false;
 SettingsNavigation navigation;
 float displayedInverseScale = 0;
+// The title screen's "Lamium <version>" entry, as drawn last (L-175).
+struct TitleEntry { float x = 0, y = 0, w = 0, h = 0, inverseScale = 0; bool shown = false; };
+TitleEntry titleEntry;
 // Where the pointer was at the last frame, in GUI units. Wheel events carry
 // no position, so the pane under the pointer is found from this.
 glm::vec2 lastPointer{-1, -1};
@@ -945,7 +949,18 @@ void render(ll::event::UIRenderEvent& event) {
 #ifdef LAMIUM_HUNGER_TRACE
             information::traceHunger(context,view);
 #endif
-        }
+        } else if (current.getScreenName() == "start_screen" && !current.getLocalPlayer()) {
+            // Above LeviLamina's own version line, in the same corner.
+            auto text = "Lamium " + lamiumVersion();
+            float w = textWidth(context, text), h = 10;
+            titleEntry = {size.x - 3 - w, size.y - 3 - 2 * h, w, h, current.getGuiData()->mInvGuiScale, true};
+            glm::vec2 pointer = view.mPointerLocationPrevious;
+            bool over = pointer.x >= titleEntry.x && pointer.x < titleEntry.x + w && pointer.y >= titleEntry.y
+                && pointer.y < titleEntry.y + h;
+            label(context, titleEntry.x, titleEntry.y, w + 2, text, over ? palette::text : palette::dim);
+            if (over) fill(context, titleEntry.x, titleEntry.y + 9, w, 1, palette::text);
+            context.flushText(0, std::nullopt);
+        } else titleEntry.shown = false;
         return;
     }
     if (&current != client) return;
@@ -1322,6 +1337,15 @@ void start() {
     });
     listeners[1] = bus.emplaceListener<ll::event::input::MouseInputEvent>([](auto& event) {
         std::lock_guard lock(mutex);
+        if (!scene && titleEntry.shown && event.actionButtonId() == MouseAction::ActionLeft
+            && event.buttonData() == MouseAction::DataDown && titleEntry.inverseScale > 0) {
+            float x = event.x() * titleEntry.inverseScale, y = event.y() * titleEntry.inverseScale;
+            if (x >= titleEntry.x && x < titleEntry.x + titleEntry.w && y >= titleEntry.y && y < titleEntry.y + titleEntry.h) {
+                event.cancel();
+                input::queuePress(static_cast<int>(input::Action::Settings));
+                return;
+            }
+        }
         if (!ownsTop()) return;
         if (event.actionButtonId() == MouseAction::ActionMove || event.actionButtonId() == MouseAction::ActionMoveRelative) return;
         bool wheel = event.actionButtonId() == MouseAction::ActionWheel;

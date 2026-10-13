@@ -156,6 +156,7 @@ bool process(Token token, bool down, bool cancelled, bool textEditing = false) {
 }
 }
 void resetCustomInput() { invalidate(); }
+void queuePress(int action) { post(static_cast<Action>(action), true); }
 void startCustomInput() {
     if (installed) return;
     if (CustomInputFocusLost::hook(true) != 0) throw std::runtime_error("Could not install input focus hook");
