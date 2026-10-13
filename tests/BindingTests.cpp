@@ -52,6 +52,7 @@ void bindingTests() {
     check(actionAllowed(Action::Settings, false, false, false, true) && !actionAllowed(Action::Zoom, false, false, false, true)
         && !actionAllowed(Action::Settings, false, false), "outside a world only the settings key opens (L-175)");
     check(lamium::outsideWorldMenu("ui://./hbui/index.html", false) && !lamium::outsideWorldMenu("ui://./hbui/index.html", true)
+        && lamium::outsideWorldMenu("start_screen", false)
         && !lamium::outsideWorldMenu("world_loading_progress_screen - local_world_load", false)
         && !lamium::outsideWorldMenu("hud_screen", false), "the title screen's menus count, loading screens and play do not");
     check(lamium::ui::nav::needsWorld(lamium::ui::nav::waypoints) && lamium::ui::nav::needsWorld(lamium::ui::nav::hud)

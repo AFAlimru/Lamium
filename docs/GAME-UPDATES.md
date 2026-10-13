@@ -403,8 +403,9 @@ client applies (emptying it leaves vanilla textures, checked on BDS
 2026-10-14). Gated: the packet change.
 
 ### `src/input/CustomInput.cpp`
-Hooks: `CustomInputFocusLost`
-Rebuild.
+Hooks: `CustomInputFocusLost`, `CustomInputMenuFlush`
+Rebuild. `MinecraftGame::update` also runs before a world is joined, where
+LeviLamina's client thread executor does not (L-175).
 
 ### `src/overlay/WorldOverlay.cpp`
 Hooks: `WorldLines`

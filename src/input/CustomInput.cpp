@@ -56,6 +56,21 @@ void post(Action action, bool press) {
     flushScheduled = true;
     ll::thread::ClientThreadExecutor::getDefault().execute(flush);
 }
+// The client thread executor does not run before a world is joined (L-175,
+// 2026-10-14); the game's own update runs the queue there instead.
+LL_TYPE_INSTANCE_HOOK(CustomInputMenuFlush, ll::memory::HookPriority::Normal, MinecraftGame, &MinecraftGame::$update, void) {
+    origin();
+    try {
+        bool pending;
+        {
+            std::scoped_lock lock(queueLock);
+            pending = !queued.empty();
+        }
+        if (!pending) return;
+        auto client = ll::service::getClientInstance();
+        if (client && !client->getLocalPlayer()) flush();
+    } catch (...) {}
+}
 HeldInputs held;
 ChordSet previous;
 ChordDispatch dispatch;
@@ -144,6 +159,10 @@ void resetCustomInput() { invalidate(); }
 void startCustomInput() {
     if (installed) return;
     if (CustomInputFocusLost::hook(true) != 0) throw std::runtime_error("Could not install input focus hook");
+    if (CustomInputMenuFlush::hook(true) != 0) {
+        CustomInputFocusLost::unhook(true);
+        throw std::runtime_error("Could not install menu input hook");
+    }
     installed = true;
     auto& bus = ll::event::EventBus::getInstance();
     listeners[0] = bus.emplaceListener<ll::event::input::KeyInputEvent>([](auto& event) {
@@ -202,7 +221,7 @@ void stopCustomInput() {
         if (listener) ll::event::EventBus::getInstance().removeListener(listener);
         listener.reset();
     }
-    if (installed) { CustomInputFocusLost::unhook(true); installed = false; }
+    if (installed) { CustomInputMenuFlush::unhook(true); CustomInputFocusLost::unhook(true); installed = false; }
     held.clear(); screen.clear();
 }
 }
