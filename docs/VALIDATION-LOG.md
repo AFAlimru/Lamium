@@ -34,8 +34,12 @@ dirt). Minecraft 1.26.51.01, LeviLamina Client 26.51.7, Windows x64.
   LeviLamina or mods) joining the same BDS: the maintainer's own global
   pack is not applied, the server's pack is, and in-world Global Resources
   shows the gray page. This confirms the behavior is vanilla.
-- Open: whether Lamium or vanilla global-pack crash recovery (after the
-  forced exits) caused the 0-entry Global stack in the first session.
+- Normal build `fb16849` code (DLL SHA-256
+  `b890835bf52538df349ffa1ab84a260917e7e27a757483010bb1a09dcafd55c0`),
+  Lamium back in mods, after clean exits: the local world shows yellow dirt
+  and cyan stone; Lamium settings open with L. The earlier 0-entry Global
+  stack did not recur; likely vanilla recovery after the forced exits or
+  that trace session, not reproduced with Lamium.
 
 
 Maintainer check on `1109e35`, all trace options off. Deployed DLL SHA-256
