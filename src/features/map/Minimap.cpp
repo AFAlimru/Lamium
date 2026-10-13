@@ -13,6 +13,7 @@
 #include "features/map/MapView.h"
 #include "features/information/InfoHud.h"
 #include "features/camera/CameraSessions.h"
+#include "features/visuals/PackImage.h"
 #include "app/Runtime.h"
 #include "ui/Widgets.h"
 #include "ll/api/event/EventBus.h"
@@ -257,21 +258,13 @@ constexpr int textureLoadsPerFrame = 6;
 int textureLoadsLeft = 0;
 
 std::uint32_t textureAverage(IClientInstance& client, ResourceLocation const& location) {
-    auto group = client.getTextureGroup();
-    if (!group) return 0;
-    auto* image = group->getCachedImageOrLoadSync(location, false);
+    auto image = visuals::readPackImage(client.getResourcePackManager(), location.mPath->value);
     if (!image) return 0;
-    auto const& description = *image->mImageDescription;
-    auto format = description.mTextureFormat;
-    size_t count = size_t(description.mWidth) * description.mHeight;
-    auto const& storage = *image->mStorage;
-    bool usable = (format == mce::TextureFormat::R8g8b8a8Unorm || format == mce::TextureFormat::R8g8b8a8UnormSrgb)
-        && count && storage.size() >= count * 4;
-    auto color = usable ? averageColor(storage.data(), count).value_or(0) : 0;
+    size_t count = size_t(image->width) * image->height;
+    auto color = count ? averageColor(image->rgba.data(), count).value_or(0) : 0;
     // The first loads show whether texture images arrive as expected.
     if (++state.texturesLogged <= 8)
-        state.diagnostics.log(std::format("texture {} format {} {}x{} -> {:08x}", location.mPath->value,
-            static_cast<unsigned>(format), description.mWidth, description.mHeight, color));
+        state.diagnostics.log(std::format("texture {} {}x{} -> {:08x}", location.mPath->value, image->width, image->height, color));
     return color;
 }
 // Null while the frame's texture loads are used up; the chunk waits.

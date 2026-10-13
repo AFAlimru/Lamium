@@ -1,5 +1,6 @@
 #include "features/map/RadarFaces.h"
 #include "features/map/SkinGeometry.h"
+#include "features/visuals/PackImage.h"
 #include "app/Runtime.h"
 #include "ui/Widgets.h"
 #include "mc/client/game/IClientInstance.h"
@@ -113,20 +114,12 @@ std::optional<Face> load(IClientInstance& client, Actor& actor, std::string cons
         if (auto const& location = dataDriven->mDefaultSkin->mResourceLocationPtr.get(); location)
             texture = location->mPath->value;
     if (texture.empty()) return std::nullopt;
-    auto group = client.getTextureGroup();
-    if (!group) return std::nullopt;
-    auto* image = group->getCachedImageOrLoadSync(ResourceLocation(Core::PathView(texture)), false);
-    if (!image) return std::nullopt;
-    auto const& description = *image->mImageDescription;
-    auto format = description.mTextureFormat;
-    int width = static_cast<int>(description.mWidth), height = static_cast<int>(description.mHeight);
-    auto const& storage = *image->mStorage;
-    bool usable = (format == mce::TextureFormat::R8g8b8a8Unorm || format == mce::TextureFormat::R8g8b8a8UnormSrgb)
-        && width > 0 && height > 0 && storage.size() >= static_cast<size_t>(width) * height * 4;
-    if (!usable) return std::nullopt;
+    auto image = visuals::readPackImage(client.getResourcePackManager(), texture);
+    if (!image || image->width <= 0 || image->height <= 0) return std::nullopt;
+    int width = image->width, height = image->height;
     // Textures may be finer than the model's texture units.
     double texels = head->textureWidth > 0 ? width / head->textureWidth : 1;
-    return composeFace(storage.data(), width, height, texels, std::move(head->boxes));
+    return composeFace(image->rgba.data(), width, height, texels, std::move(head->boxes));
 }
 #ifdef LAMIUM_RADAR_ICON_PROBE
 void writeBmp(std::string const& name, std::uint32_t const* px, int width, int height) {

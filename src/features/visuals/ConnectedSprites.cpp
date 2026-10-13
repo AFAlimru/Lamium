@@ -1,4 +1,5 @@
 #include "features/visuals/ConnectedSprites.h"
+#include "features/visuals/PackImage.h"
 #include "app/Runtime.h"
 #include "ll/api/memory/Hook.h"
 #include "mc/client/renderer/TextureGroup.h"
@@ -159,15 +160,11 @@ void prepare(Json::Value const& root, Json::Value& copy, mce::TextureGroup& grou
     for (auto const& path : paths) {
         auto rule = ruleForTexture(path);
         if (!rule) continue;
-        auto* image = group.getCachedImageOrLoadSync(ResourceLocation(Core::PathView(path)), false);
+        auto image = readPackImage(packs, path);
         if (!image) { ++skipped; continue; }
-        auto const& description = *image->mImageDescription;
-        auto format = description.mTextureFormat;
-        int width = static_cast<int>(description.mWidth), height = static_cast<int>(description.mHeight);
-        auto const& storage = *image->mStorage;
-        bool rgba = format == mce::TextureFormat::R8g8b8a8Unorm || format == mce::TextureFormat::R8g8b8a8UnormSrgb;
-        if (!rgba || !bakeable(width, height) || storage.size() < static_cast<size_t>(width) * height * 4) { ++skipped; continue; }
-        auto const* pixels = reinterpret_cast<std::uint32_t const*>(storage.data());
+        int width = image->width, height = image->height;
+        if (!bakeable(width, height)) { ++skipped; continue; }
+        auto const* pixels = reinterpret_cast<std::uint32_t const*>(image->rgba.data());
         Source source{path, *rule, variantMasks(*rule)};
         for (auto mask : source.masks) {
             auto sprite = spritePath(path, mask);

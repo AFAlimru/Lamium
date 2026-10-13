@@ -1,5 +1,6 @@
 #include "features/information/SaturationHud.h"
 #include "features/information/Saturation.h"
+#include "features/visuals/PackImage.h"
 #include "app/Runtime.h"
 #include "ui/Widgets.h"
 #include "mc/client/game/IClientInstance.h"
@@ -63,21 +64,14 @@ bool upload(IClientInstance& client, Outline& outline) {
     if (!group) return false;
     // The dark outline belongs to the background drawn under every drumstick;
     // hunger_full is only the filling on top of it.
-    auto* image = group->getCachedImageOrLoadSync(ResourceLocation(Core::PathView("textures/ui/hunger_background")), false);
-    if (!image) return false;
-    auto const& description = *image->mImageDescription;
-    auto format = description.mTextureFormat;
-    int width = static_cast<int>(description.mWidth), height = static_cast<int>(description.mHeight);
-    auto const& storage = *image->mStorage;
-    bool usable = (format == mce::TextureFormat::R8g8b8a8Unorm || format == mce::TextureFormat::R8g8b8a8UnormSrgb)
-        && width > 0 && height > 0 && storage.size() >= static_cast<size_t>(width) * height * 4;
-    if (!usable) {
-        if (!failed) log(std::format("hunger_background format {} {}x{} is not usable; no outline", static_cast<unsigned>(format),
-                                     width, height));
+    auto image = visuals::readPackImage(client.getResourcePackManager(), "textures/ui/hunger_background");
+    if (!image || image->width <= 0 || image->height <= 0) {
+        if (!failed) log("hunger_background could not be read from the packs; no outline");
         failed = true;
         return false;
     }
-    auto pixels = sat::outline(storage.data(), width, height, outline.color, outline.part);
+    int width = image->width, height = image->height;
+    auto pixels = sat::outline(image->rgba.data(), width, height, outline.color, outline.part);
     mce::Image result(width, height, mce::ImageFormat::RGBA8Unorm, mce::ImageUsage::SRGB);
     result.mAlphaUsage = mce::AlphaUsage::Transparent;
     result.setRawImage(mce::Blob(reinterpret_cast<std::uint8_t const*>(pixels.data()), pixels.size() * sizeof(std::uint32_t)));
