@@ -11,7 +11,7 @@
 
 ## Status
 
-Lamium 0.2.0 is an early (0.x) release. The main settings, hotkey, HUD,
+Lamium 0.2.1 is an early (0.x) release. The main settings, hotkey, HUD,
 target card, camera and overlay flows have been exercised in Minecraft on a
 local single-player setup. Map features also have external BDS checks;
 server coverage for other features, controllers and broad resource-pack/graphics
@@ -67,7 +67,9 @@ The managed-update ownership and preservation contract is documented in
 
 ## Features
 
-Press `L` in a world to open Lamium Settings. The screen uses a dense
+Press `L` in a world or on the title screen, or click "Lamium <version>"
+in the title screen's bottom right corner, to open Lamium Settings (views
+made of one world's data, such as waypoints, open only in a world). The screen uses a dense
 Bedrock-fitting sidebar/table layout with search, English, Japanese and
 Simplified Chinese text (following the game language), immediate persistence and no Save/Cancel step. Hotkeys, Shapes and HUD layout
 are first-class views in the same UI. Every feature has one switch that its
@@ -88,9 +90,9 @@ to the defaults.
   own scale), Hide Offhand Item
   (including shields) and
   experimental Hide effects (rain and snow, particles, boss bars, the nausea
-  color, underwater, lava and powder snow fog, and the distance fog on land,
-  in the Nether and in the End; one main switch turns the selected effects
-  on). Zoom, Freelook and FreeCamera can be held or toggled.
+  color, underwater, lava and powder snow fog, the distance fog on land,
+  in the Nether and in the End, and the Nether portal's purple screen; one
+  main switch turns the selected effects on). Zoom, Freelook and FreeCamera can be held or toggled.
 - **Information/HUD:** ordered Info HUD lines (now including scaled
   coordinates, biome ids, difficulty, yaw/pitch, sprinting, horizontal and
   vertical speed and real time), a Durability HUD for the held item, offhand
@@ -105,7 +107,10 @@ to the defaults.
   where the Info HUD covers them), a player
   list while `Tab` is held (faces, platform, dimension, distance and
   permission marks), an inventory HUD (your inventory as a 9x3 grid) and a
-  used-slots counter such as 13/36, and toggle toasts.
+  used-slots counter such as 13/36, a Status effects HUD (icons, numeric
+  levels and remaining time; the game's own effect icons are hidden while it
+  shows), arrows and fireworks counted beside bow, crossbow and elytra
+  durability, and toggle toasts.
 - **World overlays:** Shapes (box, cone, pyramid, ellipsoid, dome and more)
   with per-world persistence, Java-style Chunk Borders, Hitboxes with eye/look
   markers and a light-level overlay.
@@ -123,9 +128,12 @@ to the defaults.
   swaps container remainders, and refills an offhand totem after it saves
   you), and experimental Death layout restore (picking up your dropped items
   puts the hotbar, armor and offhand, optionally the whole inventory, back
-  the way they were when you died).
+  the way they were when you died), and repeated villager trades (Shift +
+  right click on a trade row repeats it until it sells out, the inputs run
+  out or the output no longer fits).
 - **Interaction:** Permanent Sneak, Permanent Sprint, experimental Edge Guard
-  (stops at block edges without sneaking), experimental Tool Protection (on by
+  (stops at block edges without sneaking, with an adjustable margin; also on
+  servers), experimental Tool Protection (on by
   default: at 1 durability a tool or worn elytra is swapped for a spare, or
   mining stops), experimental Auto Elytra (a key or a firework jump puts an
   elytra on; the chestplate returns after landing), breaking restriction
@@ -159,6 +167,14 @@ to the defaults.
   there. Saved files use the game's current format and load in a structure
   block.
 
+- **General:** a calculator over the game (units for stacks, chests and
+  shulker boxes, history and copy buttons; nothing is sent to chat), text
+  fields with a caret, paste and click placement, an experimental Game
+  language list that changes Minecraft's display language without leaving
+  the world, and experimental Skip server resource packs (a server's packs
+  are accepted as it asks but not shown: the world looks vanilla; local
+  worlds keep their packs).
+
 Lamium owns its key bindings; they do not appear in Minecraft's keyboard
 settings. Bindings are edited under each feature or in the Hotkeys view.
 Clear unbinds an action and Reset restores its default. The Settings action
@@ -189,8 +205,8 @@ Minecraft's "copy coordinates" while Lamium is installed unless you rebind it.
   local world and on BDS; Hold/Toggle operation, menus, focus loss and dimension
   travel are also checked. Other players' view of the body, controllers and
   broader graphics/resource configurations remain untested.
-- Edge Guard works in local worlds; on multiplayer servers the server may
-  still move the player over the edge (untested).
+- Edge Guard is checked in local worlds and on a test BDS (including server
+  position corrections); other servers and their anti-cheat are untested.
 - Inventory transfer works only in ordinary storage (chests, barrels, Shulker
   Boxes and similar); multiplayer is untested.
 - The breaking restriction modes will be redesigned.
@@ -222,6 +238,13 @@ Minecraft's "copy coordinates" while Lamium is installed unless you rebind it.
   dimension: elsewhere it shows the dimension they were last seen in, faded,
   without a distance. The player list is checked locally, on BDS and in a
   LAN world; the locked trades only in local worlds.
+- Changing the game language inside a world many times in a row froze the
+  game once (the title screen does not); Lamium allows one change per 10
+  seconds in a world. The cause is unknown.
+- Skip server resource packs is checked on a test BDS with a cosmetic pack.
+  Servers whose packs add blocks, items, entities or menus will show those
+  wrong. On a server that requires its packs, the game itself turns off
+  your global resource packs, so the look is vanilla, not your own packs.
 - Death layout restore is checked in local worlds; with instant respawn the
   inventory may be read as kept and nothing is restored. Servers with
   latency are untested.

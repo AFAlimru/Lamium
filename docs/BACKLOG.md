@@ -154,7 +154,11 @@ ammo counts (below), the Nether portal screen (L-148), Connected Textures
 drawn with generated sprites and texture sets (L-164: resource packs and a
 reload while in a world are unchecked), text fields with a caret (L-172)
 and the calculator (L-171), repeated villager trading (L-166 part 1,
-normal local/BDS checks complete). A release ZIP is built from main as usual.
+normal local/BDS checks complete), the Game language list (L-167; in-world
+hang once, 10 s interval), Skip server resource packs (L-167, BDS cosmetic
+pack only), pack images read from the packs (texture cache fix), and the
+settings outside a world with the title screen entry (L-175). A release ZIP
+is built from main as usual.
 
 ### L-162 Edge Guard follow-up coverage (2026-10-13)
 
