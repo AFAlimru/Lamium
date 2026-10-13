@@ -118,8 +118,8 @@ L-item wins. Every entry names what the task is, not only its number.
    part hitboxes, L-33 mob growth and
    breeding timers, L-105 performance profiling (measure before any
    optimization).
-6. **Before a release:** the pre-release checks below. 0.2.0 was released
-   on 2026-10-11. No date for the next one (maintainer 2026-10-13: releases
+6. **Before a release:** the pre-release checks below. 0.2.1 was released
+   on 2026-10-14 (0.2.0 on 2026-10-11). No date for the next one (maintainer 2026-10-13: releases
    came often lately and the changes since are mostly features, so no
    hurry). Server checks stay listed below as known gaps (the Release
    policy does not require a full regression).
@@ -145,7 +145,11 @@ include trace-only and local-only results; VALIDATION.md owns the per-feature
 gaps. The Release policy above does not require a full regression or closing
 every server gap before a release.
 
-### Since 0.2.0 (unreleased)
+### Since 0.2.1 (unreleased)
+
+Nothing yet.
+
+### Shipped in 0.2.1 (smoke-tested; remaining gaps in VALIDATION.md)
 
 Changed features for the next smoke test; coverage is in VALIDATION.md:
 Edge Guard on a server (L-160, L-161 margin setting, L-162 replay/server input), Find by key (L-159),
@@ -195,6 +199,18 @@ unmet gates for versions already published. Registry pickup for 0.1.4 to
 (LiteLDev/lipr, "add github.com/amatouhake/Lamium@0.1.8") was merged
 2026-10-09 UTC.
 
+- 0.2.1 was released on 2026-10-14 (`v0.2.1` at `eb949dc`; main and tag CI
+  passed): ZIP SHA-256 `d4bf5270...40cd` (2.1 MB), symbols
+  `Lamium-0.2.1-client-windows-x64.pdb.zip` SHA-256 `eec760b6...2fdb`; the
+  GitHub asset digests match. L-175 settings from the title screen, L-171
+  calculator, L-172 text fields, L-166 repeated trades, L-147 Status effects
+  HUD, L-150 ammo counts, L-148 portal screen, L-164 Connected Textures
+  sprites (with L-133, L-156), Edge Guard on servers (L-160 to L-162), L-159
+  Find by key, L-157, L-155/L-158 labels, L-167 Game language and Skip
+  server resource packs, and the pack texture cache fix. The maintainer's
+  smoke test passed on the release-ZIP DLL `75f0046c...f47c`. No settings
+  migration. After tagging: check that the registry PR picks up `v0.2.1`
+  and that LeviLauncher/Bedrinth offer it.
 - 0.2.0 was released on 2026-10-11 (`v0.2.0` at the commit recording this;
   built from `6f77159`): ZIP SHA-256 `4cc9f3cd...a1555` (1.8 MB), symbols
   `Lamium-0.2.0-client-windows-x64.pdb.zip` SHA-256 `a0f41454...2131c`
