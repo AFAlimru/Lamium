@@ -4,7 +4,11 @@
 
 Information has a saved, default-off **Chat position** switch and an unbound
 toggle key. Enabling it places ordinary HUD chat at the bottom left, with
-its bottom 40 GUI units above the screen edge to leave room for the hotbar.
+its left edge flush against the screen and its bottom 44 GUI units above
+the screen edge (chosen 2026-10-14). Two standard Durability HUD
+rows occupy 36 units with their 4-unit bottom inset, leaving a 4-unit gap.
+This is a fixed default; it does not track later Durability HUD changes.
+Existing saved positions remain unchanged; reset uses the new default.
 HUD layout provides dragging, keyboard nudging, nine snap positions and
 reset; the chat toolbar only offers position controls. Placement follows
 the shared edge-anchor rules as the measured message area grows/shrinks.
@@ -12,10 +16,10 @@ the shared edge-anchor rules as the measured message area grows/shrinks.
 The game's message contents, font, size, shadow, background, order and fade
 are retained. The input/history screen is outside this step. No width,
 line-count or appearance settings. The layout editor uses sample text, not
-saved chat contents. The feature is Experimental until runtime coverage is
-established. BACKLOG owns status; VALIDATION owns runtime evidence.
+saved chat contents. The initial scope is verified and no longer carries
+Experimental. BACKLOG-DONE owns completion; VALIDATION owns coverage.
 
-## Current implementation and open defect (2026-10-14)
+## Current implementation and validation (2026-10-14)
 
 The maintainer passed the initial three-step checklist on `5b5750c`, then
 reported a brief flicker of remaining messages when an older one expires.
@@ -28,9 +32,12 @@ background render hooks find the panel through a bounded ancestor walk,
 read its current measured size after layout, translate only the component's
 cached position for its draw and restore it immediately. Parent-relative
 positions and dirty flags are left alone; no game pointers cross frames.
-Renamed native text/background controls fail open. This addresses the two
-suspected causes (pre-layout height and unnecessary cache invalidation),
-but the cause and the fix still need runtime confirmation.
+Renamed native text/background controls fail open. The maintainer passed
+the expiry/long-message checklist on `b28a40d`: no flicker and long messages
+remain correct. This confirms the fix in the tested context; the broader
+checks below remain unitemized. The saved placement was left 0, bottom
+offset -45; the maintainer then chose a 4-unit upper gap for the default
+(left 0, bottom offset -44). Existing saved placement is retained.
 
 ## Research and first implementation (2026-10-14, superseded by the fix above)
 
@@ -61,11 +68,12 @@ but the cause and the fix still need runtime confirmation.
 Build checkpoint: release DLL, LamiumTests and LamiumNativeTests pass; the hook inventory
 matches. No runtime result is claimed at this checkpoint.
 
-## Runtime checks (initial 1-3 passed; expiry regression and broader checks pending)
+## Runtime checks (basic scope and expiry regression passed; broader checks pending)
 
 First repeat: send three short messages with time between them and watch
 the oldest fade/expire. The other messages and backgrounds should stay
-steady. Repeat with a wrapped message, then with Chat position OFF.
+steady. Repeat with a wrapped message, then with Chat position OFF. Passed
+on `b28a40d`; the final default after reset is the next smoke-test check.
 
 1. Enable Chat position; send several messages and a wrapped long message.
    Text and backgrounds should appear together at the lower left and fade

@@ -66,7 +66,8 @@ inline constexpr HudElement defaultHudElement(HudElementId id) {
     // Right middle, where the game shows its effect icons, below the
     // automation status (L-147, maintainer 2026-10-12).
     case HudElementId::StatusEffects: return {Anchor::MiddleRight, -hudInset, 48, 100, ElementBackground::Card, true};
-    case HudElementId::Chat: return {Anchor::BottomLeft, hudInset, -40, 100, ElementBackground::None, true};
+    // Flush left, above two default durability rows with a 4-unit gap (L-174).
+    case HudElementId::Chat: return {Anchor::BottomLeft, 0, -44, 100, ElementBackground::None, true};
     // Above the armor and absorption rows over the hotbar.
     default: return {Anchor::BottomCenter, 0, -72, 100, ElementBackground::Card, false};
     }

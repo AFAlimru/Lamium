@@ -749,6 +749,46 @@ result is only the converted text; Latin typing and Backspace unchanged.
 
 ## Ready
 
+### L-174 Chat messages placed like Java Edition, through the HUD layout
+Done 2026-10-14: initial native chat placement (`5b5750c`) and the
+component-render expiry fix (`b28a40d`) passed the maintainer's checklists,
+including wrapped long messages with no flicker. The chosen default is
+flush left with the bottom 44 GUI units above the screen edge: two default
+Durability HUD rows, their bottom inset and a 4-unit gap. Existing saved
+placements remain intact. Experimental removed after the checks.
+Reset/fresh-settings default smoke and broader UI/pack/server checks remain
+in BACKLOG Pre-release checks and VALIDATION; no release selected.
+Current contract: [CHAT-POSITION.md](CHAT-POSITION.md).
+
+Implementation history below retains the superseded defect/next-step state.
+
+Kind: Research, then Ready (strong model). Chosen 2026-10-14; no release selected.
+Goal: show the ordinary chat messages at the bottom left as on Java
+Edition, ideally placed by drag in Lamium's HUD layout.
+Proposal (not decided): only the message display at first (not the chat
+input screen): Vanilla or Custom, Custom with a bottom-left preset and free
+placement; width, line count and scale later.
+Research first: `hud_screen.json` has a `chat_panel`; Lamium already finds
+vanilla HUD controls with `VisualTree::getControlByName()`. Find whether
+that panel alone can be moved while vanilla keeps its messages,
+background and fading, and when to apply the position (UIControl position
+API and timing unknown). Moving the whole `chat_stack` would move other
+elements (the coordinates). Check HUD re-layout, resource packs, screen
+sizes and GUI scales, and the return to vanilla when off. A chat of
+Lamium's own is out of scope.
+Decided (maintainer 2026-10-14): first version has a saved, default-off
+Chat position switch, moves the ordinary messages to the bottom left on
+enable, and allows free placement in HUD layout. Background, font size,
+shadow and fading stay vanilla; the chat input screen is outside this scope.
+No width, line-count or appearance controls in this step. Research and
+the first implementation checkpoint: [CHAT-POSITION.md](CHAT-POSITION.md).
+Current (2026-10-14): the maintainer passed the three-step checklist on
+`5b5750c` (text/background placement and fading, layout/save/reset, OFF and
+coordinates/input unaffected), but remaining messages briefly flicker when
+an older message disappears. Fix in progress: apply translation at the
+native component draw, after layout, without forcing all position caches
+dirty each frame. Runtime recheck pending; keep this item open.
+
 ### L-172 Text fields: caret movement, paste and click
 Done 2026-10-13: shared `TextEdit` with caret, Delete, paste, copy and click (`94e48b5`); caret in the spacing column and typed world map coordinates (`ed4a4e7`); checked in game. The IME window stays at the field's left edge (no SDK call moves it).
 Kind: Ready (strong model), decided with the maintainer 2026-10-12.

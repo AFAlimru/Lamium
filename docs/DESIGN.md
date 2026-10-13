@@ -301,8 +301,12 @@ Contents:
 
 Chat placement (L-174, decided 2026-10-14): a saved, default-off Chat
 position switch moves ordinary HUD messages to the lower left and adds a
-position-only element to HUD layout. Native text, background, font size,
-shadow, fading and input/history screen remain vanilla. See
+position-only element to HUD layout. The default is flush left with its
+bottom 44 GUI units above the screen edge, leaving a 4-unit gap above two
+default-size Durability HUD rows (chosen 2026-10-14). Saved
+placements are kept; this is a fixed preset, not automatic avoidance.
+Native text, background, font size, shadow, fading and input/history screen
+remain vanilla. See
 [CHAT-POSITION.md](CHAT-POSITION.md) for the first step's boundary.
 
 ## World overlays (Decided unless noted)

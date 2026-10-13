@@ -72,10 +72,13 @@ game result.
 Chat position (L-174): 2026-10-14 `5b5750c`, Minecraft 1.26.51.01;
 maintainer passed the supplied three-step checklist (text/background
 placement and fading, layout dragging/save/reset, OFF restoration and
-coordinates/input unaffected). Remaining messages briefly flicker when an
-older message expires; the component-render fix needs a recheck. GUI
-scales, Pocket UI, packs, world/dimension/focus changes and server coverage
-were not itemized. Checklist: [CHAT-POSITION.md](CHAT-POSITION.md).
+coordinates/input unaffected). On `b28a40d` the follow-up checklist passed:
+no flicker as messages expire, and wrapped long messages remain correct.
+Observed saved position is flush left, bottom offset -45; the chosen new
+default uses -44 for a 4-unit gap (reset/fresh-settings smoke check pending).
+GUI scales, Pocket UI,
+packs, world/dimension/focus changes and server coverage were not itemized.
+Checklist: [CHAT-POSITION.md](CHAT-POSITION.md).
 
 | Feature | Last confirmed | Not yet checked |
 |---|---|---|

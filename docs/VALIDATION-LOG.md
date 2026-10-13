@@ -12,6 +12,26 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-174 expiry flicker fixed and default placement chosen (2026-10-14)
+
+Maintainer report on `b28a40d`, DLL SHA-256
+`91b932172b336bf50f9f3415ac82fce882a88d0ffa018d79b3768da39ebcc0ae`,
+Minecraft 1.26.51.01, Windows x64; loader revision, UI profile, packs and
+local/server context were not reported. All diagnostics off.
+
+- The supplied expiry/long-message checklist passed. Remaining messages do
+  not flicker when an older one disappears; wrapped long messages are fine.
+- The maintainer chose their current placement as the default: flush left,
+  vertically above two Durability HUD rows with a little space. Read-only
+  confirmation of the saved HUD placement gives BottomLeft, dx 0, dy -45;
+  Durability is at 100%, BottomLeft, dx 4, dy -4. Each native Lamium
+  durability row is 18 GUI units, leaving a 5-unit gap at that placement.
+- Follow-up decision in the same session: use 4 GUI units above the two
+  durability rows, matching their bottom inset. The new default is therefore
+  BottomLeft, dx 0, dy -44; the existing saved -45 placement is kept.
+- This verifies the chosen position in the tested layout, not the new
+  binary's reset/fresh-settings default. Broader coverage remains as before.
+
 ## L-174 native chat placement: initial checklist and expiry flicker (2026-10-14)
 
 Maintainer report on `5b5750c`, DLL SHA-256

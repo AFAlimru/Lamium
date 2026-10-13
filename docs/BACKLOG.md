@@ -77,13 +77,12 @@ L-item wins. Every entry names what the task is, not only its number.
    - Specs to agree with the maintainer before building: L-165 Mass Craft,
      L-167 in-world language (chosen: native-path research in progress), L-168 trade
      finder, L-169 Item Transfer in more screens and bulk moves, L-170
-     enchantment order planner, L-173 quick shapes and beacon range, L-174
-     chat position (initial checklist passed; message-expiry flicker fix), L-163
+     enchantment order planner, L-173 quick shapes and beacon range, L-163
      a Lamium-drawn inventory screen. L-151 to L-154
      stay later. This list approves no implementation and sets no release.
    - Done since 0.2.0 (BACKLOG-DONE): L-155, L-157 to L-161, L-147, L-148,
      L-150, L-164 with L-133 and L-156, L-171 calculator, L-172 text
-     fields, L-166 repeated villager trades (part 1).
+     fields, L-166 repeated villager trades (part 1), L-174 chat position.
 2. **Schematic — L-93 follow-ups:** the screen review and the 0.1.8
    rendering work shipped in 0.1.8. Open: L-114 the Check tab preview's
    mistake look and see-through emphasis, L-115 entity models beyond the
@@ -148,9 +147,10 @@ every server gap before a release.
 
 ### Since 0.2.1 (unreleased)
 
-L-174 Chat position: initial checklist passed, but remaining messages
-briefly flicker when an older message expires. Recheck that transition on
-the component-render fix before release (CHAT-POSITION.md).
+L-174 Chat position: native placement and the expiry/long-message fix
+passed the maintainer's checks. The chosen flush-left, bottom offset -44
+default needs its reset/fresh-settings smoke check; broader layout, pack
+and server coverage remains in VALIDATION (CHAT-POSITION.md).
 
 ### Shipped in 0.2.1 (smoke-tested; remaining gaps in VALIDATION.md)
 
@@ -413,34 +413,6 @@ type 3, scale 1.333, with the font's own material).
 ---
 
 ## Feature work and research
-
-### L-174 Chat messages placed like Java Edition, through the HUD layout
-Kind: Research, then Ready (strong model). Chosen 2026-10-14; no release selected.
-Goal: show the ordinary chat messages at the bottom left as on Java
-Edition, ideally placed by drag in Lamium's HUD layout.
-Proposal (not decided): only the message display at first (not the chat
-input screen): Vanilla or Custom, Custom with a bottom-left preset and free
-placement; width, line count and scale later.
-Research first: `hud_screen.json` has a `chat_panel`; Lamium already finds
-vanilla HUD controls with `VisualTree::getControlByName()`. Find whether
-that panel alone can be moved while vanilla keeps its messages,
-background and fading, and when to apply the position (UIControl position
-API and timing unknown). Moving the whole `chat_stack` would move other
-elements (the coordinates). Check HUD re-layout, resource packs, screen
-sizes and GUI scales, and the return to vanilla when off. A chat of
-Lamium's own is out of scope.
-Decided (maintainer 2026-10-14): first version has a saved, default-off
-Chat position switch, moves the ordinary messages to the bottom left on
-enable, and allows free placement in HUD layout. Background, font size,
-shadow and fading stay vanilla; the chat input screen is outside this scope.
-No width, line-count or appearance controls in this step. Research and
-the first implementation checkpoint: [CHAT-POSITION.md](CHAT-POSITION.md).
-Current (2026-10-14): the maintainer passed the three-step checklist on
-`5b5750c` (text/background placement and fading, layout/save/reset, OFF and
-coordinates/input unaffected), but remaining messages briefly flicker when
-an older message disappears. Fix in progress: apply translation at the
-native component draw, after layout, without forcing all position caches
-dirty each frame. Runtime recheck pending; keep this item open.
 
 ### L-173 Quick shapes: a beacon's range at a glance, shapes that are not saved
 Kind: Design. From the maintainer's notes (2026-10-13); not chosen for

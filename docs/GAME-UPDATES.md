@@ -142,8 +142,9 @@ screen hook establishes the render scope; each component uses the panel's
 current measured size after native layout, translates only its cached
 position while drawing, then restores it without invalidating the tree.
 Gated (Chat position); renamed controls, clipping, invalid geometry or an
-ancestor walk beyond 16 controls leave it vanilla. Initial scope passed;
-the message-expiry flicker fix still needs the maintainer's check (L-174).
+ancestor walk beyond 16 controls leave it vanilla. Basic scope and the
+message-expiry/long-message regression passed on `b28a40d` (L-174);
+broader coverage remains in VALIDATION.
 
 ### `src/features/information/FrameTiming.cpp`
 Hooks: `FrameCompleted`

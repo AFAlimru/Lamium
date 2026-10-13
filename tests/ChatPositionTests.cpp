@@ -12,7 +12,7 @@ void chatPositionTests() {
     auto defaults = defaultHudElement(HudElementId::Chat);
     auto first = placed(640, 360, 256, 27, defaults);
     auto taller = placed(640, 360, 256, 72, defaults);
-    check(first && taller && first->x == hudInset && first->y + first->h == taller->y + taller->h,
+    check(first && taller && first->x == 0 && first->y + first->h == taller->y + taller->h,
           "chat grows upward without moving its bottom edge");
     using information::chatPosition::translated;
     auto before = translated(640, 360, {0, 60, 256, 27}, {2, 78}, defaults);
