@@ -140,7 +140,8 @@ Json encode(Settings const& settings) {
                      {"hideWater", settings.visuals.hideWater}, {"hideLava", settings.visuals.hideLava},
                      {"hidePowderSnow", settings.visuals.hidePowderSnow},
                      {"hideDistanceFog", settings.visuals.hideDistanceFog},
-                     {"hidePortal", settings.visuals.hidePortal}}},
+                     {"hidePortal", settings.visuals.hidePortal},
+                     {"skipServerPacks", settings.visuals.skipServerPacks}}},
         {"overlays", {{"chunkBorders", settings.overlays.chunkBorders}, {"hitboxes", settings.overlays.hitboxes}, {"shapes", settings.overlays.shapes},
                       {"light", settings.overlays.light},
                       {"lightValue", overlay::lightValueNames[static_cast<size_t>(settings.overlays.lightValue)]},
@@ -352,6 +353,7 @@ Settings decodeSettings(std::string_view text) {
         value.visuals.hideOffhand = visuals.value("hideOffhand", value.visuals.hideOffhand);
         value.visuals.hideEffects = visuals.value("hideEffects", value.visuals.hideEffects);
         value.visuals.connectedTextures = visuals.value("connectedTextures", value.visuals.connectedTextures);
+        value.visuals.skipServerPacks = visuals.value("skipServerPacks", value.visuals.skipServerPacks);
         value.visuals.hideWeather = visuals.value("hideWeather", value.visuals.hideWeather);
         value.visuals.hideParticles = visuals.value("hideParticles", value.visuals.hideParticles);
         value.visuals.hideBossBars = visuals.value("hideBossBars", value.visuals.hideBossBars);

@@ -621,8 +621,12 @@ Lamium switch "do not apply server resource packs" for remote servers,
 taking effect on the next join, with a notice when packs were left out
 (the usual Lamium message toast, or a chat line only the player sees; the
 toast is the agent's default). Per-server and per-pack choice are not
-wanted now. Not built yet; the gray in-world Global Resources page needs a
-look when it is.
+wanted now. The look is vanilla: on a required-pack server vanilla also
+drops the player's global packs and shows a gray Global Resources page
+(confirmed on unmodded Minecraft). Built 2026-10-14, not yet seen in game.
+Later (maintainer 2026-10-14): show the player's own global packs instead
+of vanilla while skipping a server's packs; needs research on reapplying
+the Global stack during a server session.
 Contract, findings and next checks: [LANGUAGE.md](LANGUAGE.md).
 Added research request (maintainer 2026-10-13): whether a server-required
 resource pack can be disabled locally without general pack-stack editing.

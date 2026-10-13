@@ -184,6 +184,8 @@ struct Settings {
         bool hidePowderSnow = true;
         bool hideDistanceFog = true;
         bool hidePortal = true; // The Nether portal's purple screen (L-148)
+        // Remote servers' resource packs are accepted but not applied (L-167), Experimental
+        bool skipServerPacks = false;
     } visuals;
     struct Information {
         bool debug = false;

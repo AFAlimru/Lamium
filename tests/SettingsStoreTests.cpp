@@ -337,6 +337,8 @@ void settingsStoreTests() {
           "world map names show on hover until Always is saved on");
     check(!old.camera.zoomWideAngle && decodeSettings(R"({"camera":{"zoomWideAngle":true}})").camera.zoomWideAngle,
           "Wide-angle view stays off until saved on (L-140)");
+    check(!old.visuals.skipServerPacks && decodeSettings(R"({"visuals":{"skipServerPacks":true}})").visuals.skipServerPacks,
+          "server resource packs apply until skipping is saved on (L-167)");
     check(old.information.debugHideVanilla && !decodeSettings(R"({"information":{"debugHideVanilla":false}})").information.debugHideVanilla,
           "Debug View hides the game's position and paper doll unless saved off");
     check(old.information.hudHidePaperDoll && !decodeSettings(R"({"information":{"hudHidePaperDoll":false}})").information.hudHidePaperDoll,

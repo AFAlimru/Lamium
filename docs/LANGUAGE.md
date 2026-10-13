@@ -140,6 +140,20 @@ without Lamium. Skipping the server's packs therefore leaves vanilla
 textures, not the player's own packs; applying those instead would be a
 further change.
 
+## Skip server resource packs (built 2026-10-14, not yet seen in game)
+
+General settings > "Skip server resource packs" (`visuals.skipServerPacks`,
+off by default, experimental, toggle key `skipserverpacks`).
+`features/visuals/ServerPacks.cpp` records from `onStartJoinGame` whether
+the join is a local world; on a remote join it empties the resource packs
+of the server's `ResourcePackStackPacket` before the client handles it, so
+the download/acceptance handshake is unchanged. Local worlds and joins the
+game did not announce keep their packs. The look is vanilla (the
+maintainer's choice, 2026-10-14). When packs were left out, the HUD shows
+a message toast with their count once the world draws. Turning the switch
+on or off applies from the next join. Gate: `Skip server resource packs
+(pack stack packet)`.
+
 Before an implementation choice: distinguish optional packs from required
 ones, cosmetic replacements from required content definitions, handshake
 behavior from post-join local rendering, and joining without applying from
