@@ -12,6 +12,15 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-167 in-world language change interval (2026-10-14)
+
+Maintainer check on `1109e35`, all trace options off. Deployed DLL SHA-256
+`0f42327a6d0d2141a680e0ab5facc5426a712940d5234139a6d3c7852ca1f9d6`.
+Minecraft 1.26.51.01, LeviLamina Client 26.51.7, Windows x64, local world.
+- A second choice within 10 s shows the footer notice with the seconds
+  left and does not switch; after waiting 10 s the switch works.
+- Not a test of whether the interval prevents the earlier hang.
+
 ## L-167 required server pack: accepted, not applied locally (2026-10-14)
 
 Agent-prepared isolated BDS 1.26.51.1 (`texturepack-required=true`, world
