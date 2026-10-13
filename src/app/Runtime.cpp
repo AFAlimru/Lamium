@@ -13,6 +13,7 @@
 #include "features/inspection/render/IconTrace.h"
 #include "features/research/TradeTrace.h"
 #include "features/research/RepeatTradeTrace.h"
+#include "features/research/LanguageTrace.h"
 #include "features/interaction/InventoryMoveTrace.h"
 #include "features/visuals/ConnectedTexturesHooks.h"
 #include "features/visuals/PortalTrace.h"
@@ -163,6 +164,7 @@ Feature const features[] = {
     {"Status effects vanilla icons", started<information::statusEffects::start>, information::statusEffects::stop},
     {"Effect diagnostics", started<visuals::effectTrace::start>, visuals::effectTrace::stop},
     {"Portal diagnostics", started<visuals::portalTrace::start>, visuals::portalTrace::stop},
+    {"Language diagnostics", started<researchTrace::language::start>, researchTrace::language::stop},
 };
 }
 #ifdef LAMIUM_FEATURE_SKIP

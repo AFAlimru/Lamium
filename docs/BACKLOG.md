@@ -75,7 +75,7 @@ L-item wins. Every entry names what the task is, not only its number.
      L-91 shield glint in Lamium's icons (both parked); L-132 moving with
      the inventory screen open (paused after eight rounds).
    - Specs to agree with the maintainer before building: L-165 Mass Craft,
-     L-167 in-world language, L-168 trade
+     L-167 in-world language (chosen: native-path research in progress), L-168 trade
      finder, L-169 Item Transfer in more screens and bulk moves, L-170
      enchantment order planner, L-173 quick shapes and beacon range, L-174
      chat position, L-163 a Lamium-drawn inventory screen. L-151 to L-154
@@ -556,7 +556,8 @@ log.
 
 ### L-167 Change the language and resource packs from inside a world
 Kind: Research, then Design (strong model). Imported from the maintainer's
-notes (2026-09-25) on 2026-10-12; not chosen for building, no release.
+notes (2026-09-25) on 2026-10-12. Chosen 2026-10-13: language first;
+native-path research in progress, no release selected.
 Goal: switch the game's display language, and look at or change the global
 resource pack stack, without leaving the world or server first.
 Research first, before any spec: what 26.51 already allows from the pause
@@ -580,8 +581,21 @@ Agent's proposal (not decided), in two parts that are judged separately:
    and server packs are never changed or skipped.
 Decided (maintainer 2026-10-12): the language part first; resource packs
 wait until it is done and seen.
-Open (maintainer, after the research): where the entry lives (agent: a
-Lamium settings row listing the game's languages).
+Decided (maintainer 2026-10-13): General settings has a "Game language"
+entry opening the game's language list. The maintainer confirms the vanilla
+pause settings have no Language entry on 1.26.51.01. This establishes the
+missing entry, not the safety of applying a language during play.
+Current research: `language_trace` observes vanilla selection, the saved
+option, I18n, game/font/pack observers and pack stack changes without changing
+any return value or argument. A title-screen language change is the next
+runtime check; then connect the confirmed apply path to the in-world list.
+Contract, findings and next checks: [LANGUAGE.md](LANGUAGE.md).
+Added research request (maintainer 2026-10-13): whether a server-required
+resource pack can be disabled locally without general pack-stack editing.
+Separate receiving/accepting packs from applying their visual resources.
+The existing no-change/no-skip boundary for world/server packs remains for
+implementation; this request approves feasibility research, not bypassing
+the handshake or adding a switch. No disabling is implemented.
 Fail open: if the game's own apply path cannot be found, show nothing.
 
 ### L-166 Villager trade helpers

@@ -34,6 +34,7 @@ build named there and may include superseded experiments.
 | Shapes, chunk borders, hitboxes and persistence | [OVERLAYS.md](OVERLAYS.md) |
 | Light-level overlay | [LIGHT-OVERLAY.md](LIGHT-OVERLAY.md) |
 | Visual effect hiding | [VISUAL-EFFECTS.md](VISUAL-EFFECTS.md) |
+| In-world language selection and pack research | [LANGUAGE.md](LANGUAGE.md) |
 | Auto Attack/Use and permanent movement | [AUTOMATION.md](AUTOMATION.md) |
 | Breaking/placement restrictions and research | [RESTRICTIONS.md](RESTRICTIONS.md) |
 | Hand Restock | [HAND-RESTOCK.md](HAND-RESTOCK.md) |

@@ -328,6 +328,10 @@ Hooks: `CameraCopyHook`, `CameraPositionHook`
 Meaning: the camera copied from `setupCamera` is the one the world is drawn
 with this frame.
 
+### `src/features/research/LanguageTrace.cpp`
+Hooks: `LanguageSettingsTick`, `LanguageSelected`, `LanguageChosen`, `LanguageGameChanged`, `LanguageFontChanged`, `LanguagePacksChanged`, `LanguagePackStack`, `LanguageServerPacks`
+Trace. Read-only L-167 observations; does not change language or pack handling.
+
 ### `src/features/research/ResearchTrace.cpp`
 Hooks: `FovSampleHook`
 Trace.
