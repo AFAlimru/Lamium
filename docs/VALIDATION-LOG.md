@@ -12,6 +12,42 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-162 fall reproduced while slab bridging despite guarded replay (2026-10-13)
+
+By the maintainer during the additional BDS run, explicitly while placing
+slabs to bridge. Minecraft 1.26.51.01, test BDS 1.26.51.1,
+LeviLamina Client 26.51.7, Windows x64. Same build `4fe7b29`,
+`--edge_trace=y`, deployed DLL SHA-256
+`2fd64e3bbbd9706a8ef4e5b5d66a5aadd275d6ace9950c9e1abfad66d4ec05ed`.
+- Three correction windows and one fall dump are recorded. Hook attachment
+  and owned-copy execution succeed; no hook failure is logged.
+- Correction 1, server tick 963: input `0x1fec66be4d0` captured guarded
+  analog (0.042,0.024) with live physical Down/Right. Its replay preApply
+  replaces raw Down/Right with that guarded analog; both replay vector
+  calculations and postApply retain it. This verifies actual ownership of
+  the supplied copy and fixes the observed raw-key rebuilding at this boundary.
+- Correction 2, server tick 979: the local position x=0.161 is corrected
+  to x=0.339 (about +0.178). The corrected foot box starts at x=0.039;
+  the last logged support slab ends at x=0.000. It is already outside that
+  support before replay moves it. Input `0x1feb5bdd6a0` retains guarded
+  analog (-0.084,-0.099) in both processed and raw replay states, with no
+  direction keys. Replay moves about +0.075 in x and -0.078 in y, reaching
+  x=0.414 and leaving the ground. The next live frames fall; one fall dump
+  appears at 13:53:46.121. Correction 3 occurs after landing lower down.
+- Slab placement/refusal calls occur shortly before correction 2. These
+  client-side calls and shapes do not establish which server placement or
+  collision produced the larger correction; no jump flag is logged in the
+  recorded onset. Do not equate this with the exact earlier +0.047 case.
+The log is saved locally (SHA-256
+`ad57a08dfb7cc449545d346ecba997b1e8adc2b129cd1499b4bf1c23c19ff312`).
+The copy path preserves guarded input but is insufficient to prevent this
+fall. The existing replay input calculation skips copied component states,
+and the collision guard leaves an already unsupported box vanilla. Next
+investigate slab-placement/correction ordering and guarding against the
+corrected replay position; replaying a brake planned at the old position
+alone cannot recover support already lost to the correction. Keep L-162
+open. Additional repetition on this unchanged build is not requested.
+
 ## L-162 actual-capture copy passes BDS smoke checks (2026-10-13)
 
 By the maintainer on test BDS 1.26.51.1, Minecraft 1.26.51.01,

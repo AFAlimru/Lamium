@@ -344,12 +344,14 @@ Read-only diagnostic build `a32e9bb` then passes those checks and several
 minutes of BDS bridging. Its actual capture/application hooks attach and
 connect two guarded captures to full direction-key replay in three correction
 windows. Candidate `4fe7b29` substitutes an owned copy at actual input
-capture, without changing live physical input. The BDS smoke checks pass,
-and the copy path executes; the only correction replays an unguarded capture.
-Replay of guarded captured input remains unverified. Next collect one more
-bounded run on the same diagnostic build, without repeating the full checklist.
-The original rare fall is not reproduced;
-this item stays open.
+capture, without changing live physical input. The initial BDS smoke checks
+pass. The additional slab-bridging run reproduces a fall after a correction,
+even though two correction replays retain guarded raw/processed input. The
+copy fixes the observed input loss, but is insufficient: the larger correction
+already moves the feet outside the last logged support. Next investigate
+slab-placement/correction ordering and guarding the corrected replay position.
+No further repetition on the unchanged DLL is requested. The exact original
+fall chain is not established by this new case; this item stays open.
 Seen once on the local test BDS (trace of `2dc7e45`, VALIDATION-LOG "L-161
 margin 0.1"): after a +0.047 block server correction, the client's next
 position was 0.17 block further out, off the block, and it fell. The client
@@ -556,6 +558,21 @@ hook failure. Keep L-162 open; the next check is a bounded additional BDS
 run on this same DLL, alternating diagonal approaches and slab bridging
 for roughly five minutes. Fall reproduction and the full smoke checklist
 are not needed; inspect whether a correction actually includes guarded input.
+Additional BDS result on `4fe7b29`: the maintainer falls while placing slabs
+to bridge. Three corrections and one fall dump. Correction 1 verifies the
+owned-copy path: guarded (0.042,0.024) survives preApply, both replay
+calculations and postApply, without raw direction keys. At correction 2,
+server tick 979, x=0.161 becomes x=0.339 (about +0.178); the corrected box
+starts at x=0.039, beyond the last logged slab ending at x=0.000. Guarded
+(-0.084,-0.099) survives replay too, but replay adds about +0.075 x and
+starts falling. Client placement/refusal calls precede it; which server
+placement/collision causes the larger correction remains unverified.
+The current collision guard intentionally leaves unsupported boxes vanilla,
+and copied replay inputs bypass the live-state input guard. Investigate
+correction-position handling and slab placement rather than repeating
+input-copy tests. Do not mark L-162 done or remove the verified copy fix
+solely because it does not cover this additional failure. No new candidate
+or further manual test is prepared yet; see the newest VALIDATION-LOG entry.
 
 ### L-123 FreeCamera stretches the worn elytra on the inventory player model
 Kind: Bug, low priority. Reported from use 2026-10-09 (maintainer's notes).
