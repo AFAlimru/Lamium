@@ -35,7 +35,12 @@ leave, enter a local world in the same session.
   saturation outline and Connected Textures read images by path through
   `TextureGroup::getCachedImageOrLoadSync`; that cache is reused when the
   terrain atlas is rebuilt for a new pack stack. Fix `241f635` reads them
-  from the packs directly. Not yet checked in game.
+  from the packs directly.
+- Fix checked on `241f635` (DLL SHA-256
+  `411ecd564b80f93d6fdaf5cc75bb3eba9b01ad05bacb39ee2185161bef21c8c7`, all
+  diagnostics off): local world yellow/cyan, then the BDS magenta dirt and
+  vanilla stone, then the local world yellow/cyan again. Minimap colors,
+  the saturation display and Connected Textures look as usual.
 
 ## L-167 Skip server resource packs, product build (2026-10-14)
 
