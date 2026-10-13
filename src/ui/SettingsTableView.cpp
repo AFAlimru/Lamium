@@ -1,4 +1,6 @@
 #include "ui/SettingsTableView.h"
+#include "ui/LanguageView.h"
+#include "ui/GameLanguage.h"
 #include "ui/ScreenParts.h"
 #include "ui/ListViewWidgets.h"
 #include "settings/Options.h"
@@ -266,6 +268,7 @@ void activateRow(int row, bool space) {
     switch (entry.kind) {
     case RowKind::Section: return;
     case RowKind::Feature:
+        if (entry.feature->id == "gameLanguage") { language_view::begin(); return; }
         if (space && hasSwitch(*entry.feature)) { toggleFeature(*entry.feature); return; }
         if (entry.children) { setExpanded(row, !entry.expanded); return; }
         if (hasSwitch(*entry.feature)) { toggleFeature(*entry.feature); return; }
@@ -347,6 +350,7 @@ void handleClick(SettingsTable::Hit const& hit, bool right) {
     }
     switch (entry.kind) {
     case RowKind::Feature:
+        if (entry.feature->id == "gameLanguage") { language_view::begin(); return; }
         if (hit.column == Column::State) toggleFeature(*entry.feature);
         else if (hit.column == Column::Key) {
             if (auto primary = primaryAction(*entry.feature)) startCapture(*primary);
@@ -881,6 +885,11 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
                 toggleSwitch(context,t.stateX+(SettingsTable::stateWidth-switchWidth)/2,y+(SettingsTable::rowHeight-switchHeight)/2,
                     sessionState(entry.feature->id));
             if (auto primary = primaryAction(*entry.feature)) drawKeyCell(context,current,y,*primary);
+            if (entry.feature->id == "gameLanguage") {
+                float width = t.keyX + t.keyWidth - t.stateX;
+                drawSmallButton(context, t.stateX, y + 1, width, capHeight, game_language::currentName(),
+                    hover.zone == Zone::Row && hover.index == i);
+            }
             break;
         }
         case RowKind::Option: {

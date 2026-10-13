@@ -58,12 +58,7 @@ bool start() {
     if (!hooked) hooked = SearchHook::hook(true) == 0;
     if (!hooked) return false;
     if (!exitListener)
-        // Resource packs and the language can change between worlds.
-        exitListener = ll::event::EventBus::getInstance().emplaceListener<ll::event::ClientExitLevelEvent>([](auto&) {
-            std::lock_guard lock{namesMutex};
-            names.clear();
-            english.reset();
-        });
+        exitListener = ll::event::EventBus::getInstance().emplaceListener<ll::event::ClientExitLevelEvent>([](auto&) { forget(); });
     return true;
 }
 void stop() {
@@ -72,6 +67,9 @@ void stop() {
         exitListener.reset();
     }
     if (hooked && SearchHook::unhook(true)) hooked = false;
+    forget();
+}
+void forget() {
     std::lock_guard lock{namesMutex};
     names.clear();
     english.reset();

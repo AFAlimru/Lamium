@@ -109,6 +109,8 @@ int main() try {
     shapeEditorTests();
     extern void settingsTableTests();
     settingsTableTests();
+    extern void languageSelectionTests();
+    languageSelectionTests();
     extern void responseBarrierTests();
     responseBarrierTests();
     extern void transferGestureTests();

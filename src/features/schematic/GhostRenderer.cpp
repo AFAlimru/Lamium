@@ -680,4 +680,5 @@ void stop() {
     if (installed && GhostPass::unhook(true)) installed = false;
     releaseRequested = true;
 }
+void invalidateResources() { releaseRequested = true; }
 }

@@ -33,4 +33,5 @@ inline bool matches(std::string_view query, std::string_view englishName, std::s
 }
 bool start();
 void stop();
+void forget();
 }

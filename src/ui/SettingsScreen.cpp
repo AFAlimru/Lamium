@@ -10,6 +10,7 @@
 #include "ui/WaypointsView.h"
 #include "ui/SchematicsView.h"
 #include "ui/SettingsTableView.h"
+#include "ui/LanguageView.h"
 #include "ui/ScreenParts.h"
 #include "ui/ListViewWidgets.h"
 #include "ui/WaypointPromptLayout.h"
@@ -163,6 +164,7 @@ void enterCalculator(bool fromSettings);
 // (L-172), in the order text events are routed.
 struct FocusedText { TextEdit* field = nullptr; void (*changed)() = nullptr; };
 FocusedText focusedText() {
+    if (language_view::opened()) return {};
     if (table_view::capturing()) return {};
     if (calculatorOpen) return {&calculator_view::field(), calculator_view::edited};
     if (prompt) return {&prompt->name, [] {}};
@@ -357,6 +359,7 @@ LL_TYPE_INSTANCE_HOOK(SettingsSearchText, ll::memory::HookPriority::Normal, UISc
     origin(text, impact);
 }
 void clear() {
+    language_view::reset();
     releaseTextKeyboard();
     numberDirty = false; uiHeld.clear(); client = nullptr;
     table_view::reset();
@@ -413,6 +416,7 @@ void finishNumber() {
     schematics_view::endEditing();
 }
 void close() {
+    language_view::reset();
     releaseTextKeyboard();
     table_view::disarm();
     if (ownsTop()) {
@@ -955,6 +959,21 @@ void render(ll::event::UIRenderEvent& event) {
         if (pendingClick && !pendingClick->right && placeCaret(context, *target.field, pendingClick->x, pendingClick->y))
             pendingClick.reset();
     } else forgetEditField();
+    if (language_view::opened()) {
+        releaseTextKeyboard();
+        if (!closing) {
+            if (auto click = std::exchange(pendingClick, std::nullopt); click && !click->right) language_view::click(click->x, click->y);
+            for (auto wheel : std::exchange(pendingWheels, {})) if (language_view::opened()) language_view::wheel(wheel.direction);
+            if (std::exchange(pendingRelease, false)) language_view::release();
+            for (int key : std::exchange(pendingKeys, {})) if (language_view::opened()) language_view::key(key);
+        }
+        pendingSearch = false;
+        if (!scene) return;
+        displayedInverseScale = current.getGuiData()->mInvGuiScale;
+        if (language_view::opened()) language_view::render(context, size, view.mPointerLocationPrevious);
+        else table_view::render(context, current, size, view.mPointerLocationPrevious);
+        return;
+    }
     if (calculatorOpen) {
         if (std::exchange(pendingRelease, false)) calculator_view::release();
         if (!closing) {
@@ -1068,7 +1087,10 @@ void render(ll::event::UIRenderEvent& event) {
         } else {
             if (std::exchange(pendingSearch, false)) { finishNumber(); table_view::focusSearch(); }
             if (auto click = std::exchange(pendingClick, std::nullopt)) table_view::click(click->x, click->y, click->right);
-            for (int key : std::exchange(pendingKeys, {})) table_view::key(key);
+            for (int key : std::exchange(pendingKeys, {})) {
+                if (language_view::opened()) break;
+                table_view::key(key);
+            }
         }
     }
     dropMovedWarning();
@@ -1076,6 +1098,11 @@ void render(ll::event::UIRenderEvent& event) {
     // No HUD under the settings list: the overlap made both hard to read.
     displayedInverseScale = current.getGuiData()->mInvGuiScale;
     glm::vec2 pointer = view.mPointerLocationPrevious;
+    if (language_view::opened()) {
+        releaseTextKeyboard();
+        language_view::render(context, size, pointer);
+        return;
+    }
     if (hudEditorView()) {
         releaseTextKeyboard();
         hud_editor::render(context, size.x, size.y, pointer.x, pointer.y);
@@ -1245,6 +1272,7 @@ bool ownsInput() {
 }
 void cancelInputCapture() {
     std::lock_guard lock(mutex);
+    language_view::reset();
     releaseTextKeyboard();
     if (table_view::capturing()) table_view::cancelCapture();
     finishNumber();
@@ -1310,6 +1338,10 @@ void start() {
             return;
         }
         event.cancel();
+        if (language_view::opened() && wheel) {
+            pendingWheels.push_back({x, y, event.buttonData() > 0 ? -3 : 3});
+            return;
+        }
         if (calculatorOpen && wheel) {
             calculator_view::wheel(event.buttonData() > 0 ? 1 : -1);
             return;
@@ -1361,6 +1393,9 @@ void start() {
         }
         // Let key-up through so keys pressed before opening cannot stick.
         if (!event.isDown()) return;
+        if (language_view::opened()) {
+            event.cancel(); pendingKeys.push_back(event.keyCode()); return;
+        }
         // The calculator copies its result (Ctrl+C) or "expression = value"
         // (Ctrl+Shift+C), not the field's text (L-171).
         if (calculatorOpen && event.keyCode() == 0x43 && heldCtrl()) {

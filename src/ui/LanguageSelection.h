@@ -1,0 +1,58 @@
+#pragma once
+#include "ui/SettingsTable.h"
+#include "ui/ShapesLayout.h"
+#include <algorithm>
+#include <optional>
+#include <string>
+#include <vector>
+
+namespace lamium::ui {
+struct LanguageChoice { std::string code, name; };
+struct LanguageSelection {
+    static constexpr size_t limit = 96;
+    std::vector<LanguageChoice> choices;
+    int selected = -1, first = 0;
+    void add(std::string code, std::string name) {
+        if (code.empty() || choices.size() >= limit) return;
+        for (auto const& choice : choices) if (choice.code == code) return;
+        choices.push_back({std::move(code), std::move(name)});
+        if (choices.back().name.empty()) choices.back().name = choices.back().code;
+    }
+    void select(int index) {
+        if (index >= 0 && index < static_cast<int>(choices.size())) selected = index;
+    }
+    void move(int amount, int visible) {
+        if (choices.empty()) { selected = -1; return; }
+        selected = std::clamp(selected + amount, 0, static_cast<int>(choices.size()) - 1);
+        first = SettingsTable::reveal(first, selected, visible);
+    }
+    std::optional<std::string> request(std::string_view current, std::string_view saved) const {
+        if (selected < 0 || selected >= static_cast<int>(choices.size())) return std::nullopt;
+        auto const& code = choices[selected].code;
+        return code == current && code == saved ? std::nullopt : std::optional(code);
+    }
+};
+struct LanguageContext {
+    std::string code;
+    int dimension = 0;
+    bool active = true;
+    bool permits(LanguageContext const& now, bool cancelled) const {
+        return !cancelled && active && now.active && dimension == now.dimension && code == now.code;
+    }
+};
+// Full-width list using the settings panel's existing dimensions and widgets.
+inline ShapesLayout languageLayout(float width, float height, int count, int first) {
+    auto table = SettingsTable::fit(width, height, count, first);
+    ShapesLayout l;
+    if (!table.usable()) return l;
+    l.left = table.left; l.top = table.top; l.width = table.width; l.height = table.height;
+    l.closeX = table.closeX;
+    l.footerTop = table.footerTop;
+    l.listLeft = table.left; l.listWidth = table.width;
+    l.rowsTop = table.top + SettingsTable::headerHeight;
+    l.listCount = std::max(0, count);
+    l.listVisible = std::max(0, static_cast<int>((l.footerTop - l.rowsTop - 2) / SettingsTable::rowHeight));
+    l.listFirst = SettingsTable::clampFirst(first, count, l.listVisible);
+    return l;
+}
+}

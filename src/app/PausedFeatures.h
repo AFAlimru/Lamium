@@ -12,10 +12,10 @@
 namespace lamium::paused {
 enum class Level { No, Partly, Fully };
 // Feature ids as in ui::features.
-inline constexpr std::array<std::string_view, 7> gatedFeatures{
-    "nightVision", "edgeGuard", "connectedTextures", "freecamera", "hideEffects", "schematic", "repeatTrades"};
+inline constexpr std::array<std::string_view, 8> gatedFeatures{
+    "nightVision", "edgeGuard", "connectedTextures", "freecamera", "hideEffects", "schematic", "repeatTrades", "gameLanguage"};
 inline Level onUnverified(std::string_view feature) {
-    if (feature == "nightVision" || feature == "edgeGuard" || feature == "connectedTextures" || feature == "repeatTrades") return Level::Fully;
+    if (feature == "nightVision" || feature == "edgeGuard" || feature == "connectedTextures" || feature == "repeatTrades" || feature == "gameLanguage") return Level::Fully;
     if (feature == "freecamera" || feature == "hideEffects" || feature == "schematic") return Level::Partly;
     return Level::No;
 }

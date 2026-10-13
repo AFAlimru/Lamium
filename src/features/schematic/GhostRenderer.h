@@ -85,6 +85,8 @@ bool liquidShell(BlockTessellator& tessellator, Tessellator& batch, BlockPos con
 void reorderQuads(Tessellator& batch, std::vector<std::uint32_t> const& order);
 void start();
 void stop();
+// Native language/subpack updates can replace retained resource data.
+void invalidateResources();
 // The latest finished verification of the selected placement (never null).
 std::shared_ptr<Verification const> verification();
 // Progress for the Placed list (L-93 screen review): correct / total in the

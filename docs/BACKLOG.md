@@ -587,8 +587,10 @@ pause settings have no Language entry on 1.26.51.01. This establishes the
 missing entry, not the safety of applying a language during play.
 Current research: `language_trace` observes vanilla selection, the saved
 option, I18n, game/font/pack observers and pack stack changes without changing
-any return value or argument. A title-screen language change is the next
-runtime check; then connect the confirmed apply path to the in-world list.
+any return value or argument. The title-screen baseline is recorded.
+Built 2026-10-13, not yet seen in game: General settings > Game language
+applies through the observed vanilla order (LANGUAGE.md). Next: the
+in-world check list in LANGUAGE.md.
 Contract, findings and next checks: [LANGUAGE.md](LANGUAGE.md).
 Added research request (maintainer 2026-10-13): whether a server-required
 resource pack can be disabled locally without general pack-stack editing.
