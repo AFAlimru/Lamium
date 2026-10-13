@@ -2,6 +2,13 @@
 void check(bool, char const*);
 void repeatTradeTests() {
     using namespace lamium::inventory::repeatTrades;
+    check(!inputsCanReturn({{64, 0}, {64, 0}, {0, 0}, 0}), "refilling cannot drop inputs into a full inventory");
+    check(inputsCanReturn({{64, 0}, {64, 0}, {0, 0}, 1}), "one empty slot can return a full input stack");
+    check(inputsCanReturn({{64, 0}, {64, 0}, {64, 0}, 0}), "matching partial stacks can receive inputs without an empty slot");
+    check(!inputsCanReturn({{64, 1}, {64, 64}, {0, 0}, 1}), "two different inputs cannot share one empty return slot");
+    check(inputsCanReturn({{63, 1}, {64, 64}, {0, 0}, 1, true}), "matching inputs can share one return slot");
+    check(!inputsCanReturn({{64, 1}, {64, 64}, {0, 0}, 1, true}), "matching input overflow still requires a second slot");
+    check(!inputsCanReturn({{32, 32}, {64, 64}, {32, 32}, 0, true}), "matching inputs do not double count partial-stack room");
     Offer offer{15, 0, 1, 3, 16, true};
     check(materials(offer, {64, 0, 3}) && !materials(offer, {14, 0, 3}), "one trade requires the actual price");
     check(expected(offer, {64, 0, 3}) == Counts{49, 0, 4}, "one coal trade consumes 15 and adds one emerald");

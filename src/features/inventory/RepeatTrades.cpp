@@ -81,6 +81,7 @@ struct Snapshot {
     uint32_t recipe = 0;
     int dimension = 0;
     std::string layout;
+    bool inputsReturnable = false;
 };
 void clear() {
     auto job = std::move(pending);
@@ -131,6 +132,13 @@ std::optional<Snapshot> read(ContainerScreenController& controller, int tier, in
     auto const& recipe = offers->mRecipeList.get()[size_t(index)];
     if (recipe.mBuyA->isNull() || recipe.mSell->isNull()) return {};
     bool second = !recipe.mBuyB->isNull() && recipe.mBuyB->mCount > 0;
+    for (auto name : {"trade2_ingredient1_item", "trade2_ingredient2_item"})
+        if (!manager->hasContainerController(name) || manager->getContainerSize(name) != 1) return {};
+    auto const& inputA = manager->getItemStack("trade2_ingredient1_item", 0);
+    auto const& inputB = manager->getItemStack("trade2_ingredient2_item", 0);
+    InputReturnSpace returning{{inputA.isNull() ? 0 : int(inputA.mCount), inputB.isNull() ? 0 : int(inputB.mCount)},
+        {inputA.isNull() ? 0 : int(inputA.getMaxStackSize()), inputB.isNull() ? 0 : int(inputB.getMaxStackSize())}, {}, 0,
+        !inputA.isNull() && !inputB.isNull() && inputA.matchesItem(inputB)};
     Snapshot result;
     result.dimension = static_cast<int>(player->getDimensionId());
     result.recipe = recipe.mRecipeNetId->mRawId;
@@ -149,16 +157,21 @@ std::optional<Snapshot> read(ContainerScreenController& controller, int tier, in
             for (unsigned i = 0; i < 3; ++i) if (bits & (1u << i)) result.counts[i] += int(stack.mCount);
         }
         if (inventory) {
-            if (empty) result.room += int(recipe.mSell->getMaxStackSize());
+            if (empty) { result.room += int(recipe.mSell->getMaxStackSize()); ++returning.emptySlots; }
             else if (bits & 4) result.room += std::max(0, int(stack.getMaxStackSize()) - int(stack.mCount));
+            if (!empty) {
+                int room = std::max(0, int(stack.getMaxStackSize()) - int(stack.mCount));
+                if (!inputA.isNull() && stack.matchesItem(inputA)) returning.partialRoom[0] += room;
+                if (!inputB.isNull() && stack.matchesItem(inputB)) returning.partialRoom[1] += room;
+            }
         }
         result.layout += std::format("{}:{}:{};", empty ? "empty" : stack.getTypeName(), int(stack.mCount), bits);
     };
     for (int i = 0; i < 36; ++i) collect(manager->getItemStack("combined_hotbar_and_inventory_items", i), true);
     for (auto name : {"trade2_ingredient1_item", "trade2_ingredient2_item"}) {
-        if (!manager->hasContainerController(name) || manager->getContainerSize(name) != 1) return {};
         collect(manager->getItemStack(name, 0), false);
     }
+    result.inputsReturnable = inputsCanReturn(returning);
     return result;
 }
 void invoke(ScreenController& controller, uint id, int tier, int row) {
@@ -205,6 +218,8 @@ void advance(Trade2ScreenController& controller) {
         phase = Phase::Prepare;
     }
     auto manager = controller.mContainerManagerController;
+    // Selection returns both old inputs before refilling; vanilla drops any overflow.
+    if (phase == Phase::Prepare && !snapshot->inputsReturnable) { end("inputs cannot return safely"); return; }
     auto token = game::beginTransfer(*manager);
     if (!token) { end("another inventory request owns the tracker"); return; }
     job->transfer = token;

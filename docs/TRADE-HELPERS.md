@@ -43,7 +43,11 @@ wheel input, focus loss and settings changes invalidate the generation;
 screen leave, world exit and offer refresh release observation ownership.
 Dimension/entity/recipe changes stop when reacquired. Output capacity is
 checked after native refill; one refill may free a consumed ingredient slot,
-but no trade is sent if output still cannot fit. Disabled or unsupported
+but no trade is sent if output still cannot fit. Before selection/refill,
+both existing inputs must fit back into inventory without dropping: partial
+matching stacks and shared empty slots are counted, with matching inputs
+sharing one budget. Otherwise the run stops before calling vanilla refill.
+Disabled or unsupported
 paths leave ordinary trading intact. Settings include an unbound toggle key
 and English, Japanese and Simplified Chinese labels.
 

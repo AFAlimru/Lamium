@@ -12,6 +12,24 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-166 full-inventory input overflow found (2026-10-13, BDS)
+
+Agent Computer Use with the maintainer performing the Shift + right-click
+start gesture. Minecraft 1.26.51.01, LeviLamina Client 26.51.7, isolated
+BDS 1.26.51.1 test world. Normal build `0193c02`, source/deployed DLL SHA-256
+`5a3dd09c714bb716221d1b735db0dc5bbaca6ccf18227bb646a570c63142c97d`.
+- Prepare 128 emeralds and 34 full stone stacks. Left-click the axe row
+  to place 64 emeralds in its ingredient slot; add one stone stack to fill
+  the slot that selection freed. The output destination is now full.
+- No dropped-item entity is found before starting. Shift + right click
+  produces no axe, but an emerald item entity is present afterwards.
+  Closing the screen also leaves emerald items beside the villager.
+- The selection/refill route can return ingredient overflow by dropping it.
+  Exact dropped counts and the response sequence are not established by this
+  no-trace run. Do not treat zero output as a successful capacity check.
+- Follow-up adds a preflight for returning both existing ingredient stacks
+  before selection/refill. Build and pure tests pass; runtime recheck pending.
+
 ## L-166 Shift + right-click row trigger (2026-10-13, local)
 
 By the maintainer on Minecraft 1.26.51.01 (LeviLauncher instance

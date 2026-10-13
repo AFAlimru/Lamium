@@ -3,6 +3,23 @@
 
 namespace lamium::inventory::repeatTrades {
 using Counts = std::array<int, 3>; // buy A, buy B, sell (matching kinds can overlap).
+struct InputReturnSpace {
+    std::array<int, 2> counts{}, stackSizes{}, partialRoom{};
+    int emptySlots = 0;
+    bool sameKind = false;
+};
+inline bool inputsCanReturn(InputReturnSpace const& space) {
+    int needed = 0;
+    for (unsigned i = 0; i < 2; ++i) {
+        if (i == 1 && space.sameKind) continue;
+        int count = space.counts[i] + (i == 0 && space.sameKind ? space.counts[1] : 0);
+        if (count <= 0) continue;
+        if (space.stackSizes[i] <= 0) return false;
+        int remainder = count - space.partialRoom[i];
+        if (remainder > 0) needed += (remainder + space.stackSizes[i] - 1) / space.stackSizes[i];
+    }
+    return needed <= space.emptySlots;
+}
 struct Offer {
     int costA = 0, costB = 0, output = 0, uses = 0, maxUses = 0;
     bool unlocked = false, sameInputs = false, sellMatchesA = false, sellMatchesB = false;
