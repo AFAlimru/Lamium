@@ -12,6 +12,31 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-162 first diagnostic round, no fall (2026-10-13)
+
+By the maintainer on the local test BDS 1.26.51.1, Minecraft 1.26.51.01,
+Windows x64. Actual loader reported by the runtime: LeviLamina 26.51.7
+(compiled SDK 26.51.5). Build `d476ae5`, `--edge_trace=y`, DLL SHA-256
+`b612379a7034312c2999cc3d08c0382dd06216dba81cdd0f4c8907d0fee92f5f`
+(source and deployed copy matched).
+- Maintainer: Edge Guard on, margin 0.10; approaching an ordinary edge stops,
+  slab bridging has no pullback or fall, and jumping may leave the edge.
+- Log: the first guarded approach was saved. One correction at tick 2400
+  moved z from 236.809 to 236.765 (ground true); after send tick 2401,
+  `tickMovementCorrectionReplay` ran on registry 2. Two move calculations
+  used `other` input states with Down/Right and move -0.71,-0.71 unchanged;
+  replay collision used box min (-27.791,66.500,236.465) and speed
+  (0.008,-0.078,-0.113), also unchanged. Replay then changed live z from
+  236.695 to 236.652. There was new slab support in this window and no fall.
+- The input-history diagnostic reported "unsupported SDK virtual-call
+  thunk" and did not attach. Capture/preApply/postApply, exact replay
+  ownership and replay-versus-live motion are therefore still unobserved.
+  The trace supports copied replay input bypassing the live input guard,
+  but does not establish the original rare fall's cause or a fix.
+No other-server, slippery-block or rare-fall coverage. Round 2 replaces
+the unavailable history diagnostic with exported SDK history boundaries;
+it changes no movement. The original round's log is saved locally.
+
 ## L-171 Calculator (2026-10-13)
 
 By the maintainer, local, screenshots.

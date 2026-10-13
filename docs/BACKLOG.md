@@ -346,7 +346,8 @@ the local player's input component states and only on the client thread;
 the collision guard also consults the live player's walking state. Whether
 replay uses those states, a copied entity, or its captured `mMove` directly
 is not established by the headers. No movement fix yet.
-The maintainer authorized an `--edge_trace=y` test build on the existing
+Initial diagnostic approach (round 1, replaced by round 2 below):
+the maintainer authorized an `--edge_trace=y` test build on the existing
 test BDS and client instance. It observes `ReplayableActorInput::capture`,
 `preApplyInput`/`postApplyInput`, the correction-replay tick, move-vector and
 collision calls (including counters for replay on another thread), and
@@ -362,9 +363,25 @@ path is logged and left alone; the normal build has none of these hooks.
 Normal and diagnostic builds, LamiumTests, LamiumNativeTests and the hook
 inventory check pass. Diagnostic DLL SHA-256 (source and deployed copy):
 `b612379a7034312c2999cc3d08c0382dd06216dba81cdd0f4c8907d0fee92f5f`.
-The build configuration is back to `--edge_trace=n`; the client instance
-still has the authorized diagnostic DLL for testing. Runtime collection
-is pending; restore the instance's normal DLL after the test.
+Round 1 (`d476ae5`) checked 2026-10-13 on the test BDS, actual loader
+26.51.7: ordinary edges stop at margin 0.10, slab bridging has no pullback
+or fall, jumping may leave. No rare fall reproduced. One correction was
+recorded; replay calculated vectors from `other` input states, skipped the
+live input guard and ran collision in registry 2. The history virtual-slot
+diagnostic refused to attach (unsupported SDK thunk), so input capture and
+replay ownership were not established. This does not prove the earlier
+fall's cause or a fix.
+Round 2 replaces that unavailable diagnostic with exported methods:
+`ActorHistory::addFrame`, `prepareEntityForRewindFromCapture` and
+`ClientPlayerRewindSystem::applyHistoryChangesToLiveEntity`. Record the
+local player's captured/live/rewind inputs, box and motion, frame ticks and
+the live result, retaining no game pointers and changing no movement.
+Next: establish which replay entity belongs to the local player and what
+input/position it uses before connecting a replay guard. Build configuration
+returns to `--edge_trace=n`; restore the instance's normal DLL after testing.
+Round 2 diagnostic builds and LamiumTests pass; it is deployed for another
+short run at margin 0.10. Source and deployed DLL SHA-256:
+`7f10147c19e878b0ced7d4da94c70c2e8d6ca0e15c35e2ca6b760b67c4e238d0`.
 
 ### L-123 FreeCamera stretches the worn elytra on the inventory player model
 Kind: Bug, low priority. Reported from use 2026-10-09 (maintainer's notes).

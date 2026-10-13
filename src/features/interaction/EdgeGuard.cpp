@@ -35,10 +35,9 @@
 #include "mc/network/packet/CorrectPlayerMovePredictionPacket.h"
 #include "mc/network/packet/PlayerAuthInputPacket.h"
 #include "mc/entity/systems/EntitySystems.h"
-#include "mc/entity/utilities/IReplayableActorInput.h"
-#include "mc/entity/components/ReplayStateComponent.h"
-#include <Windows.h>
-#include <array>
+#include "mc/world/actor/ActorHistory.h"
+#include "mc/entity/systems/ClientPlayerRewindSystem.h"
+#include "mc/deps/vanilla_components/StateVectorComponent.h"
 #include <deque>
 #include <format>
 #include <string>
@@ -78,8 +77,6 @@ int traceCorrections = 0, traceCorrectionTail = 0, traceCorrectionDumps = 0;
 int traceBaselineTail = -1;
 thread_local int traceReplayDepth = 0;
 std::atomic<int> traceOtherReplay = 0, traceOtherCalc = 0, traceOtherCollision = 0;
-std::uintptr_t traceCaptureTarget = 0, tracePreTarget = 0, tracePostTarget = 0;
-bool traceHistoryInstalled = false, traceHistoryUnavailable = false;
 std::deque<std::string> traceRing;
 bool traceFalling = false;
 float traceGroundY = 0;
@@ -159,31 +156,51 @@ void traceEntity(char const* stage, EntityContext const& entity, void const* his
         trace(std::format("{} box {:.3f},{:.3f},{:.3f}..{:.3f},{:.3f},{:.3f}", stage,
             box.min.x, box.min.y, box.min.z, box.max.x, box.max.y, box.max.z));
     }
+    if (auto motion = entity.tryGetComponent<StateVectorComponent>())
+        trace(std::format("{} position {:.3f},{:.3f},{:.3f} delta {:.3f},{:.3f},{:.3f}", stage,
+            motion->mPos->x, motion->mPos->y, motion->mPos->z,
+            motion->mPosDelta->x, motion->mPosDelta->y, motion->mPosDelta->z));
 }
-LL_TYPE_INSTANCE_HOOK(EdgeTraceCapture, ll::memory::HookPriority::Normal, IReplayableActorInput, traceCaptureTarget,
-    void, MoveInputComponent const& input) {
+bool traceLocalEntity(EntityContext const& entity) {
+    auto client = ll::service::getClientInstance();
+    auto* player = client ? client->getLocalPlayer() : nullptr;
+    if (!player) return false;
+    auto const& own = player->getEntityContext();
+    return &entity.mRegistry == &own.mRegistry && entity.mEntity == own.mEntity;
+}
+LL_TYPE_INSTANCE_HOOK(EdgeTraceHistoryFrame, ll::memory::HookPriority::Normal, ActorHistory,
+    &ActorHistory::addFrame, void, EntityContext& entity, uint64 frame, EntityRegistry& registry) {
     try {
-        if (traceActive()) {
-            auto client = ll::service::getClientInstance();
-            auto* player = client ? client->getLocalPlayer() : nullptr;
-            auto own = player ? player->getEntityContext().tryGetComponent<MoveInputComponent>() : optional_ref<MoveInputComponent>{};
-            if (own && &*own == &input) traceInput("capture live", input, this);
-            else if (traceReplayDepth) traceInput("capture replay", input, this);
+        if (traceActive() && traceLocalEntity(entity)) {
+            trace(std::format("history frame begin tick {}", frame));
+            traceEntity("frame live input", entity, this);
         }
     } catch (...) {}
-    origin(input);
+    origin(entity, frame, registry);
+    try {
+        if (traceActive() && traceLocalEntity(entity))
+            trace(std::format("history frame end tick {}", frame));
+    } catch (...) {}
 }
-LL_TYPE_INSTANCE_HOOK(EdgeTracePreApply, ll::memory::HookPriority::Normal, IReplayableActorInput,
-    tracePreTarget, void, EntityContext& entity) {
-    try { if (traceActive()) traceEntity("preApply before", entity, this); } catch (...) {}
-    origin(entity);
-    try { if (traceActive()) traceEntity("preApply after", entity, this); } catch (...) {}
+LL_STATIC_HOOK(EdgeTracePrepare, ll::memory::HookPriority::Normal, &ActorHistory::prepareEntityForRewindFromCapture,
+    void, EntityContext const& captured, EntityContext const& live, EntityContext& rewind) {
+    try {
+        if (traceActive() && traceLocalEntity(live)) {
+            traceEntity("prepare captured", captured, nullptr);
+            traceEntity("prepare live", live, nullptr);
+            traceEntity("prepare rewind before", rewind, nullptr);
+        }
+    } catch (...) {}
+    origin(captured, live, rewind);
+    try {
+        if (traceActive() && traceLocalEntity(live)) traceEntity("prepare rewind after", rewind, nullptr);
+    } catch (...) {}
 }
-LL_TYPE_INSTANCE_HOOK(EdgeTracePostApply, ll::memory::HookPriority::Normal, IReplayableActorInput,
-    tracePostTarget, void, EntityContext& entity) {
-    try { if (traceActive()) traceEntity("postApply before", entity, this); } catch (...) {}
-    origin(entity);
-    try { if (traceActive()) traceEntity("postApply after", entity, this); } catch (...) {}
+LL_STATIC_HOOK(EdgeTraceApply, ll::memory::HookPriority::Normal, &ClientPlayerRewindSystem::applyHistoryChangesToLiveEntity,
+    void, ReplayStateTrackerComponent const& state, EntityContext& live) {
+    try { if (traceActive() && traceLocalEntity(live)) traceEntity("apply live before", live, nullptr); } catch (...) {}
+    origin(state, live);
+    try { if (traceActive() && traceLocalEntity(live)) traceEntity("apply live after", live, nullptr); } catch (...) {}
 }
 LL_TYPE_INSTANCE_HOOK(EdgeTraceReplay, ll::memory::HookPriority::Normal, EntitySystems,
     &EntitySystems::$tickMovementCorrectionReplay, void, EntityRegistry& registry) {
@@ -195,51 +212,6 @@ LL_TYPE_INSTANCE_HOOK(EdgeTraceReplay, ll::memory::HookPriority::Normal, EntityS
     try { if (traceActive()) trace(std::format("replay begin registry {}", static_cast<uint>(registry.mId))); } catch (...) {}
     origin(registry);
     try { if (traceActive()) trace(std::format("replay end registry {}", static_cast<uint>(registry.mId))); } catch (...) {}
-}
-void bindHistoryTrace(LocalPlayer& player) {
-    if (traceHistoryUnavailable) return;
-    auto replay = player.getEntityContext().tryGetComponent<ReplayStateComponent>();
-    auto* input = replay ? replay->getCurrentCapturedInput() : nullptr;
-    if (!input) return;
-    auto unavailable = [](char const* reason) {
-        traceHistoryUnavailable = true;
-        Runtime::instance().self().getLogger().warn("L-162 input-history diagnostics unavailable: {}", reason);
-    };
-    auto capture = ll::memory::getVtableIndex(static_cast<void (IReplayableActorInput::*)(MoveInputComponent const&)>(&IReplayableActorInput::capture));
-    auto pre = ll::memory::getVtableIndex(&IReplayableActorInput::preApplyInput);
-    auto post = ll::memory::getVtableIndex(&IReplayableActorInput::postApplyInput);
-    if (!capture || !pre || !post || *capture > 32 || *pre > 32 || *post > 32) {
-        unavailable("unsupported SDK virtual-call thunk"); return;
-    }
-    auto** table = *reinterpret_cast<void***>(input);
-    std::array<std::uintptr_t, 3> addresses{};
-    std::array<size_t, 3> slots{*capture, *pre, *post};
-    for (size_t i = 0; i < slots.size(); ++i) {
-        auto* target = table[slots[i]];
-        MEMORY_BASIC_INFORMATION page{};
-        if (!VirtualQuery(target, &page, sizeof(page)) || page.State != MEM_COMMIT
-            || page.AllocationBase != GetModuleHandleW(nullptr) || (page.Protect & (PAGE_GUARD | PAGE_NOACCESS))) {
-            unavailable("history entry is outside game code"); return;
-        }
-        auto protection = page.Protect & 0xff;
-        if (protection != PAGE_EXECUTE && protection != PAGE_EXECUTE_READ
-            && protection != PAGE_EXECUTE_READWRITE && protection != PAGE_EXECUTE_WRITECOPY) {
-            unavailable("history entry is not executable"); return;
-        }
-        addresses[i] = reinterpret_cast<std::uintptr_t>(target);
-    }
-    if (traceHistoryInstalled) {
-        if (addresses != std::array{traceCaptureTarget, tracePreTarget, tracePostTarget})
-            unavailable("history implementation changed");
-        return;
-    }
-    traceCaptureTarget = addresses[0]; tracePreTarget = addresses[1]; tracePostTarget = addresses[2];
-    if (EdgeTraceCapture::hook(true) != 0 || EdgeTracePreApply::hook(true) != 0 || EdgeTracePostApply::hook(true) != 0) {
-        EdgeTraceCapture::unhook(true); EdgeTracePreApply::unhook(true); EdgeTracePostApply::unhook(true);
-        unavailable("could not install history hooks"); return;
-    }
-    traceHistoryInstalled = true;
-    Runtime::instance().self().getLogger().info("L-162 input-history diagnostics attached (SDK virtual slots {},{},{}); read only", *capture, *pre, *post);
 }
 #endif
 
@@ -352,9 +324,6 @@ void guardMoveVector(MoveInputState const& state, Vec2& move) {
     auto* player = client ? client->getLocalPlayer() : nullptr;
     if (!player) return;
     auto& context = player->getEntityContext();
-#ifdef LAMIUM_EDGE_TRACE
-    bindHistoryTrace(*player);
-#endif
     auto raw = context.tryGetComponent<RawMoveInputComponent>();
     auto input = context.tryGetComponent<MoveInputComponent>();
     bool own = (raw && &state == &*raw->mRawInput)
@@ -614,6 +583,9 @@ void start() {
     EdgeTraceBuild::hook();
     EdgeTraceSurvivalBuild::hook();
     EdgeTraceReplay::hook();
+    bool frame = EdgeTraceHistoryFrame::hook() == 0, prepare = EdgeTracePrepare::hook() == 0,
+        apply = EdgeTraceApply::hook() == 0;
+    Runtime::instance().self().getLogger().info("L-162 history diagnostics: frame {} prepare {} apply {}", frame, prepare, apply);
     Runtime::instance().self().getLogger().warn("Edge Guard diagnostics enabled (L-160/L-162); up to 16 correction windows and 12 falls");
 #endif
     ll::thread::ClientThreadExecutor::getDefault().execute([] { clientThread.store(std::this_thread::get_id()); });
@@ -641,10 +613,9 @@ void stop() {
     if (!installed) return;
 #ifdef LAMIUM_EDGE_TRACE
     EdgeTraceReplay::unhook(true);
-    if (traceHistoryInstalled) {
-        bool capture = EdgeTraceCapture::unhook(true), pre = EdgeTracePreApply::unhook(true), post = EdgeTracePostApply::unhook(true);
-        if (capture && pre && post) traceHistoryInstalled = false;
-    }
+    EdgeTraceHistoryFrame::unhook(true);
+    EdgeTracePrepare::unhook(true);
+    EdgeTraceApply::unhook(true);
 #endif
     bool place = EdgeGuardPlaceHook::unhook(true) & EdgeGuardSurvivalPlaceHook::unhook(true);
     bool survival = EdgeGuardBuildHook::unhook(true) & EdgeGuardSurvivalBuildHook::unhook(true)
