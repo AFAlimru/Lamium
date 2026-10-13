@@ -341,6 +341,30 @@ re-runs its recent ticks after a correction (`ReplayableActorInput` captures
 apply during that re-run. Next: trace `calculateMoveVector` calls during the
 re-run (which state, which position) and whether the captured input is the
 guarded one; fail open if the replay path cannot be told apart.
+Investigation 2026-10-13: the live input guard only accepts the addresses of
+the local player's input component states and only on the client thread;
+the collision guard also consults the live player's walking state. Whether
+replay uses those states, a copied entity, or its captured `mMove` directly
+is not established by the headers. No movement fix yet.
+The maintainer authorized an `--edge_trace=y` test build on the existing
+test BDS and client instance. It observes `ReplayableActorInput::capture`,
+`preApplyInput`/`postApplyInput`, the correction-replay tick, move-vector and
+collision calls (including counters for replay on another thread), and
+packet ticks. It keeps 400 lines, writes the first guarded approach even
+without a correction/fall, up to 16 correction windows after three input
+sends, and the existing maximum of 12 falls. No history pointers are kept
+or replay data changed. Test ordinary edges and slab bridging at margin
+0.10 first; a fall is not required to collect useful input-capture evidence.
+The history methods' SDK thunks are unavailable at link time; the diagnostic
+attaches through the SDK interface's virtual slots on the actual captured
+input, verifying executable game code and stable targets. An unavailable
+path is logged and left alone; the normal build has none of these hooks.
+Normal and diagnostic builds, LamiumTests, LamiumNativeTests and the hook
+inventory check pass. Diagnostic DLL SHA-256 (source and deployed copy):
+`b612379a7034312c2999cc3d08c0382dd06216dba81cdd0f4c8907d0fee92f5f`.
+The build configuration is back to `--edge_trace=n`; the client instance
+still has the authorized diagnostic DLL for testing. Runtime collection
+is pending; restore the instance's normal DLL after the test.
 
 ### L-123 FreeCamera stretches the worn elytra on the inventory player model
 Kind: Bug, low priority. Reported from use 2026-10-09 (maintainer's notes).

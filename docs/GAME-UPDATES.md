@@ -159,13 +159,20 @@ Hooks: `FinishBreak`, `StopBreak`, `ChangeDimension`
 Meaning: breaking goes through `GameMode::destroyBlock` once per block.
 
 ### `src/features/interaction/EdgeGuard.cpp`
-Hooks: `EdgeGuardHook`, `EdgeGuardInputHook`, `EdgeGuardPlaceHook`, `EdgeGuardSurvivalPlaceHook`, `EdgeGuardBuildHook`, `EdgeGuardSurvivalBuildHook`, `EdgeGuardStartBuildHook`, `EdgeGuardSurvivalStartBuildHook`, `EdgeTraceSend`, `EdgeTraceCorrection`, `EdgeTraceBuild`, `EdgeTraceSurvivalBuild`
+Hooks: `EdgeGuardHook`, `EdgeGuardInputHook`, `EdgeGuardPlaceHook`, `EdgeGuardSurvivalPlaceHook`, `EdgeGuardBuildHook`, `EdgeGuardSurvivalBuildHook`, `EdgeGuardStartBuildHook`, `EdgeGuardSurvivalStartBuildHook`, `EdgeTraceSend`, `EdgeTraceCorrection`, `EdgeTraceBuild`, `EdgeTraceSurvivalBuild`, `EdgeTraceCapture`, `EdgeTracePreApply`, `EdgeTracePostApply`, `EdgeTraceReplay`
 Meaning: the movement request's fields and collision shapes in
 `fetchCollisionShapes`; `PlayerMovement::calculateMoveVector` giving the move
 vector the client both simulates and sends (move x positive to the left), called
 with the local player's own input states; `startBuildBlock`, `buildBlock` and
 `useItemOn` (base and survival) before a slab is placed, with the clicked block
 and face (the held item read from the building hand). Gated (Edge Guard).
+Trace-only: `History::ReplayableActorInput` capture/preApply/postApply and
+`EntitySystems::tickMovementCorrectionReplay`, observing the input, entity
+registry and box used during correction replay (L-162); no replay writes.
+The history methods have no exported SDK thunks: diagnostic hooks use the
+SDK virtual slots of `IReplayableActorInput` from the local player's
+`ReplayStateComponent::getCurrentCapturedInput()`, check executable game
+code and stable targets, and log/stop attaching if unavailable. Gated.
 
 ### `src/features/visuals/PortalTrace.cpp`
 Hooks: `PortalPackets`, `PortalInsideCheck`, `PortalScreenValid`, `PortalCraftingScreenValid`, `PortalModelValid`, `PortalCraftingValid`, `PortalSchedulePop`, `PortalInventoryKey`, `PortalOpenInventory`, `PortalCanOpen`, `PortalInside`, `PortalTick`

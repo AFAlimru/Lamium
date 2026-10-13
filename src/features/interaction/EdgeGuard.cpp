@@ -34,6 +34,11 @@
 #include "mc/network/MinecraftPacketIds.h"
 #include "mc/network/packet/CorrectPlayerMovePredictionPacket.h"
 #include "mc/network/packet/PlayerAuthInputPacket.h"
+#include "mc/entity/systems/EntitySystems.h"
+#include "mc/entity/utilities/IReplayableActorInput.h"
+#include "mc/entity/components/ReplayStateComponent.h"
+#include <Windows.h>
+#include <array>
 #include <deque>
 #include <format>
 #include <string>
@@ -69,12 +74,33 @@ std::atomic<std::thread::id> clientThread;
 // L-160 trace: the last lines around the guard's activity are kept in memory
 // and written out only when the player falls soon after the guard acted.
 int traceQuiet = 1000, traceDumps = 0, traceSends = 0;
+int traceCorrections = 0, traceCorrectionTail = 0, traceCorrectionDumps = 0;
+int traceBaselineTail = -1;
+thread_local int traceReplayDepth = 0;
+std::atomic<int> traceOtherReplay = 0, traceOtherCalc = 0, traceOtherCollision = 0;
+std::uintptr_t traceCaptureTarget = 0, tracePreTarget = 0, tracePostTarget = 0;
+bool traceHistoryInstalled = false, traceHistoryUnavailable = false;
 std::deque<std::string> traceRing;
 bool traceFalling = false;
 float traceGroundY = 0;
 void trace(std::string text) {
     traceRing.push_back(std::format("#{} {}", traceSends, std::move(text)));
-    if (traceRing.size() > 200) traceRing.pop_front();
+    if (traceRing.size() > 400) traceRing.pop_front();
+}
+bool traceActive() {
+    auto& runtime = Runtime::instance();
+    return std::this_thread::get_id() == clientThread.load() && runtime.enabled()
+        && runtime.snapshot()->interaction.edgeGuard && traceQuiet <= 100
+        && versionSensitiveAllowed("Edge Guard (movement request)");
+}
+void traceCorrectionEnd() {
+    if (!traceCorrectionTail || --traceCorrectionTail) return;
+    ++traceCorrectionDumps;
+    auto& logger = Runtime::instance().self().getLogger();
+    logger.info("L-162 correction window {} (correction {}); last {} lines:",
+        traceCorrectionDumps, traceCorrections, traceRing.size());
+    for (auto const& line : traceRing) logger.info("L-162 {}", line);
+    traceRing.clear();
 }
 // Placement lines are rare: written at once, bounded.
 int tracePlaceLines = 0;
@@ -110,6 +136,110 @@ std::string flagText(MoveInputState const& state) {
                               {F::UpRight, "UR"}, {F::JumpDown, "J"}, {F::SprintDown, "S"}, {F::SneakDown, "Sh"}})
         if (state.mFlagValues->test(static_cast<size_t>(flag))) { out += name; out += ' '; }
     return out;
+}
+void traceInput(char const* stage, MoveInputComponent const& input, void const* history) {
+    trace(std::format("{} history {} input [{}] analog {:.3f},{:.3f} raw [{}] analog {:.3f},{:.3f} move {:.3f},{:.3f}",
+        stage, history, flagText(input.mInputState), input.mInputState->mAnalogMoveVector->x,
+        input.mInputState->mAnalogMoveVector->z, flagText(input.mRawInputState),
+        input.mRawInputState->mAnalogMoveVector->x, input.mRawInputState->mAnalogMoveVector->z,
+        input.mMove->x, input.mMove->z));
+}
+void traceEntity(char const* stage, EntityContext const& entity, void const* history) {
+    auto client = ll::service::getClientInstance();
+    auto* player = client ? client->getLocalPlayer() : nullptr;
+    if (!player) return;
+    auto const& own = player->getEntityContext();
+    trace(std::format("{} history {} replay {} entity {}/{} live {}/{} clientThread {} liveGround {}",
+        stage, history, traceReplayDepth, static_cast<uint>(entity.mRegistry.mId), entity.mEntity.mRawId,
+        static_cast<uint>(own.mRegistry.mId), own.mEntity.mRawId,
+        std::this_thread::get_id() == clientThread.load(), player->isOnGround()));
+    if (auto input = entity.tryGetComponent<MoveInputComponent>()) traceInput(stage, *input, history);
+    if (auto shape = entity.tryGetComponent<AABBShapeComponent>()) {
+        auto const& box = shape->mAABB.get();
+        trace(std::format("{} box {:.3f},{:.3f},{:.3f}..{:.3f},{:.3f},{:.3f}", stage,
+            box.min.x, box.min.y, box.min.z, box.max.x, box.max.y, box.max.z));
+    }
+}
+LL_TYPE_INSTANCE_HOOK(EdgeTraceCapture, ll::memory::HookPriority::Normal, IReplayableActorInput, traceCaptureTarget,
+    void, MoveInputComponent const& input) {
+    try {
+        if (traceActive()) {
+            auto client = ll::service::getClientInstance();
+            auto* player = client ? client->getLocalPlayer() : nullptr;
+            auto own = player ? player->getEntityContext().tryGetComponent<MoveInputComponent>() : optional_ref<MoveInputComponent>{};
+            if (own && &*own == &input) traceInput("capture live", input, this);
+            else if (traceReplayDepth) traceInput("capture replay", input, this);
+        }
+    } catch (...) {}
+    origin(input);
+}
+LL_TYPE_INSTANCE_HOOK(EdgeTracePreApply, ll::memory::HookPriority::Normal, IReplayableActorInput,
+    tracePreTarget, void, EntityContext& entity) {
+    try { if (traceActive()) traceEntity("preApply before", entity, this); } catch (...) {}
+    origin(entity);
+    try { if (traceActive()) traceEntity("preApply after", entity, this); } catch (...) {}
+}
+LL_TYPE_INSTANCE_HOOK(EdgeTracePostApply, ll::memory::HookPriority::Normal, IReplayableActorInput,
+    tracePostTarget, void, EntityContext& entity) {
+    try { if (traceActive()) traceEntity("postApply before", entity, this); } catch (...) {}
+    origin(entity);
+    try { if (traceActive()) traceEntity("postApply after", entity, this); } catch (...) {}
+}
+LL_TYPE_INSTANCE_HOOK(EdgeTraceReplay, ll::memory::HookPriority::Normal, EntitySystems,
+    &EntitySystems::$tickMovementCorrectionReplay, void, EntityRegistry& registry) {
+    struct Scope {
+        Scope() { ++traceReplayDepth; }
+        ~Scope() { --traceReplayDepth; }
+    } scope;
+    if (std::this_thread::get_id() != clientThread.load()) ++traceOtherReplay;
+    try { if (traceActive()) trace(std::format("replay begin registry {}", static_cast<uint>(registry.mId))); } catch (...) {}
+    origin(registry);
+    try { if (traceActive()) trace(std::format("replay end registry {}", static_cast<uint>(registry.mId))); } catch (...) {}
+}
+void bindHistoryTrace(LocalPlayer& player) {
+    if (traceHistoryUnavailable) return;
+    auto replay = player.getEntityContext().tryGetComponent<ReplayStateComponent>();
+    auto* input = replay ? replay->getCurrentCapturedInput() : nullptr;
+    if (!input) return;
+    auto unavailable = [](char const* reason) {
+        traceHistoryUnavailable = true;
+        Runtime::instance().self().getLogger().warn("L-162 input-history diagnostics unavailable: {}", reason);
+    };
+    auto capture = ll::memory::getVtableIndex(static_cast<void (IReplayableActorInput::*)(MoveInputComponent const&)>(&IReplayableActorInput::capture));
+    auto pre = ll::memory::getVtableIndex(&IReplayableActorInput::preApplyInput);
+    auto post = ll::memory::getVtableIndex(&IReplayableActorInput::postApplyInput);
+    if (!capture || !pre || !post || *capture > 32 || *pre > 32 || *post > 32) {
+        unavailable("unsupported SDK virtual-call thunk"); return;
+    }
+    auto** table = *reinterpret_cast<void***>(input);
+    std::array<std::uintptr_t, 3> addresses{};
+    std::array<size_t, 3> slots{*capture, *pre, *post};
+    for (size_t i = 0; i < slots.size(); ++i) {
+        auto* target = table[slots[i]];
+        MEMORY_BASIC_INFORMATION page{};
+        if (!VirtualQuery(target, &page, sizeof(page)) || page.State != MEM_COMMIT
+            || page.AllocationBase != GetModuleHandleW(nullptr) || (page.Protect & (PAGE_GUARD | PAGE_NOACCESS))) {
+            unavailable("history entry is outside game code"); return;
+        }
+        auto protection = page.Protect & 0xff;
+        if (protection != PAGE_EXECUTE && protection != PAGE_EXECUTE_READ
+            && protection != PAGE_EXECUTE_READWRITE && protection != PAGE_EXECUTE_WRITECOPY) {
+            unavailable("history entry is not executable"); return;
+        }
+        addresses[i] = reinterpret_cast<std::uintptr_t>(target);
+    }
+    if (traceHistoryInstalled) {
+        if (addresses != std::array{traceCaptureTarget, tracePreTarget, tracePostTarget})
+            unavailable("history implementation changed");
+        return;
+    }
+    traceCaptureTarget = addresses[0]; tracePreTarget = addresses[1]; tracePostTarget = addresses[2];
+    if (EdgeTraceCapture::hook(true) != 0 || EdgeTracePreApply::hook(true) != 0 || EdgeTracePostApply::hook(true) != 0) {
+        EdgeTraceCapture::unhook(true); EdgeTracePreApply::unhook(true); EdgeTracePostApply::unhook(true);
+        unavailable("could not install history hooks"); return;
+    }
+    traceHistoryInstalled = true;
+    Runtime::instance().self().getLogger().info("L-162 input-history diagnostics attached (SDK virtual slots {},{},{}); read only", *capture, *pre, *post);
 }
 #endif
 
@@ -172,7 +302,12 @@ void guard(StrictEntityContext const& entity, AABBShapeComponent const& shape, M
 // the vector itself is guarded where vanilla computes it from the input state
 // (sent and simulated alike). Only the local player's own states are touched.
 void guardMoveVector(MoveInputState const& state, Vec2& move) {
-    if (std::this_thread::get_id() != clientThread.load()) return;
+    if (std::this_thread::get_id() != clientThread.load()) {
+#ifdef LAMIUM_EDGE_TRACE
+        if (traceReplayDepth) ++traceOtherCalc;
+#endif
+        return;
+    }
 #ifdef LAMIUM_EDGE_TRACE
     Vec2 before = move;
     struct Report {
@@ -183,14 +318,17 @@ void guardMoveVector(MoveInputState const& state, Vec2& move) {
                 auto* player = client ? client->getLocalPlayer() : nullptr;
                 if (!player) return;
                 bool changed = before.x != move.x || before.z != move.z;
-                if (changed) traceQuiet = 0;
+                if (changed) {
+                    traceQuiet = 0;
+                    if (traceBaselineTail == -1) traceBaselineTail = 8;
+                }
                 if (traceQuiet > 100) return;
                 char const* name = stateName(state, *player);
-                if (std::string_view{name} == "other") return; // Many calls a tick; they filled the ring.
+                if (std::string_view{name} == "other" && !traceReplayDepth) return;
                 auto const& pos = player->getPosition();
                 auto const& delta = player->getPosDelta();
-                trace(std::format("calc {} flags [{}] analog {:.2f},{:.2f} move {:.2f},{:.2f} -> {:.2f},{:.2f} pos {:.3f},{:.3f} v {:.3f},{:.3f} ground {}",
-                    name, flagText(state), state.mAnalogMoveVector->x, state.mAnalogMoveVector->z,
+                trace(std::format("calc {} replay {} flags [{}] analog {:.2f},{:.2f} move {:.2f},{:.2f} -> {:.2f},{:.2f} pos {:.3f},{:.3f} v {:.3f},{:.3f} ground {}",
+                    name, traceReplayDepth, flagText(state), state.mAnalogMoveVector->x, state.mAnalogMoveVector->z,
                     before.x, before.z, move.x, move.z, pos.x, pos.z, delta.x, delta.z, player->isOnGround()));
                 if (std::string_view{name} != "raw") return;
                 // What the support probes can find around the feet (0.5 beyond the box).
@@ -214,6 +352,9 @@ void guardMoveVector(MoveInputState const& state, Vec2& move) {
     auto* player = client ? client->getLocalPlayer() : nullptr;
     if (!player) return;
     auto& context = player->getEntityContext();
+#ifdef LAMIUM_EDGE_TRACE
+    bindHistoryTrace(*player);
+#endif
     auto raw = context.tryGetComponent<RawMoveInputComponent>();
     auto input = context.tryGetComponent<MoveInputComponent>();
     bool own = (raw && &state == &*raw->mRawInput)
@@ -376,9 +517,24 @@ LL_STATIC_HOOK(EdgeGuardHook, ll::memory::HookPriority::Normal, &MoveCollisionSy
     LocalSpatialEntityFetcher& fetcher, GetCollisionShapeInterface const& collisionShape,
     std::vector<BlockSourceVisitor::CollisionShape>& tempCollisionShapes,
     std::vector<BlockSourceVisitor::CollisionShape>& scratchCollisionShapes, std::vector<AABB>& tempShapes) {
+#ifdef LAMIUM_EDGE_TRACE
+    Vec3 const before = request.mSpeed;
+    if (traceReplayDepth && std::this_thread::get_id() != clientThread.load()) ++traceOtherCollision;
+#endif
     try {
         if (versionSensitiveAllowed("Edge Guard (movement request)")) guard(entity, aabb, request, region, collisionShape);
     } catch (...) {}
+#ifdef LAMIUM_EDGE_TRACE
+    try {
+        if (traceReplayDepth && traceActive()) {
+            auto const& box = aabb.mAABB.get();
+            trace(std::format("replay collision entity {}/{} box {:.3f},{:.3f},{:.3f} speed {:.3f},{:.3f},{:.3f} -> {:.3f},{:.3f},{:.3f}",
+                static_cast<uint>(entity.mRegistryId), static_cast<EntityId const&>(entity.mEntity).mRawId,
+                box.min.x, box.min.y, box.min.z, before.x, before.y, before.z,
+                request.mSpeed->x, request.mSpeed->y, request.mSpeed->z));
+        }
+    } catch (...) {}
+#endif
     origin(entity, aabb, autoStep, collidableMobNear, request, isMinecart, collidableMobs, stackableView, fallingBlocks,
         region, fetcher, collisionShape, tempCollisionShapes, scratchCollisionShapes, tempShapes);
 }
@@ -403,6 +559,10 @@ LL_TYPE_INSTANCE_HOOK(EdgeTraceSend, ll::memory::HookPriority::Normal, LoopbackP
         if (packet.getId() == MinecraftPacketIds::PlayerAuthInputPacket) {
             ++traceSends;
             ++traceQuiet;
+            int const otherReplay = traceOtherReplay.exchange(0), otherCalc = traceOtherCalc.exchange(0),
+                otherCollision = traceOtherCollision.exchange(0);
+            if (traceQuiet <= 100 && (otherReplay || otherCalc || otherCollision))
+                trace(std::format("other thread replay {} calc {} collision {}", otherReplay, otherCalc, otherCollision));
             auto& auth = static_cast<PlayerAuthInputPacket&>(packet);
             auto client = ll::service::getClientInstance();
             auto* player = client ? client->getLocalPlayer() : nullptr;
@@ -417,9 +577,15 @@ LL_TYPE_INSTANCE_HOOK(EdgeTraceSend, ll::memory::HookPriority::Normal, LoopbackP
                                       {AuthInput::PerformBlockActions, "Block"}, {AuthInput::StartJumping, "Jump"},
                                       {AuthInput::HandledTeleport, "Tp"}})
                 if (data.contains(flag)) { flags += name; flags += ' '; }
-            trace(std::format("send move {:.2f},{:.2f} raw {:.2f},{:.2f} analog {:.2f},{:.2f} pos {:.3f},{:.3f},{:.3f} delta {:.3f},{:.3f} flags [{}]",
-                auth.mMove->x, auth.mMove->z, auth.mRawMoveVector->x, auth.mRawMoveVector->z, auth.mAnalogMoveVector->x,
+            trace(std::format("send tick {} move {:.2f},{:.2f} raw {:.2f},{:.2f} analog {:.2f},{:.2f} pos {:.3f},{:.3f},{:.3f} delta {:.3f},{:.3f} flags [{}]",
+                static_cast<uint64>(auth.mClientTick->mValue), auth.mMove->x, auth.mMove->z, auth.mRawMoveVector->x, auth.mRawMoveVector->z, auth.mAnalogMoveVector->x,
                 auth.mAnalogMoveVector->z, auth.mPos->x, auth.mPos->y, auth.mPos->z, auth.mPosDelta->x, auth.mPosDelta->z, flags));
+            if (traceBaselineTail > 0 && --traceBaselineTail == 0) {
+                auto& logger = Runtime::instance().self().getLogger();
+                logger.info("L-162 first guarded approach; last {} lines:", traceRing.size());
+                for (auto const& line : traceRing) logger.info("L-162 {}", line);
+            }
+            traceCorrectionEnd();
         }
     } catch (...) {}
     origin(packet);
@@ -429,9 +595,13 @@ LL_TYPE_INSTANCE_HOOK(EdgeTraceCorrection, ll::memory::HookPriority::Normal, Cli
         &ClientNetworkHandler::$handle),
     void, NetworkIdentifier const& source, CorrectPlayerMovePredictionPacket const& packet) {
     try {
-        if (traceQuiet <= 200)
-            trace(std::format("correction pos {:.3f},{:.3f},{:.3f} delta {:.3f},{:.3f},{:.3f} ground {}", packet.mPos->x,
+        if (traceActive()) {
+            ++traceCorrections;
+            if (traceCorrectionDumps < 16) traceCorrectionTail = 3;
+            trace(std::format("correction {} tick {} pos {:.3f},{:.3f},{:.3f} delta {:.3f},{:.3f},{:.3f} ground {}",
+                traceCorrections, static_cast<uint64>(packet.mTick->mValue), packet.mPos->x,
                 packet.mPos->y, packet.mPos->z, packet.mPosDelta->x, packet.mPosDelta->y, packet.mPosDelta->z, static_cast<bool>(packet.mOnGround)));
+        }
     } catch (...) {}
     origin(source, packet);
 }
@@ -443,7 +613,8 @@ void start() {
     EdgeTraceCorrection::hook();
     EdgeTraceBuild::hook();
     EdgeTraceSurvivalBuild::hook();
-    Runtime::instance().self().getLogger().warn("Edge Guard diagnostics enabled (L-160)");
+    EdgeTraceReplay::hook();
+    Runtime::instance().self().getLogger().warn("Edge Guard diagnostics enabled (L-160/L-162); up to 16 correction windows and 12 falls");
 #endif
     ll::thread::ClientThreadExecutor::getDefault().execute([] { clientThread.store(std::this_thread::get_id()); });
     if (EdgeGuardHook::hook(true) != 0) throw std::runtime_error("Could not install the edge guard hook");
@@ -468,6 +639,13 @@ void start() {
 }
 void stop() {
     if (!installed) return;
+#ifdef LAMIUM_EDGE_TRACE
+    EdgeTraceReplay::unhook(true);
+    if (traceHistoryInstalled) {
+        bool capture = EdgeTraceCapture::unhook(true), pre = EdgeTracePreApply::unhook(true), post = EdgeTracePostApply::unhook(true);
+        if (capture && pre && post) traceHistoryInstalled = false;
+    }
+#endif
     bool place = EdgeGuardPlaceHook::unhook(true) & EdgeGuardSurvivalPlaceHook::unhook(true);
     bool survival = EdgeGuardBuildHook::unhook(true) & EdgeGuardSurvivalBuildHook::unhook(true)
         & EdgeGuardStartBuildHook::unhook(true) & EdgeGuardSurvivalStartBuildHook::unhook(true);

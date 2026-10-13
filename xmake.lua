@@ -66,7 +66,7 @@ option_end()
 option("edge_trace")
     set_default(false)
     set_showmenu(true)
-    set_description("Log Edge Guard's move vectors, sent auth input and server corrections (L-160)")
+    set_description("Log Edge Guard's move vectors, sent auth input, server corrections and replay (L-160/L-162)")
 option_end()
 
 option("inventorymove_trace")
