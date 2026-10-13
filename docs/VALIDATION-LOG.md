@@ -12,6 +12,22 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-175 Lamium settings outside a world (2026-10-14)
+
+Maintainer checks, Minecraft 1.26.51.01, LeviLamina Client 26.51.7.
+- `67a6cf7` (DLL SHA-256 `6b20815f...`): L opens nothing at the title
+  screen or in OreUI menus; in a world it works as before.
+- Uncommitted diagnostic builds: the title screen's name is `start_screen`;
+  OreUI pages are `ui://./hbui/index.html`. Keys reach Lamium there and the
+  settings action is queued, but LeviLamina's client thread executor never
+  runs the queue before a world is joined.
+- Diagnostic build with the fix (DLL SHA-256 `590e627b...`; the code of
+  `1632237` plus temporary logs): L opens the settings at
+  the title screen and in the OreUI settings and most other menus (not the
+  dressing room or Marketplace; the maintainer is fine with that). General
+  switches change; world-only views are dimmed and show "Available inside
+  a world."; Esc returns to the title screen; in a world L works as before.
+
 ## Pack changes kept old block textures: bisect (2026-10-14)
 
 Isolated BDS with the required magenta-dirt pack; the global test pack
