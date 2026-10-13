@@ -21,6 +21,12 @@ in BACKLOG's Pre-release checks. The exact original fall chain and the server's
 internal raw-field handling are not proven; completion covers the verified
 input-consistency fix, not a guarantee against every correction.
 
+Follow-up 2026-10-13: the restored normal `e8b0a52` artifact passes BDS edge
+stopping and short slab bridging. At margin 0.02, approaching while holding
+Shift and releasing it also does not fall. The normal-build smoke gap is
+closed; keep default 0.10 and the existing range (maintainer), with the other
+coverage limits unchanged. See the newest VALIDATION-LOG entry.
+
 Implementation and validation history below retains superseded candidates
 and their dated next steps. Current coverage is in VALIDATION.md and the
 latest VALIDATION-LOG entry.

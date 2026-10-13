@@ -555,6 +555,9 @@ exactly one switch, one mode and one set of keys:
   margin is a setting under Edge Guard ("Stop inside the edge by"), 0.02 to
   0.30 block in 0.01 steps, default 0.10: smaller reaches further for placing
   blocks, larger is safer on servers (maintainer, 2026-10-12).
+  Reconfirmed 2026-10-13 after L-162: keep default 0.10 and the existing range
+  despite a successful BDS sneak-release check at 0.02; that one result does
+  not establish the smaller margin's safety for all server corrections.
 - A slab that would merge with the slab the player stands on and push them
   out sideways (their center beside that cell) is not placed; with the
   center over the cell the merge lifts the player and is allowed.

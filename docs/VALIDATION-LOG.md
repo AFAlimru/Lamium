@@ -12,6 +12,24 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-162 normal-build BDS smoke and margin 0.02 sneak release (2026-10-13)
+
+By the maintainer on test BDS 1.26.51.1, Minecraft 1.26.51.01,
+LeviLamina Client 26.51.7, Windows x64. Normal build from `e8b0a52`,
+`--edge_trace=n`, deployed DLL SHA-256 rechecked:
+`c698ec122e28399d5bf82a539cb9b2ea449ecf7e00af98641f11979ae1794699`.
+- Edge stopping and short slab bridging pass on the restored normal build.
+- Separately, at margin 0.02, approaching an edge while holding Shift and
+  then releasing Shift does not fall. The maintainer suggests the improvement
+  may follow L-162; this is an observed result, not an established cause or
+  evidence that 0.02 covers all server corrections.
+- Maintainer decision: retain the safer existing setting policy/default.
+  Default margin remains 0.10 and the selectable range remains 0.02–0.30.
+  No code or user configuration is changed for this result.
+The normal-build next-launch check is complete. Longer play, other servers,
+slippery blocks and corrections already moving the feet off support remain
+the stated limits; no additional diagnostic run is requested.
+
 ## L-162 packet consistency and guarded replay verified on BDS (2026-10-13)
 
 By the maintainer on test BDS 1.26.51.1, Minecraft 1.26.51.01,

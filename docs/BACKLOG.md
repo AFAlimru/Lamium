@@ -157,11 +157,6 @@ and the calculator (L-171). A release ZIP is built from main as usual.
 
 ### L-162 Edge Guard follow-up coverage (2026-10-13)
 
-- Next-launch smoke of the restored normal `e8b0a52` artifact (no trace):
-  mod loads, WASD/key-release, margin 0.10 edge stop and short slab bridging.
-  The same source passed on BDS with diagnostics, but the normal artifact
-  itself has not been checked in game. DLL SHA-256:
-  `c698ec122e28399d5bf82a539cb9b2ea449ecf7e00af98641f11979ae1794699`.
 - Longer actual play and other servers; slippery blocks remain a known limit.
 - The final run has twelve corrections, nine guarded replays and no fall
   dump. It does not guarantee protection if a server correction already puts
