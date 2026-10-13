@@ -12,6 +12,33 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-162 actual-capture copy passes BDS smoke checks (2026-10-13)
+
+By the maintainer on test BDS 1.26.51.1, Minecraft 1.26.51.01,
+LeviLamina Client 26.51.7, Windows x64. Build `4fe7b29`, `--edge_trace=y`,
+DLL SHA-256 `2fd64e3bbbd9706a8ef4e5b5d66a5aadd275d6ace9950c9e1abfad66d4ec05ed`
+(deployed DLL still matches the saved diagnostic build).
+- WASD and stopping on key release are normal. Edge Guard on, margin 0.10:
+  diagonal edge approaches and slab bridging have no pullback or fall.
+  Jumping, sneak release, disabling, and enabling/rejoining remain normal.
+- The capture hook attaches and logs use of an owned guarded input copy.
+  Read-only capture/preApply/postApply diagnostics also attach. The first
+  approach records guarded processed analog alongside untouched physical
+  raw direction keys in the live component, as intended.
+- Only one correction window is recorded, at server tick 802. Its selected
+  input `0x28db4af9f00` was captured with unguarded Down/Right, processed
+  and raw analog (0,0), movement (-0.707,-0.707). Its replay calculates the
+  same full vector. That is expected for this unguarded capture and provides
+  no evidence for or against the guarded-input substitution during replay.
+  No fall dump or capture-hook failure is recorded.
+The log is saved locally (SHA-256
+`879678f209da9fe4dba0583feb74f0c9e88798c10aeb3eedd5e204f6990f1f0f`).
+Normal controls and execution of the copy path are verified; replay of a
+guarded capture and the original rare fall remain unchecked. Keep L-162
+open. Next collect another bounded BDS run on this same diagnostic build,
+alternating diagonal edge approaches and slab bridging at margin 0.10;
+no forced fall or repeated full smoke checklist is needed.
+
 ## L-162 actual input capture and replay application observed (2026-10-13)
 
 By the maintainer on test BDS 1.26.51.1, Minecraft 1.26.51.01,

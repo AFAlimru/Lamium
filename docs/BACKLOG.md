@@ -343,8 +343,11 @@ was restored to `8b8823d`, with WASD, key-release and edge stopping confirmed.
 Read-only diagnostic build `a32e9bb` then passes those checks and several
 minutes of BDS bridging. Its actual capture/application hooks attach and
 connect two guarded captures to full direction-key replay in three correction
-windows. The next candidate substitutes an owned copy at actual input
-capture, without changing live physical input; runtime validation is pending.
+windows. Candidate `4fe7b29` substitutes an owned copy at actual input
+capture, without changing live physical input. The BDS smoke checks pass,
+and the copy path executes; the only correction replays an unguarded capture.
+Replay of guarded captured input remains unverified. Next collect one more
+bounded run on the same diagnostic build, without repeating the full checklist.
 The original rare fall is not reproduced;
 this item stays open.
 Seen once on the local test BDS (trace of `2dc7e45`, VALIDATION-LOG "L-161
@@ -543,6 +546,16 @@ diagonal edge approaches and slab bridging for several minutes, then jump,
 sneak release, disable and enable/rejoin. Inspect the one-time capture-copy
 message and actual replay raw/processed input in correction windows. A fall
 is not needed; no success or completed fix is claimed from the builds alone.
+Candidate `4fe7b29` checked on BDS: WASD/key release, margin 0.10 diagonal
+approaches and slab bridging, jump, sneak release, disable and enable/rejoin
+all pass. The capture hook attaches and executes its owned-copy path;
+read-only diagnostics attach too. One correction (server tick 802) replays
+a normally captured full Down/Right vector, not a guarded capture. This is
+expected and does not settle the fix's replay behavior. No fall dump or
+hook failure. Keep L-162 open; the next check is a bounded additional BDS
+run on this same DLL, alternating diagonal approaches and slab bridging
+for roughly five minutes. Fall reproduction and the full smoke checklist
+are not needed; inspect whether a correction actually includes guarded input.
 
 ### L-123 FreeCamera stretches the worn elytra on the inventory player model
 Kind: Bug, low priority. Reported from use 2026-10-09 (maintainer's notes).
