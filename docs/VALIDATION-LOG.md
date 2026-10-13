@@ -94,6 +94,9 @@ Minecraft 1.26.51.01, LeviLamina Client 26.51.7, Windows x64, local world.
 - A second choice within 10 s shows the footer notice with the seconds
   left and does not switch; after waiting 10 s the switch works.
 - Not a test of whether the interval prevents the earlier hang.
+- Later report (2026-10-14, builds up to `241f635`): no freeze while
+  switching in worlds since the interval was added; the maintainer keeps it
+  as is for now. Not a stress test.
 
 ## L-167 required server pack: accepted, not applied locally (2026-10-14)
 
