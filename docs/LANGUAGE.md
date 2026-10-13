@@ -13,15 +13,16 @@ The maintainer confirms Language is absent from the pause settings on
 
 ## Built (2026-10-13), seen in a local world on `9651b4e`
 
-General settings > "Game language" (`ui/LanguageView.cpp`) lists the
-languages I18n reports as supported and loaded, with their own names; the
+General settings > "Game language" (`ui/LanguageView.cpp`) lists every
+language I18n reports as supported (29 on 1.26.51.01; `9651b4e` listed only
+already-loaded ones, two in practice), with their own names; the
 current one is highlighted and also shown on the settings row. Click or
 Enter applies; Esc or Cancel returns to the settings list.
 
 `ui/GameLanguage.cpp` queues the apply to the client thread and checks
 again there: same language as when asked, same dimension, the settings
 screen still open, the gate `Game language (native apply)` allowed, the
-code loaded, and no schematic save running (resource changes invalidate its
+code supported, and no schematic save running (resource changes invalidate its
 live readers). It then follows the order vanilla OreUI was seen to use:
 `I18n::chooseLanguage`, confirm the current language changed, then
 `ResourcePackManager::onLanguageChanged`, then `IOptionRegistry::setLanguage`

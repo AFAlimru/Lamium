@@ -26,11 +26,11 @@ std::string savedCode() {
     return client ? client->getOptions().getLanguage() : std::string{};
 }
 namespace {
-bool loaded(std::string const& code) {
+// Every language the game lists, as its own language screen does; whether
+// it applied is read back from I18n afterwards.
+bool supported(std::string const& code) {
     auto const& codes = getI18n().getSupportedLanguageCodes();
-    if (std::find(codes.begin(), codes.end(), code) == codes.end()) return false;
-    auto locale = getI18n().getLocaleFor(code);
-    return locale && locale->getFullLanguageCode() == code;
+    return std::find(codes.begin(), codes.end(), code) != codes.end();
 }
 LanguageContext context() {
     auto client = ll::service::getClientInstance();
@@ -43,7 +43,7 @@ void run(Request& request) noexcept {
         if (!request.expected.permits(context(), request.cancelled.load())) {
             request.result.store(Result::Cancelled); return;
         }
-        if (!versionSensitiveAllowed("Game language (native apply)") || !loaded(request.code)) {
+        if (!versionSensitiveAllowed("Game language (native apply)") || !supported(request.code)) {
             request.result.store(Result::Unavailable); return;
         }
         // Resource changes invalidate the save's live block/actor readers.
@@ -79,7 +79,7 @@ LanguageSelection choices() {
     if (!versionSensitiveAllowed("Game language (native apply)")) return out;
     auto const& codes = getI18n().getSupportedLanguageCodes();
     for (size_t i = 0; i < std::min(codes.size(), LanguageSelection::limit); ++i)
-        if (loaded(codes[i])) out.add(codes[i], getI18n().getLanguageName(codes[i]));
+        out.add(codes[i], getI18n().getLanguageName(codes[i]));
     auto current = currentCode();
     for (size_t i = 0; i < out.choices.size(); ++i)
         if (out.choices[i].code == current) out.selected = static_cast<int>(i);
