@@ -20,7 +20,7 @@ Result key(int key);
 // Ctrl+C: the value; Ctrl+Shift+C: "expression = value".
 void copyValue();
 void copyLine();
-void click(float x, float y, glm::vec2 size);
+Result click(float x, float y, glm::vec2 size);
 // The wheel over the history scrolls it. Wheel events carry no position, so
 // the pointer as last drawn decides.
 void wheel(int direction);

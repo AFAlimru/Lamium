@@ -307,7 +307,6 @@ inline constexpr auto simplifiedChinese = std::to_array<Text>({
     {"help.calculator", "在游戏上方打开一个小计算器。输入的内容不会发送到聊天或服务器。单位: st（64）、ch 或 sb（箱子或潜影盒，27 组）、lc（大箱子）。"},
     {"key.Lamium.opencalculator", "打开计算器"},
     {"calc.title", "计算器"},
-    {"calc.close", "Esc: 关闭"},
     {"calc.copy", "复制"},
     {"calc.copyLine", "复制算式"},
     {"calc.copyChests", "复制箱子换算"},

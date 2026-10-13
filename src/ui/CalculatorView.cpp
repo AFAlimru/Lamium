@@ -48,7 +48,10 @@ struct Layout {
     float rightX() const { return left + pad + leftWidth + 10; }
     float rightWidth() const { return width - leftWidth - 2 * pad - 10; }
     float cardsTop() const { return top + 34; }
-    float helpX() const { return left + width - pad - 70 - 16; }
+    // Close as in the settings screen's header, help just before it.
+    static constexpr float closeWidth = 58;
+    float closeX() const { return left + width - pad - closeWidth; }
+    float helpX() const { return closeX() - 4 - 12; }
 };
 enum class Kind { Digit, Operator, Unit, Variable, Function, Equals };
 struct Key {
@@ -279,8 +282,9 @@ void copyValue() {
 void copyLine() {
     if (result.value) copy(line.value() + " = " + calculator::format(*result.value));
 }
-void click(float x, float y, glm::vec2 size) {
+Result click(float x, float y, glm::vec2 size) {
     auto l = Layout::at(size);
+    if (inside(x, y, l.closeX(), l.top + 4, Layout::closeWidth, 12)) { menuFor = -2; helpOpen = false; return Result::Close; }
     // An open copy menu takes the click first.
     if (menuFor != -2) {
         int owner = menuFor;
@@ -290,35 +294,36 @@ void click(float x, float y, glm::vec2 size) {
         double value = owner == -1 ? result.value.value_or(0) : history[static_cast<size_t>(owner)].value;
         std::string text = owner == -1 ? line.value() : history[static_cast<size_t>(owner)].text;
         bool ok = owner != -1 || result.value.has_value();
-        if (ok && inside(x, y, mx, my, 110, 12)) { copy(text + " = " + calculator::format(value)); return; }
-        if (ok && inside(x, y, mx, my + 12, 110, 12)) { copy(chests(value)); return; }
+        if (ok && inside(x, y, mx, my, 110, 12)) { copy(text + " = " + calculator::format(value)); return Result::None; }
+        if (ok && inside(x, y, mx, my + 12, 110, 12)) { copy(chests(value)); return Result::None; }
     }
-    if (inside(x, y, l.helpX(), l.top + 4, 12, 12)) { helpOpen = !helpOpen; return; }
-    if (helpOpen) { helpOpen = false; return; }
+    if (inside(x, y, l.helpX(), l.top + 4, 12, 12)) { helpOpen = !helpOpen; return Result::None; }
+    if (helpOpen) { helpOpen = false; return Result::None; }
     if (scrollRange(l) > 0 && onScrollbar(l, x, y)) {
         dragging = true;
         // Taken on the thumb it keeps its grip; on the track the thumb centers there.
         float top = thumbTop(l), thumb = thumbLength(l);
         grabOffset = y >= top && y <= top + thumb ? y - top : thumb / 2;
         scrollTo(l, y);
-        return;
+        return Result::None;
     }
     // The result's copy button: the value, or the menu.
-    if (result.value && inside(x, y, l.copyX(), l.resultY() + 1, Layout::copyWidth, 12)) { copyValue(); return; }
-    if (result.value && inside(x, y, l.copyX() + Layout::copyWidth + 1, l.resultY() + 1, Layout::arrowWidth, 12)) { menuFor = -1; return; }
+    if (result.value && inside(x, y, l.copyX(), l.resultY() + 1, Layout::copyWidth, 12)) { copyValue(); return Result::None; }
+    if (result.value && inside(x, y, l.copyX() + Layout::copyWidth + 1, l.resultY() + 1, Layout::arrowWidth, 12)) { menuFor = -1; return Result::None; }
     for (int row = 0; row < 7; ++row)
         for (int column = 0; column < 6; ++column)
-            if (inside(x, y, l.keyX(column), l.keyY(row), l.cell(), l.rowHeight())) { press(grid[row][column]); return; }
+            if (inside(x, y, l.keyX(column), l.keyY(row), l.cell(), l.rowHeight())) { press(grid[row][column]); return Result::None; }
     for (int index = 0; index < static_cast<int>(history.size()); ++index) {
         auto top = cardY(l, index);
         if (!top || y < l.cardsTop() || y >= l.bottom() || !inside(x, y, l.rightX(), *top, l.rightWidth() - 5, Layout::cardHeight)) continue;
         float cx = cardCopyX(l);
-        if (inside(x, y, cx, *top + 3, Layout::copyWidth, 10)) { copy(calculator::format(history[static_cast<size_t>(index)].value)); return; }
-        if (inside(x, y, cx + Layout::copyWidth + 1, *top + 3, Layout::arrowWidth, 10)) { menuFor = index; return; }
+        if (inside(x, y, cx, *top + 3, Layout::copyWidth, 10)) { copy(calculator::format(history[static_cast<size_t>(index)].value)); return Result::None; }
+        if (inside(x, y, cx + Layout::copyWidth + 1, *top + 3, Layout::arrowWidth, 10)) { menuFor = index; return Result::None; }
         recalled = -1;
         show(history[static_cast<size_t>(index)].text);
-        return;
+        return Result::None;
     }
+    return Result::None;
 }
 void wheel(int direction) {
     if (!inside(lastPointer.x, lastPointer.y, last.rightX(), last.cardsTop(), last.rightWidth() + 2, last.bottom() - last.cardsTop())) return;
@@ -352,7 +357,8 @@ void render(MinecraftUIRenderContext& context, glm::vec2 size, glm::vec2 pointer
     label(context, x, l.top + 6, 120, translated("calc.title"));
     drawSmallButton(context, l.helpX(), l.top + 4, 12, 12, "?", inside(pointer.x, pointer.y, l.helpX(), l.top + 4, 12, 12),
                     palette::keyFill, helpOpen ? palette::accent : palette::keyEdge);
-    label(context, l.left + l.width - Layout::pad - 70, l.top + 6, 70, translated("calc.close"), palette::faint, Align::Right);
+    drawSmallButton(context, l.closeX(), l.top + 4, Layout::closeWidth, 12, translated("closeButton"),
+        inside(pointer.x, pointer.y, l.closeX(), l.top + 4, Layout::closeWidth, 12));
     fill(context, l.left, l.top + 18, l.width, 1, palette::white, .14f);
 
     // ---- Left: field, result, chests, keys ----

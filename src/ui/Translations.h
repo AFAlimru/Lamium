@@ -311,7 +311,6 @@ inline constexpr auto entries = std::to_array<Entry>({
         "ゲームの上に小さな計算機を開きます。入力した内容はチャットやサーバーに送られません。単位: st（64）、ch・sb（チェスト・シュルカーボックス、27 スタック）、lc（ラージチェスト）。"},
     {"key.Lamium.opencalculator", "Open the calculator", "計算機を開く"},
     {"calc.title", "Calculator", "計算機"},
-    {"calc.close", "Esc: close", "Esc: 閉じる"},
     {"calc.copy", "Copy", "コピー"},
     {"calc.copyLine", "Copy the line", "式ごとコピー"},
     {"calc.copyChests", "Copy in chests and stacks", "チェスト換算をコピー"},

@@ -980,7 +980,11 @@ void render(ll::event::UIRenderEvent& event) {
     if (calculatorOpen) {
         if (std::exchange(pendingRelease, false)) calculator_view::release();
         if (!closing) {
-            if (auto click = std::exchange(pendingClick, std::nullopt); click && !click->right) calculator_view::click(click->x, click->y, size);
+            if (auto click = std::exchange(pendingClick, std::nullopt); click && !click->right
+                && calculator_view::click(click->x, click->y, size) == calculator_view::Result::Close) {
+                if (calculatorFromSettings) { calculatorOpen = false; pendingKeys.clear(); }
+                else close();
+            }
             for (int key : std::exchange(pendingKeys, {}))
                 if (calculatorOpen && !closing && calculator_view::key(key) == calculator_view::Result::Close) {
                     if (calculatorFromSettings) { calculatorOpen = false; pendingKeys.clear(); break; }
