@@ -108,6 +108,8 @@ float displayedInverseScale = 0;
 // The title screen's "Lamium <version>" entry, as drawn last (L-175).
 struct TitleEntry { float x = 0, y = 0, w = 0, h = 0, inverseScale = 0; bool shown = false; };
 TitleEntry titleEntry;
+ScreenView const* titleView = nullptr;
+std::chrono::steady_clock::time_point titleViewSeen;
 // Where the pointer was at the last frame, in GUI units. Wheel events carry
 // no position, so the pane under the pointer is found from this.
 glm::vec2 lastPointer{-1, -1};
@@ -950,18 +952,25 @@ void render(ll::event::UIRenderEvent& event) {
             information::traceHunger(context,view);
 #endif
         } else if (current.getScreenName() == "start_screen" && !current.getLocalPlayer()) {
-            // On a dark band like LeviLamina's version line, just above it in
-            // the same corner; the whole band is the click target.
+            // The title screen renders several views per frame; drawing on each
+            // stacked the band nearly opaque. Keep to one view while it lasts.
+            auto now = std::chrono::steady_clock::now();
+            if (titleView != &view && titleView && now - titleViewSeen < std::chrono::milliseconds(250)) return;
+            titleView = &view;
+            titleViewSeen = now;
+            // On a dark band like LeviLamina's version line (measured about
+            // half see-through, 2026-10-14), just above it in the same corner;
+            // the whole band is the click target.
             auto text = "Lamium " + lamiumVersion();
-            float w = textWidth(context, text) + 4, h = 11;
+            float w = textWidth(context, text) + 4, h = 13;
             titleEntry = {size.x - w, size.y - 2 * h - 1, w, h, current.getGuiData()->mInvGuiScale, true};
             glm::vec2 pointer = view.mPointerLocationPrevious;
             bool over = pointer.x >= titleEntry.x && pointer.x < titleEntry.x + w && pointer.y >= titleEntry.y
                 && pointer.y < titleEntry.y + h;
-            fill(context, titleEntry.x, titleEntry.y, w, h, Rgb{0, 0, 0}, over ? .75f : .6f);
+            fill(context, titleEntry.x, titleEntry.y, w, h, Rgb{0, 0, 0}, over ? .7f : .53f);
             // Plain white without Lamium's shadow, as LeviLamina's line.
-            labelScaled(context, titleEntry.x + 2, titleEntry.y + 1, w, text, 1.f, palette::white, Align::Left, false);
-            if (over) fill(context, titleEntry.x + 2, titleEntry.y + 10, w - 4, 1, palette::white);
+            labelScaled(context, titleEntry.x + 2, titleEntry.y + 2, w, text, 1.f, palette::white, Align::Left, false);
+            if (over) fill(context, titleEntry.x + 2, titleEntry.y + 11, w - 4, 1, palette::white);
             context.flushText(0, std::nullopt);
         } else titleEntry.shown = false;
         return;
