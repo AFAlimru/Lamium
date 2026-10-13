@@ -12,6 +12,25 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-167 framed language list and a hang after repeated switching (2026-10-14)
+
+Maintainer check on `2c77a5c` with `language_trace=y` (server pack skip off).
+Deployed DLL SHA-256 `16abdd0477cb4f60a39985051cca14ec46d8f03d9dd43976059fc844edd9abf0`.
+Minecraft 1.26.51.01, LeviLamina Client 26.51.7, Windows x64, local world.
+- The Game language list inside the settings frame works; switching
+  repeatedly works at first.
+- Schematic ghosts are rebuilt after each switch (Lamium drops ghost
+  resources on purpose); the world's chunks are not redrawn.
+- After 12 switches in 23 s (00:22:44 to 00:23:07) the game froze about
+  9 s after the last one (ja_JP -> es_MX). The log shows that apply
+  completed (`applied=true`) and ghosts rebuilt; nothing is logged after.
+- The hung process used almost no CPU and did not respond. A minidump shows
+  every thread waiting, the main thread in a kernel wait, and no Lamium
+  frame on any thread's stack. Cause not established: not shown to be
+  Lamium code, not shown to be vanilla. Whether vanilla title-screen
+  switching hangs the same way is unchecked.
+- Server pack checks (BDS required pack) not started.
+
 ## L-167 all game languages and in-world Global Resources (2026-10-13)
 
 Maintainer check on `6d536e4` with `language_trace=y`. Source/deployed DLL
