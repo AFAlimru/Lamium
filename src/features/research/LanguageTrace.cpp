@@ -100,7 +100,7 @@ LL_TYPE_INSTANCE_HOOK(LanguagePacksChanged, ll::memory::HookPriority::Normal, Re
 }
 LL_TYPE_INSTANCE_HOOK(LanguagePackStack, ll::memory::HookPriority::Normal, ResourcePackManager,
     &ResourcePackManager::setStack, bool, std::unique_ptr<ResourcePackStack> stack, ResourcePackStackType type) {
-    log("stack begin type={} entries={}", int(type), stack ? stack->mStack->size() : 0);
+    try { log("stack begin type={} entries={} {}", int(type), stack ? stack->mStack->size() : 0, state()); } catch (...) {}
     auto result = origin(std::move(stack), type);
     log("stack end type={} result={}", int(type), result);
     return result;
