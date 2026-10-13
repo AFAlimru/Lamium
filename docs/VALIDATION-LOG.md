@@ -12,6 +12,31 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-162 actual input capture and replay application observed (2026-10-13)
+
+By the maintainer on test BDS 1.26.51.1, Minecraft 1.26.51.01,
+LeviLamina Client 26.51.7, Windows x64. Build `a32e9bb`, `--edge_trace=y`,
+DLL SHA-256 `f7b23cf81bcb228209497a24ab220d17c8f53147aab7c136fca11ff16f34bef1`
+(deployed copy matches the saved diagnostic build).
+- WASD, stopping on key release and margin 0.10 edge stopping work. Several
+  minutes of diagonal approaches and slab bridging found no problem.
+- All exported diagnostics attached; actual input capture/preApply/postApply
+  diagnostics attached at compiler-resolved slots 22/1/2. Three correction
+  windows were recorded with no fall dump.
+- At correction tick 1251, capture on input object `0x29dc76cbcb0` receives
+  guarded processed analog (0.170,-0.145), but raw Down/Right and analog
+  (0,0). The same object is selected at tick 1252 and applies to the replay
+  entity. Both replay calculations rebuild (-0.707,-0.707) from Down/Right;
+  the replay entity's processed input has become that full vector by
+  postApply. At tick 1587 the same chain turns guarded (-0.519,-0.428)
+  into full Down (0,-1), using another traced input object.
+This directly connects local input capture to actual replay application,
+not only the prepared entity snapshot. It verifies input loss at two guarded
+replay cases; it does not reproduce the original rare fall or establish a fix.
+The log is saved locally. The next candidate will substitute guarded
+horizontal fields in an owned component copy passed to actual input capture,
+leaving the live physical input untouched. That candidate is not built yet.
+
 ## L-162 rollback recovery confirmed (2026-10-13)
 
 By the maintainer after restoring diagnostic build `8b8823d`, Minecraft

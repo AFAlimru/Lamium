@@ -339,10 +339,13 @@ four smoke checks in BDS and solo play, but the additional BDS run records
 full direction keys in eight of nine correction replays. It is insufficient.
 The second candidate (`981f630`) broke normal WASD operation and has been
 removed along with the ineffective scoped capture candidate. The instance
-is restored to diagnostic build `8b8823d`; the maintainer confirms WASD,
-key-release stopping and edge stopping are restored. Next establish actual
-replay input capture/application before connecting
-another fix. The original rare fall is not reproduced; this item stays open.
+was restored to `8b8823d`, with WASD, key-release and edge stopping confirmed.
+Read-only diagnostic build `a32e9bb` then passes those checks and several
+minutes of BDS bridging. Its actual capture/application hooks attach and
+connect two guarded captures to full direction-key replay in three correction
+windows. Next substitute an owned copy at actual input capture, without
+changing live physical input. The original rare fall is not reproduced;
+this item stays open.
 Seen once on the local test BDS (trace of `2dc7e45`, VALIDATION-LOG "L-161
 margin 0.1"): after a +0.047 block server correction, the client's next
 position was 0.17 block further out, off the block, and it fell. The client
@@ -505,6 +508,22 @@ Next BDS run: verify WASD/key release and margin 0.10 edge stopping first,
 then diagonal approaches and slab bridging for a few minutes. Check that
 input diagnostics actually attach and connect local capture to the selected
 input's pre/post application. A fall is not required; no new movement fix.
+Diagnostic build `a32e9bb` checked: normal controls and margin 0.10 edge
+stopping work; several minutes of diagonal approaches and slab bridging
+found no problem. Capture/application hooks attach; three correction
+windows include two direct guarded-input-loss chains, with the same input
+object observed at local capture, selection and replay pre/post application.
+For example guarded (0.170,-0.145) is captured alongside raw Down/Right,
+then replay rebuilds (-0.707,-0.707). No fall dump was recorded.
+Next candidate: at that actual local `capture(MoveInputComponent const&)`
+boundary, pass an owned component copy whose horizontal raw fields agree
+with its guarded processed input. Preserve non-horizontal raw fields and
+the original live component, and retain all ownership/capability checks.
+This avoids both the ineffective earlier frame-snapshot substitution and
+the physical-input feedback that broke WASD. Not built or runtime-verified
+yet. Completion requires normal controls and evidence that correction replay
+uses the guarded captured input, with remaining rare/large-correction and
+other-server coverage stated explicitly.
 
 ### L-123 FreeCamera stretches the worn elytra on the inventory player model
 Kind: Bug, low priority. Reported from use 2026-10-09 (maintainer's notes).
