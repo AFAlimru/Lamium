@@ -545,6 +545,17 @@ exactly one switch, one mode and one set of keys:
   A sweep also stops if a source count changes before its request runs.
   Mouse release stops gathering slots but lets already visited ones finish.
 
+## Repeated villager trading (Decided 2026-10-12, L-166; not implemented)
+
+- Right click on an unlocked trade row trades it as often as allowed,
+  default on. Left click and Shift keep vanilla behavior.
+- Use vanilla's trade request and confirm each round from authoritative
+  inventory and offer state. Stop when sold out, inputs run out or output
+  cannot fit; never drop output to continue.
+- The maintainer chose this part on 2026-10-13 through its first required
+  runtime checkpoint. Favourites and remaining-use presentation remain
+  undecided. Research notes: [TRADE-HELPERS.md](TRADE-HELPERS.md).
+
 ## Edge Guard (Decided 2026-10-12, L-160/L-161)
 
 - Stops walking off edges like sneaking, without sneaking, also on servers:

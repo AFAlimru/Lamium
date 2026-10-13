@@ -39,6 +39,7 @@ build named there and may include superseded experiments.
 | Hand Restock | [HAND-RESTOCK.md](HAND-RESTOCK.md) |
 | Tool/Weapon Switch, Tool Protection and Auto Elytra | [EQUIPMENT.md](EQUIPMENT.md) |
 | Fake Offhand | [FAKE-OFFHAND.md](FAKE-OFFHAND.md) |
+| Villager trade helpers and L-166 diagnostics | [TRADE-HELPERS.md](TRADE-HELPERS.md) |
 | Minimap, radar, waypoints and world map | [MAP.md](MAP.md) |
 | Schematics, checking, materials and area save | [SCHEMATIC.md](SCHEMATIC.md) |
 | Integration between features (proposal, L-111) | [INTEGRATION.md](INTEGRATION.md) |

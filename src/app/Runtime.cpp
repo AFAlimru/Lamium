@@ -12,6 +12,7 @@
 #include "features/map/PlayerLocationTrace.h"
 #include "features/inspection/render/IconTrace.h"
 #include "features/research/TradeTrace.h"
+#include "features/research/RepeatTradeTrace.h"
 #include "features/interaction/InventoryMoveTrace.h"
 #include "features/visuals/ConnectedTexturesHooks.h"
 #include "features/visuals/PortalTrace.h"
@@ -146,6 +147,7 @@ Feature const features[] = {
     {"Auto Elytra", started<interaction::elytraSwap::start>, interaction::elytraSwap::stop},
     {"Placement diagnostics", started<interaction::placementTrace::start>, interaction::placementTrace::stop},
     {"Research diagnostics", started<researchTrace::start>, researchTrace::stop},
+    {"Repeat trade diagnostics", started<researchTrace::repeatTrade::start>, researchTrace::repeatTrade::stop},
     {"Ghost probe", started<schematic::ghostProbe::start>, schematic::ghostProbe::stop},
     {"Player location diagnostics", started<map::locationTrace::start>, map::locationTrace::stop},
     {"Icon diagnostics", started<inspection::iconTrace::start>, inspection::iconTrace::stop},

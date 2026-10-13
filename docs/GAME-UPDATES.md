@@ -326,6 +326,10 @@ Trace.
 Hooks: `CollectionBindHook`, `GlobalBindHook`, `TradeHook`
 Trace.
 
+### `src/features/research/RepeatTradeTrace.cpp`
+Hooks: `RepeatOffer`, `RepeatButton`, `RepeatSlotPressed`, `RepeatTick`, `RepeatLeave`, `RepeatRequestBatch`, `RepeatResponse`, `RepeatInventorySlot`, `RepeatInventoryContent`
+Trace (L-166, read-only; `repeat_trade_trace`, independent of `trade_trace`).
+
 ### `src/features/schematic/GhostActors.cpp`
 Hooks: `GhostActorShader`, `GhostActorLightPair`
 Meaning: block actor renderers set their light through these two

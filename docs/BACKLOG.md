@@ -74,8 +74,10 @@ L-item wins. Every entry names what the task is, not only its number.
    - Bugs: L-123 elytra stretched on the inventory model after FreeCamera and
      L-91 shield glint in Lamium's icons (both parked); L-132 moving with
      the inventory screen open (paused after eight rounds).
+   - L-166 villager trade helpers: part 1's read-only diagnostics await the
+     first runtime check before automatic trading is built.
    - Specs to agree with the maintainer before building: L-165 Mass Craft,
-     L-166 villager trade helpers, L-167 in-world language, L-168 trade
+     L-167 in-world language, L-168 trade
      finder, L-169 Item Transfer in more screens and bulk moves, L-170
      enchantment order planner, L-173 quick shapes and beacon range, L-174
      chat position, L-163 a Lamium-drawn inventory screen. L-151 to L-154
@@ -573,8 +575,13 @@ Lamium settings row listing the game's languages).
 Fail open: if the game's own apply path cannot be found, show nothing.
 
 ### L-166 Villager trade helpers
-Kind: Design, then Research (strong model). Imported from the maintainer's
-notes (2026-09-25) on 2026-10-12; not chosen for building, no release.
+Kind: Research (strong model) for part 1; Design for optional follow-ups.
+Imported from the maintainer's notes (2026-09-25) on 2026-10-12.
+Status 2026-10-13: maintainer chose part 1 through the first required runtime
+check. Read-only diagnostics prepared (`repeat_trade_trace`); automatic
+trading is not built yet. First check: the vanilla event/request path and
+authoritative offer-use updates, locally then on BDS. Research and checklist:
+[TRADE-HELPERS.md](TRADE-HELPERS.md). Part 2 remains undecided; no release.
 Builds on L-129 (every trader level shown); separate from L-154's inventory
 gestures.
 Goal: fewer clicks for repeated trades in the vanilla trade screen.

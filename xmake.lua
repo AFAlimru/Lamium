@@ -81,6 +81,12 @@ option("trade_trace")
     set_description("Enable L-129 diagnostics: dump the trade data the server sends when a trade screen opens")
 option_end()
 
+option("repeat_trade_trace")
+    set_default(false)
+    set_showmenu(true)
+    set_description("L-166 read-only diagnostics: trade buttons, vanilla requests and authoritative updates")
+option_end()
+
 option("hunger_trace")
     set_default(false)
     set_showmenu(true)
@@ -197,6 +203,7 @@ target("Lamium")
     if has_config("hunger_trace") then add_defines("LAMIUM_HUNGER_TRACE") end
     if has_config("icon_trace") then add_defines("LAMIUM_ICON_TRACE") end
     if has_config("trade_trace") then add_defines("LAMIUM_TRADE_TRACE") end
+    if has_config("repeat_trade_trace") then add_defines("LAMIUM_REPEAT_TRADE_TRACE") end
     if has_config("playerlist_trace") then add_defines("LAMIUM_PLAYERLIST_TRACE") end
     if has_config("inventorymove_trace") then add_defines("LAMIUM_INVENTORYMOVE_TRACE") end
     if has_config("edge_trace") then add_defines("LAMIUM_EDGE_TRACE") end
