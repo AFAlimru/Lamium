@@ -5,6 +5,7 @@
 #include "ui/ScreenParts.h"
 #include "ui/SettingsTableView.h"
 #include "ui/Widgets.h"
+#include "mc/client/renderer/screen/MinecraftUIRenderContext.h"
 
 namespace lamium::ui::language_view {
 namespace {
@@ -114,5 +115,6 @@ void render(MinecraftUIRenderContext& context, glm::vec2 size, glm::vec2 pointer
         text, last.height < 230 ? 1 : 2, notice.empty() ? palette::dim : palette::warning);
     if (last.height >= 230) label(context, last.left + ShapesLayout::pad, last.footerTop + 29,
         last.width - 2 * ShapesLayout::pad, translated("language.hint"), palette::faint);
+    context.flushText(0, std::nullopt);
 }
 }
