@@ -12,6 +12,23 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-167 in-world Game language list (2026-10-13)
+
+Maintainer check on `9651b4e`, all trace options off. Source/deployed DLL
+SHA-256 `82e276dfd570f157a8028cbf1ad63d220cf4fd23e92f0c754e0567985c1aa88e`.
+Minecraft 1.26.51.01, LeviLamina Client 26.51.7, Windows x64, local world.
+- On `7355548` the list opened with no text (buttons still worked): the view
+  did not flush its text batch. Fixed in `9651b4e`.
+- General settings > Game language shows language names, codes on the right,
+  the current language highlighted and "Current: ..." in the footer.
+- Choosing English switches the display to English without leaving the
+  world; the maintainer reports other language-dependent game text follows.
+  The language is kept after restarting Minecraft.
+- Log: ja_JP -> en_US -> ja_JP -> en_US, each `applied=true` with the saved
+  preference equal to the current language.
+- Not separately checked: English Search afterwards, schematic ghosts after
+  a change, BDS.
+
 ## L-167 vanilla language selection baseline (2026-10-13)
 
 Maintainer check on `e93d154`, with `language_trace=y` only. Source/deployed

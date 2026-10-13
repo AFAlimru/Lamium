@@ -11,7 +11,7 @@ The selected language is Minecraft's setting, not a second Lamium setting.
 The maintainer confirms Language is absent from the pause settings on
 1.26.51.01.
 
-## Built, not yet seen in game (2026-10-13)
+## Built (2026-10-13), seen in a local world on `9651b4e`
 
 General settings > "Game language" (`ui/LanguageView.cpp`) lists the
 languages I18n reports as supported and loaded, with their own names; the
@@ -30,9 +30,9 @@ a return value. Before applying, English Search's names, schematic item
 names and schematic ghost resources are dropped so they are rebuilt in the
 new language.
 
-Not yet seen: in-world application, refresh of item names, signs, chat and
-open screens, English Search afterwards, schematic ghosts after a change,
-restart persistence, BDS.
+Seen (VALIDATION-LOG): in-world application, other game text following,
+restart persistence. Not separately seen: English Search afterwards,
+schematic ghosts after a change, BDS.
 
 ## Static findings (2026-10-13)
 
