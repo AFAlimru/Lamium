@@ -958,19 +958,20 @@ void render(ll::event::UIRenderEvent& event) {
             if (titleView != &view && titleView && now - titleViewSeen < std::chrono::milliseconds(250)) return;
             titleView = &view;
             titleViewSeen = now;
-            // On a dark band like LeviLamina's version line (measured about
-            // half see-through, 2026-10-14), just above it in the same corner;
-            // the whole band is the click target.
+            // On a dark band like LeviLamina's version line, stacked right on
+            // top of it in the same corner; height, opacity and text place were
+            // measured from screenshots (2026-10-14). The band is the click target.
             auto text = "Lamium " + lamiumVersion();
-            float w = textWidth(context, text) + 4, h = 13;
-            titleEntry = {size.x - w, size.y - 2 * h - 1, w, h, current.getGuiData()->mInvGuiScale, true};
+            constexpr float h = 11.75f;
+            float w = textWidth(context, text) + 3.5f;
+            titleEntry = {size.x - w, size.y - 2 * h, w, h, current.getGuiData()->mInvGuiScale, true};
             glm::vec2 pointer = view.mPointerLocationPrevious;
             bool over = pointer.x >= titleEntry.x && pointer.x < titleEntry.x + w && pointer.y >= titleEntry.y
                 && pointer.y < titleEntry.y + h;
             fill(context, titleEntry.x, titleEntry.y, w, h, Rgb{0, 0, 0}, over ? .7f : .53f);
             // Plain white without Lamium's shadow, as LeviLamina's line.
-            labelScaled(context, titleEntry.x + 2, titleEntry.y + 2, w, text, 1.f, palette::white, Align::Left, false);
-            if (over) fill(context, titleEntry.x + 2, titleEntry.y + 11, w - 4, 1, palette::white);
+            labelScaled(context, titleEntry.x + 1.75f, titleEntry.y + 2.5f, w, text, 1.f, palette::white, Align::Left, false);
+            if (over) fill(context, titleEntry.x + 1.75f, titleEntry.y + 10.5f, w - 3.5f, .5f, palette::white);
             context.flushText(0, std::nullopt);
         } else titleEntry.shown = false;
         return;
