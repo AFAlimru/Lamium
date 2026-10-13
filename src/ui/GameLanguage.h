@@ -17,6 +17,8 @@ LanguageSelection choices();
 std::string currentCode();
 std::string currentName();
 std::string savedCode();
+// The interval against in-world freezes applies only there (L-175).
+bool inWorld();
 // Queued to the client executor; no game pointer crosses frames.
 std::shared_ptr<Request> apply(std::string code);
 }

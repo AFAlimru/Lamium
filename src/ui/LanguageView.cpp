@@ -22,7 +22,7 @@ bool busy() { return request && request->result.load() == game_language::Result:
 void choose() {
     if (busy()) return;
     if (auto code = selection.request(game_language::currentCode(), game_language::savedCode())) {
-        if ((waitSeconds = pace.wait(now())) > 0) { notice = "language.wait"; return; }
+        if (game_language::inWorld() && (waitSeconds = pace.wait(now())) > 0) { notice = "language.wait"; return; }
         request = game_language::apply(*code);
         notice = {};
     }
@@ -37,7 +37,7 @@ void poll() {
     using R = game_language::Result;
     auto result = request->result.load();
     if (result == R::Pending) return;
-    if (result == R::Applied) { notice = {}; pace.applied(now()); }
+    if (result == R::Applied) { notice = {}; if (game_language::inWorld()) pace.applied(now()); }
     else if (result == R::Saving) notice = "language.saving";
     else if (result == R::Cancelled) notice = "language.cancelled";
     else if (result == R::Unavailable) notice = "language.unavailable";

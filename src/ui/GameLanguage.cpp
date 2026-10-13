@@ -21,6 +21,10 @@ std::string currentName() {
     auto name = getI18n().getLanguageName(code);
     return name.empty() ? code : name;
 }
+bool inWorld() {
+    auto client = ll::service::getClientInstance();
+    return client && client->getLocalPlayer();
+}
 std::string savedCode() {
     auto client = ll::service::getClientInstance();
     return client ? client->getOptions().getLanguage() : std::string{};

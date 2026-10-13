@@ -31,7 +31,8 @@ void labelScaled(MinecraftUIRenderContext&, float x, float y, float width, std::
 // much lower than its box top so it clears the bottom edge in every locale.
 float boxTextInset();
 // One stroke of the current font: Minecraft's pixel font draws whole GUI
-// units, the smooth CJK fonts about half (an underline under a label).
+// units, the Japanese font about half (an underline under a label). Chinese
+// and Korean drew the pixel font's weight on the title screen (2026-10-14).
 float textStroke();
 // How much lower a shape drawn beside text sits so it lines up with the
 // letters, in text units: Japanese glyphs sit about one unit lower than
