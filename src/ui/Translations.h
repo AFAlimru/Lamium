@@ -1416,6 +1416,7 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"language.cancelled", "Not applied: the world, dimension or screen changed.", "適用しませんでした: ワールド、ディメンション、または画面が変わりました。"},
     {"language.saving", "Not applied while a schematic is being saved.", "設計図の保存中は適用しません。"},
     {"language.failed", "The game did not apply the language.", "ゲームが言語を適用しませんでした。"},
+    {"language.wait", "Switching often in a world can freeze the game. Try again in {} s.", "ワールド内で続けて切り替えると固まることがあります。{} 秒後にもう一度選んでください。"},
     {"subtitle", "Camera, lighting, items and inventory", "視点・明るさ・アイテム・インベントリ"},
     {"on", "On", "オン"}, {"off", "Off", "オフ"},
     {"zoom", "Zoom: {}", "ズーム: {}"},

@@ -24,6 +24,11 @@ void languageSelectionTests() {
     for (size_t i = 0; i < LanguageSelection::limit + 5; ++i) many.add("c" + std::to_string(i), "n");
     check(many.choices.size() == LanguageSelection::limit, "the list is bounded");
 
+    LanguagePace pace;
+    check(pace.wait(0) == 0, "the first change starts at once");
+    pace.applied(100);
+    check(pace.wait(100) == 10 && pace.wait(105.5) == 5 && pace.wait(110) == 0, "later changes wait for the interval");
+
     LanguageContext asked{"ja_JP", 0, true};
     check(asked.permits({"ja_JP", 0, true}, false), "the same world, dimension and open screen applies");
     check(!asked.permits({"ja_JP", 0, true}, true), "a cancelled request does not apply");

@@ -6,6 +6,7 @@
 #include "ui/SettingsTableView.h"
 #include "ui/Widgets.h"
 #include "mc/client/renderer/screen/MinecraftUIRenderContext.h"
+#include <chrono>
 
 namespace lamium::ui::language_view {
 namespace {
@@ -14,10 +15,14 @@ LanguageSelection selection;
 ShapesLayout last;
 std::shared_ptr<game_language::Request> request;
 std::string_view notice;
+LanguagePace pace; // Kept across openings of the list.
+int waitSeconds = 0;
+double now() { return std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count(); }
 bool busy() { return request && request->result.load() == game_language::Result::Pending; }
 void choose() {
     if (busy()) return;
     if (auto code = selection.request(game_language::currentCode(), game_language::savedCode())) {
+        if ((waitSeconds = pace.wait(now())) > 0) { notice = "language.wait"; return; }
         request = game_language::apply(*code);
         notice = {};
     }
@@ -32,7 +37,7 @@ void poll() {
     using R = game_language::Result;
     auto result = request->result.load();
     if (result == R::Pending) return;
-    if (result == R::Applied) notice = {};
+    if (result == R::Applied) { notice = {}; pace.applied(now()); }
     else if (result == R::Saving) notice = "language.saving";
     else if (result == R::Cancelled) notice = "language.cancelled";
     else if (result == R::Unavailable) notice = "language.unavailable";
@@ -119,7 +124,8 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
     // Footer, as in the table: status first, hints below.
     fill(context, t.left, t.footerTop, t.width, 1, palette::white, .14f);
     float textLeft = t.left + SettingsTable::pad, textWidth = t.width - 2 * SettingsTable::pad;
-    auto text = busy() ? translated("language.applying") : !notice.empty() ? translated(notice)
+    auto text = busy() ? translated("language.applying") : notice == "language.wait" ? translated(notice, waitSeconds)
+        : !notice.empty() ? translated(notice)
         : translated("language.current", game_language::currentName());
     label(context, textLeft, t.footerTop + 3, textWidth, text, notice.empty() ? palette::text : palette::warning);
     if (!t.shortFooter) {

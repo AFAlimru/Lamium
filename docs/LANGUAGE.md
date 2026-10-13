@@ -17,7 +17,10 @@ General settings > "Game language" (`ui/LanguageView.cpp`) lists every
 language I18n reports as supported (29 on 1.26.51.01; `9651b4e` listed only
 already-loaded ones, two in practice), with their own names; the
 current one is highlighted and also shown on the settings row. Click or
-Enter applies; Esc or Cancel returns to the settings list.
+Enter applies; Esc, Backspace or "< General" returns to the settings list.
+One change per 10 s: in-world switching froze the game after 12 changes
+in 23 s, which the title screen does not (2026-10-14); a sooner choice
+shows how many seconds remain.
 
 `ui/GameLanguage.cpp` queues the apply to the client thread and checks
 again there: same language as when asked, same dimension, the settings

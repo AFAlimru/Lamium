@@ -2,6 +2,7 @@
 #include "ui/SettingsTable.h"
 #include "ui/ShapesLayout.h"
 #include <algorithm>
+#include <cmath>
 #include <optional>
 #include <string>
 #include <vector>
@@ -31,6 +32,15 @@ struct LanguageSelection {
         auto const& code = choices[selected].code;
         return code == current && code == saved ? std::nullopt : std::optional(code);
     }
+};
+// In-world switching froze the game after 12 changes in 23 s while the
+// title screen did not (L-167, 2026-10-14); one change per interval.
+struct LanguagePace {
+    static constexpr double interval = 10;
+    double last = -interval;
+    // Seconds left before another change, 0 when one may start now.
+    int wait(double now) const { return now - last >= interval ? 0 : static_cast<int>(std::ceil(interval - (now - last))); }
+    void applied(double now) { last = now; }
 };
 struct LanguageContext {
     std::string code;
