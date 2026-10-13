@@ -350,8 +350,11 @@ even though two correction replays retain guarded raw/processed input. The
 copy fixes the observed input loss, but is insufficient: the larger correction
 already moves the feet outside the last logged support. Next investigate
 slab-placement/correction ordering and guarding the corrected replay position.
-No further repetition on the unchanged DLL is requested. The exact original
-fall chain is not established by this new case; this item stays open.
+No further repetition on the unchanged DLL is requested. The next candidate
+aligns the outgoing packet's raw move vector with already guarded analog
+input, addressing a remaining full-speed field in the fall trace. Whether
+the server uses it to cause this correction is still a hypothesis. The exact
+original fall chain is not established by this new case; this item stays open.
 Seen once on the local test BDS (trace of `2dc7e45`, VALIDATION-LOG "L-161
 margin 0.1"): after a +0.047 block server correction, the client's next
 position was 0.17 block further out, off the block, and it fell. The client
@@ -571,8 +574,36 @@ The current collision guard intentionally leaves unsupported boxes vanilla,
 and copied replay inputs bypass the live-state input guard. Investigate
 correction-position handling and slab placement rather than repeating
 input-copy tests. Do not mark L-162 done or remove the verified copy fix
-solely because it does not cover this additional failure. No new candidate
-or further manual test is prepared yet; see the newest VALIDATION-LOG entry.
+solely because it does not cover this additional failure. See the newest
+VALIDATION-LOG entry for the preserved fall trace.
+Next candidate (packet consistency): at the fall's tick 979, outgoing move
+and analog are (-0.084,-0.099), but `mRawMoveVector` is still (-0.707,-0.707).
+The server's treatment of this raw field is unverified; the larger correction
+does not by itself prove a raw-input or placement cause. Align only that
+outgoing field with the guarded analog vector at `LoopbackPacketSender::send`.
+Require exact sender subclient, client thread, walking, feature/capability,
+no horizontal direction flags, no jump/teleport/vehicle exit, and finite
+packet move/analog matching the current local component. Preserve physical
+input and all other packet fields, including placement data and sneak state.
+Use unscaled analog rather than the separately scaled move vector. Pure/SDK
+tests cover stop, brake, sneak scaling, ordinary directions, intentional
+exits, stale/mismatched values and independent physical input. The diagnostic
+logs the raw change before the send dump. No correction position is changed
+and no unsupported replay is frozen. Runtime success is not claimed.
+Normal and diagnostic builds, LamiumTests, LamiumNativeTests and the hook
+inventory check pass. The packet-consistency diagnostic DLL is deployed;
+source and deployed SHA-256:
+`406861193453a1f8e8256ce540c38dd6ea803785da2609b5157de5f93a938553`.
+Configuration is reset to `--edge_trace=n`; the normal candidate is saved
+locally (SHA-256
+`c698ec122e28399d5bf82a539cb9b2ea449ecf7e00af98641f11979ae1794699`).
+Next BDS check: WASD/key-release and margin 0.10 edge stop first, then
+repeat the slab-bridging operation that fell for two to three minutes.
+Check jump, sneak release and disable still restore their normal behavior.
+Stop if movement breaks or a fall occurs. Inspect the packet raw-change
+message, matching outgoing raw/analog fields and any correction/fall window.
+Do not infer a solved server correction or a placement cause from smoke
+success alone; keep L-162 open until the new trace is reviewed.
 
 ### L-123 FreeCamera stretches the worn elytra on the inventory player model
 Kind: Bug, low priority. Reported from use 2026-10-09 (maintainer's notes).

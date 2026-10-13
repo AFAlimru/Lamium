@@ -1,6 +1,7 @@
 #include "features/interaction/EdgeGuard.h"
 #include "features/interaction/EdgeGuardPlan.h"
 #include "features/interaction/EdgeGuardHistory.h"
+#include "features/interaction/EdgeGuardPacketPlan.h"
 #include "app/Runtime.h"
 #include "app/Versions.h"
 #include "ll/api/memory/Hook.h"
@@ -29,6 +30,9 @@
 #include "mc/world/level/block/BlockType.h"
 #include "mc/world/level/BlockSource.h"
 #include "mc/world/phys/AABB.h"
+#include "mc/network/LoopbackPacketSender.h"
+#include "mc/network/MinecraftPacketIds.h"
+#include "mc/network/packet/PlayerAuthInputPacket.h"
 #include <cmath>
 #ifdef LAMIUM_EDGE_TRACE
 #include "features/interaction/EdgeGuardTracePlan.h"
@@ -36,10 +40,7 @@
 #include "mc/entity/components/ReplayStateComponent.h"
 #include "mc/world/actor/ActorHistory.h"
 #include "mc/client/network/ClientNetworkHandler.h"
-#include "mc/network/LoopbackPacketSender.h"
-#include "mc/network/MinecraftPacketIds.h"
 #include "mc/network/packet/CorrectPlayerMovePredictionPacket.h"
-#include "mc/network/packet/PlayerAuthInputPacket.h"
 #include "mc/entity/systems/EntitySystems.h"
 #include "mc/entity/systems/ClientPlayerRewindSystem.h"
 #include "mc/deps/vanilla_components/StateVectorComponent.h"
@@ -72,6 +73,7 @@ float overlapMargin() { return Runtime::instance().snapshot()->interaction.edgeM
 bool installed = false;
 bool reportedServerCopy = false;
 bool reportedInput = false;
+bool reportedPacket = false;
 // A local world's server computes move vectors on its own thread; only the
 // client's are guarded there, and client state is read only on its thread.
 std::atomic<std::thread::id> clientThread;
@@ -550,6 +552,50 @@ LL_STATIC_HOOK(EdgeGuardInputHook, ll::memory::HookPriority::Normal, &PlayerMove
     } catch (...) {}
     return move;
 }
+LL_TYPE_INSTANCE_HOOK(EdgeGuardSendHook, ll::memory::HookPriority::High, LoopbackPacketSender,
+    &LoopbackPacketSender::$send, void, Packet& packet) {
+    try {
+        auto& runtime = Runtime::instance();
+        if (history::onClientThread() && runtime.enabled() && runtime.snapshot()->interaction.edgeGuard
+            && packet.getId() == MinecraftPacketIds::PlayerAuthInputPacket
+            && versionSensitiveAllowed("Edge Guard (movement request)")) {
+            auto client = ll::service::getClientInstance();
+            auto* player = client ? client->getLocalPlayer() : nullptr;
+            auto input = player ? player->getEntityContext().tryGetComponent<MoveInputComponent>() : nullptr;
+            if (input && packet.mSenderSubId == client->getClientSubId() && walking(*player, true)) {
+                auto& auth = static_cast<PlayerAuthInputPacket&>(packet);
+                using A = PlayerAuthInputPacketPayload::InputData;
+                using F = MoveInputState::Flag;
+                bool directions = false;
+                for (auto flag : {A::Up, A::Down, A::Left, A::Right, A::UpLeft, A::UpRight, A::DownLeft, A::DownRight})
+                    directions |= auth.mInputData->contains(flag);
+                for (auto flag : {F::Up, F::Down, F::Left, F::Right, F::UpLeft, F::UpRight, F::DownLeft, F::DownRight})
+                    directions |= input->mInputState->mFlagValues->test(static_cast<size_t>(flag));
+                bool mayLeave = input->mInputState->mFlagValues->test(static_cast<size_t>(F::JumpDown))
+                    || input->mRawInputState->mFlagValues->test(static_cast<size_t>(F::JumpDown));
+                for (auto flag : {A::JumpDown, A::Jumping, A::StartJumping, A::JumpCurrentRaw,
+                                  A::JumpPressedRaw, A::HandledTeleport, A::IsInClientPredictedVehicle})
+                    mayLeave |= auth.mInputData->contains(flag);
+                Vec2 const before = *auth.mRawMoveVector;
+                if (alignGuardedPacketRaw(*auth.mRawMoveVector, *auth.mMove, *auth.mAnalogMoveVector,
+                                         *input->mMove, *input->mInputState->mAnalogMoveVector, directions, mayLeave)) {
+                    if (!reportedPacket) {
+                        reportedPacket = true;
+                        runtime.self().getLogger().info("Edge Guard: sending guarded raw movement without changing device input");
+                    }
+#ifdef LAMIUM_EDGE_TRACE
+                    if (traceActive()) trace(std::format("packet raw {:.3f},{:.3f} -> {:.3f},{:.3f} tick {}",
+                        before.x, before.z, auth.mRawMoveVector->x, auth.mRawMoveVector->z,
+                        static_cast<uint64>(auth.mClientTick->mValue)));
+#else
+                    (void)before;
+#endif
+                }
+            }
+        }
+    } catch (...) {}
+    origin(packet);
+}
 LL_STATIC_HOOK(EdgeGuardHook, ll::memory::HookPriority::Normal, &MoveCollisionSystem::fetchCollisionShapes, void,
     StrictEntityContext const& entity, AABBShapeComponent const& aabb, MaxAutoStepComponent const& autoStep,
     Optional<CollidableMobNearFlagComponent const> collidableMobNear, MoveRequestComponent& request,
@@ -689,6 +735,13 @@ void start() {
         EdgeGuardHook::unhook(true);
         throw std::runtime_error("Could not install the edge guard placement hooks");
     }
+    if (EdgeGuardSendHook::hook(true) != 0) {
+        EdgeGuardPlaceHook::unhook(true); EdgeGuardSurvivalPlaceHook::unhook(true);
+        EdgeGuardBuildHook::unhook(true); EdgeGuardSurvivalBuildHook::unhook(true);
+        EdgeGuardStartBuildHook::unhook(true); EdgeGuardSurvivalStartBuildHook::unhook(true);
+        EdgeGuardInputHook::unhook(true); EdgeGuardHook::unhook(true);
+        throw std::runtime_error("Could not install the edge guard packet hook");
+    }
     installed = true;
 }
 void stop() {
@@ -709,6 +762,7 @@ void stop() {
         & EdgeGuardStartBuildHook::unhook(true) & EdgeGuardSurvivalStartBuildHook::unhook(true);
     bool input = EdgeGuardInputHook::unhook(true), movement = EdgeGuardHook::unhook(true);
     bool capture = history::stop();
-    if (place && survival && input && movement && capture) installed = false;
+    bool send = EdgeGuardSendHook::unhook(true);
+    if (place && survival && input && movement && capture && send) installed = false;
 }
 }

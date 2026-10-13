@@ -1,5 +1,6 @@
 #include "features/interaction/EdgeGuardReplayPlan.h"
 #include "features/interaction/EdgeGuardPlan.h"
+#include "features/interaction/EdgeGuardPacketPlan.h"
 #include <array>
 #include <bitset>
 #include <optional>
@@ -38,4 +39,27 @@ void edgeGuardReplayTests() {
     auto overlap = [](double move) { return .139 - .047 - (.05 * .546 + move * .1); };
     check(overlap(1) < 0 && overlap(history.mRawInputState->mAnalogMoveVector->x) > 0,
           "the captured brake survives later device changes and prevents the modeled correction replay from crossing the edge");
+
+    using lamium::interaction::alignGuardedPacketRaw;
+    Vector move{-.084, -.099}, analog = move, raw{-0.707, -0.707};
+    check(alignGuardedPacketRaw(raw, move, analog, move, analog, false, false) && raw == analog,
+          "the outgoing raw vector agrees with the brake from the recorded fall");
+    for (auto [directions, leave] : {std::pair{true, false}, {false, true}}) {
+        raw = {-0.707, -0.707};
+        check(!alignGuardedPacketRaw(raw, move, analog, move, analog, directions, leave) && raw.x == -0.707,
+              "ordinary direction keys and intentional exits leave raw packet input unchanged");
+    }
+    raw = {-0.707, -0.707};
+    check(!alignGuardedPacketRaw(raw, move, analog, Vector{}, analog, false, false)
+          && !alignGuardedPacketRaw(raw, move, analog, move, Vector{}, false, false) && raw.x == -0.707,
+          "a packet from another or stale calculation stays vanilla");
+    Vector zero;
+    check(alignGuardedPacketRaw(raw, zero, zero, zero, zero, false, false) && raw == zero,
+          "a fully stopped edge input also clears full outward raw packet movement");
+    raw = {1, 0};
+    check(!alignGuardedPacketRaw(raw, move, Vector{NAN, 0}, move, analog, false, false) && raw.x == 1,
+          "non-finite packet values fail open");
+    move = {.06, -.09}; analog = {.2, -.3}; raw = {1, -1};
+    check(alignGuardedPacketRaw(raw, move, analog, move, analog, false, false) && raw == analog,
+          "sneaking copies unscaled analog input rather than scaling movement twice");
 }

@@ -1,4 +1,5 @@
 #include "features/interaction/EdgeGuardReplayPlan.h"
+#include "features/interaction/EdgeGuardPacketPlan.h"
 #include "mc/entity/components/MoveInputComponent.h"
 #include <array>
 
@@ -42,4 +43,16 @@ void nativeEdgeGuardReplayTests() {
     auto padCapture = lamium::interaction::replayInputCopy(pad, directions);
     check(padCapture.mRawInputState->mAnalogMoveVector->x == .2f && pad.mRawInputState->mAnalogMoveVector->x == 1,
           "controller-style analog capture also leaves live device input untouched");
+    Vec2 packetRaw{1, -1}, packetMove{.06f, -.09f}, packetAnalog = *pad.mInputState->mAnalogMoveVector;
+    *pad.mMove = packetMove;
+    check(lamium::interaction::alignGuardedPacketRaw(packetRaw, packetMove, packetAnalog,
+              *pad.mMove, *pad.mInputState->mAnalogMoveVector, false, false)
+          && packetRaw.x == .2f && packetRaw.z == -.3f
+          && pad.mRawInputState->mAnalogMoveVector->x == 1 && pad.mRawInputState->mAnalogMoveVector->z == -1,
+          "aligning the SDK packet vector never feeds guarded analog movement into live device input");
+    packetRaw = Vec2{1, -1};
+    packetMove.x += .01f;
+    check(!lamium::interaction::alignGuardedPacketRaw(packetRaw, packetMove, packetAnalog,
+              *pad.mMove, *pad.mInputState->mAnalogMoveVector, false, false) && packetRaw.x == 1,
+          "a mismatched SDK packet move is passed through without writes");
 }

@@ -159,7 +159,7 @@ Hooks: `FinishBreak`, `StopBreak`, `ChangeDimension`
 Meaning: breaking goes through `GameMode::destroyBlock` once per block.
 
 ### `src/features/interaction/EdgeGuard.cpp`
-Hooks: `EdgeGuardHook`, `EdgeGuardInputHook`, `EdgeGuardPlaceHook`, `EdgeGuardSurvivalPlaceHook`, `EdgeGuardBuildHook`, `EdgeGuardSurvivalBuildHook`, `EdgeGuardStartBuildHook`, `EdgeGuardSurvivalStartBuildHook`, `EdgeTraceSend`, `EdgeTraceCorrection`, `EdgeTraceBuild`, `EdgeTraceSurvivalBuild`, `EdgeTraceHistoryFrame`, `EdgeTracePrepare`, `EdgeTraceApply`, `EdgeTraceReplay`, `EdgeTraceSelectedInput`, `EdgeTraceCapture`, `EdgeTracePreApply`, `EdgeTracePostApply`
+Hooks: `EdgeGuardHook`, `EdgeGuardInputHook`, `EdgeGuardSendHook`, `EdgeGuardPlaceHook`, `EdgeGuardSurvivalPlaceHook`, `EdgeGuardBuildHook`, `EdgeGuardSurvivalBuildHook`, `EdgeGuardStartBuildHook`, `EdgeGuardSurvivalStartBuildHook`, `EdgeTraceSend`, `EdgeTraceCorrection`, `EdgeTraceBuild`, `EdgeTraceSurvivalBuild`, `EdgeTraceHistoryFrame`, `EdgeTracePrepare`, `EdgeTraceApply`, `EdgeTraceReplay`, `EdgeTraceSelectedInput`, `EdgeTraceCapture`, `EdgeTracePreApply`, `EdgeTracePostApply`
 Meaning: the movement request's fields and collision shapes in
 `fetchCollisionShapes`; `PlayerMovement::calculateMoveVector` giving the move
 vector the client both simulates and sends (move x positive to the left), called
@@ -172,6 +172,17 @@ processed horizontal input in `mRawInputState` broke normal WASD operation.
 The live input guard remains as before these experiments. The actual capture
 copy candidate is isolated in `EdgeGuardHistory.cpp`; live physical input
 and the prepared entity snapshot are never substituted.
+The outgoing `PlayerAuthInputPacket` raw move vector is aligned with guarded
+analog input at `LoopbackPacketSender::send`, before the send diagnostic.
+Require the client thread, matching sender subclient, enabled/gated walking
+player, no direction keys, no jump/teleport/vehicle exit, and finite packet
+move/analog values matching the exact live component calculation. Only the
+packet's raw vector changes; device/component input, packet position, flags,
+look and placement transactions remain untouched. The analog vector is used
+unscaled (sneak movement is already scaled separately). The server's use of
+this field and its effect on slab-bridging corrections still need runtime
+validation; this does not clamp incoming corrections or recover unsupported
+positions (L-162).
 Trace-only (L-162): `ActorHistory::addFrame`,
 `ActorHistory::prepareEntityForRewindFromCapture`,
 `ClientPlayerRewindSystem::applyHistoryChangesToLiveEntity` and
