@@ -12,6 +12,41 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-162 packet consistency and guarded replay verified on BDS (2026-10-13)
+
+By the maintainer on test BDS 1.26.51.1, Minecraft 1.26.51.01,
+LeviLamina Client 26.51.7, Windows x64. Build `e8b0a52`, `--edge_trace=y`,
+deployed DLL SHA-256
+`406861193453a1f8e8256ce540c38dd6ea803785da2609b5157de5f93a938553`.
+- WASD, stopping on key release and edge stopping are normal. Edge Guard
+  on, margin 0.10: repeating the previously failing slab-bridging operation
+  for two to three minutes shows no problem. Jumping, sneak release and
+  disabled movement remain normal.
+- The packet raw-vector change and owned-copy paths execute. Outgoing raw
+  and analog agree on guarded sends while live physical input retains its
+  direction keys. For example tick 4100 replaces raw (0.707,-0.707) with
+  guarded (0.017,-0.027); the send dump has matching move/raw/analog.
+- Twelve correction windows are recorded. Nine replay guarded analog input
+  without direction keys, retaining matching processed/raw values through
+  preApply, both vector calculations and postApply. The other three replay
+  ordinary direction-key input, as expected. No fall dump or hook failure.
+- Correction 11 shifts x about +0.045; guarded (-0.038,0.017) survives replay.
+  Correction 12 shifts z about +0.044; guarded (0.017,-0.027) survives replay.
+  These approach the earlier small-correction case without losing input or
+  falling; they are not an exact reproduction of the original fall chain.
+The log is saved locally (SHA-256
+`5739904c25ce628d9914684beb04a78845b8d1ab6a29e97ecb133cac985e61b4`).
+Close L-162 for the verified replay/input-consistency fix. The earlier
+unsupported-position correction was not repeated at the identical location,
+and the server's internal use of the raw field is not proven by this run.
+Longer play, other servers, slippery blocks and corrections that already put
+the feet outside support remain coverage/behavior limits in Pre-release checks.
+The instance is restored to the saved no-trace normal build from the same
+`e8b0a52` source; source and deployed DLL SHA-256
+`c698ec122e28399d5bf82a539cb9b2ea449ecf7e00af98641f11979ae1794699`.
+Configuration has `--edge_trace=n`; LamiumTests passes. This normal artifact
+has not yet been checked in game; its next-launch smoke remains listed.
+
 ## L-162 fall reproduced while slab bridging despite guarded replay (2026-10-13)
 
 By the maintainer during the additional BDS run, explicitly while placing

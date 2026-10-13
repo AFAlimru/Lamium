@@ -179,10 +179,11 @@ player, no direction keys, no jump/teleport/vehicle exit, and finite packet
 move/analog values matching the exact live component calculation. Only the
 packet's raw vector changes; device/component input, packet position, flags,
 look and placement transactions remain untouched. The analog vector is used
-unscaled (sneak movement is already scaled separately). The server's use of
-this field and its effect on slab-bridging corrections still need runtime
-validation; this does not clamp incoming corrections or recover unsupported
-positions (L-162).
+unscaled (sneak movement is already scaled separately). BDS `e8b0a52`
+verifies matching outgoing raw/analog, normal controls and slab bridging,
+with twelve correction windows and no fall dump. The server's internal use
+of the raw field is not established; incoming corrections are not clamped
+and already unsupported positions are not recovered (L-162).
 Trace-only (L-162): `ActorHistory::addFrame`,
 `ActorHistory::prepareEntityForRewindFromCapture`,
 `ClientPlayerRewindSystem::applyHistoryChangesToLiveEntity` and
