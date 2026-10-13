@@ -159,7 +159,7 @@ Hooks: `FinishBreak`, `StopBreak`, `ChangeDimension`
 Meaning: breaking goes through `GameMode::destroyBlock` once per block.
 
 ### `src/features/interaction/EdgeGuard.cpp`
-Hooks: `EdgeGuardHook`, `EdgeGuardInputHook`, `EdgeGuardPlaceHook`, `EdgeGuardSurvivalPlaceHook`, `EdgeGuardBuildHook`, `EdgeGuardSurvivalBuildHook`, `EdgeGuardStartBuildHook`, `EdgeGuardSurvivalStartBuildHook`, `EdgeTraceSend`, `EdgeTraceCorrection`, `EdgeTraceBuild`, `EdgeTraceSurvivalBuild`, `EdgeTraceHistoryFrame`, `EdgeTracePrepare`, `EdgeTraceApply`, `EdgeTraceReplay`
+Hooks: `EdgeGuardHook`, `EdgeGuardInputHook`, `EdgeGuardPlaceHook`, `EdgeGuardSurvivalPlaceHook`, `EdgeGuardBuildHook`, `EdgeGuardSurvivalBuildHook`, `EdgeGuardStartBuildHook`, `EdgeGuardSurvivalStartBuildHook`, `EdgeTraceSend`, `EdgeTraceCorrection`, `EdgeTraceBuild`, `EdgeTraceSurvivalBuild`, `EdgeTraceHistoryFrame`, `EdgeTracePrepare`, `EdgeTraceApply`, `EdgeTraceReplay`, `EdgeTraceSelectedInput`, `EdgeTraceCapture`, `EdgeTracePreApply`, `EdgeTracePostApply`
 Meaning: the movement request's fields and collision shapes in
 `fetchCollisionShapes`; `PlayerMovement::calculateMoveVector` giving the move
 vector the client both simulates and sends (move x positive to the left), called
@@ -180,6 +180,17 @@ Trace-only (L-162): `ActorHistory::addFrame`,
 history frame, captured/live/rewind inputs, boxes and motion, and the result
 applied to live state. All use exported SDK methods; reads are gated and
 restricted to the client thread. No history pointers or replay writes.
+The selected-input diagnostic also observes exported
+`ReplayStateComponent::getCurrentCapturedInput`. For the exact local
+component it binds read-only capture/preApply/postApply diagnostics to the
+selected input's implementation. Slots are decoded from bounded local
+compiler-generated SDK call thunks (measured clang-cl load-then-jump forms),
+not assumed from declaration order; native tests exercise the actual SDK
+thunks. Table entries must be readable game data and targets executable
+game code; unsupported forms, changed implementations or attachment failure
+are logged and left alone. Only function addresses persist, no input/entity
+pointers. Capture records local processed/raw inputs; application records
+the actual replay entity before and after vanilla applies stored input.
 
 ### `src/features/visuals/PortalTrace.cpp`
 Hooks: `PortalPackets`, `PortalInsideCheck`, `PortalScreenValid`, `PortalCraftingScreenValid`, `PortalModelValid`, `PortalCraftingValid`, `PortalSchedulePop`, `PortalInventoryKey`, `PortalOpenInventory`, `PortalCanOpen`, `PortalInside`, `PortalTick`

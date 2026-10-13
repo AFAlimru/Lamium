@@ -30,6 +30,9 @@
 #include "mc/world/phys/AABB.h"
 #include <cmath>
 #ifdef LAMIUM_EDGE_TRACE
+#include "features/interaction/EdgeGuardTracePlan.h"
+#include "mc/entity/utilities/IReplayableActorInput.h"
+#include "mc/entity/components/ReplayStateComponent.h"
 #include "mc/world/actor/ActorHistory.h"
 #include "mc/client/network/ClientNetworkHandler.h"
 #include "mc/network/LoopbackPacketSender.h"
@@ -42,6 +45,8 @@
 #include <deque>
 #include <format>
 #include <string>
+#include <array>
+#include <Windows.h>
 #endif
 #include <atomic>
 #include <stdexcept>
@@ -168,6 +173,106 @@ bool traceLocalEntity(EntityContext const& entity) {
     if (!player) return false;
     auto const& own = player->getEntityContext();
     return &entity.mRegistry == &own.mRegistry && entity.mEntity == own.mEntity;
+}
+std::uintptr_t traceCaptureTarget = 0, tracePreTarget = 0, tracePostTarget = 0;
+bool traceInputInstalled = false, traceInputUnavailable = false;
+LL_TYPE_INSTANCE_HOOK(EdgeTraceCapture, ll::memory::HookPriority::Normal, IReplayableActorInput,
+    traceCaptureTarget, void, MoveInputComponent const& input) {
+    try {
+        if (traceActive()) {
+            auto client = ll::service::getClientInstance();
+            auto* player = client ? client->getLocalPlayer() : nullptr;
+            auto own = player ? player->getEntityContext().tryGetComponent<MoveInputComponent>() : nullptr;
+            if (own && &input == &*own) traceInput("capture local input", input, this);
+            else if (traceReplayDepth) traceInput("capture replay input", input, this);
+        }
+    } catch (...) {}
+    origin(input);
+}
+LL_TYPE_INSTANCE_HOOK(EdgeTracePreApply, ll::memory::HookPriority::Normal, IReplayableActorInput,
+    tracePreTarget, void, EntityContext& entity) {
+    try { if (traceActive()) traceEntity("preApply before", entity, this); } catch (...) {}
+    origin(entity);
+    try { if (traceActive()) traceEntity("preApply after", entity, this); } catch (...) {}
+}
+LL_TYPE_INSTANCE_HOOK(EdgeTracePostApply, ll::memory::HookPriority::Normal, IReplayableActorInput,
+    tracePostTarget, void, EntityContext& entity) {
+    try { if (traceActive()) traceEntity("postApply before", entity, this); } catch (...) {}
+    origin(entity);
+    try { if (traceActive()) traceEntity("postApply after", entity, this); } catch (...) {}
+}
+bool traceReadable(void const* address, size_t length, bool executable, bool game) {
+    MEMORY_BASIC_INFORMATION page{};
+    if (!VirtualQuery(address, &page, sizeof(page)) || page.State != MEM_COMMIT
+        || (page.Protect & (PAGE_GUARD | PAGE_NOACCESS))
+        || (game && page.AllocationBase != GetModuleHandleW(nullptr))) return false;
+    auto begin = reinterpret_cast<std::uintptr_t>(address), base = reinterpret_cast<std::uintptr_t>(page.BaseAddress);
+    if (begin < base || length > page.RegionSize || begin - base > page.RegionSize - length) return false;
+    auto protection = page.Protect & 0xff;
+    return !executable || protection == PAGE_EXECUTE || protection == PAGE_EXECUTE_READ
+        || protection == PAGE_EXECUTE_READWRITE || protection == PAGE_EXECUTE_WRITECOPY;
+}
+template <class Member>
+std::optional<size_t> traceInputSlot(Member member) {
+    if constexpr (sizeof(Member) != sizeof(void*)) return std::nullopt;
+    else {
+        auto* code = static_cast<uint8_t const*>(ll::memory::toFuncPtr(member));
+        if (!traceReadable(code, 16, true, false)) return std::nullopt;
+        return replayInputSlot(std::span{code, size_t{16}});
+    }
+}
+void bindInputTrace(IReplayableActorInput& input) {
+    if (traceInputUnavailable) return;
+    auto unavailable = [](char const* reason) {
+        traceInputUnavailable = true;
+        Runtime::instance().self().getLogger().warn("L-162 input diagnostics unavailable: {}", reason);
+    };
+    auto capture = traceInputSlot(static_cast<void (IReplayableActorInput::*)(MoveInputComponent const&)>(&IReplayableActorInput::capture));
+    auto pre = traceInputSlot(&IReplayableActorInput::preApplyInput), post = traceInputSlot(&IReplayableActorInput::postApplyInput);
+    if (!capture || !pre || !post || capture == pre || capture == post || pre == post) {
+        unavailable("unsupported compiler virtual-call thunk"); return;
+    }
+    auto** table = *reinterpret_cast<void***>(&input);
+    size_t last = std::max({*capture, *pre, *post});
+    if (!traceReadable(table, (last + 1) * sizeof(void*), false, true)) {
+        unavailable("input table is outside readable game data"); return;
+    }
+    std::array<size_t, 3> slots{*capture, *pre, *post};
+    std::array<std::uintptr_t, 3> targets{};
+    for (size_t i = 0; i < slots.size(); ++i) {
+        auto* target = table[slots[i]];
+        if (!traceReadable(target, 1, true, true)) { unavailable("input target is outside executable game code"); return; }
+        targets[i] = reinterpret_cast<std::uintptr_t>(target);
+    }
+    if (traceInputInstalled) {
+        if (targets != std::array{traceCaptureTarget, tracePreTarget, tracePostTarget})
+            unavailable("selected input implementation changed");
+        return;
+    }
+    traceCaptureTarget = targets[0]; tracePreTarget = targets[1]; tracePostTarget = targets[2];
+    if (EdgeTraceCapture::hook(true) != 0 || EdgeTracePreApply::hook(true) != 0 || EdgeTracePostApply::hook(true) != 0) {
+        EdgeTraceCapture::unhook(true); EdgeTracePreApply::unhook(true); EdgeTracePostApply::unhook(true);
+        unavailable("could not attach input diagnostics"); return;
+    }
+    traceInputInstalled = true;
+    Runtime::instance().self().getLogger().info("L-162 input diagnostics attached (compiler slots {},{},{}); read only", *capture, *pre, *post);
+}
+LL_TYPE_INSTANCE_HOOK(EdgeTraceSelectedInput, ll::memory::HookPriority::Normal, ReplayStateComponent,
+    &ReplayStateComponent::getCurrentCapturedInput, IReplayableActorInput*) {
+    auto* result = origin();
+    try {
+        if (result && traceActive()) {
+            auto client = ll::service::getClientInstance();
+            auto* player = client ? client->getLocalPlayer() : nullptr;
+            auto own = player ? player->getEntityContext().tryGetComponent<ReplayStateComponent>() : nullptr;
+            bool local = own && &*own == this;
+            if (local) bindInputTrace(*result);
+            if (local || traceReplayDepth)
+                trace(std::format("selected input {} replay {} local {} tick {} history {}", static_cast<void*>(result),
+                    traceReplayDepth, local, static_cast<uint64>(mCurrentTick), static_cast<void*>(mHistory.get())));
+        }
+    } catch (...) {}
+    return result;
 }
 LL_TYPE_INSTANCE_HOOK(EdgeTraceHistoryFrame, ll::memory::HookPriority::Normal, ActorHistory,
     &ActorHistory::addFrame, void, EntityContext& entity, uint64 frame, EntityRegistry& registry) {
@@ -536,6 +641,10 @@ LL_TYPE_INSTANCE_HOOK(EdgeTraceSend, ll::memory::HookPriority::Normal, LoopbackP
             auto& auth = static_cast<PlayerAuthInputPacket&>(packet);
             auto client = ll::service::getClientInstance();
             auto* player = client ? client->getLocalPlayer() : nullptr;
+            if (player && traceActive() && !traceInputInstalled && !traceInputUnavailable) {
+                if (auto replay = player->getEntityContext().tryGetComponent<ReplayStateComponent>())
+                    replay->getCurrentCapturedInput();
+            }
             if (player) traceFall(auth.mPos->y, player->isOnGround());
             if (traceQuiet > 100) { origin(packet); return; }
             auto& data = *auth.mInputData;
@@ -585,8 +694,8 @@ void start() {
     EdgeTraceSurvivalBuild::hook();
     EdgeTraceReplay::hook();
     bool frame = EdgeTraceHistoryFrame::hook() == 0, prepare = EdgeTracePrepare::hook() == 0,
-        apply = EdgeTraceApply::hook() == 0;
-    Runtime::instance().self().getLogger().info("L-162 history diagnostics: frame {} prepare {} apply {}", frame, prepare, apply);
+        apply = EdgeTraceApply::hook() == 0, selected = EdgeTraceSelectedInput::hook() == 0;
+    Runtime::instance().self().getLogger().info("L-162 history diagnostics: frame {} prepare {} apply {} selected {}", frame, prepare, apply, selected);
     Runtime::instance().self().getLogger().warn("Edge Guard diagnostics enabled (L-160/L-162); up to 16 correction windows and 12 falls");
 #endif
     ll::thread::ClientThreadExecutor::getDefault().execute([] { clientThread.store(std::this_thread::get_id()); });
@@ -613,6 +722,11 @@ void start() {
 void stop() {
     if (!installed) return;
 #ifdef LAMIUM_EDGE_TRACE
+    EdgeTraceSelectedInput::unhook(true);
+    if (traceInputInstalled) {
+        EdgeTraceCapture::unhook(true); EdgeTracePreApply::unhook(true); EdgeTracePostApply::unhook(true);
+        traceInputInstalled = false;
+    }
     EdgeTraceReplay::unhook(true);
     EdgeTraceHistoryFrame::unhook(true);
     EdgeTracePrepare::unhook(true);

@@ -339,8 +339,9 @@ four smoke checks in BDS and solo play, but the additional BDS run records
 full direction keys in eight of nine correction replays. It is insufficient.
 The second candidate (`981f630`) broke normal WASD operation and has been
 removed along with the ineffective scoped capture candidate. The instance
-is restored to diagnostic build `8b8823d`; recovery confirmation is pending.
-Next establish actual replay input capture/application before connecting
+is restored to diagnostic build `8b8823d`; the maintainer confirms WASD,
+key-release stopping and edge stopping are restored. Next establish actual
+replay input capture/application before connecting
 another fix. The original rare fall is not reproduced; this item stays open.
 Seen once on the local test BDS (trace of `2dc7e45`, VALIDATION-LOG "L-161
 margin 0.1"): after a +0.047 block server correction, the client's next
@@ -480,6 +481,30 @@ while the instance uses the previously tested `8b8823d` diagnostic artifact.
 SDK investigation found exported `ReplayStateComponent::getCurrentCapturedInput`
 as a potential observation point for the actual selected replay input;
 no hook or mutation has been added there yet.
+Recovery confirmed on BDS: WASD, key-release stopping and margin 0.10 edge
+stopping are restored. Two correction windows retain the unfixed replay
+path, without a fall dump.
+Next diagnostic: observe `getCurrentCapturedInput` and bind read-only
+capture/preApply/postApply hooks from the actual selected implementation.
+The first-round SDK slot helper rejected clang-cl's load-then-jump thunk
+form; a standalone program measured the actual SDK thunks, and a bounded
+decoder plus pure/native tests handle those forms without assuming slots.
+Check the exact local component, client thread, capability gate, readable
+game vtable and executable game targets; unsupported or changed targets
+fail open. Retain function addresses only, no input/entity pointers across
+frames. Gameplay remains the recovered baseline. Runtime attachment and
+capture/application observations are pending.
+Normal and diagnostic builds, LamiumTests, LamiumNativeTests (including
+the actual SDK thunk check) and the hook inventory check pass. The new
+read-only diagnostic DLL is deployed; source and deployed SHA-256
+`f7b23cf81bcb228209497a24ab220d17c8f53147aab7c136fca11ff16f34bef1`.
+Configuration is reset to `--edge_trace=n`; the safe normal artifact is
+retained (SHA-256
+`0e773c452cd845d4892bfcae6691b5ec65676a3710795b7141773385115daa95`).
+Next BDS run: verify WASD/key release and margin 0.10 edge stopping first,
+then diagonal approaches and slab bridging for a few minutes. Check that
+input diagnostics actually attach and connect local capture to the selected
+input's pre/post application. A fall is not required; no new movement fix.
 
 ### L-123 FreeCamera stretches the worn elytra on the inventory player model
 Kind: Bug, low priority. Reported from use 2026-10-09 (maintainer's notes).

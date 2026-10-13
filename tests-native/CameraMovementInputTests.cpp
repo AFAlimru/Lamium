@@ -7,6 +7,8 @@ void check(bool value, char const* message) {
     if (!value) throw std::runtime_error(message);
 }
 int main() try {
+    extern void nativeEdgeGuardTraceTests();
+    nativeEdgeGuardTraceTests();
     using Flag = MoveInputState::Flag;
     RawMoveInputComponent raw{};
     auto& flags = *raw.mRawInput->mFlagValues;

@@ -12,6 +12,21 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-162 rollback recovery confirmed (2026-10-13)
+
+By the maintainer after restoring diagnostic build `8b8823d`, Minecraft
+1.26.51.01, LeviLamina Client 26.51.7, test BDS 1.26.51.1, Windows x64.
+DLL SHA-256 `7f10147c19e878b0ced7d4da94c70c2e8d6ca0e15c35e2ca6b760b67c4e238d0`
+(deployed copy matches the saved build).
+- WASD forward/back/left/right operation and stopping after key release
+  are restored. Edge Guard on, margin 0.10 stops at the edge again.
+- The recovery run records two correction windows with no fall dump.
+  Full Down movement still appears during the first replay; the second
+  contains Up/Jump/Sprint while airborne. L-162 remains unresolved.
+The recovery log is saved separately. Next diagnostics observe actual
+selected replay input capture/application, without either removed input
+mutation. No additional movement fix is claimed.
+
 ## L-162 persistent raw-input candidate breaks WASD; reverted (2026-10-13)
 
 By the maintainer on test BDS 1.26.51.1, Minecraft 1.26.51.01,

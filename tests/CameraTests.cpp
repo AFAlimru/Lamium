@@ -51,6 +51,8 @@ int main() try {
     weaponChoiceTests();
     extern void edgeGuardTests();
     edgeGuardTests();
+    extern void edgeGuardTraceTests();
+    edgeGuardTraceTests();
     extern void restockPlanTests();
     restockPlanTests();
     extern void equipmentPlanTests();
