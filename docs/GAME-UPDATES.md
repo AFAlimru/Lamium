@@ -330,8 +330,8 @@ Meaning: the camera copied from `setupCamera` is the one the world is drawn
 with this frame.
 
 ### `src/features/research/LanguageTrace.cpp`
-Hooks: `LanguageSettingsTick`, `LanguageSelected`, `LanguageChosen`, `LanguageGameChanged`, `LanguageFontChanged`, `LanguagePacksChanged`, `LanguagePackStack`, `LanguageServerPacks`
-Trace. Read-only L-167 observations; does not change language or pack handling.
+Hooks: `LanguageSettingsTick`, `LanguageSelected`, `LanguageChosen`, `LanguageGameChanged`, `LanguageFontChanged`, `LanguagePacksChanged`, `LanguagePackStack`, `LanguageServerPacks`, `LanguageServerStack`
+Trace. L-167 observations; read-only except the research-only `server_pack_skip` option, which empties the server stack's resource packs before the client applies it.
 
 ### `src/features/research/ResearchTrace.cpp`
 Hooks: `FovSampleHook`

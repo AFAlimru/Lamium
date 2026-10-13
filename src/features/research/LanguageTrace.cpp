@@ -16,6 +16,7 @@
 #include "mc/locale/Localization.h"
 #include "mc/network/packet/PackInfoData.h"
 #include "mc/network/packet/ResourcePacksInfoPacket.h"
+#include "mc/network/packet/ResourcePackStackPacket.h"
 #include "mc/resources/PackInstance.h"
 #include "mc/resources/ResourcePackManager.h"
 #include "mc/resources/ResourcePackStack.h"
@@ -114,13 +115,31 @@ LL_TYPE_INSTANCE_HOOK(LanguageServerPacks, ll::memory::HookPriority::Normal, Cli
     } catch (...) {}
     origin(source, packet);
 }
+// The stack the server asks the client to apply, after the download
+// handshake. A server-pack-skip research build empties the resource packs
+// here, so the server sees a normal acceptance and only local application
+// changes. Never part of a normal build.
+LL_TYPE_INSTANCE_HOOK(LanguageServerStack, ll::memory::HookPriority::Normal, ClientNetworkHandler,
+    &ClientNetworkHandler::$handle, void, NetworkIdentifier const& source, ResourcePackStackPacket const& packet) {
+    try {
+        auto const& p = static_cast<ResourcePackStackPacketPayload const&>(packet);
+        log("server stack resources={} required={} {}", p.mTexturePackIdsAndVersions->size(), bool(p.mTexturePackRequired), state());
+#ifdef LAMIUM_SERVER_PACK_SKIP
+        auto& ids = const_cast<ResourcePackStackPacketPayload&>(p).mTexturePackIdsAndVersions.get();
+        if (!ids.empty()) { log("server stack: research skip of {} resource packs", ids.size()); ids.clear(); }
+#endif
+    } catch (...) {}
+    origin(source, packet);
+    log("server stack handled");
+}
 namespace {
 struct Hook { int (*install)(bool); bool (*remove)(bool); bool installed = false; };
 Hook hooks[] = {
     {LanguageSettingsTick::hook, LanguageSettingsTick::unhook}, {LanguageSelected::hook, LanguageSelected::unhook},
     {LanguageChosen::hook, LanguageChosen::unhook}, {LanguageGameChanged::hook, LanguageGameChanged::unhook},
     {LanguageFontChanged::hook, LanguageFontChanged::unhook}, {LanguagePacksChanged::hook, LanguagePacksChanged::unhook},
-    {LanguagePackStack::hook, LanguagePackStack::unhook}, {LanguageServerPacks::hook, LanguageServerPacks::unhook}
+    {LanguagePackStack::hook, LanguagePackStack::unhook}, {LanguageServerPacks::hook, LanguageServerPacks::unhook},
+    {LanguageServerStack::hook, LanguageServerStack::unhook}
 };
 }
 void start() {

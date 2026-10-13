@@ -93,6 +93,12 @@ option("language_trace")
     set_description("L-167 read-only diagnostics: vanilla language selection, observers and resource pack stacks")
 option_end()
 
+option("server_pack_skip")
+    set_default(false)
+    set_showmenu(true)
+    set_description("L-167 research only, with language_trace: accept server resource packs but apply none of them locally")
+option_end()
+
 option("hunger_trace")
     set_default(false)
     set_showmenu(true)
@@ -211,6 +217,7 @@ target("Lamium")
     if has_config("trade_trace") then add_defines("LAMIUM_TRADE_TRACE") end
     if has_config("repeat_trade_trace") then add_defines("LAMIUM_REPEAT_TRADE_TRACE") end
     if has_config("language_trace") then add_defines("LAMIUM_LANGUAGE_TRACE") end
+    if has_config("server_pack_skip") then add_defines("LAMIUM_SERVER_PACK_SKIP") end
     if has_config("playerlist_trace") then add_defines("LAMIUM_PLAYERLIST_TRACE") end
     if has_config("inventorymove_trace") then add_defines("LAMIUM_INVENTORYMOVE_TRACE") end
     if has_config("edge_trace") then add_defines("LAMIUM_EDGE_TRACE") end
