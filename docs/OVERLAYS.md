@@ -139,6 +139,15 @@ retain no actor/player pointer across frames. Basic visible output is past the
 compile-only stage; crowded-world performance, graphics/resource-pack variants
 and broader lifecycle cases still need coverage.
 
+Known bug (L-176, reported 2026-10-14): both Chunk Borders and Hitboxes lose
+their line colors with Vibrant Visuals enabled; Hitboxes is now confirmed
+in game, not only suspected from the shared path. `drawLines()` currently
+submits one `debug` mesh with vertex colors. A candidate is the existing
+`LineColor.h` selection-outline material and restored per-draw shader color,
+with separate submissions for each nonempty color group. The cause and fix
+are not yet runtime-verified. BACKLOG owns the scope and acceptance checks;
+VALIDATION-LOG records the observation without assuming a test build.
+
 Chunk border line coordinates are cached per render thread by chunk origin and
 dimension height range. Movement within a chunk reuses the same CPU geometry;
 crossing a chunk boundary or changing the height range rebuilds it. Reuse across

@@ -12,6 +12,21 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-176 Chunk Borders and Hitboxes lose colors in Vibrant Visuals (2026-10-14)
+
+Maintainer report: Chunk Borders loses its line colors in Vibrant Visuals,
+and an in-game check confirms Hitboxes also has no distinct line colors
+there. The Hitboxes symptom is confirmed, rather than inferred only from
+the shared rendering path. No fix has been implemented or tested.
+
+The build/DLL SHA-256, loader, UI profile, packs and local/server context
+for this observation were not separately reported. The latest deployed
+build in this session is `dc3ac45`, DLL SHA-256
+`f0f51371a77025a533a73730630cf05f8c1bc66d650c7dce53c9b8716a10a0fb`,
+in the 1.26.51.01 LIP instance on Windows x64; that is context, not confirmed
+identity for this check. Ordinary modes, switching graphics settings and
+depth/occlusion regressions were not itemized in this report.
+
 ## L-174 final default reset accepted (2026-10-14)
 
 Maintainer report on `dc3ac45`, DLL SHA-256

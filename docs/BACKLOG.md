@@ -71,7 +71,8 @@ L-item wins. Every entry names what the task is, not only its number.
 
 1. **Small and medium features and fixes** (maintainer 2026-10-10: these
    come before large features and L-111 integration for now):
-   - Bugs: L-123 elytra stretched on the inventory model after FreeCamera and
+   - Bugs: L-176 Chunk Borders / Hitboxes lose their line colors in Vibrant
+     Visuals; L-123 elytra stretched on the inventory model after FreeCamera and
      L-91 shield glint in Lamium's icons (both parked); L-132 moving with
      the inventory screen open (paused after eight rounds).
    - Specs to agree with the maintainer before building: L-165 Mass Craft,
@@ -373,6 +374,47 @@ found later are handled as bugs.
 ---
 
 ## Bugs
+
+### L-176 Preserve Chunk Borders and Hitboxes line colors in Vibrant Visuals
+Kind: Bug / Research (strong model). Imported from the maintainer's Notion
+idea inbox and chosen for the backlog 2026-10-14; no implementation or
+release selected in this step.
+Status: open. The maintainer reports that Chunk Borders loses its colors
+with Vibrant Visuals enabled, and has now confirmed the same loss on
+Hitboxes in game. The build/hash and detailed environment for this report
+were not separately identified (VALIDATION-LOG).
+Goal: retain the existing five Chunk Borders color groups and the white
+bounds, red eye marker and blue look line of Hitboxes in both ordinary
+graphics modes and Vibrant Visuals.
+
+Current evidence and candidate fix:
+- `src/overlay/WorldOverlay.cpp` `drawLines()` writes per-group vertex
+  colors into one mesh drawn with the `debug` material. Both features use
+  this path; the renderer's exact cause remains a hypothesis.
+- `src/overlay/LineColor.h` already provides `lines::material()`
+  (`selection_box`, with a `debug` fallback) and `lines::colored()` to set
+  and restore `ShaderColor`. The schematic line path has runtime evidence
+  of colors retained under Vibrant Visuals (SCHEMATIC.md, 2026-10-09).
+- Investigate using that existing path for each nonempty color group:
+  up to five submissions for Chunk Borders and three for Hitboxes. Merely
+  changing the material on a single multicolor draw cannot supply distinct
+  per-draw shader colors. Preserve color/alpha semantics and restore shader
+  state after every draw, including early returns.
+
+Scope: keep geometry, chunk caching, camera following, `worldLinePull`,
+Hitboxes distance filtering and frame interpolation unchanged. Audit all
+shared `drawLines()` callers for side effects; do not expand this task into
+unconfirmed Light Overlay or other rendering changes. Bound submissions
+and retain the existing version/capability and invalid-material fallbacks.
+Likely files: `src/overlay/WorldOverlay.cpp`, `src/overlay/LineColor.h` if
+needed; pure group helpers/tests only if introduced; OVERLAYS and VALIDATION.
+
+Acceptance: compare both features in ordinary modes and Vibrant Visuals,
+including switching graphics settings during play. Verify all existing
+color groups, line thickness, terrain depth/occlusion, lines on walls and
+over the vanilla selection outline, drawing order with other overlays,
+camera tracking and feature OFF restoration. Build/tests alone cannot
+close the item. Technical notes: [OVERLAYS.md](OVERLAYS.md).
 
 ### L-123 FreeCamera stretches the worn elytra on the inventory player model
 Kind: Bug, low priority. Reported from use 2026-10-09 (maintainer's notes).
