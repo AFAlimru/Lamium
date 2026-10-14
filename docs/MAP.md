@@ -48,14 +48,25 @@ cursor order picks), for the selected one and for the one with a menu
 open, on a dark plate; the world map option "Always show names" (off by
 default) shows them all. Player names from the radar stay always shown.
 
-## World map zoom-out feedback (2026-10-14)
+## World map zoom-out (L-187, 2026-10-14)
 
-[L-187](BACKLOG.md) proposes increasing the world map's maximum zoom-out.
-This means **show more of the already recorded world at once**, not extend
-exploration, cache radius or data collection. The new scale range,
-wheel-step curve, label/waypoint legibility and large-area sampling cost
-remain Design questions. Existing pan/zoom and sparse/unexplored map
-semantics must be retained. No new limit or release chosen.
+Maintainer 2026-10-14: zoom out far enough that **everything explored fits on
+one screen**. It shows more of the already recorded world at once; it does
+not extend exploration, cache radius or data collection.
+
+Built (not checked in game): ten steps past 1/8 continue the same 1.5x/1.33x
+curve down to 1/256 GUI units per block (about 100,000 blocks across a
+400-unit screen). They open only as far as needed: the farthest step is the
+closest one at which the layer's explored bounds (whole regions) fit the map
+area between the bars and beside the side panel, and never nearer than 1/8,
+so small maps zoom as before. Image levels go to 8 (65,536 blocks per
+image). On joining a world the worker lists the saved region files once;
+images wait for that list, then skip tiles with no region under them without
+touching the disk. A coarse image is rebuilt from its previous pixels: only
+quarters whose regions changed are built again, so recording near the player
+rebuilds one path down rather than every region under a far view. The image
+LRU keeps coarse levels longer and also trims during a build. Not measured:
+time to build the first far view of a very large map, and memory/IO on it.
 
 ## Technical entry points
 

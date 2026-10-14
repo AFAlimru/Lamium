@@ -2,6 +2,7 @@
 #include "features/map/MapImage.h"
 #include "features/map/MapTiles.h"
 #include "features/map/MapView.h"
+#include <algorithm>
 #include <array>
 #include <cstdint>
 #include <cstring>
@@ -146,6 +147,11 @@ inline std::vector<std::uint32_t> shadeRegion(RegionData const& region) {
         }
     return out;
 }
+inline void clearQuadrant(std::vector<std::uint32_t>& parent, int quadrant) {
+    int half = regionBlocks / 2, ox = (quadrant & 1) * half, oz = (quadrant >> 1) * half;
+    for (int z = 0; z < half; ++z)
+        std::fill_n(parent.begin() + (oz + z) * regionBlocks + ox, half, 0u);
+}
 // One quarter of a coarser image from a finer one: each 2x2 block of the
 // child averages its known pixels into one. `quadrant` 0-3: x then z.
 inline void downsampleInto(std::vector<std::uint32_t>& parent, std::vector<std::uint32_t> const& child, int quadrant) {
@@ -182,5 +188,47 @@ inline std::string layerFolder(MapLayer layer) {
 }
 inline std::string regionFileName(RegionKey key) {
     return "r." + std::to_string(key.x) + "." + std::to_string(key.z) + ".lmr";
+}
+namespace detail {
+inline std::optional<int> parseInt(std::string_view text) {
+    if (text.empty() || text.size() > 11) return std::nullopt;
+    bool negative = text.front() == '-';
+    if (negative) text.remove_prefix(1);
+    if (text.empty()) return std::nullopt;
+    long long value = 0;
+    for (char c : text) {
+        if (c < '0' || c > '9') return std::nullopt;
+        value = value * 10 + (c - '0');
+    }
+    value = negative ? -value : value;
+    if (value < -(1LL << 31) || value >= (1LL << 31)) return std::nullopt;
+    return static_cast<int>(value);
+}
+}
+// The inverses, for listing what is saved; anything else is not a region.
+inline std::optional<RegionKey> regionOfFileName(std::string_view name) {
+    if (!name.starts_with("r.") || !name.ends_with(".lmr")) return std::nullopt;
+    name = name.substr(2, name.size() - 6);
+    auto dot = name.find('.');
+    if (dot == std::string_view::npos) return std::nullopt;
+    auto x = detail::parseInt(name.substr(0, dot)), z = detail::parseInt(name.substr(dot + 1));
+    if (!x || !z) return std::nullopt;
+    return RegionKey{*x, *z};
+}
+// `folder` relative to the world's map folder, with '/' separators.
+inline std::optional<MapLayer> layerOfFolder(std::string_view folder) {
+    if (folder == "overworld") return MapLayer{0, 0};
+    if (folder == "end") return MapLayer{2, 0};
+    if (folder.starts_with("nether/y")) {
+        auto y = detail::parseInt(folder.substr(8));
+        if (!y || floorMod(*y, bandHeight)) return std::nullopt;
+        return MapLayer{1, floorDiv(*y, bandHeight)};
+    }
+    if (folder.starts_with("dimension")) {
+        auto d = detail::parseInt(folder.substr(9));
+        if (!d || *d < 3) return std::nullopt;
+        return MapLayer{*d, 0};
+    }
+    return std::nullopt;
 }
 }

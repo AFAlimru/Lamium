@@ -1321,6 +1321,11 @@ void render(MinecraftUIRenderContext& context, glm::vec2 size, glm::vec2 pointer
     auto& view = state.view;
     view.width = size.x;
     view.height = size.y;
+    auto layer = shownLayer();
+    if (auto explored = store::exploredBounds(layer))
+        view.farthest = farthestScaleFor(explored->x1 - explored->x0, explored->z1 - explored->z0,
+                                         size.x - state.panelWidth, size.y - state.top - bottomHeight);
+    else view.farthest = alwaysFarthestScale;
     if (state.drag) {
         double dx = pointer.x - state.drag->x, dy = pointer.y - state.drag->y;
         if (std::abs(dx) + std::abs(dy) > 2) state.drag->moved = true;
@@ -1333,7 +1338,6 @@ void render(MinecraftUIRenderContext& context, glm::vec2 size, glm::vec2 pointer
     double inverse = client.getGuiData()->mInvGuiScale;
     double pixelsPerUnit = std::isfinite(inverse) && inverse > 0 ? 1 / inverse : 1;
     state.pixelsPerUnit = pixelsPerUnit;
-    auto layer = shownLayer();
     state.hits.clear();
     ui::fill(context, 0, 0, size.x, size.y, ground);
     int empty = 0, shown = 0;

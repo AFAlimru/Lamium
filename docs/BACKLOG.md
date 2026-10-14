@@ -578,13 +578,16 @@ L-114's Check-tab 3D preview mistake styling.
 [SCHEMATIC.md](SCHEMATIC.md).
 
 ### L-187 Increase the world map's maximum zoom-out
-Kind: Design, then Ready/Research if map sampling must change.
-User feedback clarified 2026-10-14; no implementation or release chosen.
-Raise the **world map zoom-out limit** so a larger area fits on screen at
-once. This request is not to generate or retain more unexplored terrain.
-Choose a useful new range, stepping/scroll behavior, waypoint readability,
-tile/resampling cost and treatment of sparse data before implementation.
-Preserve current map data boundaries. [MAP.md](MAP.md).
+Kind: Feature. User feedback 2026-10-14; maintainer chose the range the
+same day: zoom out until everything explored fits on one screen.
+Status: built, not checked in game (MAP.md "World map zoom-out"). Steps to
+1/256 GUI units per block open as far as the layer's explored bounds need;
+coarse images skip empty space and rebuild only changed quarters.
+Check in game: zoom out on a large explored world (Overworld and a Nether
+layer), the first far build time, waypoint/marker readability at the
+farthest step, recording while open, and that a small world still stops at
+1/8. Not chosen: auto-centering on the explored area. No release chosen.
+This request is not to generate or retain more unexplored terrain.
 
 ### L-188 Let the settings key toggle the settings screen closed
 Kind: Design, then Ready after input/ownership behavior is agreed.

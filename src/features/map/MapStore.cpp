@@ -8,6 +8,7 @@
 #include <fstream>
 #include <map>
 #include <mutex>
+#include <set>
 #include <thread>
 #include <tuple>
 
@@ -63,6 +64,13 @@ std::map<ImageId, Cached> images;
 std::deque<Save> saves;
 std::deque<RegionId> loads;
 std::vector<ImageId> wanted;
+// Saved and recorded regions per layer (dimension, band). Images wait for
+// the saved folder's listing so they never miss a region.
+std::map<std::pair<int, int>, ExploredIndex> explored;
+bool indexing = false;
+// Coarse images whose regions changed since they were built, cached or
+// not: a rebuild keeps the other quarters from the previous image.
+std::set<ImageId> dirty;
 std::optional<std::filesystem::path> removing;
 std::optional<std::uint64_t> usageBytes;
 bool usageDirty = false;
@@ -71,7 +79,8 @@ double clock = 0;
 int logged = 0;
 ll::event::ListenerPtr exitListener;
 
-// About 40 MB of images; tiles not wanted now go first, oldest use first.
+// About 40 MB of images; tiles not wanted now go first, finest and oldest
+// first, since coarse ones are the costly ones to build again.
 constexpr size_t maxImages = 160;
 constexpr double saveDelay = 10, rebuildDelay = 1.5, forgetAfter = 20;
 constexpr int keepRegions = 2; // Around the player: the minimap reads them.
@@ -97,9 +106,16 @@ std::optional<RegionData> readRegion(std::filesystem::path const& path) {
 }
 void invalidate(RegionId const& id) {
     for (int lod = 0; lod <= maxLod; ++lod) {
-        auto found = images.find({id.layer, {lod, id.key.x >> lod, id.key.z >> lod}});
+        ImageId image{id.layer, {lod, id.key.x >> lod, id.key.z >> lod}};
+        auto found = images.find(image);
         if (found != images.end()) found->second.stale = true;
+        dirty.insert(image);
     }
+}
+ExploredIndex& indexOf(MapLayer layer) { return explored[{layer.dimension, layer.band}]; }
+bool known(ImageId const& id) {
+    auto found = explored.find({id.layer.dimension, id.layer.band});
+    return found != explored.end() && found->second.has(id.tile);
 }
 // Caller holds the lock.
 Resident& resident(RegionId const& id) {
@@ -121,8 +137,11 @@ void queueSave(RegionId const& id, Resident& r) {
 bool fresh(Cached const& cached) { return !cached.stale; }
 bool buildable(ImageId const& id) {
     auto found = images.find(id);
-    return found == images.end() || (found->second.stale && clock - found->second.builtAt >= rebuildDelay);
+    // Dirty too: a change that came in while the image was being built.
+    return found == images.end()
+        || ((found->second.stale || dirty.contains(id)) && clock - found->second.builtAt >= rebuildDelay);
 }
+void trimImages();
 
 // Worker side. Builds without the lock; takes it only to read sources and to
 // publish. Results from an older generation are dropped.
@@ -130,9 +149,9 @@ Pixels build(ImageId const& id, unsigned started);
 Pixels child(ImageId const& id, unsigned started) {
     {
         std::lock_guard lock(mutex);
-        if (started != generation) return nullptr;
+        if (started != generation || finishing || !known(id)) return nullptr;
         auto found = images.find(id);
-        if (found != images.end() && fresh(found->second)) {
+        if (found != images.end() && fresh(found->second) && !dirty.contains(id)) {
             found->second.used = clock;
             return found->second.pixels;
         }
@@ -141,6 +160,8 @@ Pixels child(ImageId const& id, unsigned started) {
     std::lock_guard lock(mutex);
     if (started != generation) return nullptr;
     images[id] = Cached{pixels, ++versions, false, clock, clock};
+    // A far view builds every image under it; keep memory bounded meanwhile.
+    trimImages();
     return pixels;
 }
 Pixels build(ImageId const& id, unsigned started) {
@@ -149,7 +170,8 @@ Pixels build(ImageId const& id, unsigned started) {
         std::optional<std::filesystem::path> path;
         {
             std::lock_guard lock(mutex);
-            if (started != generation) return nullptr;
+            if (started != generation || !known(id)) return nullptr;
+            dirty.erase(id);
             RegionId region{id.layer, {id.tile.x, id.tile.z}};
             auto found = residents.find(region);
             if (found != residents.end() && found->second.ready) source = found->second.data;
@@ -164,16 +186,26 @@ Pixels build(ImageId const& id, unsigned started) {
         if (data.empty()) return nullptr;
         return std::make_shared<std::vector<std::uint32_t> const>(shadeRegion(data));
     }
-    std::vector<std::uint32_t> pixels(static_cast<size_t>(regionColumns), 0);
-    bool any = false;
-    for (int q = 0; q < 4; ++q) {
-        TileKey below{id.tile.lod - 1, id.tile.x * 2 + (q & 1), id.tile.z * 2 + (q >> 1)};
-        if (auto part = child({id.layer, below}, started)) {
-            downsampleInto(pixels, *part, q);
-            any = true;
-        }
+    // Quarters whose regions did not change are kept from the last image, so
+    // a change near the player rebuilds one path down, not the whole area.
+    Pixels previous;
+    std::array<bool, 4> keep{};
+    auto below = [&](int q) { return ImageId{id.layer, {id.tile.lod - 1, id.tile.x * 2 + (q & 1), id.tile.z * 2 + (q >> 1)}}; };
+    {
+        std::lock_guard lock(mutex);
+        if (started != generation) return nullptr;
+        dirty.erase(id);
+        auto found = images.find(id);
+        if (found != images.end()) previous = found->second.pixels;
+        for (int q = 0; q < 4; ++q) keep[static_cast<size_t>(q)] = previous && known(below(q)) && !dirty.contains(below(q));
     }
-    if (!any) return nullptr;
+    auto pixels = previous ? *previous : std::vector<std::uint32_t>(static_cast<size_t>(regionColumns), 0);
+    for (int q = 0; q < 4; ++q) {
+        if (keep[static_cast<size_t>(q)]) continue;
+        if (auto part = child(below(q), started)) downsampleInto(pixels, *part, q);
+        else clearQuadrant(pixels, q);
+    }
+    if (std::none_of(pixels.begin(), pixels.end(), [](std::uint32_t c) { return c >> 24; })) return nullptr;
     return std::make_shared<std::vector<std::uint32_t> const>(std::move(pixels));
 }
 void trimImages() {
@@ -181,7 +213,9 @@ void trimImages() {
     std::vector<std::pair<double, ImageId>> order;
     for (auto const& [id, cached] : images)
         if (std::find(wanted.begin(), wanted.end(), id) == wanted.end()) order.push_back({cached.used, id});
-    std::sort(order.begin(), order.end(), [](auto const& a, auto const& b) { return a.first < b.first; });
+    std::sort(order.begin(), order.end(), [](auto const& a, auto const& b) {
+        return std::pair(a.second.tile.lod, a.first) < std::pair(b.second.tile.lod, b.first);
+    });
     for (size_t i = 0; i < order.size() && images.size() > maxImages; ++i) images.erase(order[i].second);
 }
 std::uint64_t folderSize(std::filesystem::path const& folder) {
@@ -200,8 +234,8 @@ void run() {
                 auto found = residents.find(id);
                 return found != residents.end() && found->second.dirty;
             }));
-            bool builds = !finishing && std::any_of(wanted.begin(), wanted.end(), buildable);
-            return removing || !saves.empty() || loadsWanted || builds || (usageDirty && !finishing)
+            bool builds = !finishing && !indexing && std::any_of(wanted.begin(), wanted.end(), buildable);
+            return removing || (indexing && !finishing) || !saves.empty() || loadsWanted || builds || (usageDirty && !finishing)
                 || (finishing && saves.empty() && !loadsWanted);
         });
         if (removing) {
@@ -212,6 +246,26 @@ void run() {
             if (error) log("could not delete the saved map: " + error.message());
             lock.lock();
             usageDirty = true;
+            continue;
+        }
+        if (indexing && !finishing) {
+            auto folder = root;
+            unsigned started = generation;
+            lock.unlock();
+            std::vector<std::pair<MapLayer, RegionKey>> listed;
+            std::error_code error;
+            if (folder)
+                for (auto it = std::filesystem::recursive_directory_iterator(*folder, error);
+                     !error && it != std::filesystem::recursive_directory_iterator(); it.increment(error)) {
+                    if (!it->is_regular_file(error)) continue;
+                    auto key = regionOfFileName(it->path().filename().string());
+                    auto layer = layerOfFolder(it->path().parent_path().lexically_relative(*folder).generic_string());
+                    if (key && layer) listed.push_back({*layer, *key});
+                }
+            lock.lock();
+            if (started != generation) continue;
+            for (auto const& [layer, key] : listed) indexOf(layer).add(key);
+            indexing = false;
             continue;
         }
         if (!saves.empty()) {
@@ -291,6 +345,9 @@ void finish(std::unique_lock<std::mutex>& lock) {
     root.reset();
     residents.clear();
     images.clear();
+    explored.clear();
+    dirty.clear();
+    indexing = false;
     saves.clear();
     loads.clear();
     removing.reset();
@@ -312,6 +369,7 @@ void frame(unsigned world, std::optional<std::filesystem::path> const& folder, M
         attachedWorld = world;
         root = folder;
         usageDirty = root.has_value();
+        indexing = root.has_value();
         ++generation;
         ++epochs;
         worker = std::thread(run);
@@ -342,6 +400,7 @@ void record(MapLayer layer, ChunkKey chunk, std::array<Column, 256> const& colum
     r.data = std::move(data);
     if (!r.dirty) r.dirtySince = clock;
     r.dirty = true;
+    indexOf(layer).add(id.key);
     invalidate(id);
 }
 bool cached(MapLayer layer, ChunkKey chunk, std::array<Column, 256>& out) {
@@ -392,6 +451,9 @@ bool clear() {
     ++epochs;
     residents.clear();
     images.clear();
+    explored.clear();
+    dirty.clear();
+    indexing = false;
     saves.clear();
     loads.clear();
     removing = root;
@@ -399,6 +461,11 @@ bool clear() {
     wake.notify_one();
     log("cleared the saved map");
     return true;
+}
+std::optional<ExploredIndex::Bounds> exploredBounds(MapLayer layer) {
+    std::lock_guard lock(mutex);
+    auto found = explored.find({layer.dimension, layer.band});
+    return found == explored.end() ? std::nullopt : found->second.bounds();
 }
 unsigned epoch() {
     std::lock_guard lock(mutex);

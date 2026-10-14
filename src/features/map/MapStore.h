@@ -39,6 +39,10 @@ void want(MapLayer layer, std::vector<TileKey> tiles);
 // Wanted tiles not built yet (or being rebuilt).
 size_t pending();
 
+// How far the saved and recorded map of a layer reaches; none before the
+// saved folder is listed or when nothing is recorded.
+std::optional<ExploredIndex::Bounds> exploredBounds(MapLayer layer);
+
 // Bytes saved for this world, once counted; none outside a world or for a
 // world kept only for the session.
 std::optional<std::uint64_t> usage();

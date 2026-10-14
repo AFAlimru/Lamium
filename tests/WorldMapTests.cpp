@@ -97,11 +97,24 @@ void images() {
     downsampleInto(parent, pixels, 3);
     check(parent[static_cast<size_t>(128 * 256 + 128)] != 0 && parent[0] == 0 && parent[static_cast<size_t>(128 * 256 + 140)] == 0,
           "a quarter lands in its corner at half size");
+    std::vector<std::uint32_t> kept(regionColumns, stone);
+    clearQuadrant(kept, 1);
+    check(kept[128] == 0 && kept[127] == stone && kept[static_cast<size_t>(127 * 256 + 255)] == 0
+              && kept[static_cast<size_t>(128 * 256 + 255)] == stone,
+          "clearing a quarter leaves the other three");
     check(layerFolder({0, 0}) == "overworld" && layerFolder({1, 4}) == "nether/y64" && layerFolder({2, 0}) == "end",
           "each dimension and Nether layer has its folder");
     check(mapLayer(1, 70) == MapLayer{1, 4} && mapLayer(1, -1) == MapLayer{1, -1} && mapLayer(0, 70) == MapLayer{0, 0},
           "the Nether is layered by 16 blocks; other dimensions are not");
     check(regionFileName({-3, 7}) == "r.-3.7.lmr", "region files are named by position");
+    check(regionOfFileName("r.-3.7.lmr") == RegionKey{-3, 7} && !regionOfFileName("r.3.lmr") && !regionOfFileName("r.a.1.lmr")
+              && !regionOfFileName("r.1.2.lmr.tmp") && !regionOfFileName("r.-.2.lmr") && !regionOfFileName("r.99999999999.0.lmr"),
+          "region file names read back; other files are not regions");
+    check(layerOfFolder("overworld") == MapLayer{0, 0} && layerOfFolder("nether/y64") == MapLayer{1, 4}
+              && layerOfFolder("nether/y-16") == MapLayer{1, -1} && layerOfFolder("end") == MapLayer{2, 0}
+              && layerOfFolder("dimension5") == MapLayer{5, 0} && !layerOfFolder("nether/y7") && !layerOfFolder("nether")
+              && !layerOfFolder("") && !layerOfFolder("overworld/old"),
+          "layer folders read back");
 }
 void view() {
     WorldView v{100, -50, defaultWorldScale, 400, 200};
@@ -112,12 +125,42 @@ void view() {
           "zooming keeps the point under the cursor");
     v.zoomAt(0, 0, 99);
     check(v.zoom == static_cast<int>(worldScales.size()) - 1, "zoom stops at the closest step");
-    WorldView pan{0, 0, 6, 100, 100}; // One unit per block.
+    check(worldScales[defaultWorldScale] == 2 && worldScales[alwaysFarthestScale] == 1 / 8., "steps keep their meaning");
+    WorldView pan{0, 0, 16, 100, 100}; // One unit per block.
     pan.pan(10, -4);
     check(std::abs(pan.centerX + 10) < 1e-9 && std::abs(pan.centerZ - 4) < 1e-9, "dragging moves the map with the cursor");
 
-    check(lodFor(2, 2) == 0 && lodFor(1 / 8., 2) == 2 && lodFor(1 / 8., 1) == 3 && lodFor(1 / 64., 1) == maxLod,
-          "the image level follows screen pixels per block");
+    check(lodFor(2, 2) == 0 && lodFor(1 / 8., 2) == 2 && lodFor(1 / 8., 1) == 3 && lodFor(1 / 64., 1) == 6
+              && lodFor(worldScales[0], 1) == maxLod,
+          "the image level follows screen pixels per block, out to the farthest step");
+
+    // L-187: zooming out stops where the explored map fits.
+    check(farthestScaleFor(512, 512, 400, 200) == alwaysFarthestScale, "a small map still zooms out to 1/8");
+    int far = farthestScaleFor(20000, 6000, 400, 200);
+    check(20000 * worldScales[far] <= 400 && 6000 * worldScales[far] <= 200
+              && (20000 * worldScales[far + 1] > 400 || 6000 * worldScales[far + 1] > 200),
+          "a wide explored map gets the closest step that fits it");
+    check(farthestScaleFor(1e9, 1e9, 400, 200) == 0, "beyond the last step, the last step");
+    WorldView out{0, 0, alwaysFarthestScale, 400, 200};
+    out.zoomAt(200, 100, -1);
+    check(out.zoom == alwaysFarthestScale, "without a wide map, zoom stops at 1/8");
+    out.farthest = far;
+    out.zoomAt(200, 100, -99);
+    check(out.zoom == far, "with one, zoom goes out to its step");
+    out.farthest = alwaysFarthestScale;
+    out.zoomAt(200, 100, -1);
+    check(out.zoom == far, "a view already farther is not pushed in");
+    out.zoomAt(200, 100, 1);
+    check(out.zoom == far + 1, "and can still zoom in");
+
+    ExploredIndex index;
+    check(index.empty() && !index.bounds() && !index.has({0, 0, 0}), "nothing explored");
+    check(index.add({-3, 2}) && !index.add({-3, 2}) && index.add({5, -1}), "regions are added once");
+    auto b = index.bounds();
+    check(b && b->x0 == -768 && b->z0 == -256 && b->x1 == 1536 && b->z1 == 768, "bounds cover the regions in blocks");
+    check(index.has({0, -3, 2}) && index.has({1, -2, 1}) && index.has({maxLod, -1, 0}) && !index.has({0, -2, 2})
+              && !index.has({1, 0, 0}),
+          "coarse tiles know whether a region is under them");
     check(parentTile({0, -1, 3}) == TileKey{1, -1, 1}, "a tile's parent covers it");
     WorldView wide{0, 0, defaultWorldScale, 1000, 600}; // 2 units per block: 500 x 300 blocks.
     auto tiles = visibleTiles(wide, 0);

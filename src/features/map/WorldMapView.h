@@ -4,16 +4,31 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <optional>
+#include <set>
+#include <tuple>
 #include <vector>
 
 namespace lamium::map {
 // The world map screen's geometry (BACKLOG L-60 world map, look in
 // docs/demos/worldmap.html). Pure; WorldMap.cpp draws.
 
-// GUI units per block, from far to close.
-inline constexpr std::array<double, 15> worldScales{1 / 8., 3 / 16., 1 / 4., 3 / 8., 1 / 2., 3 / 4., 1., 1.5, 2., 3., 4., 6., 8., 12., 16.};
-inline constexpr int defaultWorldScale = 8;
+// GUI units per block, from far to close. Steps past 1/8 open only as far
+// as the explored map needs to fit the screen (L-187).
+inline constexpr std::array<double, 25> worldScales{
+    1 / 256., 3 / 512., 1 / 128., 3 / 256., 1 / 64., 3 / 128., 1 / 32., 3 / 64., 1 / 16., 3 / 32.,
+    1 / 8., 3 / 16., 1 / 4., 3 / 8., 1 / 2., 3 / 4., 1., 1.5, 2., 3., 4., 6., 8., 12., 16.};
+inline constexpr int alwaysFarthestScale = 10; // 1/8: open even with little explored.
+inline constexpr int defaultWorldScale = 18;
 inline constexpr int clampWorldScale(int index) { return std::clamp(index, 0, static_cast<int>(worldScales.size()) - 1); }
+// The farthest step the view may zoom out to: far enough that blocks
+// `spanX` x `spanZ` fit in a `width` x `height` area, at least 1/8.
+inline int farthestScaleFor(double spanX, double spanZ, double width, double height) {
+    int farthest = alwaysFarthestScale;
+    auto fits = [&](int i) { return spanX * worldScales[static_cast<size_t>(i)] <= width && spanZ * worldScales[static_cast<size_t>(i)] <= height; };
+    while (farthest > 0 && !fits(farthest)) --farthest;
+    return farthest;
+}
 // The Nether's saved layers: y 0-127 in 16-block bands.
 inline constexpr int netherBands = 8;
 
@@ -23,9 +38,34 @@ struct TileKey {
     int lod = 0, x = 0, z = 0;
     bool operator==(TileKey const&) const = default;
 };
-inline constexpr int maxLod = 5;
+inline constexpr int maxLod = 8;
 inline constexpr int tileBlocks(int lod) { return regionBlocks << lod; }
 inline constexpr TileKey parentTile(TileKey tile) { return {tile.lod + 1, floorDiv(tile.x, 2), floorDiv(tile.z, 2)}; }
+// Which saved regions exist: coarse images skip empty space without
+// touching the disk, and the bounds say how far the explored map reaches.
+class ExploredIndex {
+    std::set<std::tuple<int, int, int>> occupied; // lod, x, z of every tile with a region under it.
+    RegionKey low{}, high{};
+    bool any = false;
+public:
+    // False when it was known already.
+    bool add(RegionKey key) {
+        if (!occupied.insert({0, key.x, key.z}).second) return false;
+        for (int lod = 1; lod <= maxLod; ++lod) occupied.insert({lod, key.x >> lod, key.z >> lod});
+        low = any ? RegionKey{std::min(low.x, key.x), std::min(low.z, key.z)} : key;
+        high = any ? RegionKey{std::max(high.x, key.x), std::max(high.z, key.z)} : key;
+        any = true;
+        return true;
+    }
+    bool has(TileKey tile) const { return occupied.contains({tile.lod, tile.x, tile.z}); }
+    bool empty() const { return !any; }
+    // Blocks covered by the known regions: x0, z0 inclusive, x1, z1 exclusive.
+    struct Bounds { int x0 = 0, z0 = 0, x1 = 0, z1 = 0; };
+    std::optional<Bounds> bounds() const {
+        if (empty()) return std::nullopt;
+        return Bounds{low.x * regionBlocks, low.z * regionBlocks, (high.x + 1) * regionBlocks, (high.z + 1) * regionBlocks};
+    }
+};
 // The coarsest level whose pixel still covers a screen pixel or more, so no
 // more pixels are built and uploaded than the screen can show.
 inline int lodFor(double unitsPerBlock, double screenPixelsPerUnit) {
@@ -38,6 +78,7 @@ struct WorldView {
     double centerX = 0, centerZ = 0;
     int zoom = defaultWorldScale;
     double width = 0, height = 0; // GUI units.
+    int farthest = alwaysFarthestScale;
     double scale() const { return worldScales[static_cast<size_t>(clampWorldScale(zoom))]; }
     double screenX(double worldX) const { return width / 2 + (worldX - centerX) * scale(); }
     double screenY(double worldZ) const { return height / 2 + (worldZ - centerZ) * scale(); }
@@ -46,7 +87,8 @@ struct WorldView {
     // Keeps the world point under (x, y) in place.
     void zoomAt(double x, double y, int step) {
         double wx = worldX(x), wz = worldZ(y);
-        zoom = clampWorldScale(zoom + step);
+        // A view already farther out (the map was cleared) is not pushed in.
+        zoom = std::clamp(zoom + step, std::min(clampWorldScale(farthest), zoom), static_cast<int>(worldScales.size()) - 1);
         centerX = wx - (x - width / 2) / scale();
         centerZ = wz - (y - height / 2) / scale();
     }
@@ -79,8 +121,8 @@ inline double snapToPixel(double units, double screenPixelsPerUnit) {
 }
 // A round length for the scale bar at least `minUnits` long.
 inline int scaleBarBlocks(double unitsPerBlock, double minUnits) {
-    for (int blocks : {1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000})
+    for (int blocks : {1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000})
         if (blocks * unitsPerBlock >= minUnits) return blocks;
-    return 10000;
+    return 50000;
 }
 }
