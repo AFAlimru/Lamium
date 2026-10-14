@@ -71,7 +71,7 @@ L-item wins. Every entry names what the task is, not only its number.
 
 1. **Small and medium features and fixes** (maintainer 2026-10-10: these
    come before large features and L-111 integration for now):
-   - Bugs: L-177, L-178, L-181, L-182 (player reports, need reproductions
+   - Bugs: L-177, L-181, L-192, L-193 (player reports, need reproductions
      or an agreed rule); L-123 elytra stretched on the inventory model after FreeCamera and
      L-91 shield glint in Lamium's icons (both parked); L-132 moving with
      the inventory screen open (paused after eight rounds).
@@ -399,23 +399,6 @@ assume the check data itself is wrong. Compare Check rows, world-space
 highlights and targeted blocks across transformed placements. Record a
 reproduction before choosing a fix. [SCHEMATIC.md](SCHEMATIC.md).
 
-### L-178 Schematic piston face texture does not match geometry
-Kind: Bug / Research. User report 2026-10-14; not yet reproduced.
-Status: world ghosts right since `5711cc3` (extended, rotated, mirrored;
-seen 2026-10-14). The 3D preview lacked the heads; fix `27150e5` unchecked. Glass
-next to piston ghosts no longer fights; glass ghosts of two different
-placements still do (open). Earlier status: cause found and fix built 2026-10-14 (`b9c9d69`). The maintainer's test file `pistons.mcstructure` showed the real
-symptom: the base draws, but the pushing face and arm never draw, in any
-state. Ghosts drew a block actor only for blocks without a mesh; a piston's
-mesh is only its base. The z-fighting seen beside it (glass next to piston
-ghosts and next to another placement's glass) is fixed in `17d7201`.
-Original wording: a piston ghost can show the texture intended for its extending
-face on a face that does not extend. The rendered shape and face texture
-disagree; this is not yet evidence that the stored facing/state is wrong.
-Compare retracted/extended, facing and rotation/mirror combinations with the
-file's states and an actual block. Keep mesh/state and texture/UV diagnosis
-separate. [SCHEMATIC.md](SCHEMATIC.md).
-
 ### L-181 FreeCamera trident interaction affects the player unexpectedly
 Kind: Bug / Research. User report 2026-10-14; not yet reproduced.
 Clarified 2026-10-14: nothing hits the player. In FreeCamera the trident in
@@ -429,28 +412,6 @@ held/used/thrown trident, Riptide or ordinary throw, local/server) and
 distinguish blocked input, borrowed camera position and server-authoritative
 projectile behavior. In FreeCamera, player interaction suppression and
 restoration must remain intact. [CAMERA.md](CAMERA.md).
-
-### L-182 Intermittent settings crash during schematic checking
-Kind: Bug / Research. User report 2026-10-14; not yet reproduced.
-Where the logs are (2026-10-14): the reporter's `lamium.log` has no crash
-lines (Lamium logs only its own messages). LeviLamina's CrashLogger writes
-`<instance>/logs/crash/trace_<date>.log` and `minidump_<date>.dmp`; the
-trace names Lamium frames as `Lamium.dll+offset` without the PDB, which can
-be resolved here with the release's symbol asset. Ask for both files and
-the Lamium version.
-Status: cause found 2026-10-14 from the reporter's three 0.2.1 traces
-(VALIDATION-LOG): the schematic 3D preview kept blocks and block actors from
-the previous world and made actors from them; fixed in `95a09e0` (reset on
-world exit). Check in game: leave and rejoin a world with a checked
-placement, open the Check tab preview repeatedly.
-Original report: pressing the settings key (default L) while a schematic is
-being checked/used can occasionally crash. Capture crash log/stack and
-placement, Check-tab, background work and world-exit state; look for
-lifetime/reentrancy, UI ownership and stale pointers without assuming a
-specific cause. Test repeated open/close with active checking and after
-world/dimension changes. No release target; crashing is a priority when
-reproducible. [SCHEMATIC.md](SCHEMATIC.md).
-
 
 ### L-123 FreeCamera stretches the worn elytra on the inventory player model
 Kind: Bug, low priority. Reported from use 2026-10-09 (maintainer's notes).
@@ -508,6 +469,15 @@ different order. Candidate fixes: drop back faces of blended ghosts (as the
 game does for glass) and rebuild a section when the camera crosses its
 planes, or re-sort blended quads when the camera has moved. Check first
 whether walking below and back above the floor flips which sections are dark.
+
+### L-193 Glass ghosts of two adjacent placements flicker at their border
+Kind: Bug. Split from L-178 on 2026-10-14.
+Status: open. `pistons` (8x3x7 at -95 84 -60) and `shulkers` (5x5x5 at -87 84
+-63) touch across x = -87; their white glass ghosts at y 84, z -60 and -59
+face each other and flicker. `17d7201` should drop both faces (touching
+placements count as neighbours) but the flicker remains. The next build
+logs the inputs of each kept face ("border face kept at ..."); no line
+means the other placement's ghost was not found there.
 
 ## Feature work and research
 

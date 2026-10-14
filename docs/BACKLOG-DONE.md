@@ -10,6 +10,46 @@ Runtime status is in [VALIDATION.md](VALIDATION.md), the evidence in
 
 ## Bugs
 
+### L-182 Intermittent settings crash during schematic checking
+Done 2026-10-14: the preview reset on world exit (`95a09e0`) passed a rejoin and repeated preview check locally; the reporter has not confirmed yet.
+Kind: Bug / Research. User report 2026-10-14; not yet reproduced.
+Where the logs are (2026-10-14): the reporter's `lamium.log` has no crash
+lines (Lamium logs only its own messages). LeviLamina's CrashLogger writes
+`<instance>/logs/crash/trace_<date>.log` and `minidump_<date>.dmp`; the
+trace names Lamium frames as `Lamium.dll+offset` without the PDB, which can
+be resolved here with the release's symbol asset. Ask for both files and
+the Lamium version.
+Status: cause found 2026-10-14 from the reporter's three 0.2.1 traces
+(VALIDATION-LOG): the schematic 3D preview kept blocks and block actors from
+the previous world and made actors from them; fixed in `95a09e0` (reset on
+world exit). Check in game: leave and rejoin a world with a checked
+placement, open the Check tab preview repeatedly.
+Original report: pressing the settings key (default L) while a schematic is
+being checked/used can occasionally crash. Capture crash log/stack and
+placement, Check-tab, background work and world-exit state; look for
+lifetime/reentrancy, UI ownership and stale pointers without assuming a
+specific cause. Test repeated open/close with active checking and after
+world/dimension changes. No release target; crashing is a priority when
+reproducible. [SCHEMATIC.md](SCHEMATIC.md).
+
+### L-178 Schematic piston face texture does not match geometry
+Done 2026-10-14: piston heads and arms in ghosts (`b9c9d69`, state restore `46ff471`) and in the 3D preview (`27150e5`) passed. The glass border flicker between two placements continues as L-193.
+Kind: Bug / Research. User report 2026-10-14; not yet reproduced.
+Status: world ghosts right since `5711cc3` (extended, rotated, mirrored;
+seen 2026-10-14). The 3D preview lacked the heads; fix `27150e5` unchecked. Glass
+next to piston ghosts no longer fights; glass ghosts of two different
+placements still do (open). Earlier status: cause found and fix built 2026-10-14 (`b9c9d69`). The maintainer's test file `pistons.mcstructure` showed the real
+symptom: the base draws, but the pushing face and arm never draw, in any
+state. Ghosts drew a block actor only for blocks without a mesh; a piston's
+mesh is only its base. The z-fighting seen beside it (glass next to piston
+ghosts and next to another placement's glass) is fixed in `17d7201`.
+Original wording: a piston ghost can show the texture intended for its extending
+face on a face that does not extend. The rendered shape and face texture
+disagree; this is not yet evidence that the stored facing/state is wrong.
+Compare retracted/extended, facing and rotation/mirror combinations with the
+file's states and an actual block. Keep mesh/state and texture/UV diagnosis
+separate. [SCHEMATIC.md](SCHEMATIC.md).
+
 ### L-180 Auto Elytra does not trigger on Riptide travel
 Done 2026-10-14: the Riptide launch child (`e8c5e3f`) passed locally. A server stays in VALIDATION.
 Kind: Bug / Research. User report 2026-10-14; scope of expected trigger

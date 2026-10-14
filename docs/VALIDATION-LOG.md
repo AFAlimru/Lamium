@@ -12,6 +12,18 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-182 and L-178 preview fixes pass; border flicker placements (2026-10-14)
+
+Maintainer report on `7ba2d82`, DLL SHA-256
+`539314b2ecf8b682fcf2f48c87b2bbea4fcf789edbabd82a195d60c17f4a6e01`,
+local world: leaving and rejoining with a checked placement and opening the
+Check tab preview repeatedly did not crash (L-182, the reporter not yet
+asked); preview piston heads draw, extended and retracted (L-178).
+The remaining flicker is between `pistons` (8x3x7 at -95 84 -60) and
+`shulkers` (5x5x5 at -87 84 -63), both unturned, all layers: their white
+glass ghosts face each other across x = -87 at y 84, z -60 and -59. A
+bounded log line ("border face kept at ...") is in the next build.
+
 ## L-182 crash traces resolved; L-178/L-192 follow-up (2026-10-14)
 
 L-182: the reporter sent three CrashLogger traces and minidumps
