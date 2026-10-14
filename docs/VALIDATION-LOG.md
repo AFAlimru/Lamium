@@ -12,6 +12,15 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Re-sort interval: faster, but water blinked by section (2026-10-15)
+
+Maintainer report on `dc38abd` (DLL `61a4a7d5...d6d5`): walking around
+terrain_water_lamium now runs at 55+ fps (about 40 before), but the water
+surface blinks out in 8-block sections, easily seen. Cause: a section that
+entered the sorted budget between sorts was in neither mesh. Fix in the
+next build. Real glass alone does not change with position or turning;
+only a corner mark over see-through glass does.
+
 ## Perf trace of `2965ec8`: schematic frame cost (2026-10-14)
 
 Maintainer runs on the `schematic_perf_trace` build of `2965ec8` (DLL
