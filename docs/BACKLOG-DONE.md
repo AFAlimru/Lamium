@@ -867,6 +867,61 @@ result is only the converted text; Latin typing and Backspace unchanged.
 
 ## Ready
 
+### L-169 Item Transfer — 0.2.2 part
+
+Done 2026-10-15: implemented on c8c1f1b, built and LamiumTests passed; the
+maintainer confirmed the normal-build smoke checklist all behaved as
+expected. Windows x64 release client, traces/probes off, built and installed
+DLL SHA-256 `2A6B0A52B397511108815C2BE4315EFBA84403343AAA242B632D2B9FEF6BE515`.
+Unreleased. Chest/furnace/brewing/beacon smoke checks were requested;
+the full gesture/screen matrix, servers and controlled failure cases remain
+in BACKLOG's Pre-release checks and VALIDATION. Later L-169 Design parts
+remain in BACKLOG. Evidence and implementation: ITEM-TRANSFER.md and
+VALIDATION-LOG.md (2026-10-15).
+
+**0.2.2 contract (decided 2026-10-15).** Gestures, in the meaning a widely
+used Java inventory mod gives them (PROVENANCE: public key list only):
+| Gesture | Effect |
+|---|---|
+| Ctrl + wheel | every stack of the hovered kind to the other side (up: into the container, down: into the inventory, as the plain wheel) |
+| Ctrl + Shift + wheel | everything to the other side; from the inventory the hotbar stays |
+| Alt + left click | as Ctrl + wheel, toward the other side from the clicked slot's side |
+| Alt + Shift + left click | as Ctrl + Shift + wheel, from the clicked slot's side |
+| Shift + right drag | from each passed slot, all but one item to the other side |
+
+- Screens: every screen that holds items beside the player inventory: chest
+  family, barrel, shulker box, ender chest, furnace, blast furnace, smoker,
+  dispenser, dropper, hopper, brewing stand, crafter, beacon and any other
+  found while testing. Record the list of checked screens in DESIGN.
+- Slots with roles: send to the slot that accepts the item (fuel to the fuel
+  slot, smeltable items to the input, bottles / ingredient / blaze powder to
+  their brewing slots, the payment to the beacon slot); take from outputs only.
+  An item a slot role cannot take is not moved; no valid destination does
+  nothing. Where vanilla shift-click already routes by role, follow it.
+- The existing four gestures keep their meaning and switches. Each new
+  gesture gets its own child switch, on by default like the existing ones.
+- Same safety as today: one request at a time, each confirmed from
+  authoritative state; stop on screen close, focus loss, a cursor item, text
+  editing, a rejected or timed-out request or a changed source count.
+- Research first, report before building around it: whether Alt reaches the
+  game in screens (if not, stop and ask; do not pick another key); whether
+  vanilla's take-all / place-all / auto-place handlers do exactly the above
+  and can be called from the client thread; that Shift + right drag has no
+  vanilla meaning on Bedrock that players rely on.
+- Not in 0.2.2 (maintainer 2026-10-15): Shift + click on an empty slot with
+  items on the cursor, a wheel version of "all but one", drop gestures, W/S
+  moves.
+- Check in game per screen family and gesture, locally and on a server.
+
+The investigation on e3f9276 confirmed Alt arrives, take-all/place-all are
+cursor operations, and Shift transfer follows native auto-place orders.
+Vanilla Shift + right drag moves a whole stack; the chosen enabled gesture
+leaves one and its off switch preserves vanilla. Furnace slots may accept
+items that cannot smelt/burn: native acceptance/routing is preserved without
+a stricter Lamium recipe/fuel filter. The normal implementation discovers
+native roles, filters out same-player-side fallbacks and output destinations,
+and confirms per-request counts from reacquired authoritative slots.
+
 ### L-189 Fake Offhand fallback when primary right-click has no useful action
 Done 2026-10-15: the target-specific primary uses passed locally on `a1a758e` (VALIDATION-LOG). Hoes, shears, honeycomb, crossbows, Riptide tridents, primary fireworks and servers stay in VALIDATION.
 Kind: Feature (was Research, then Design). User feedback 2026-10-14.

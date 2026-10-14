@@ -2,10 +2,10 @@
 
 ## Current status
 
-L-169's 0.2.2 contract is implemented, unreleased, awaiting the changed-
-feature runtime checks below. The native-handler investigation passed its
-first local checkpoint on e3f9276; that confirms vanilla paths, not the new
-gestures. Drops, cursor-item operations and W/S moves remain out of scope.
+L-169's 0.2.2 part is complete, unreleased. The maintainer confirmed the
+normal-build smoke checklist on c8c1f1b on 2026-10-15: all behaved as expected.
+Detailed coverage beyond that report remains below. Drops, cursor-item
+operations and W/S moves remain out of scope.
 
 ## Current implementation (2026-10-15)
 
@@ -40,8 +40,8 @@ gestures. Drops, cursor-item operations and W/S moves remain out of scope.
   main inventory, avoiding auto-equip. Ordinary storage/inventory hover
   tracking stays as before; added screens use the native hovered slot under
   the version gate rather than assuming their overrides call the base hook.
-  That hover-field mapping and scoped route-hook interception await runtime
-  confirmation on the new build.
+  The requested chest and furnace/brewing/beacon smoke checks passed on the
+  normal implementation build; the full per-screen matrix remains coverage.
 - A prediction must move a positive amount no greater than requested,
   conserve source/target counts and change no unrelated stacks. It is only a
   candidate: all owned request IDs must succeed, then the changed slots must
@@ -91,11 +91,31 @@ LeviLamina 26.51.7. Exact game mode and resource-pack coverage were not stated.
 
 Handler snapshots are prediction. The maintainer's report confirms the
 visible vanilla behavior, not exact authoritative counts for each packet.
-Other families, servers and the new Lamium gestures are not yet verified.
+This diagnostic checkpoint did not test other families, servers or the new
+Lamium gestures; the normal implementation checkpoint follows.
 
-## Next runtime checks
+## Completed normal-build checkpoint (2026-10-15)
 
-Use the normal implementation build with traces off. Enable Item Transfer
+Build c8c1f1bc0ccfcc4a57340c16d0c3e8dbb797269c, Windows x64 release client,
+all traces/probes off. Built and installed DLL SHA-256 both:
+`2A6B0A52B397511108815C2BE4315EFBA84403343AAA242B632D2B9FEF6BE515`.
+
+The maintainer confirmed that the requested checks all behaved as expected:
+the five new gestures and their switches, with chest and furnace/brewing/
+beacon checks. The log shows a local world and LeviLamina 26.51.7 against
+the verified Minecraft 1.26.51.01 target. Individual gesture/screen/edge-case
+combinations, game mode, packs and server coverage were not itemized.
+Source-count changes stopped some runs in storage and furnace/brewing
+collections; their triggers were not specified. This is not a controlled
+rejection/timeout test. No route-hook failure, request rejection or slot
+confirmation mismatch appears in the captured log. Build and LamiumTests
+passed; the game dependency inventory passed (60 files / 286 hooks).
+
+## Detailed follow-up coverage
+
+The smoke checkpoint above completes the development part; the following
+plan retains detailed edge cases and broader coverage without treating
+each as individually verified. Use a normal build with traces off. Enable Item Transfer
 (it was off for the native checkpoint); check all nine child switches are
 present and the five new ones default on. Record commit and DLL hash.
 
@@ -127,9 +147,8 @@ present and the five new ones default on. Record commit and DLL hash.
    old screens, and unrelated vanilla input is unchanged.
 
 Record checked screens in DESIGN and evidence in VALIDATION-LOG/VALIDATION.
-The 0.2.2 part remains open for its required changed-feature runtime checks.
-Release status and any remaining coverage stay in BACKLOG and VALIDATION;
-build/tests do not establish runtime success.
+The 0.2.2 part is in BACKLOG-DONE; release status and remaining coverage
+stay in BACKLOG's Pre-release checks and VALIDATION.
 
 ## Earlier research checkpoint (2026-10-15, before the diagnostic run)
 

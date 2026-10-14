@@ -69,8 +69,8 @@ Keep this section short. It is only the ordering layer; task details and status
 live in the L-items below. If this summary ever disagrees with an L-item, the
 L-item wins. Every entry names what the task is, not only its number.
 
-0. **Next: L-169's 0.2.2 contract** (bulk and all-but-one moves in every
-   item screen), then release 0.2.2 (maintainer 2026-10-15).
+0. **Next: release 0.2.2** (maintainer 2026-10-15). L-169's 0.2.2 part is
+   complete and locally smoke-tested; remaining coverage is below.
 1. **Small and medium features and fixes** (maintainer 2026-10-10: these
    come before large features and L-111 integration for now):
    - Bugs: L-177, L-181 (player reports, need reproductions or an agreed
@@ -124,8 +124,9 @@ L-item wins. Every entry names what the task is, not only its number.
    breeding timers, L-105 performance profiling (measure before any
    optimization).
 6. **Before a release:** the pre-release checks below. 0.2.1 was released
-   on 2026-10-14 (0.2.0 on 2026-10-11). The next is 0.2.2, after L-169's
-   0.2.2 contract (maintainer 2026-10-15). Server checks stay listed below as known gaps (the Release
+   on 2026-10-14 (0.2.0 on 2026-10-11). The next is 0.2.2; L-169's
+   selected part passed its local smoke checklist (2026-10-15).
+   Server checks stay listed below as known gaps (the Release
    policy does not require a full regression).
 
 The 2026-10-14 player-feedback triage is recorded as L-177 through L-189:
@@ -154,6 +155,15 @@ gaps. The Release policy above does not require a full regression or closing
 every server gap before a release.
 
 ### Since 0.2.1 (unreleased)
+
+L-169 Item Transfer: the 0.2.2 part passed the maintainer's normal-build
+smoke checklist on c8c1f1b (five new gestures/switches and chest/furnace/
+brewing/beacon checks). Full gesture/screen combinations, individually
+itemized edge cases, other screen families, controlled rejection/timeouts
+and world/dimension interruption, unverified-game fallback, packs and
+servers remain coverage in VALIDATION and ITEM-TRANSFER.md. Development is
+complete; the release build still needs the usual load/settings/changed-
+feature smoke check before tagging. Later Design scope remains in L-169.
 
 L-174 Chat position: native placement and the expiry/long-message fix
 passed the maintainer's checks, including reset to the chosen flush-left,
@@ -683,61 +693,14 @@ screen comes later.
 Open (maintainer): whether the anvil highlight is wanted later.
 
 ### L-169 Item Transfer in more screens, and bulk transfer
-Kind: Ready for the 0.2.2 part below (decided by the maintainer 2026-10-15);
-the rest stays Design. Requested 2026-10-12; extends L-41/L-103 (DESIGN
-"Inventory transfer"). The 0.2.2 part supersedes the proposals and open
-points further down; those remain as history and for later parts.
-
-**0.2.2 contract (decided 2026-10-15).** Gestures, in the meaning a widely
-used Java inventory mod gives them (PROVENANCE: public key list only):
-| Gesture | Effect |
-|---|---|
-| Ctrl + wheel | every stack of the hovered kind to the other side (up: into the container, down: into the inventory, as the plain wheel) |
-| Ctrl + Shift + wheel | everything to the other side; from the inventory the hotbar stays |
-| Alt + left click | as Ctrl + wheel, toward the other side from the clicked slot's side |
-| Alt + Shift + left click | as Ctrl + Shift + wheel, from the clicked slot's side |
-| Shift + right drag | from each passed slot, all but one item to the other side |
-
-- Screens: every screen that holds items beside the player inventory: chest
-  family, barrel, shulker box, ender chest, furnace, blast furnace, smoker,
-  dispenser, dropper, hopper, brewing stand, crafter, beacon and any other
-  found while testing. Record the list of checked screens in DESIGN.
-- Slots with roles: send to the slot that accepts the item (fuel to the fuel
-  slot, smeltable items to the input, bottles / ingredient / blaze powder to
-  their brewing slots, the payment to the beacon slot); take from outputs only.
-  An item a slot role cannot take is not moved; no valid destination does
-  nothing. Where vanilla shift-click already routes by role, follow it.
-- The existing four gestures keep their meaning and switches. Each new
-  gesture gets its own child switch, on by default like the existing ones.
-- Same safety as today: one request at a time, each confirmed from
-  authoritative state; stop on screen close, focus loss, a cursor item, text
-  editing, a rejected or timed-out request or a changed source count.
-- Research first, report before building around it: whether Alt reaches the
-  game in screens (if not, stop and ask; do not pick another key); whether
-  vanilla's take-all / place-all / auto-place handlers do exactly the above
-  and can be called from the client thread; that Shift + right drag has no
-  vanilla meaning on Bedrock that players rely on.
-- Not in 0.2.2 (maintainer 2026-10-15): Shift + click on an empty slot with
-  items on the cursor, a wheel version of "all but one", drop gestures, W/S
-  moves.
-- Check in game per screen family and gesture, locally and on a server.
-
-Implementation checkpoint (2026-10-15): the required native investigation
-passed its first local check on e3f9276: Alt arrives; take-all/place-all are
-cursor operations; Shift transfer uses auto-place and role-specific native
-orders. The 0.2.2 gestures, five default-on switches, native route discovery
-and filtering, and authoritative per-request slot checks are implemented,
-unreleased. The normal implementation build's gesture/screen smoke test is
-pending; no new-gesture success is claimed. Evidence, implementation and
-the next local/server checklist: [ITEM-TRANSFER.md](ITEM-TRANSFER.md).
-
-Maintainer follow-up (2026-10-15): chest inputs remain vanilla; Shift +
-left click routes by role in furnace, brewing stand and beacon screens,
-but the furnace fuel slot also accepts an item that cannot burn. Preserve
-native acceptance/routing rather than adding a stricter fuel filter.
-That observation preceded deployment of e3f9276. The later diagnostic run
-captured the handlers, collections and orders; it also shows an elytra
-accepted in the ingredient slot. New Lamium behavior remains unchecked.
+Kind: Design for the remaining parts. Requested 2026-10-12; extends
+L-41/L-103 (DESIGN "Inventory transfer"). The selected 0.2.2 part is done
+and locally smoke-tested on c8c1f1b (2026-10-15), unreleased; its contract
+and completion record moved to [BACKLOG-DONE.md](BACKLOG-DONE.md#l-169-item-transfer--022-part).
+Implementation and evidence: [ITEM-TRANSFER.md](ITEM-TRANSFER.md).
+Broader screen/server and edge-case coverage stays in Pre-release checks.
+The proposals below are retained history for later parts; they do not
+override the completed 0.2.2 contract or authorize additional implementation.
 
 Goals:
 1. Screens that do not work today: dispenser, dropper, hopper, the furnace

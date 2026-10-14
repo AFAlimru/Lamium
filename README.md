@@ -118,8 +118,11 @@ to the defaults.
   food values (hunger and saturation as hunger-bar icons) inside the game's
   item tooltip, every trader level in the trade screen (locked trades shown
   dimmed, with their items' names on hover), English names and IDs found by
-  the recipe book and creative search in any game language, inventory sorting, experimental drag and wheel transfer between
-  your inventory and storage (also from the inventory screen), Tool Switch and
+  the recipe book and creative search in any game language, inventory sorting,
+  experimental Item Transfer between your inventory and item screens (also
+  from the inventory screen). Unreleased 0.2.2 adds matching/all-item wheel
+  and Alt-click moves, Shift + right drag to leave one, and native slot routes
+  for furnace, brewing stand, beacon and other item screens. Tool Switch and
   Weapon Switch (optionally fetching a tool or weapon from the inventory, into
   the selected slot or a fixed one), an offhand swap key (`F`, as in Java),
   experimental Fake Offhand (uses a hotbar block or item as if it were in the
@@ -207,8 +210,9 @@ Minecraft's "copy coordinates" while Lamium is installed unless you rebind it.
   broader graphics/resource configurations remain untested.
 - Edge Guard is checked in local worlds and on a test BDS (including server
   position corrections); other servers and their anti-cheat are untested.
-- Inventory transfer works only in ordinary storage (chests, barrels, Shulker
-  Boxes and similar); multiplayer is untested.
+- Item Transfer's unreleased bulk/leave-one moves passed a local smoke test
+  in chest, furnace, brewing stand and beacon screens. Other screen families,
+  detailed edge cases and multiplayer for these additions remain untested.
 - The breaking restriction modes will be redesigned.
 - Auto Attack/Use: whether several clicks per tick land on servers is not
   verified.

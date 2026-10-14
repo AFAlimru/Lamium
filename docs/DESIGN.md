@@ -571,7 +571,7 @@ exactly one switch, one mode and one set of keys:
   A sweep also stops if a source count changes before its request runs.
   Mouse release stops gathering slots but lets already visited ones finish.
 
-### Bulk moves and more screens (Decided 2026-10-15 for 0.2.2, L-169; implemented, runtime checks pending)
+### Bulk moves and more screens (Decided 2026-10-15 for 0.2.2, L-169; smoke-tested, unreleased)
 
 - Ctrl + wheel moves every stack of the hovered kind, Ctrl + Shift + wheel
   everything, in the plain wheel's direction. Alt + left click and Alt +
@@ -590,12 +590,16 @@ Shift + left click routes items by role in furnace, brewing stand and
 beacon screens. A furnace fuel slot also accepted an item that cannot
 burn. Native slot acceptance and routing, rather than a new Lamium fuel
 filter, remain the baseline. Brewing/beacon restrictions were not checked
-exhaustively. This is not validation of Lamium's additional transfers;
-their checked-screen list is still empty. The e3f9276 diagnostic checkpoint
+exhaustively. The e3f9276 diagnostic checkpoint
 confirmed unchanged vanilla behavior in a large chest, furnace, brewing
 stand and beacon and captured Alt and native handlers/orders; it is not
 validation of the new Lamium gestures. Native discovery follows those orders
-with same-player-side fallbacks removed. Details and the new-gesture checks:
+with same-player-side fallbacks removed. On c8c1f1b the maintainer confirmed
+the normal implementation checklist, including the five new gestures and
+switches and chest/furnace/brewing/beacon checks, all behaved as expected.
+Checked screens in that smoke checklist: chest, furnace, brewing stand and
+beacon. Individual combinations and the remaining screen families, servers
+and controlled failure cases were not separately reported. Details:
 [ITEM-TRANSFER.md](ITEM-TRANSFER.md).
 
 ## Repeated villager trading (Decided 2026-10-12, trigger 2026-10-13, L-166)

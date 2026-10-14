@@ -12,6 +12,34 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-169 normal-build smoke checklist passes locally (2026-10-15)
+
+Maintainer report: the requested checks are confirmed, all behaved as
+expected, on implementation commit
+`c8c1f1bc0ccfcc4a57340c16d0c3e8dbb797269c`. Built and installed DLL SHA-256
+both `2A6B0A52B397511108815C2BE4315EFBA84403343AAA242B632D2B9FEF6BE515`.
+Windows x64 release client, all traces/probes off; manifest still 0.2.1,
+no release tag. The log shows a local world and LeviLamina 26.51.7 against
+the verified Minecraft 1.26.51.01 target.
+
+The requested smoke checklist covered Ctrl + wheel matching moves,
+Ctrl + Shift + wheel everything with the player's hotbar retained,
+Alt + left / Alt + Shift + left moves from the clicked side, Shift + right
+drag leaving one, and individual switches passing through to vanilla.
+Chest and furnace/brewing/beacon checks were requested. The maintainer's
+blanket confirmation does not itemize each gesture/slot/screen combination,
+game mode or packs; it does not establish the full screen matrix, servers,
+controlled rejection/timeouts or unverified-game fallback.
+
+The captured normal log contains source-count-change stops in storage,
+player, furnace and brewing collections. Triggers were not specified;
+no controlled interruption result is inferred. No route-hook failure,
+request rejection or slot confirmation mismatch appears in that log.
+The implementation build, LamiumTests and game dependency inventory
+(60 files / 286 hooks) passed. L-169's 0.2.2 development part is complete;
+the remaining coverage is in ITEM-TRANSFER, VALIDATION and BACKLOG's
+Pre-release checks. Later Design scope remains in L-169.
+
 ## L-169 native-handler checkpoint passes locally (2026-10-15)
 
 Maintainer report on e3f9276, `transfer_trace=y`, deployed DLL SHA-256
