@@ -480,7 +480,9 @@ their text touches/overlaps. The screenshot shows two placements and 0%/1%
 progress; the row switches remain recognizable. Reserve separate measured
 widths and a normal shared gap for both headers, keeping the headers aligned
 with their progress values and switches. Check English, Japanese and Simplified
-Chinese at normal and docked widths. No screen-layout change is built here.
+Chinese at normal and docked widths. Built 2026-10-15 for 0.2.2 (maintainer
+raised it before tagging): both headers measured, "Shown" centered over the
+switch within the list, "Done" right-aligned 6 units before it. Not checked.
 
 ### L-192 Glass ghost brightness changes by section with the camera position
 Kind: Bug / Research. Maintainer report 2026-10-14 (VALIDATION-LOG).

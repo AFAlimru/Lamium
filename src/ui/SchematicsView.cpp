@@ -737,10 +737,18 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
     float placedX = leftX - numW - 2, neededX = (showPlaced ? placedX : leftX) - numW - 2;
     switch (schematicTab) {
     case SchematicTab::Placements:
+    {
+        // Measured, with a gap: centered over the switch, an English "Shown"
+        // is wider than its column and ran into "Done" (L-195).
+        float shownW = std::max(switchWidth + 12, textWidth(context, translated("shape.columnShown")));
+        float shownHeadX = std::min(shownX + switchWidth / 2 - shownW / 2, listRight - 2 - shownW);
+        float doneW = textWidth(context, translated("schematic.column.progress"));
+        float doneEnd = std::min(progressX + progressW + 2, shownHeadX - 6);
         heading(left, shownX - left - 74, "shape.columnName");
-        heading(progressX - 2, progressW + 4, "schematic.column.progress", Align::Right);
-        heading(shownX - 6, switchWidth + 12, "shape.columnShown", Align::Center);
+        heading(doneEnd - doneW, doneW, "schematic.column.progress", Align::Right);
+        heading(shownHeadX, shownW, "shape.columnShown", Align::Center);
         break;
+    }
     case SchematicTab::Files:
         heading(left, (showSize ? sizeX : blocksX) - left - 4, "shape.columnName");
         if (showSize) heading(sizeX, sizeW, "schematic.column.size", Align::Right);
