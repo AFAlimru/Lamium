@@ -428,6 +428,12 @@ B. Ghost drawing (Research, strong model; one runtime round per step):
    their order, so the flicker of marks over real see-through blocks is
    gone. Liquid shells never keep a face against an opaque block. Left:
    the previews' translucency.
+   Update 2026-10-14 (L-192, L-193): sections keep their blended quads on
+   the CPU and one mesh of every section's is sorted far to near from the
+   current camera, re-sorted after a quarter-block move (at most every 50
+   ms, 250 ms past 20000 quads) or when the quads change. Ghost faces that a
+   real see-through block's face covers are left out like faces against
+   opaque blocks.
    Faces seen from inside and near ghosts (checked 2026-10-09): in a cell
    the camera is in, a ghost keeps only faces turned toward the camera
    (`dropBackFaces`, like real blocks: from inside a door, spawner or stair

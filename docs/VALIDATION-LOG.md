@@ -12,6 +12,21 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-192/L-193 after the real see-through fix (2026-10-14)
+
+Maintainer report on `171ed42` (DLL `9a2756f7...25ab8`), two screenshots:
+- The flicker over real glass is gone, and an area that used to darken no
+  longer does; glass ghosts still darken by camera position in another area
+  (beside piston ghosts and red mistake marks).
+- The flicker remains where see-through quads of different placements lie
+  behind one another on screen; one placement shaped for several layers
+  (`white_glass_L.mcstructure`) showed none from any angle.
+Reading: blended quads were sorted per section at build time and sections
+by their centers, so overlapping quads of two placements kept a fixed
+order, and a section's order stayed the build-time one after the camera
+moved. Fix in the next build: all blended quads sorted together from the
+current camera (re-sorted after a quarter-block move). Not checked.
+
 ## L-192/L-193 isolated: real see-through blocks below (2026-10-14)
 
 Maintainer report on `59ac118` (DLL `93738313...7cfc`), three screenshots:
