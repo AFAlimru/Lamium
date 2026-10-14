@@ -88,7 +88,13 @@ it) while doing so.
   opened; Lamium's anvil rules are checked against the game.
 - Item Scroller (Java, LGPL-3.0-only): the key list in its public Modrinth
   description, read 2026-10-12 at the maintainer's request, is the source
-  of L-169's gesture proposal. Its source is not opened.
+  of L-169's gesture proposal. Its source is not opened. Its public
+  description of favourite trades, named by the maintainer 2026-10-14, is
+  also a source of the L-166 part 2 proposal.
+- Autotrade Plus and Villager Trading Overhaul (Java; licenses not
+  checked): their public descriptions, named by the maintainer 2026-10-14,
+  are sources of the L-166 part 2 proposal (running favourites, remaining
+  uses, trade caps). Their source is not opened.
 - CalcMod (Java, MIT): its Modrinth description, named by the maintainer
   2026-10-12, is the source of the L-171 idea. Its source is not opened.
 - Sodium, ImmediatelyFast, Lithium and EntityCulling (Java): their published

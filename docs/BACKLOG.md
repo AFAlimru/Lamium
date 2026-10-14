@@ -831,29 +831,20 @@ Fail open: if the game's own apply path cannot be found, show nothing.
 
 ### L-166 Villager trade helpers: favourites and assisted trading
 Kind: Design, then Research for optional part 2. Requested by the maintainer
-2026-10-14 after reviewing external trading QoL mods; no implementation or
-release approved for part 2. Part 1 (Shift + right-click repeated trading)
-shipped in 0.2.1. Keep that gesture and ordinary left/plain right click.
+2026-10-14; no implementation or release approved for part 2. Part 1
+(Shift + right-click repeated trading) shipped in 0.2.1. Keep that gesture
+and ordinary left/plain right click.
 Part 1 record: [BACKLOG-DONE](BACKLOG-DONE.md#l-166-villager-trade-helpers-part-1);
 runtime contract: [TRADE-HELPERS.md](TRADE-HELPERS.md); tests: VALIDATION.md.
+Sources of the idea: PROVENANCE.md (reference only).
 
 Goal: make a familiar villager's useful trades one action rather than manually
 finding and repeating rows every visit. Prefer small extensions to the vanilla
 trade screen, not a replacement screen or more one-off feature toggles.
-
-External behavioural references (reference only, no borrowed code/UI/assets):
-- [Item Scroller](https://modrinth.com/mod/item-scroller): per-villager and
-  global favourite trades (individual overrides global); a key trades all
-  available favourites. Middle-click/Shift + middle-click are examples of
-  gestures, not selected Lamium bindings.
-- [Autotrade Plus](https://github.com/Damomo11/autotrade-plus): runs Item
-  Scroller favourites, closes the merchant screen and can visit nearby
-  villagers. Lamium is considering **current-screen** automation only;
-  scanning or opening multiple villagers is out of scope.
-- [Villager Trading Overhaul](https://github.com/Wudji/VillagerTradingOverhanful):
-  remaining stock, favourites and bounded trade counts as presentation/UX
-  references. Preserve Lamium's vanilla-looking UI and existing behaviours.
-Follow PROVENANCE.md: study behaviour only; implement independently.
+Automation stays on the **current trade screen**: Lamium never scans for,
+walks to or opens other villagers. Remaining uses and bounded trade counts
+are presentation candidates; keep the vanilla-looking UI and existing
+behaviours.
 
 Proposed part 2, in incremental stages (not yet decided):
 1. **Favourite offers.** Toggle a star/marker on a trade row, possibly via
