@@ -12,6 +12,26 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Bulk moves of a resource pack traced (2026-10-15, L-169)
+
+Trace build `917496b` (`transfer_trace=y`), DLL SHA-256
+`10e9df62f95d1df72201d223bf79b8f3c3af8b49ac8daebb37accbdadbda31f6`, local
+world, Item Transfer off, the Quick Container resource pack on (observed only,
+PROVENANCE). Maintainer's sequence in a large chest: one Shift + click, chest
+to inventory everything, inventory to chest everything, hotbar to chest
+everything, coal: chest to inventory and back, then the held coal put down.
+- Every pack operation was vanilla `_handleAutoPlace(INT_MAX, collection,
+  slot)`, called once per source slot (high slots first) within one click,
+  2-35 ms in total. No take-all, place-all or cursor handler ran for them.
+- No call waited for an answer: the unsent batch grew to 44 requests during
+  one click, went out together, and one response packet answered all of them
+  about 30-60 ms later (counts 44, 43, 9, 31, 13, 18). Every response was a
+  success. The matching moves called only the slots holding coal.
+- The ordinary Shift + click was the same handler for one slot (1 request).
+So Bedrock accepts many auto-place requests in one frame; Lamium's slowness
+comes from its own one-request-then-confirm pacing (DESIGN "Inventory
+transfer"), not from the game. Not checked: a server, rejections, furnaces.
+
 ## L-169 normal-build smoke checklist passes locally (2026-10-15)
 
 Maintainer report: the requested checks are confirmed, all behaved as
