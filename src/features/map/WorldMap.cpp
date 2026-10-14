@@ -87,7 +87,11 @@ struct Slot {
     unsigned version = 0;
     bool uploaded = false;
     double used = 0;
+    // A slot given another tile still shows the old tile's image for a few
+    // frames (the in-place update lands later): drawn from this frame on.
+    unsigned readyAt = 0;
 };
+unsigned tileFrame = 0;
 std::array<Slot, slotCount> slots;
 bool upload(IClientInstance& client, ResourceLocation const& location, std::vector<std::uint32_t> const& pixels, int side,
             bool replace) {
@@ -660,6 +664,11 @@ void drawTiles(MinecraftUIRenderContext& context, glm::vec2 size, double pixelsP
     store::want(layer, tiles);
     double time = now();
     int budget = time - state.openedAt < 1 ? uploadsWhileOpening : uploadsPerFrame;
+    ++tileFrame;
+    auto ready = [&](int index) {
+        auto const& slot = slots[static_cast<size_t>(index)];
+        return slot.uploaded && tileFrame >= slot.readyAt;
+    };
     std::vector<bool> usedNow(slotCount, false);
     auto findSlot = [&](TileKey tile) -> int {
         for (int i = 0; i < slotCount; ++i)
@@ -701,7 +710,9 @@ void drawTiles(MinecraftUIRenderContext& context, glm::vec2 size, double pixelsP
                 auto& slot = slots[static_cast<size_t>(index)];
                 --budget;
                 try {
+                    bool moved = !slot.tile || slot.tile->first != layer || slot.tile->second != tile;
                     if (upload(client, slotLocation(index), *image->pixels, regionBlocks, slot.uploaded)) {
+                        if (moved) slot.readyAt = tileFrame + 3;
                         slot.uploaded = true;
                         slot.tile = std::pair{layer, tile};
                         slot.version = image->version;
@@ -709,17 +720,17 @@ void drawTiles(MinecraftUIRenderContext& context, glm::vec2 size, double pixelsP
                 } catch (...) { slot = Slot{}; }
             }
         }
-        if (index >= 0 && slots[static_cast<size_t>(index)].uploaded && slots[static_cast<size_t>(index)].tile
+        if (index >= 0 && ready(index) && slots[static_cast<size_t>(index)].tile
             && slots[static_cast<size_t>(index)].tile->second == tile) {
             drawSlot(index, rectOf(tile), 0, 0, 1);
             ++shown;
             continue;
         }
         // Not ready: a coarser image already on the GPU stands in.
-        for (int up = 1; up <= 2; ++up) {
+        for (int up = 1; tile.lod + up <= maxLod; ++up) {
             TileKey parent{tile.lod + up, tile.x >> up, tile.z >> up};
             int at = findSlot(parent);
-            if (at < 0 || !slots[static_cast<size_t>(at)].uploaded) continue;
+            if (at < 0 || !ready(at)) continue;
             float span = 1.f / static_cast<float>(1 << up);
             drawSlot(at, rectOf(tile), (tile.x - (parent.x << up)) * span, (tile.z - (parent.z << up)) * span, span);
             break;
