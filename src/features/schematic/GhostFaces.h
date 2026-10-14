@@ -24,10 +24,31 @@ inline constexpr std::array<float, 3> ghostTint(int setting) {
     default: return {.85f, .93f, 1.f};
     }
 }
-inline std::vector<std::array<float, 2>> lineOffsets(int width) {
-    if (width <= 0) return {{0.f, 0.f}};
-    float d = width == 1 ? .012f : .025f;
-    return {{0.f, 0.f}, {d, 0.f}, {-d, 0.f}, {0.f, d}, {0.f, -d}};
+// Half the width of a normal or thick outline bar, in blocks; 0 for thin
+// (game lines). Copies of a line at small offsets left visible gaps up
+// close (2026-10-15), so wider outlines are square bars.
+inline constexpr float barHalfWidth(int width) { return width <= 0 ? 0.f : width == 1 ? .008f : .016f; }
+// The four sides of a square bar around the axis-aligned segment p-q, each
+// in both windings (the material may cull either): 32 corners, quads.
+inline std::vector<std::array<float, 3>> barQuads(std::array<float, 3> p, std::array<float, 3> q, float half) {
+    std::vector<std::array<float, 3>> out;
+    float dx = std::abs(q[0] - p[0]), dy = std::abs(q[1] - p[1]), dz = std::abs(q[2] - p[2]);
+    int axis = dx >= dy && dx >= dz ? 0 : dy >= dz ? 1 : 2;
+    int a = (axis + 1) % 3, b = (axis + 2) % 3;
+    constexpr float corner[4][2] = {{1, 1}, {1, -1}, {-1, -1}, {-1, 1}};
+    auto at = [&](std::array<float, 3> base, int c) {
+        base[static_cast<size_t>(a)] += corner[c][0] * half;
+        base[static_cast<size_t>(b)] += corner[c][1] * half;
+        return base;
+    };
+    out.reserve(32);
+    for (int side = 0; side < 4; ++side) {
+        int c1 = side, c2 = (side + 1) % 4;
+        std::array<std::array<float, 3>, 4> quad{at(p, c1), at(q, c1), at(q, c2), at(p, c2)};
+        out.insert(out.end(), quad.begin(), quad.end());
+        out.insert(out.end(), quad.rbegin(), quad.rend());
+    }
+    return out;
 }
 // The game's face (down, up, north, south, west, east) of the neighbor on
 // `side` that looks back at this cell.

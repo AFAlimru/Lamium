@@ -663,33 +663,31 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
         std::map<std::tuple<float, float, float>, std::vector<Outline const*>> byColor;
         for (auto const& o : outlines) byColor[{o.r, o.g, o.b}].push_back(&o);
         constexpr int edges[12][2] = {{0,1},{2,3},{4,5},{6,7},{0,2},{1,3},{4,6},{5,7},{0,4},{1,5},{2,6},{3,7}};
-        auto offsets = faces::lineOffsets(Runtime::instance().snapshot()->schematic.ghostLines);
+        float const half = faces::barHalfWidth(Runtime::instance().snapshot()->schematic.ghostLines);
+        // Thin: game lines; wider: bars as quads, drawn with the same material.
+        int const perEdge = half > 0 ? 32 : 2;
         for (auto const& [color, group] : byColor) {
             Tessellator lines(screen.tessellator.mBufferResourceService);
-            lines.begin({}, mce::PrimitiveMode::LineList, static_cast<int>(group.size() * 24 * offsets.size()), false);
+            lines.begin({}, half > 0 ? mce::PrimitiveMode::QuadList : mce::PrimitiveMode::LineList,
+                        static_cast<int>(group.size() * 12 * perEdge), false);
             auto [r, g, b] = color;
             lines.color(r, g, b, 1.f);
             for (auto const* o : group) {
                 glm::vec3 low = o->min - glm::vec3{.002f} - out.origin, high = o->max + glm::vec3{.002f} - out.origin, c[8];
                 for (int i = 0; i < 8; ++i) c[i] = {i & 1 ? high.x : low.x, i & 2 ? high.y : low.y, i & 4 ? high.z : low.z};
                 for (auto [i, j] : edges) {
-                    // Each edge runs along one axis; copies move across it.
-                    glm::vec3 along = glm::abs(c[j] - c[i]);
-                    int axis = along.x > along.y && along.x > along.z ? 0 : along.y > along.z ? 1 : 2;
-                    int a = (axis + 1) % 3, b = (axis + 2) % 3;
-                    for (auto const& o : offsets) {
-                        glm::vec3 shift{0.f};
-                        shift[a] = o[0];
-                        shift[b] = o[1];
-                        glm::vec3 p = c[i] + shift, q = c[j] + shift;
-                        lines.vertex(p.x, p.y, p.z);
-                        lines.vertex(q.x, q.y, q.z);
+                    if (half <= 0) {
+                        lines.vertex(c[i].x, c[i].y, c[i].z);
+                        lines.vertex(c[j].x, c[j].y, c[j].z);
+                        continue;
                     }
+                    for (auto const& v : faces::barQuads({c[i].x, c[i].y, c[i].z}, {c[j].x, c[j].y, c[j].z}, half))
+                        lines.vertex(v[0], v[1], v[2]);
                 }
             }
             auto entry = std::make_unique<Section::ColorLines>();
             entry->color = {r, g, b};
-            entry->vertices = static_cast<std::uint32_t>(group.size() * 24 * offsets.size());
+            entry->vertices = static_cast<std::uint32_t>(group.size() * 12 * perEdge);
             entry->mesh.emplace(lines.end(Tessellator::UploadMode::Buffered, "Lamium schematic outlines", SupplementaryFieldAutoGenerationMode{}));
             out.lines.push_back(std::move(entry));
         }
