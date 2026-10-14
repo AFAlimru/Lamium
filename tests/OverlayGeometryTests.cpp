@@ -17,6 +17,14 @@ void overlayGeometryTests() {
         check(corners.size() == 24 && onPlanes, "faces lie on the cell's own planes, never inset or pushed out");
         auto both = faceCorners(one.faces, true);
         check(both.size() == 48 && both[4] == both[3] && both[7] == both[0], "a culling material gets each face again reversed");
+        // A corner mark shows only the sides the eye sees.
+        Cell mark{2, 3, 4};
+        int above = facesSeen(mark, {2.5, 9, 4.5}), corner = facesSeen(mark, {0, 9, 0}), inside = facesSeen(mark, {2.5, 3.5, 4.5});
+        check(above == 8 && corner == (1 | 8 | 16) && inside == 63, "the eye sees the sides it lies past, all of them from inside");
+        auto top = seenCellSurface(mark, above), three = seenCellSurface(mark, corner);
+        check(top.faces.size() == 1 && top.lines.size() == 4 && three.faces.size() == 3 && three.lines.size() == 9
+                  && seenCellSurface(mark, 63).lines.size() == 12,
+              "the seen sides keep their own edges, each once");
         auto box = boxOutline({0, 0, 0}, {4, 1, 2});
         check(box.size() == 12 && box.front().from == Point{0, 0, 0}, "an area's outline is its box's twelve edges");
         bool reaches = false;

@@ -101,9 +101,12 @@ void drawSelection(ScreenContext& screen, Vec3 const& camera, int dimension, ove
         if (!corner) continue;
         overlay::CellStyle style{cornerColors[i][0], cornerColors[i][1], cornerColors[i][2], true, overlay::LineColoring::Shader};
         auto& mesh = cornerMeshes[i];
-        if (mesh.stale(selectionRevision, style, material)) {
-            auto surface = overlay::cellSurface({cell(*corner)});
-            overlay::buildCellMesh(screen, mesh, surface.faces, surface.lines, style, material, selectionRevision);
+        // Only the sides the eye sees; rebuilt when the eye passes a side.
+        int seen = overlay::facesSeen(cell(*corner), {camera.x, camera.y, camera.z});
+        auto revision = selectionRevision * 64 + static_cast<std::uint64_t>(seen);
+        if (mesh.stale(revision, style, material)) {
+            auto surface = overlay::seenCellSurface(cell(*corner), seen);
+            overlay::buildCellMesh(screen, mesh, surface.faces, surface.lines, style, material, revision);
         }
         overlay::drawCellMesh(screen, camera, mesh, material, overlay::depth::cornerPull);
     }

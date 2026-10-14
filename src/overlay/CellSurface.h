@@ -1,5 +1,7 @@
 #pragma once
 #include "overlay/Geometry.h"
+#include <algorithm>
+#include <tuple>
 #include <array>
 #include <set>
 #include <span>
@@ -18,6 +20,37 @@ struct CellSurface {
 };
 // The exposed faces of `cells` and the unit grid on them.
 inline CellSurface cellSurface(std::set<Cell> const& cells) { return {boundaryFaces(cells), gridSurfaceLines(cells)}; }
+// The faces of one cell that `eye` sees (it lies past their planes), as bits
+// in Face order; every face when the eye is inside the cell.
+inline int facesSeen(Cell cell, Point eye) {
+    int seen = (eye.x < cell.x ? 1 : 0) | (eye.x > cell.x + 1 ? 2 : 0) | (eye.y < cell.y ? 4 : 0) | (eye.y > cell.y + 1 ? 8 : 0)
+        | (eye.z < cell.z ? 16 : 0) | (eye.z > cell.z + 1 ? 32 : 0);
+    return seen ? seen : 63;
+}
+// One cell's faces in `seen` and their edges, each edge once. A translucent
+// mark over a see-through block changed with the eye's distance when its
+// far side was drawn too: the pull toward the eye grows with distance, so the
+// far side came out in front of the real block's near face or behind it.
+inline CellSurface seenCellSurface(Cell cell, int seen) {
+    CellSurface out;
+    std::vector<std::pair<Point, Point>> edges;
+    auto key = [](Point a, Point b) {
+        auto less = [](Point p, Point q) { return std::tie(p.x, p.y, p.z) < std::tie(q.x, q.y, q.z); };
+        return less(a, b) ? std::pair{a, b} : std::pair{b, a};
+    };
+    for (int f = 0; f < 6; ++f) {
+        if (!(seen >> f & 1)) continue;
+        CellFace face{cell, static_cast<Face>(f)};
+        out.faces.push_back(face);
+        auto v = faceVertices(face);
+        for (int k = 0; k < 4; ++k) {
+            auto e = key(v[static_cast<size_t>(k)], v[static_cast<size_t>((k + 1) % 4)]);
+            if (std::find(edges.begin(), edges.end(), e) == edges.end()) edges.push_back(e);
+        }
+    }
+    for (auto const& [a, b] : edges) out.lines.push_back({a, b});
+    return out;
+}
 // The twelve edges of a box of whole cells, `low` to `high` inclusive: the
 // outline of an area too large to build cell by cell.
 inline std::vector<Line> boxOutline(Cell low, Cell high) {
