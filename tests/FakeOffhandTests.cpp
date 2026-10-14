@@ -98,6 +98,9 @@ void fakeOffhandTests() {
     check(strippable("oak_log") && strippable("crimson_hyphae") && strippable("bamboo_block") && !strippable("stripped_oak_log")
               && !strippable("oak_planks"),
           "unstripped logs, woods, stems, hyphae and bamboo blocks can be stripped");
+    check(plantsOn("wheat_seeds") == "farmland" && plantsOn("carrot") == "farmland" && plantsOn("pitcher_pod") == "farmland"
+              && plantsOn("nether_wart") == "soul_sand" && plantsOn("sweet_berries").empty() && plantsOn("cocoa_beans").empty(),
+          "the fallback names what crops and nether wart stand on, and leaves the rest unread");
     // L-189: an air use that cannot act now (no arrows, Riptide out of water,
     // a firework while not gliding, an empty bucket aimed at no liquid).
     for (auto traits : {item("minecraft:firework_rocket"), ItemTraits{.name = "minecraft:bow", .timed = true},

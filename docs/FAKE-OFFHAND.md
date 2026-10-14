@@ -96,8 +96,11 @@ unread keeps vanilla priority. Block targets still have to be plain (no
 block entity, and solid or a collision that fills the cell, such as
 leaves); interactive blocks and entities are decided first.
 - Planters (seeds, carrots, potatoes, nether wart, berries, cocoa beans):
-  the planted block's `mayPlace` on the aimed face, with air there (wheat
-  seeds report no planter component); else the component's `canUseOn`.
+  the planted block's `mayPlace` and `canSurvive` on the aimed face, with
+  air there; when the planted block is unknown, crops need the top of
+  farmland and nether wart the top of soul sand (`plantsOn`); else the
+  component's `canUseOn`. One log line per planter item says how it was
+  judged.
 - Fertilizers (bone meal): the block's `canBeFertilized` with the block
   above.
 - Minecarts: the block's `isRailBlock`.

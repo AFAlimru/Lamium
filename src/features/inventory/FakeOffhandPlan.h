@@ -72,6 +72,14 @@ inline bool hoeChanges(std::string_view block) {
     return detail::any(block, {"grass_block", "dirt", "coarse_dirt", "dirt_with_roots", "rooted_dirt", "grass_path", "dirt_path"});
 }
 inline bool shearsChange(std::string_view block) { return detail::any(block, {"pumpkin", "trip_wire", "tripwire"}); }
+// What a planter needs below when the game does not say what it plants
+// (ids without "minecraft:"): crops on farmland, nether wart on soul sand;
+// empty for others, which stay unread.
+inline std::string_view plantsOn(std::string_view item) {
+    if (item.ends_with("_seeds") || detail::any(item, {"pitcher_pod", "carrot", "potato"})) return "farmland";
+    if (item == "nether_wart") return "soul_sand";
+    return {};
+}
 // A log, wood, stem or hyphae that is not stripped yet, or a bamboo block.
 inline bool strippable(std::string_view block) {
     return block == "bamboo_block"

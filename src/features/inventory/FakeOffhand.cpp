@@ -47,6 +47,7 @@
 #include <chrono>
 #include <functional>
 #include <optional>
+#include <set>
 #include <stdexcept>
 #include <string>
 #include <thread>
@@ -168,16 +169,28 @@ std::optional<bool> targetUse(ItemStack const& item, ItemTraits const& traits, L
     case TargetUse::Planter: {
         // What it plants, asked whether it may stand on that face: seeds
         // only on farmland (wheat seeds had no planter component, L-189).
-        if (auto const* crop = PlanterItemComponent::getBlockPlacementContext(item).mBlock) {
-            static constexpr int step[6][3] = {{0, -1, 0}, {0, 1, 0}, {0, 0, -1}, {0, 0, 1}, {-1, 0, 0}, {1, 0, 0}};
-            if (hit.mFacing >= 6) return std::nullopt;
-            auto const& d = step[hit.mFacing];
-            BlockPos place{hit.mBlock.x + d[0], hit.mBlock.y + d[1], hit.mBlock.z + d[2]};
-            return region.getBlock(place).isAir() && crop->mayPlace(region, place, hit.mFacing);
-        }
+        static constexpr int step[6][3] = {{0, -1, 0}, {0, 1, 0}, {0, 0, -1}, {0, 0, 1}, {-1, 0, 0}, {1, 0, 0}};
+        if (hit.mFacing >= 6) return std::nullopt;
+        auto const& d = step[hit.mFacing];
+        BlockPos place{hit.mBlock.x + d[0], hit.mBlock.y + d[1], hit.mBlock.z + d[2]};
+        auto const* crop = PlanterItemComponent::getBlockPlacementContext(item).mBlock;
+        auto* component = native.getComponent(HashedString{"minecraft:block_placer"});
+        auto ground = plantsOn(detail::vanillaId(traits.name));
+        std::optional<bool> result;
+        if (crop)
+            result = region.getBlock(place).isAir() && crop->mayPlace(region, place, hit.mFacing) && crop->canSurvive(region, place);
+        else if (!ground.empty())
+            result = hit.mFacing == 1 && id == ground && region.getBlock(place).isAir();
+        // Said once per item, so a planter that still misbehaves shows how
+        // it was judged (L-189: wheat seeds on stone kept priority twice).
+        static std::set<std::string> told;
+        if (told.size() < 32 && told.insert(std::string(traits.name)).second)
+            Runtime::instance().self().getLogger().info("Fake Offhand: planter {} on {}: planted block {}, component {}, fallback {}, can plant {}",
+                traits.name, name, crop ? crop->getTypeName() : "none", component ? "yes" : "no", ground.empty() ? "-" : ground,
+                result ? (*result ? "yes" : "no") : "unread");
+        if (result) return result;
         // The game keys its components by name; "minecraft:block_placer" is
         // the planter's (gated above, like the copper fields).
-        auto* component = native.getComponent(HashedString{"minecraft:block_placer"});
         if (!component) return std::nullopt;
         return static_cast<PlanterItemComponent const*>(component)->canUseOn(item, player, hit.mBlock, hit.mFacing);
     }

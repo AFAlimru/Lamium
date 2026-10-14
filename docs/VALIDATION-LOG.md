@@ -31,6 +31,11 @@ filling (the hit's liquid flag was unset). Fixes in the next build: plain
 also covers blocks whose collision fills the cell; planters ask the planted
 block's mayPlace; bows, crossbows and Riptide tridents are idle on blocks
 too; a liquid is looked for along the aim.
+- On `1b0cd47` (DLL `9adb2e08...40a9fc`): all as expected except wheat
+  seeds on stone or dirt, which still did nothing. Next build: the planted
+  block must also `canSurvive` there, a farmland / soul sand fallback when
+  the planted block is unknown, and one log line per planter item
+  ("Fake Offhand: planter ...") saying how it was judged.
 
 ## L-182 reporter's doubt and the log timeline (2026-10-15)
 
