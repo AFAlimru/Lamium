@@ -12,6 +12,21 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-192/L-193 pass with the global sort; its cost; corner mark (2026-10-14)
+
+Maintainer report on `995b704` (DLL `5006e9bc...bd80`), local world:
+- The flicker and the darkening are both gone.
+- `terrain_water_lamium.mcstructure` drops from 60 to about 30 fps;
+  `desert village.mcstructure` (with water) feels a little heavier than
+  before but far less. Fix in the next build: only sections within 24 blocks
+  are camera-sorted together.
+- New: the red mark of save corner 1 over a see-through block looks
+  different from different positions (two screenshots), not with turning,
+  not over time, and not over an opaque block such as stone. Reading: the
+  mark's far side is pulled toward the eye by a distance-dependent amount,
+  in front of or behind the real block's near face. Fix `82d8298`: only the
+  seen sides and their edges. Not checked.
+
 ## L-192/L-193 after the real see-through fix (2026-10-14)
 
 Maintainer report on `171ed42` (DLL `9a2756f7...25ab8`), two screenshots:
