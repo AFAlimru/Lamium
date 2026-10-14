@@ -1569,11 +1569,15 @@ void start() {
     });
     listeners[3] = bus.emplaceListener<ll::event::ClientExitLevelEvent>([](auto&) {
         std::lock_guard lock(mutex); clear();
+        // Its blocks and block actors belong to the world being left; kept,
+        // the next world's preview made actors from them and crashed (L-182).
+        schematic::preview::reset();
     });
 }
 void stop() {
     std::lock_guard lock(mutex);
     close();
+    schematic::preview::reset();
     clear();
     for (auto& listener : listeners) {
         if (listener) ll::event::EventBus::getInstance().removeListener(listener);
