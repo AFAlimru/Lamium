@@ -381,8 +381,17 @@ found later are handled as bugs.
 ## Bugs
 
 ### L-177 Schematic mismatch highlight appears at the wrong position
-Kind: Bug / Research. User report 2026-10-14; not yet reproduced.
-Status: open. A highlighted discrepancy in a placed schematic can appear at
+Kind: Bug / Research. User report 2026-10-14.
+Status: cause found and fix built 2026-10-14 (`0235527`), not checked in game.
+Details from the reporter: with a layer view, Show in world / Nearest
+mistake lit a cell far above the shown ghosts; showing it again was right.
+Changing layers or moving a placement restarts the check, but the last
+complete result stayed published, so the pointer used a cell from the
+earlier layers. The result is now kept for the list but marked stale, and
+Show in world / Nearest mistake say "still counting" until the new pass
+finishes. Check in game: change the layer, at once press Nearest mistake
+(counting), then after the pass it lights a shown cell.
+Original report: a highlighted discrepancy in a placed schematic can appear at
 a different world position from the corresponding incorrect block.
 Investigate the check result's cell coordinates, placement translation,
 rotation/mirroring, layer filters and overlay transform separately; do not
@@ -401,7 +410,8 @@ separate. [SCHEMATIC.md](SCHEMATIC.md).
 
 ### L-180 Auto Elytra does not trigger on Riptide travel
 Kind: Bug / Research. User report 2026-10-14; scope of expected trigger
-needs confirmation. Status: open, unverified.
+needs confirmation. Status: open, unverified. A proposal for the rule is
+in EQUIPMENT.md "Auto Elytra feedback" (2026-10-14), not yet agreed.
 Auto Elytra is reported not to respond when a Riptide trident launches the
 player. The current documented trigger is jumping with fireworks in the main
 hand (L-70), so first establish the intended Riptide trigger and the observable
@@ -413,6 +423,11 @@ server. Do not change vanilla movement without an agreed rule.
 
 ### L-181 FreeCamera trident interaction affects the player unexpectedly
 Kind: Bug / Research. User report 2026-10-14; not yet reproduced.
+Clarified 2026-10-14: nothing hits the player. In FreeCamera the trident in
+the player's hand is drawn the wrong way round, so it looks stuck in the
+player. A drawing problem like L-123 (stale pose state while the body is
+out of the camera's normal view); check whether the use/charge pose or the
+held-item transform is the stale part.
 Status: open. Using FreeCamera with a trident held was reported to leave the
 player struck by the trident. Capture the exact sequence (enter camera,
 held/used/thrown trident, Riptide or ordinary throw, local/server) and
@@ -422,6 +437,12 @@ restoration must remain intact. [CAMERA.md](CAMERA.md).
 
 ### L-182 Intermittent settings crash during schematic checking
 Kind: Bug / Research. User report 2026-10-14; not yet reproduced.
+Where the logs are (2026-10-14): the reporter's `lamium.log` has no crash
+lines (Lamium logs only its own messages). LeviLamina's CrashLogger writes
+`<instance>/logs/crash/trace_<date>.log` and `minidump_<date>.dmp`; the
+trace names Lamium frames as `Lamium.dll+offset` without the PDB, which can
+be resolved here with the release's symbol asset. Ask for both files and
+the Lamium version.
 Status: open. Pressing the settings key (default L) while a schematic is
 being checked/used can occasionally crash. Capture crash log/stack and
 placement, Check-tab, background work and world-exit state; look for
@@ -470,6 +491,14 @@ type 3, scale 1.333, with the font's own material).
 ---
 
 ## Feature work and research
+
+### L-191 Hide the hand and HUD in FreeCamera, and what can be operated there
+Kind: Design. Maintainer idea 2026-10-14; no implementation or release chosen.
+In FreeCamera almost nothing can be operated, yet the first-person hand and
+held item and the hotbar are still drawn. Consider hiding them while
+FreeCamera is on (option, default to decide), together with the question of
+which actions FreeCamera should allow (it blocks player interaction today,
+CAMERA.md). Related drawing bugs: L-123 elytra, L-181 trident.
 
 ### L-190 Select several rows at once in list screens
 Kind: Design. Maintainer idea 2026-10-14; no implementation or release chosen.
