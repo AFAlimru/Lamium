@@ -55,4 +55,19 @@ void responseBarrierTests() {
     check(owned.result(*restock,now) == Result::Untracked, "shutdown invalidates ownership");
     auto restarted = owned.begin(now);
     check(restarted && *restarted != *restock, "restart never reuses outstanding tokens");
+    owned.release(*restarted);
+    // L-169: one batch tracks every request of its moves and is accepted only
+    // when all of them are; one rejection rejects the batch.
+    auto batch = owned.begin(now);
+    for (int id = -100; id > -144; --id) owned.track(*batch, id);
+    owned.track(*batch, -100);
+    for (int id = -100; id > -143; --id) owned.respond(id, true);
+    check(owned.result(*batch, now) == Result::Waiting, "a batch waits for its last response");
+    owned.respond(-143, true);
+    check(owned.result(*batch, now) == Result::Accepted, "a batch of 44 requests is accepted once all are");
+    owned.release(*batch);
+    batch = owned.begin(now);
+    for (int id = -200; id > -210; --id) owned.track(*batch, id);
+    for (int id = -200; id > -210; --id) owned.respond(id, id != -205);
+    check(owned.result(*batch, now) == Result::Rejected, "one rejected request rejects the batch");
 }

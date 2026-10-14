@@ -131,6 +131,9 @@ inline std::vector<int> sweepOrder(std::span<SweepSource const> sources, bool al
 }
 // Prediction is only a candidate state. The glue also requires all owned
 // responses and then compares the reacquired slots to that candidate.
+// Moves sent together in one UI tick, as one vanilla batch (L-169; a traced
+// resource pack sent 44 auto-places in one frame). More wait for the next tick.
+inline constexpr size_t batchPerTick = 64;
 struct CountChange { bool source; int before, after; bool sameKind = true; };
 inline bool conservedMove(std::span<CountChange const> changes, int requested) {
     int taken = 0, placed = 0, sources = 0;

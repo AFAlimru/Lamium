@@ -69,8 +69,8 @@ Keep this section short. It is only the ordering layer; task details and status
 live in the L-items below. If this summary ever disagrees with an L-item, the
 L-item wins. Every entry names what the task is, not only its number.
 
-0. **Next: release 0.2.2** (maintainer 2026-10-15). L-169's 0.2.2 part is
-   complete and locally smoke-tested; remaining coverage is below.
+0. **Next: release 0.2.2** (maintainer 2026-10-15) after L-169's batched
+   requests rework passes in game (see L-169); remaining coverage is below.
 1. **Small and medium features and fixes** (maintainer 2026-10-10: these
    come before large features and L-111 integration for now):
    - Bugs: L-177, L-181 (player reports, need reproductions or an agreed
@@ -693,6 +693,14 @@ screen comes later.
 Open (maintainer): whether the anvil highlight is wanted later.
 
 ### L-169 Item Transfer in more screens, and bulk transfer
+Rework for 0.2.2 (maintainer 2026-10-15, built by Claude, not checked in
+game): the 0.2.2 gestures moved items visibly one by one because each request
+waited for its answer. A trace of a resource pack's bulk move (VALIDATION-LOG
+2026-10-15) showed vanilla auto-place called for every source slot in one
+frame and answered in one response. Requests now go out together, up to 64
+per tick, and are confirmed once (DESIGN "Inventory transfer"). Check in
+game before releasing 0.2.2: chest everything both ways, matching (coal),
+hotbar kept, Shift + right drag, a furnace and a brewing stand; a server.
 Kind: Design for the remaining parts. Requested 2026-10-12; extends
 L-41/L-103 (DESIGN "Inventory transfer"). The selected 0.2.2 part is done
 and locally smoke-tested on c8c1f1b (2026-10-15), unreleased; its contract

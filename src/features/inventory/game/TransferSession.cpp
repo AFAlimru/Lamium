@@ -57,7 +57,7 @@ struct Slot {
 struct Request { Slot slot; Gesture gesture; int wheelDirection = 0; };
 struct QueuedRequest { Request request; ItemStack expected; bool resolved = false; };
 struct SlotState { Slot slot; ItemStack item; };
-struct Confirmation { Gesture gesture; std::vector<SlotState> expected; };
+struct Confirmation { std::vector<Gesture> gestures; std::vector<SlotState> expected; };
 std::optional<Confirmation> confirmation;
 std::optional<int> observedDimension;
 
@@ -350,6 +350,124 @@ void enqueueBulk(ContainerScreenController& controller, Request const& request) 
     if (queued.size() + order.size() > 128) return;
     for (int index : order) enqueue(controller, {candidates[static_cast<size_t>(index)], request.gesture});
 }
+enum class Move { Sent, Skipped, Stop };
+// One move of a batch: vanilla predicts it and adds its request; the batch
+// tracks the requests and confirms them all at once.
+Move sendMove(ContainerScreenController& controller, QueuedRequest entry, unsigned revision,
+              std::deque<QueuedRequest>& later) {
+    auto const& request = entry.request;
+    if (!transfer::enabled(request.gesture, gestureOptions())) return Move::Skipped;
+    auto manager = controller.mContainerManagerController;
+    if (!manager || !manager->hasContainerController(request.slot.collection)
+        || request.slot.index < 0 || request.slot.index >= manager->getContainerSize(request.slot.collection))
+        return Move::Skipped;
+    auto const& hovered = manager->getItemStack(request.slot.collection, request.slot.index);
+    bool const wheel = !entry.resolved && (request.gesture == Gesture::OneWheel || request.gesture == Gesture::StackWheel);
+    if (hovered.isNull() || hovered.mCount <= 0 || !hovered.matchesItem(entry.expected)
+        || (!wheel && hovered.mCount != entry.expected.mCount)) {
+        Runtime::instance().self().getLogger().info("Inventory transfer stopped: source slot changed ({}:{} now {}, expected {})",
+            request.slot.collection, request.slot.index, static_cast<int>(hovered.mCount),
+            static_cast<int>(entry.expected.mCount));
+        stopOperation("source slot changed");
+        return Move::Stop;
+    }
+    std::optional<Slot> source;
+    std::optional<Slot> destination;
+    if (wheel) {
+        auto targetSide = transfer::wheelDestination(request.wheelDirection);
+        auto sourceSide = transfer::otherSide(targetSide);
+        bool const stackWheel = request.gesture == Gesture::StackWheel;
+        if (!stackWheel && request.slot.side == targetSide) {
+            if (!transfer::canReceive(hovered.mCount, hovered.getMaxStackSize())
+                || transfer::readOnlyCollection(request.slot.collection)) return Move::Skipped;
+            destination = request.slot;
+        }
+        source = !stackWheel && request.slot.side == sourceSide ? std::optional<Slot>(request.slot)
+            : matchingSource(controller, request.slot, hovered, sourceSide);
+    } else source = request.slot;
+    if (!source) {
+        TRANSFER_TRACE(sendBudget, "Transfer trace: no source for {}:{}", request.slot.collection, request.slot.index);
+        return Move::Skipped;
+    }
+    auto const& stack = manager->getItemStack(source->collection, source->index);
+    if (stack.isNull() || stack.mCount <= 0 || !stack.matchesItem(hovered)) return Move::Skipped;
+    ItemStack const reference = stack;
+    int const requested = transfer::amount(request.gesture, stack.mCount);
+    if (requested <= 0) return Move::Skipped;
+    int moved = 1;
+    std::optional<QueuedRequest> rest;
+    if (!destination && inventoryScreen(*manager)) {
+        auto targets = sideSlots(controller, transfer::otherSide(source->side), source->generation);
+        std::vector<transfer::Destination> room;
+        for (auto const& target : targets) {
+            auto const& item = manager->getItemStack(target.collection, target.index);
+            bool const empty = item.isNull() || item.mCount <= 0;
+            room.push_back({empty, !empty && item.matchesItem(stack), empty ? 0 : item.mCount, stack.getMaxStackSize()});
+        }
+        int const at = transfer::chooseDestination(std::span<transfer::Destination const>{room});
+        if (at < 0) {
+            TRANSFER_TRACE(sendBudget, "Transfer trace: no destination for {}:{}", source->collection, source->index);
+            return Move::Skipped;
+        }
+        destination = targets[static_cast<size_t>(at)];
+        moved = std::min(requested, transfer::room(room[static_cast<size_t>(at)]));
+        // The rest of a stack follows in the same batch, on vanilla's prediction.
+        if (moved < requested) {
+            rest = entry;
+            rest->request.slot = *source;
+            rest->expected = reference;
+            rest->expected.mCount = static_cast<uchar>(stack.mCount - moved);
+            rest->resolved = true;
+        }
+    }
+    if (!destination && !controller.tryGetAutoPlaceOrder(source->collection)) return Move::Skipped;
+    auto before = snapshot(controller, revision);
+    auto beforeSource = std::ranges::find_if(before, [&](auto const& state) { return state.slot == *source; });
+    if (beforeSource == before.end() || !sameStack(beforeSource->item, reference)) {
+        stopOperation("source changed while planning");
+        return Move::Stop;
+    }
+    if (generation.load() != revision) return Move::Skipped;
+    TRANSFER_TRACE(sendBudget, "Transfer trace: send {}:{} -> {} amount={} count={} gesture={} rest={}",
+        source->collection, source->index,
+        destination ? destination->collection + ":" + std::to_string(destination->index) : std::string("auto"),
+        destination ? moved : transfer::amount(request.gesture, stack.mCount), static_cast<int>(stack.mCount),
+        static_cast<int>(request.gesture), rest.has_value());
+    bool submitted = true;
+    try {
+        if (destination) {
+            SlotData const src(source->collection, source->index);
+            SlotData const dst(destination->collection, destination->index);
+            submitted = manager->handlePlaceAmount(src, moved, dst);
+        } else if (transferRoutes::supported(controller)) {
+            submitted = transferRoutes::autoPlace(controller, source->collection, source->index,
+                requested, transfer::otherSide(source->side));
+        } else controller._handleAutoPlace(requested, source->collection, source->index);
+    } catch (...) {
+        stopOperation("vanilla transfer failed");
+        return Move::Stop;
+    }
+    auto after = snapshot(controller, revision);
+    // No predicted mutation: this source has no valid room.
+    if (unchanged(before, after)) return Move::Skipped;
+    if (!submitted || !predictedMove(before, after, *source, reference, requested)) {
+        stopOperation("vanilla did not predict a conserved transfer");
+        return Move::Stop;
+    }
+    if (!destination) {
+        auto nextSource = std::ranges::find_if(after, [&](auto const& state) { return state.slot == *source; });
+        if (nextSource != after.end() && !nextSource->item.isNull()
+            && transfer::amount(request.gesture, nextSource->item.mCount) > 0
+            && request.gesture != Gesture::OneWheel && request.gesture != Gesture::OneDrag) {
+            rest = QueuedRequest{{*source, request.gesture}, nextSource->item, true};
+        }
+    }
+    if (rest) {
+        if (destination) queued.push_front(std::move(*rest));
+        else later.push_back(std::move(*rest));
+    }
+    return Move::Sent;
+}
 }
 
 bool TransferSession::mouseButton(int button, bool down, bool shift, bool control, bool alt, bool cancelled) {
@@ -482,7 +600,8 @@ void TransferSession::tick(ContainerScreenController& controller) {
         return;
     }
     auto const options = gestureOptions();
-    if ((confirmation && !transfer::enabled(confirmation->gesture, options))
+    if ((confirmation && std::ranges::any_of(confirmation->gestures,
+            [&](Gesture gesture) { return !transfer::enabled(gesture, options); }))
         || std::ranges::any_of(queued, [&](auto const& entry) { return !transfer::enabled(entry.request.gesture, options); })) {
         stopOperation("gesture disabled");
         return;
@@ -524,131 +643,49 @@ void TransferSession::tick(ContainerScreenController& controller) {
         releaseWaiting();
     }
     if (queued.empty()) return;
-    auto entry = std::move(queued.front());
-    queued.pop_front();
-    auto const& request = entry.request;
-    if (!transfer::enabled(request.gesture, gestureOptions())) return;
     auto manager = controller.mContainerManagerController;
-    if (!manager || !manager->hasContainerController(request.slot.collection)
-        || request.slot.index < 0 || request.slot.index >= manager->getContainerSize(request.slot.collection)) return;
-    auto const& hovered = manager->getItemStack(request.slot.collection, request.slot.index);
-    bool const wheel = !entry.resolved && (request.gesture == Gesture::OneWheel || request.gesture == Gesture::StackWheel);
-    if (hovered.isNull() || hovered.mCount <= 0 || !hovered.matchesItem(entry.expected)
-        || (!wheel && hovered.mCount != entry.expected.mCount)) {
-        Runtime::instance().self().getLogger().info("Inventory transfer stopped: source slot changed ({}:{} now {}, expected {})",
-            request.slot.collection, request.slot.index, static_cast<int>(hovered.mCount),
-            static_cast<int>(entry.expected.mCount));
-        stopOperation("source slot changed");
-        return;
-    }
-    std::optional<Slot> source;
-    std::optional<Slot> destination;
-    if (wheel) {
-        auto targetSide = transfer::wheelDestination(request.wheelDirection);
-        auto sourceSide = transfer::otherSide(targetSide);
-        bool const stackWheel = request.gesture == Gesture::StackWheel;
-        if (!stackWheel && request.slot.side == targetSide) {
-            if (!transfer::canReceive(hovered.mCount, hovered.getMaxStackSize())
-                || transfer::readOnlyCollection(request.slot.collection)) return;
-            destination = request.slot;
-        }
-        source = !stackWheel && request.slot.side == sourceSide ? std::optional<Slot>(request.slot)
-            : matchingSource(controller, request.slot, hovered, sourceSide);
-    } else source = request.slot;
-    if (!source) {
-        TRANSFER_TRACE(sendBudget, "Transfer trace: no source for {}:{}", request.slot.collection, request.slot.index);
-        return;
-    }
-    auto const& stack = manager->getItemStack(source->collection, source->index);
-    if (stack.isNull() || stack.mCount <= 0 || !stack.matchesItem(hovered)) return;
-    ItemStack const reference = stack;
-    int const requested = transfer::amount(request.gesture, stack.mCount);
-    if (requested <= 0) return;
-    int moved = 1;
-    std::optional<QueuedRequest> rest;
-    if (!destination && inventoryScreen(*manager)) {
-        auto targets = sideSlots(controller, transfer::otherSide(source->side), source->generation);
-        std::vector<transfer::Destination> room;
-        for (auto const& target : targets) {
-            auto const& item = manager->getItemStack(target.collection, target.index);
-            bool const empty = item.isNull() || item.mCount <= 0;
-            room.push_back({empty, !empty && item.matchesItem(stack), empty ? 0 : item.mCount, stack.getMaxStackSize()});
-        }
-        int const at = transfer::chooseDestination(std::span<transfer::Destination const>{room});
-        if (at < 0) {
-            TRANSFER_TRACE(sendBudget, "Transfer trace: no destination for {}:{}", source->collection, source->index);
-            return;
-        }
-        destination = targets[static_cast<size_t>(at)];
-        moved = std::min(requested, transfer::room(room[static_cast<size_t>(at)]));
-        // The rest of a stack follows once vanilla accepts this part.
-        if (moved < requested) {
-            rest = entry;
-            rest->request.slot = *source;
-            rest->expected = reference;
-            rest->expected.mCount = static_cast<uchar>(stack.mCount - moved);
-            rest->resolved = true;
-        }
-    }
-    if (!destination && !controller.tryGetAutoPlaceOrder(source->collection)) return;
-    auto before = snapshot(controller, revision);
-    auto beforeSource = std::ranges::find_if(before, [&](auto const& state) { return state.slot == *source; });
-    if (beforeSource == before.end() || !sameStack(beforeSource->item, reference)) {
-        stopOperation("source changed while planning");
-        return;
-    }
-    if (generation.load() != revision) { stopPending(); return; }
+    if (!manager) return;
+    // Every queued move goes out in this tick, as one vanilla batch; the
+    // answers are awaited and checked once (DESIGN "Inventory transfer").
     auto token = beginTransfer(*manager);
     if (!token) {
-        TRANSFER_TRACE(sendBudget, "Transfer trace: barrier busy, retry {}:{}", source->collection, source->index);
-        queued.push_front(std::move(entry));
+        TRANSFER_TRACE(sendBudget, "Transfer trace: barrier busy, queued={}", queued.size());
         return;
     }
-    if (generation.load() != revision) { cancelTransfer(*token); stopPending(); return; }
-    TRANSFER_TRACE(sendBudget, "Transfer trace: send {}:{} -> {} amount={} count={} gesture={} rest={}",
-        source->collection, source->index,
-        destination ? destination->collection + ":" + std::to_string(destination->index) : std::string("auto"),
-        destination ? moved : transfer::amount(request.gesture, stack.mCount), static_cast<int>(stack.mCount),
-        static_cast<int>(request.gesture), rest.has_value());
-    bool submitted = true;
-    try {
-        if (destination) {
-            SlotData const src(source->collection, source->index);
-            SlotData const dst(destination->collection, destination->index);
-            submitted = manager->handlePlaceAmount(src, moved, dst);
-        } else if (transferRoutes::supported(controller)) {
-            submitted = transferRoutes::autoPlace(controller, source->collection, source->index,
-                requested, transfer::otherSide(source->side));
-        } else controller._handleAutoPlace(requested, source->collection, source->index);
-    } catch (...) {
-        cancelTransfer(*token);
-        throw;
-    }
-    endTransfer(*token);
-    auto after = snapshot(controller, revision);
-    if (transferResult(*token) == ResponseBarrier::Result::Untracked && unchanged(before, after)) {
-        // No request and no predicted mutation: this source has no valid room.
-        cancelTransfer(*token);
-        return;
-    }
-    if (!submitted || !predictedMove(before, after, *source, reference, requested)) {
-        cancelTransfer(*token);
-        stopOperation("vanilla did not predict a conserved transfer");
-        return;
-    }
-    if (!destination) {
-        auto nextSource = std::ranges::find_if(after, [&](auto const& state) { return state.slot == *source; });
-        if (nextSource != after.end() && !nextSource->item.isNull()
-            && transfer::amount(request.gesture, nextSource->item.mCount) > 0
-            && request.gesture != Gesture::OneWheel && request.gesture != Gesture::OneDrag) {
-            rest = QueuedRequest{{*source, request.gesture}, nextSource->item, true};
+    auto before = snapshot(controller, revision);
+    std::vector<Gesture> gestures;
+    std::deque<QueuedRequest> later;
+    size_t sent = 0;
+    for (size_t budget = transfer::batchPerTick; budget > 0 && !queued.empty(); --budget) {
+        auto entry = std::move(queued.front());
+        queued.pop_front();
+        auto const gesture = entry.request.gesture;
+        auto outcome = sendMove(controller, std::move(entry), revision, later);
+        captureTransfer(*token);
+        if (outcome == Move::Stop || generation.load() != revision) {
+            cancelTransfer(*token);
+            if (outcome != Move::Stop) stopPending();
+            return;
+        }
+        if (outcome == Move::Sent) {
+            ++sent;
+            if (std::ranges::find(gestures, gesture) == gestures.end()) gestures.push_back(gesture);
         }
     }
+    for (auto& rest : later) queued.push_back(std::move(rest));
+    endTransfer(*token);
+    auto after = snapshot(controller, revision);
     std::vector<SlotState> touched;
-    for (size_t i = 0; i < after.size(); ++i)
-        if (!sameStack(before[i].item, after[i].item)) touched.push_back(std::move(after[i]));
-    confirmation = Confirmation{request.gesture, std::move(touched)};
-    if (rest) queued.push_front(std::move(*rest));
+    if (before.size() == after.size())
+        for (size_t i = 0; i < after.size(); ++i)
+            if (!sameStack(before[i].item, after[i].item)) touched.push_back(std::move(after[i]));
+    TRANSFER_TRACE(sendBudget, "Transfer trace: batch sent={} touched={} queued={}", sent, touched.size(), queued.size());
+    if (!sent) { cancelTransfer(*token); return; }
+    if (touched.empty() && transferResult(*token) == ResponseBarrier::Result::Untracked) {
+        cancelTransfer(*token);
+        return;
+    }
+    confirmation = Confirmation{std::move(gestures), std::move(touched)};
     bool stale;
     {
         std::scoped_lock lock(inputLock);

@@ -95,12 +95,10 @@ std::optional<TransferToken> beginTransfer(ContainerManagerController& controlle
     traceRequests("capture-start",previousRequests.size(),bool(manager->mRequest));
     return token;
 }
-void endTransfer(TransferToken token) {
-    std::lock_guard lock(mutex);
-    if (!barrier.owns(token)) return;
-    // Vanilla adds completed scopes to this batch. We only observe new IDs;
-    // packet creation, sending, and retries remain entirely vanilla-owned.
-    auto* manager = std::exchange(transferManager, nullptr);
+namespace {
+// Vanilla adds completed scopes to this batch. We only observe new IDs;
+// packet creation, sending, and retries remain entirely vanilla-owned.
+void capture(TransferToken token, ItemStackNetManagerClient* manager) {
     if (!manager) return;
     traceRequests("capture-end-batch",manager->mRequestBatch ? manager->mRequestBatch->mRequests->size() : 0,
         bool(manager->mRequest));
@@ -113,6 +111,15 @@ void endTransfer(TransferToken token) {
         }
     }
     traceRequests("capture-new-requests",added,bool(manager->mRequest));
+}
+}
+void captureTransfer(TransferToken token) {
+    std::lock_guard lock(mutex);
+    if (barrier.owns(token)) capture(token, transferManager);
+}
+void endTransfer(TransferToken token) {
+    std::lock_guard lock(mutex);
+    if (barrier.owns(token)) capture(token, std::exchange(transferManager, nullptr));
 }
 ResponseBarrier::Result transferResult(TransferToken token) {
     std::lock_guard lock(mutex);

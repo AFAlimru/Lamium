@@ -564,12 +564,22 @@ exactly one switch, one mode and one set of keys:
   drag leaves one when its new child switch is on; Ctrl+right stays vanilla.
   A slot is visited once per entry during a drag. Ctrl takes precedence when both modifiers
   are down. Unmodified clicks and drags stay vanilla.
-- Transfer requests run one at a time through the screen's vanilla auto-place
-  or explicit slot-transfer path. Close/focus changes, a cursor item, text
-  editing, feature disable, rejected/timed-out requests, and changed source
-  items stop the operation.
-  A sweep also stops if a source count changes before its request runs.
-  Mouse release stops gathering slots but lets already visited ones finish.
+- Requests go out together (revised 2026-10-15, L-169; before: one at a
+  time, each confirmed before the next): every queued move, up to 64 per UI
+  tick, calls the screen's vanilla auto-place or explicit slot-transfer path
+  in the same tick, so vanilla sends them as one batch. Lamium then waits for
+  all of their responses and checks every touched slot against the
+  authoritative state once. Moves gathered meanwhile (drag, wheel) form the
+  next batch. Why: a resource pack's bulk move, traced on 2026-10-15, sent up
+  to 44 auto-place requests in one frame and the game answered them in one
+  response; waiting for each answer made Lamium's moves visibly one by one.
+- Each move's local prediction must still be a conserved move of its own
+  source; a move that predicts nothing (no room) is skipped. Close/focus
+  changes, a cursor item, text editing, feature disable, a rejected or
+  timed-out request, an unexpected prediction or a changed source stop the
+  operation and drop what is still queued; vanilla rolls back its rejected
+  predictions. Mouse release stops gathering slots but lets visited ones
+  finish.
 
 ### Bulk moves and more screens (Decided 2026-10-15 for 0.2.2, L-169; smoke-tested, unreleased)
 
