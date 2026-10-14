@@ -231,11 +231,14 @@ Contents:
   the same HUD element. The upper icon, name, ID, coordinates, state rows,
   text size and visibility options retain their ordinary behavior. Schematic
   rows have their own capacity and never replace actual state rows. The
-  lower section identifies the placement as "Schematic: <name>", shows the
+  lower section is headed "Schematic" without a placement name, shows the
   expected block with the same icon size as the upper header, and names the
   mismatch in the check's colors. Differing states read current -> expected
-  with the drawn arrow. A ghost without a real target uses the schematic
-  section alone; a nearer ghost must not replace a real target's information.
+  with the drawn arrow. Compare only blocks at the same world cell. If a ghost
+  is hit before a real block, show only the ghost's schematic section and its
+  coordinates; do not pair it with the unrelated real block behind it. This
+  supersedes the initial same-day choice to keep that rear block visible
+  (maintainer feedback on `334889a`). A real target retains its ordinary data.
   When height is limited, preserve the ordinary section first. Saved container
   contents and expanded inspection remain L-184 follow-ups.
 - One "Range" (2-64 blocks, default 6) for every viewpoint: the card picks

@@ -460,6 +460,16 @@ type 3, scale 1.333, with the font's own material).
 
 ---
 
+### L-195 Separate the Done and Shown headers in the Placed list
+Kind: Bug / Ready. Maintainer screenshot/report 2026-10-15.
+Status: recorded for later; explicitly outside the current Target View work.
+The English Schematics > Placed column headers read as "DoneShown" because
+their text touches/overlaps. The screenshot shows two placements and 0%/1%
+progress; the row switches remain recognizable. Reserve separate measured
+widths and a normal shared gap for both headers, keeping the headers aligned
+with their progress values and switches. Check English, Japanese and Simplified
+Chinese at normal and docked widths. No screen-layout change is built here.
+
 ### L-192 Glass ghost brightness changes by section with the camera position
 Kind: Bug / Research. Maintainer report 2026-10-14 (VALIDATION-LOG).
 Status update 2026-10-14 (2): the real see-through part passed; darkening left where blended quads overlap; fixed by sorting all blended quads together from the current camera, not checked.
@@ -560,8 +570,11 @@ Target-card presentation approved 2026-10-15: the maintainer chose an ordinary
 upper section plus a separated schematic lower section, with state differences
 compared horizontally inside the latter (DESIGN "Target and Schematics").
 Preserve ordinary block information and its options, including actual states
-that differ from the file; the extra section gets its own row capacity. A
-nearer ghost adds information instead of replacing the real target. Built,
+that differ from the file; the extra section gets its own row capacity.
+Correction after the maintainer's `334889a` check: the heading says "Schematic"
+without the placement name. If a ghost is hit first, show its schematic
+section alone; do not pair it with the real block at a different coordinate
+behind it. Real-block comparisons remain at the real target's cell. Built,
 awaiting in-game checks: wrong/extra/state differences, air-only ghosts,
 ghosts in front of real blocks, other-details/ID/icon/coordinates switches,
 card/none background, HUD scale and short screens. Container inspection and

@@ -44,7 +44,7 @@ struct TargetInfo {
     struct BlockPosition { int x, y, z; };
     std::optional<BlockPosition> blockPosition = std::nullopt;
     struct Schematic {
-        std::string placement, name, identifier;
+        std::string name, identifier;
         TargetIcon icon;
         std::string item; // Expected block's item as binary NBT, when supplied by the check.
         std::string status;

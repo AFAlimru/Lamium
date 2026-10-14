@@ -164,29 +164,50 @@ void targetCardTests() {
         mismatch.expected = "item";
         mismatch.identifier = "minecraft:stone_stairs";
         mismatch.states = {{"weirdo_direction", "0", "3"}};
-        auto compared = schematicTarget(mismatch, "Warehouse", translate);
-        check(compared && compared->placement == "Warehouse" && compared->name == "Stairs" && compared->item == "item"
+        auto compared = schematicTarget(mismatch, translate);
+        check(compared && compared->name == "Stairs" && compared->item == "item"
               && compared->status == "target.schematicState" && compared->tone == Tone::State
               && compared->details[0].before == "<target.dirNorth>" && compared->details[0].value == "<target.dirEast>",
-              "the schematic section carries its placement, expected block and named state comparison");
+              "the schematic section carries the expected block and named state comparison");
         mismatch.state = CellState::Extra;
-        compared = schematicTarget(mismatch, "Warehouse", translate);
+        compared = schematicTarget(mismatch, translate);
         check(compared && compared->name == "<schematic.air>" && compared->tone == Tone::Wrong
               && compared->details.empty() && compared->item.empty(),
               "extra blocks have air as the expected header and no stale state differences");
         mismatch.state = CellState::Wrong;
-        compared = schematicTarget(mismatch, "Warehouse", translate);
+        compared = schematicTarget(mismatch, translate);
         check(compared && compared->name == "Stairs" && compared->item == "item"
               && compared->status == "target.schematicWrong" && compared->tone == Tone::Wrong,
               "a wrong block retains the expected name and full-size item icon");
         mismatch.state = CellState::Missing;
-        compared = schematicTarget(mismatch, "Warehouse", translate);
+        compared = schematicTarget(mismatch, translate);
         check(compared && compared->status == "schematic.kind.missing" && compared->tone == Tone::Missing,
               "missing blocks have an explicit light-blue status");
         for (auto kind : {CellState::Correct, CellState::Unknown, CellState::Ignored}) {
             mismatch.state = kind;
-            check(!schematicTarget(mismatch, "Warehouse", translate), "non-mistakes do not add a comparison section");
+            check(!schematicTarget(mismatch, translate), "non-mistakes do not add a comparison section");
         }
+    }
+    {
+        TargetInfo expected{"Grass Block", "minecraft:grass_block"};
+        expected.blockPosition = TargetInfo::BlockPosition{12, 65, 80};
+        expected.icon = {IconKind::Item, "minecraft:grass_block"};
+        expected.states = {"snowy: 0"};
+        auto ghost = makeGhostTarget(expected);
+        CardOptions all;
+        all.coordinates = all.details = true;
+        auto shown = schematicCardRows(*ghost.schematic, all);
+        check(ghost.ghostOnly && cardRows(ghost, all).empty() && ghost.schematic->status == "schematic.kind.missing",
+              "a nearer ghost is explicitly missing and has no ordinary real-block section");
+        check(ghost.schematic->blockPosition && ghost.schematic->blockPosition->y == 65
+              && shown.size() == 2 && shown[0].value == "12, 65, 80" && shown[1].value == "0"
+              && ghost.schematic->name == "Grass Block" && ghost.schematic->icon.name == "minecraft:grass_block",
+              "a ghost keeps its own coordinate, expected block, icon and states together");
+        TargetInfo actual{"Grass Block", "minecraft:grass_block"};
+        actual.blockPosition = TargetInfo::BlockPosition{12, 64, 80};
+        auto real = cardRows(actual, all);
+        check(!actual.ghostOnly && !actual.schematic && real.size() == 1 && real[0].value == "12, 64, 80",
+              "looking at a real block still uses its own coordinates even when its name matches a ghost");
     }
     {
         TargetInfo actual{"Wire", "minecraft:redstone_wire"};

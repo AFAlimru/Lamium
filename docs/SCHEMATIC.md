@@ -29,15 +29,18 @@ observation range; pose, equipment and contents are not verified.
 
 Target-card presentation (2026-10-15, built; in-game checks pending): ordinary
 block information stays above a divider. A separate lower section shows
-"Schematic: <placement>", the expected block's full-size icon/name and a
+"Schematic" (no placement name), the expected block's full-size icon/name and a
 colored mismatch label. State differences use the drawn current-to-expected
 arrow without removing the upper section's actual state rows. The schematic
 section has an independent row budget; limited height trims it before ordinary
 information. The inspected cell is compared live after verifying the selected
 placement's revision, rather than reading a possibly old/capped mismatch list.
-Air-only ghosts use the schematic section alone. When a ghost is in front of
-a real block, that block's normal information remains above, and the ghost's
-coordinates (if enabled) belong to the lower section. This supersedes the
+Ghosts use the schematic section alone, including when a real block is behind
+them. Their coordinates (if enabled) belong to the ghost cell. The maintainer's
+check of `334889a` found that pairing the rear block with the ghost's Missing
+label misleadingly compared different cells, even when both were grass blocks.
+The correction awaits runtime checks. Ordinary upper/lower comparisons are
+only for the real target's cell. This supersedes the
 older inline schematic/"Ghost of" rows described in the dated records below.
 
 Area save reads bounded chunk columns and waits for unloaded ones as the

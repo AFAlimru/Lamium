@@ -264,19 +264,7 @@ std::optional<TargetInfo> ghostTarget(LocalPlayer& player, BlockSource& source, 
     result.blockPosition = TargetInfo::BlockPosition{pos.x, pos.y, pos.z};
     result.icon = blockIcon(source, pos, block);
     if (includeStates) appendStates(result, block);
-    TargetInfo::Schematic section;
-    section.placement = ghost->placement;
-    section.name = result.name;
-    section.identifier = result.identifier;
-    section.icon = result.icon;
-    section.status = "schematic.kind.missing";
-    section.tone = Tone::Missing;
-    section.details = result.details;
-    section.states = result.states;
-    section.blockPosition = result.blockPosition;
-    result.schematic = std::move(section);
-    result.ghostOnly = true;
-    return result;
+    return makeGhostTarget(std::move(result));
 }
 std::optional<TargetInfo> collectTargetInfo(IClientInstance& client, bool includeStates, std::optional<ViewRay> ray) {
     auto* player = client.getLocalPlayer();
@@ -290,10 +278,10 @@ std::optional<TargetInfo> collectTargetInfo(IClientInstance& client, bool includ
         if (latest.mType == HitResultType::Entity) pick.entity = latest.getEntity();
     }
     struct { HitResultType mType; BlockPos mBlock; } hit{pick.type, pick.block};
-    // A nearer ghost adds a section; it must not replace a real block's info.
-    std::optional<TargetInfo> ghost;
+    // A nearer ghost is a different cell from the real block behind it. Do
+    // not present those two blocks as a same-cell comparison.
     if (hit.mType != HitResultType::Entity)
-        ghost = ghostTarget(*player, player->getDimensionBlockSource(), includeStates, ray);
+        if (auto ghost = ghostTarget(*player, player->getDimensionBlockSource(), includeStates, ray)) return ghost;
     if (hit.mType == HitResultType::Entity) {
         auto* entity = pick.entity;
         if (!entity || entity == player || entity->mRemoved
@@ -335,21 +323,20 @@ std::optional<TargetInfo> collectTargetInfo(IClientInstance& client, bool includ
         }
         return result;
     }
-    if (hit.mType != HitResultType::Tile) return ghost;
+    if (hit.mType != HitResultType::Tile) return {};
     auto const& range = player->getDimension().mHeightRange;
-    if (hit.mBlock.y < range->mMin || hit.mBlock.y >= range->mMax) return ghost;
+    if (hit.mBlock.y < range->mMin || hit.mBlock.y >= range->mMax) return {};
     auto& source = player->getDimensionBlockSource();
-    if (!source.getChunkAt(hit.mBlock)) return ghost;
+    if (!source.getChunkAt(hit.mBlock)) return {};
     auto const& block = source.getBlock(hit.mBlock);
-    if (block.isAir()) return ghost;
+    if (block.isAir()) return {};
     TargetInfo result{block.buildDescriptionName(),block.getTypeName()};
     result.blockPosition = TargetInfo::BlockPosition{hit.mBlock.x,hit.mBlock.y,hit.mBlock.z};
     // The pick-block item (seeds for crops, the block item otherwise).
     result.icon = blockIcon(source, hit.mBlock, block);
     if (result.name.empty()) result.name = result.identifier;
     if (includeStates) appendStates(result, block);
-    if (ghost) result.schematic = std::move(ghost->schematic);
-    else if (auto& runtime = Runtime::instance(); runtime.enabled() && runtime.snapshot()->schematic.enabled) {
+    if (auto& runtime = Runtime::instance(); runtime.enabled() && runtime.snapshot()->schematic.enabled) {
         auto verification = schematic::ghosts::verification();
         auto snapshot = schematic::session::snapshot();
         int index = verification->placement;
@@ -364,7 +351,7 @@ std::optional<TargetInfo> collectTargetInfo(IClientInstance& client, bool includ
                     schematic::placedSize(shown.structure->size, placement.placement.rotation), offset)) {
                 // Read just this cell now; the capped background list may be old or omit it.
                 if (auto mismatch = schematic::ghosts::mismatchAt(source, {hit.mBlock.x, hit.mBlock.y, hit.mBlock.z}))
-                    result.schematic = schematicTarget(*mismatch, placement.name,
+                    result.schematic = schematicTarget(*mismatch,
                         [](std::string_view key) { return ui::translated(key); });
             }
         }

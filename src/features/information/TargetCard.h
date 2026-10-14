@@ -40,6 +40,7 @@ inline int heartLines(int maximum) { return (heartSlots(maximum) + heartsPerLine
 // details and raw states only when asked for. At most `limit` rows.
 inline std::vector<CardRow> cardRows(TargetInfo const& target, CardOptions const& options, size_t limit = 8) {
     std::vector<CardRow> rows;
+    if (target.ghostOnly) return rows;
     auto add = [&](CardRow row) { if (rows.size() < limit) rows.push_back(std::move(row)); };
     for (auto const& detail : target.details) {
         if (detail.kind == DetailKind::Health) {

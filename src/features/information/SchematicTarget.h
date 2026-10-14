@@ -41,12 +41,24 @@ inline std::vector<TargetInfo::DetailRow> schematicStateRows(
     }
     return rows;
 }
-inline std::optional<TargetInfo::Schematic> schematicTarget(schematic::Mismatch const& mismatch,
-    std::string placement, Translate const& translate) {
+inline TargetInfo makeGhostTarget(TargetInfo target) {
+    TargetInfo::Schematic section;
+    section.name = target.name;
+    section.identifier = target.identifier;
+    section.icon = target.icon;
+    section.status = "schematic.kind.missing";
+    section.tone = Tone::Missing;
+    section.details = target.details;
+    section.states = target.states;
+    section.blockPosition = target.blockPosition;
+    target.schematic = std::move(section);
+    target.ghostOnly = true;
+    return target;
+}
+inline std::optional<TargetInfo::Schematic> schematicTarget(schematic::Mismatch const& mismatch, Translate const& translate) {
     using schematic::CellState;
     if (mismatch.entity) return std::nullopt;
     TargetInfo::Schematic result;
-    result.placement = std::move(placement);
     result.name = mismatch.expectedName;
     result.item = mismatch.expected;
     switch (mismatch.state) {

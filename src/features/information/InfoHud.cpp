@@ -664,7 +664,6 @@ std::optional<ui::hud_editor::Box> drawTargetCard(MinecraftUIRenderContext& cont
     options.growth = settings.targetGrowth == 1 ? Meter::Number : Meter::Bar;
     int capacity = std::max(0, static_cast<int>((height - 40) / (12 * z)));
     auto rows = cardRows(target, options, static_cast<size_t>(std::min(capacity, 10)));
-    if (target.ghostOnly) rows.clear();
     auto stack = settings.targetIcon ? iconStack(target) : ItemStack();
     bool icon = !stack.isNull();
     bool texture = settings.targetIcon && !icon && target.icon.kind == IconKind::Texture
@@ -742,7 +741,7 @@ std::optional<ui::hud_editor::Box> drawTargetCard(MinecraftUIRenderContext& cont
         expectedIconGap = expectedIcon || expectedTexture ? 5 * z : 0;
         expectedTextH = (settings.targetIdentifier && !expected.identifier.empty() ? 2 : 1) * lineH;
         expectedHeaderH = std::max(expectedIconSize, expectedTextH);
-        sectionTitle = ui::translated("target.schematic") + ": " + section->placement;
+        sectionTitle = ui::translated("target.schematic");
         sectionStatus = ui::translated(section->status);
         float titleW = ui::labelWidth(context, sectionTitle, z);
         float statusW = ui::labelWidth(context, sectionStatus, z);

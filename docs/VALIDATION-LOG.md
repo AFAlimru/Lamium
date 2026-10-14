@@ -12,6 +12,23 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Target-card schematic feedback and Placed headers (2026-10-15)
+
+Maintainer feedback after the supplied `334889a` build, DLL SHA-256
+`584c3dec9090401a0e406fe5654df5776e8f61d56ab0cb3146011e85e0884b6f`:
+- L-184: a ghost hit before a real block paired the ghost's Missing status
+  with the rear real block at another coordinate. Both could be grass blocks,
+  making the display seem contradictory. The maintainer requested hiding the
+  rear block or showing air at the ghost cell; the correction chooses hiding
+  the rear block. Placement names are also to be removed from Target View.
+- L-195: the supplied English Schematics > Placed screenshot shows Done and
+  Shown headers touching/overlapping. Two placements show 0% and 1%; Lamium
+  0.2.1 is visible. The maintainer explicitly leaves this outside the current
+  Target View change.
+World/server and graphics mode were not supplied for this report. No overall
+target-card pass is claimed. The corrections and broader cases need another
+in-game check; the Placed layout is only recorded for later.
+
 ## Ghost outline bars and whole-HUD hiding pass (2026-10-15)
 
 Maintainer report on `7d79bef` (DLL `c206411d...294c`), local: normal and
