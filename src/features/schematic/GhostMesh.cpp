@@ -666,8 +666,24 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
         int const width = Runtime::instance().snapshot()->schematic.ghostLines;
         // Thin: game lines; wider: bars as quads, drawn with the same material.
         int const perEdge = width > 0 ? 32 : 2;
+        auto corners = [](Outline const& o, glm::vec3 grow, glm::vec3 shift, glm::vec3 (&c)[8]) {
+            glm::vec3 low = o.min - grow - shift, high = o.max + grow - shift;
+            for (int i = 0; i < 8; ++i) c[i] = {i & 1 ? high.x : low.x, i & 2 ? high.y : low.y, i & 4 ? high.z : low.z};
+        };
+        auto key = [](glm::vec3 const& p, glm::vec3 const& q) { return faces::edgeKey({p.x, p.y, p.z}, {q.x, q.y, q.z}); };
+        std::map<std::array<int, 6>, int> strongest;
+        for (auto const& o : outlines) {
+            glm::vec3 c[8];
+            corners(o, glm::vec3{0.f}, glm::vec3{0.f}, c);
+            int rank = faces::outlineRank(o.r, o.g, o.b);
+            for (auto [i, j] : edges) {
+                auto [found, added] = strongest.try_emplace(key(c[i], c[j]), rank);
+                if (!added) found->second = std::max(found->second, rank);
+            }
+        }
         for (auto const& [color, group] : byColor) {
-            float const half = faces::rankedBarHalfWidth(width, faces::outlineRank(std::get<0>(color), std::get<1>(color), std::get<2>(color)));
+            int const rank = faces::outlineRank(std::get<0>(color), std::get<1>(color), std::get<2>(color));
+            float const half = faces::rankedBarHalfWidth(width, rank);
             // Bars sit on the edge itself, so neighbors' bars share one center.
             glm::vec3 const grow{half > 0 ? 0.f : .002f};
             Tessellator lines(screen.tessellator.mBufferResourceService);
@@ -675,10 +691,14 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
                         static_cast<int>(group.size() * 12 * perEdge), false);
             auto [r, g, b] = color;
             lines.color(r, g, b, 1.f);
+            std::uint32_t drawn = 0;
             for (auto const* o : group) {
-                glm::vec3 low = o->min - grow - out.origin, high = o->max + grow - out.origin, c[8];
-                for (int i = 0; i < 8; ++i) c[i] = {i & 1 ? high.x : low.x, i & 2 ? high.y : low.y, i & 4 ? high.z : low.z};
+                glm::vec3 c[8], world[8];
+                corners(*o, grow, out.origin, c);
+                corners(*o, glm::vec3{0.f}, glm::vec3{0.f}, world);
                 for (auto [i, j] : edges) {
+                    if (strongest[key(world[i], world[j])] > rank) continue;
+                    drawn += static_cast<std::uint32_t>(perEdge);
                     if (half <= 0) {
                         lines.vertex(c[i].x, c[i].y, c[i].z);
                         lines.vertex(c[j].x, c[j].y, c[j].z);
@@ -688,10 +708,12 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
                         lines.vertex(v[0], v[1], v[2]);
                 }
             }
+            auto mesh = lines.end(Tessellator::UploadMode::Buffered, "Lamium schematic outlines", SupplementaryFieldAutoGenerationMode{});
+            if (!drawn) continue;
             auto entry = std::make_unique<Section::ColorLines>();
             entry->color = {r, g, b};
-            entry->vertices = static_cast<std::uint32_t>(group.size() * 12 * perEdge);
-            entry->mesh.emplace(lines.end(Tessellator::UploadMode::Buffered, "Lamium schematic outlines", SupplementaryFieldAutoGenerationMode{}));
+            entry->vertices = drawn;
+            entry->mesh.emplace(std::move(mesh));
             out.lines.push_back(std::move(entry));
         }
     }
