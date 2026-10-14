@@ -401,8 +401,10 @@ reproduction before choosing a fix. [SCHEMATIC.md](SCHEMATIC.md).
 
 ### L-178 Schematic piston face texture does not match geometry
 Kind: Bug / Research. User report 2026-10-14; not yet reproduced.
-Status: cause found and fix built 2026-10-14 (`b9c9d69`), not checked in
-game. The maintainer's test file `pistons.mcstructure` showed the real
+Status: heads draw since `b9c9d69` (seen 2026-10-14), but extended pistons
+draw them retracted; candidate fix with a log line in the next build. Glass
+next to piston ghosts no longer fights; glass ghosts of two different
+placements still do (open). Earlier status: cause found and fix built 2026-10-14 (`b9c9d69`). The maintainer's test file `pistons.mcstructure` showed the real
 symptom: the base draws, but the pushing face and arm never draw, in any
 state. Ghosts drew a block actor only for blocks without a mesh; a piston's
 mesh is only its base. The z-fighting seen beside it (glass next to piston
@@ -482,6 +484,22 @@ drawn in `GhostRenderer.cpp` `drawNameTags` (Japanese glyphs from sheet 48,
 type 3, scale 1.333, with the font's own material).
 
 ---
+
+### L-192 Glass ghost brightness changes by section with the camera position
+Kind: Bug / Research. Maintainer report 2026-10-14 (VALIDATION-LOG).
+Status: open. White stained glass ghosts turn darker or lighter in
+world-aligned groups that look like the 8-block ghost sections, depending on
+where the camera is, not which way it looks; moving the placement keeps the
+dark area at the same world coordinates.
+Hypothesis (not checked): blended ghosts draw both sides without depth
+writes, so a glass cell's top and bottom faces both blend and the one drawn
+last dominates. Each section sorts its quads far to near from the camera
+position when it was built, and sections rebuild at different times, so
+sections built with the camera on different sides of the faces end up in a
+different order. Candidate fixes: drop back faces of blended ghosts (as the
+game does for glass) and rebuild a section when the camera crosses its
+planes, or re-sort blended quads when the camera has moved. Check first
+whether walking below and back above the floor flips which sections are dark.
 
 ## Feature work and research
 

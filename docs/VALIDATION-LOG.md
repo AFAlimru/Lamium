@@ -12,6 +12,24 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-178 follow-up: piston heads, border faces, glass brightness (2026-10-14)
+
+Maintainer report on `c364a64`, DLL SHA-256
+`1c4bf8962539758de6881e8351b80cb81c8718f3a4e057d66a69745c7619b38a`,
+Windows x64, local world (screenshot).
+
+- Piston ghosts now draw their head, but extended ones draw it retracted.
+  Candidate fix and diagnostic in the next build: the file's progress and
+  state are put back into the ghost actor (gated) and logged once per kind
+  ("piston ghost: file .../... loaded ..."), and the renderer sees the arm
+  block's ghost in the head cell.
+- Z-fighting between white glass and piston ghosts of the same placement is
+  gone. Between white glass ghosts of two different placements it remains.
+- New: white glass ghosts change brightness with the camera position, in
+  world-aligned groups that look like the 8-block ghost sections, not per
+  block; moving the placement keeps the dark area at the same world
+  coordinates. Recorded as L-192.
+
 ## L-180 Riptide launch and L-178 piston ghosts (2026-10-14)
 
 Maintainer report on `e8c5e3f`, DLL SHA-256
