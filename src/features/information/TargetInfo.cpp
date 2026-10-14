@@ -218,6 +218,58 @@ TargetIcon fallingIcon(Actor& entity, LocalPlayer& player) {
     } catch (...) { return {}; }
 }
 }
+// The block's states as card rows (named where L-112 knows them) and the
+// rest as raw "key: value" lines, leaving out `fixed` (shown by the
+// schematic rows instead).
+void appendStates(TargetInfo& result, Block const& block, std::set<std::string> const& fixedStates) {
+    auto const& tags = block.mSerializationId->mTags;
+    auto found = tags.find("states");
+    if (found != tags.end()) {
+        if (auto* states = std::get_if<CompoundTag>(&found->second.mTagStorage)) {
+            for (auto const& [key,value] : states->mTags) {
+                if (fixedStates.contains(key)) continue;
+                std::optional<TargetInfo::DetailRow> detail;
+                if (auto* v = std::get_if<ByteTag>(&value.mTagStorage))
+                    detail = interpretBlockState(key, StateKind::Integer, v->data, {}, result.identifier);
+                else if (auto* v = std::get_if<IntTag>(&value.mTagStorage))
+                    detail = interpretBlockState(key, StateKind::Integer, v->data, {}, result.identifier);
+                else if (auto* v = std::get_if<StringTag>(&value.mTagStorage))
+                    detail = interpretBlockState(key, StateKind::Text, 0, *v, result.identifier);
+                if (detail) {
+                    result.details.push_back(std::move(*detail));
+                    continue;
+                }
+                std::optional<std::string> text;
+                if (auto* v = std::get_if<ByteTag>(&value.mTagStorage)) text = std::to_string(v->data);
+                else if (auto* v = std::get_if<IntTag>(&value.mTagStorage)) text = std::to_string(v->data);
+                else if (auto* v = std::get_if<StringTag>(&value.mTagStorage)) text = *v;
+                if (text) result.states.push_back(key + ": " + *text);
+            }
+        }
+    }
+}
+// The nearest schematic ghost in front of the aimed block (L-184): its block
+// as the card's target, with which placement it belongs to.
+std::optional<TargetInfo> ghostTarget(LocalPlayer& player, BlockSource& source, bool includeStates, std::optional<ViewRay> const& ray) {
+    double x, y, z, dx, dy, dz, reach;
+    if (ray) { x = ray->x; y = ray->y; z = ray->z; dx = ray->dx; dy = ray->dy; dz = ray->dz; reach = ray->reach; }
+    else {
+        Vec3 eye = player.getEyePos(), view = player.getViewVector(1.f);
+        x = eye.x; y = eye.y; z = eye.z; dx = view.x; dy = view.y; dz = view.z;
+        reach = 6;
+    }
+    auto ghost = schematic::ghosts::ghostAlong(source, static_cast<int>(player.getDimensionId()), x, y, z, dx, dy, dz, reach);
+    if (!ghost || !ghost->block) return std::nullopt;
+    Block const& block = *ghost->block;
+    BlockPos pos{ghost->cell.x, ghost->cell.y, ghost->cell.z};
+    TargetInfo result{block.buildDescriptionName(), block.getTypeName()};
+    if (result.name.empty()) result.name = result.identifier;
+    result.blockPosition = TargetInfo::BlockPosition{pos.x, pos.y, pos.z};
+    result.icon = blockIcon(source, pos, block);
+    if (includeStates) appendStates(result, block, {});
+    result.details.push_back(ghostRow(ghost->placement));
+    return result;
+}
 std::optional<TargetInfo> collectTargetInfo(IClientInstance& client, bool includeStates, std::optional<ViewRay> ray) {
     auto* player = client.getLocalPlayer();
     if (!player) return {};
@@ -230,6 +282,9 @@ std::optional<TargetInfo> collectTargetInfo(IClientInstance& client, bool includ
         if (latest.mType == HitResultType::Entity) pick.entity = latest.getEntity();
     }
     struct { HitResultType mType; BlockPos mBlock; } hit{pick.type, pick.block};
+    // A ghost in front of the aimed block (or in the air) is the target.
+    if (hit.mType != HitResultType::Entity)
+        if (auto ghost = ghostTarget(*player, player->getDimensionBlockSource(), includeStates, ray)) return ghost;
     if (hit.mType == HitResultType::Entity) {
         auto* entity = pick.entity;
         if (!entity || entity == player || entity->mRemoved
@@ -295,33 +350,7 @@ std::optional<TargetInfo> collectTargetInfo(IClientInstance& client, bool includ
         for (auto const& d : m.states) fixedStates.insert(d.key);
         break;
     }
-    if (includeStates) {
-        auto const& tags = block.mSerializationId->mTags;
-        auto found = tags.find("states");
-        if (found != tags.end()) {
-            if (auto* states = std::get_if<CompoundTag>(&found->second.mTagStorage)) {
-                for (auto const& [key,value] : states->mTags) {
-                    if (fixedStates.contains(key)) continue;
-                    std::optional<TargetInfo::DetailRow> detail;
-                    if (auto* v = std::get_if<ByteTag>(&value.mTagStorage))
-                        detail = interpretBlockState(key, StateKind::Integer, v->data, {}, result.identifier);
-                    else if (auto* v = std::get_if<IntTag>(&value.mTagStorage))
-                        detail = interpretBlockState(key, StateKind::Integer, v->data, {}, result.identifier);
-                    else if (auto* v = std::get_if<StringTag>(&value.mTagStorage))
-                        detail = interpretBlockState(key, StateKind::Text, 0, *v, result.identifier);
-                    if (detail) {
-                        result.details.push_back(std::move(*detail));
-                        continue;
-                    }
-                    std::optional<std::string> text;
-                    if (auto* v = std::get_if<ByteTag>(&value.mTagStorage)) text = std::to_string(v->data);
-                    else if (auto* v = std::get_if<IntTag>(&value.mTagStorage)) text = std::to_string(v->data);
-                    else if (auto* v = std::get_if<StringTag>(&value.mTagStorage)) text = *v;
-                    if (text) result.states.push_back(key + ": " + *text);
-                }
-            }
-        }
-    }
+    if (includeStates) appendStates(result, block, fixedStates);
     for (auto& row : schematicDetails) result.details.push_back(std::move(row));
     return result;
 }

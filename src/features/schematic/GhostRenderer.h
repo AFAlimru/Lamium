@@ -39,6 +39,15 @@ BlockLabel blockLabel(PaletteBlock const& entry);
 // The checked placement's cell at `world` as it is now (any state, Correct
 // included); nullopt outside it or before the first check.
 std::optional<Mismatch> mismatchAt(BlockSource& region, Point world);
+// The nearest drawn ghost along a ray before a real block (L-184, the target
+// card), with the placement it belongs to; this frame's block pointer only.
+struct GhostAt {
+    Point cell;
+    Block const* block = nullptr;
+    std::string placement;
+};
+std::optional<GhostAt> ghostAlong(BlockSource& region, int dimension, double x, double y, double z, double dx, double dy,
+                                  double dz, double reach);
 // Whether a block hides the neighbor faces it touches: an opaque full block
 // that the in-world tessellation draws (a honey block draws nothing there).
 bool coversNeighbors(Block const& block, BlockTessellator& tessellator, ScreenContext& screen);

@@ -667,6 +667,7 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"schematic.hud.wrong", "Wrong/extra", "違う・余計"},
     {"schematic.hud.nearest", "Nearest mistake: {} m", "最も近い間違い: {} m"},
     {"target.schematic", "Schematic", "設計図"},
+    {"target.schematicGhost", "Ghost of", "設計図のゴースト"},
     {"schematic.matchLayer", "Layer here", "今いる層"},
     {"schematic.matchLayerButton", "Match where I stand", "今いる位置に合わせる"},
     {"schematic.air", "Air", "空気"},

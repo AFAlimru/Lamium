@@ -546,6 +546,10 @@ Keep the original strict comparison available. [SCHEMATIC.md](SCHEMATIC.md).
 
 ### L-184 Inspect ghost block data and schematic container contents
 Kind: Design / Research. User feedback clarified 2026-10-14; no
+Part built 2026-10-15 (maintainer chose it for the next release): the target
+card takes the nearest ghost in front of the aimed block (or in the air) as
+its target: icon, name, states and a "Ghost of <placement>" row. Not
+checked in game. Container contents and saved block entity data remain open.
 implementation or release approved.
 Goal: inspect the ghost under the crosshair: expected block name, facing,
 BlockState and available saved Block Entity data. Provide a way to

@@ -659,6 +659,7 @@ inline constexpr auto simplifiedChinese = std::to_array<Text>({
     {"schematic.hud.wrong", "错误/多余"},
     {"schematic.hud.nearest", "最近的错误: {} 米"},
     {"target.schematic", "蓝图"},
+    {"target.schematicGhost", "蓝图虚影"},
     {"schematic.matchLayer", "当前层"},
     {"schematic.matchLayerButton", "对齐到所在位置"},
     {"schematic.air", "空气"},

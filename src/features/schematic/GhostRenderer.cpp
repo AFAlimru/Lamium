@@ -6,6 +6,7 @@
 #include "features/schematic/GhostActors.h"
 #include "features/schematic/GhostMarks.h"
 #include "features/schematic/GhostMesh.h"
+#include "features/schematic/RayCells.h"
 #include "features/schematic/GhostVerify.h"
 #include "overlay/LineColor.h"
 #include "features/schematic/SchematicItems.h"
@@ -841,6 +842,28 @@ LL_TYPE_INSTANCE_HOOK(GhostPass, ll::memory::HookPriority::Normal, LevelRenderer
 }
 
 std::optional<Mismatch> mismatchAt(BlockSource& region, Point world) { return checkedCell(region, world, resolved); }
+std::optional<GhostAt> ghostAlong(BlockSource& region, int dimension, double x, double y, double z, double dx, double dy,
+                                  double dz, double reach) {
+    auto& runtime = Runtime::instance();
+    if (!runtime.enabled() || !runtime.snapshot()->schematic.enabled) return std::nullopt;
+    auto snapshot = session::snapshot();
+    for (auto const& cell : cellsAlong(x, y, z, dx, dy, dz, reach)) {
+        BlockPos pos{cell.x, cell.y, cell.z};
+        if (!region.getChunkAt(pos)) return std::nullopt;
+        // A real block hides the ghosts behind it; one standing in its own
+        // cell is the card's ordinary schematic line.
+        if (!region.getBlock(pos).isAir()) return std::nullopt;
+        for (size_t i = 0; i < snapshot.placements.size() && i < resolved.size(); ++i) {
+            auto const& shown = snapshot.placements[i];
+            if (resolved[i].structure != shown.structure.get()) continue;
+            auto index = overlap::paletteAt(shown, dimension, cell);
+            if (!index || static_cast<size_t>(*index) >= resolved[i].blocks.size()) continue;
+            if (auto const* block = resolved[i].blocks[static_cast<size_t>(*index)])
+                return GhostAt{cell, block, shown.placement.name};
+        }
+    }
+    return std::nullopt;
+}
 void start() {
     if (installed) return;
     installed = GhostPass::hook(true) == 0;

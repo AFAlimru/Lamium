@@ -25,6 +25,14 @@ inline StateName stateName(std::string const& key, std::string const& raw, std::
     if (!row || row->progress) return {key, raw};
     return {row->label, row->valueIsKey ? translate(row->value) : row->value, true};
 }
+// The card's row for a schematic ghost under the crosshair: which placement
+// it belongs to, in the ghost's light blue (L-184).
+inline TargetInfo::DetailRow ghostRow(std::string placement) {
+    TargetInfo::DetailRow row{"target.schematicGhost", std::move(placement)};
+    row.kind = DetailKind::Schematic;
+    row.tone = Tone::Missing;
+    return row;
+}
 inline std::vector<TargetInfo::DetailRow> schematicRows(schematic::CellState state, std::string const& expectedName,
     std::string const& icon, std::vector<schematic::StateDifference> const& differences, std::string_view identifier,
     Translate const& translate) {

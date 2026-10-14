@@ -1,3 +1,4 @@
+#include "features/schematic/RayCells.h"
 #include <cmath>
 #include "features/schematic/LiquidShape.h"
 #include "features/schematic/Structure.h"
@@ -859,7 +860,21 @@ void liquidChecks() {
     check(face.key == "facing" && face.expected == "north" && face.actual == "east" && faceDifference(9, 0).expected == "9",
           "a shulker box's opening row names both faces");
 }
+// L-184: the cells a ray passes, nearest first.
+void rayCells() {
+    auto cells = cellsAlong(.5, .5, .5, 1, 0, 0, 3.2);
+    check(cells.size() == 4 && cells.front() == Point{0, 0, 0} && cells.back() == Point{3, 0, 0}, "a ray along x steps cell by cell");
+    auto diagonal = cellsAlong(.5, .5, .5, 1, 1, 0, 2);
+    bool adjacent = true;
+    for (size_t i = 1; i < diagonal.size(); ++i)
+        adjacent = adjacent && std::abs(diagonal[i].x - diagonal[i - 1].x) + std::abs(diagonal[i].y - diagonal[i - 1].y) == 1;
+    check(adjacent && diagonal.size() >= 3, "a diagonal ray enters one face at a time");
+    auto back = cellsAlong(-.5, 2.5, 0.5, 0, -1, 0, 1.6);
+    check(back.size() == 3 && back[1] == Point{-1, 1, 0} && back[2] == Point{-1, 0, 0}, "negative directions and coordinates floor");
+    check(cellsAlong(0, 0, 0, 0, 0, 0, 5).empty(), "no direction, no cells");
+}
 void schematicTests() {
+    rayCells();
     otherHalves();
     liquidChecks();
     blockEntitySaves();
