@@ -79,7 +79,8 @@ action property.
 
 [L-188](BACKLOG.md): the configured settings shortcut (default L) now
 also closes Lamium Settings. Built, not checked in game.
-Rule chosen 2026-10-14 (maintainer approved the proposal): when the
+Rule proposed in chat 2026-10-14, built when the maintainer said to go
+ahead: when the
 Settings binding is a single key, pressing it on a settings page (the
 table, Shapes, Waypoints, Schematics) closes the screen like Esc. It does
 nothing special while text or a number is being edited, the search field
