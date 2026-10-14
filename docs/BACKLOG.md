@@ -592,13 +592,13 @@ farthest step, recording while open, and that a small world still stops at
 This request is not to generate or retain more unexplored terrain.
 
 ### L-188 Let the settings key toggle the settings screen closed
-Kind: Design, then Ready after input/ownership behavior is agreed.
-User feedback 2026-10-14; not approved for implementation/release.
-The default L shortcut should close Lamium Settings as well as open it.
-Clarify keybind changes and whether the key is consumed by focused text
-fields, key-capture dialogs, nested pages and modal prompts; Esc and
-other screens must retain their existing behavior. Test open/close, focus
-loss, remapped keys, and no input leaking into gameplay. Do not fold the
+Kind: Feature. User feedback 2026-10-14. Status: built, not checked in game.
+The default L shortcut closes Lamium Settings as well as opening it; the
+chosen rule is in UX-FOLLOWUP.md "Settings key feedback". Check in game:
+L opens and closes; holding L opens once; typing L in search, a number or
+a name does not close; key capture of L still binds; the world map keeps
+M/Esc; a remapped Settings key works the same; no input leaks into
+gameplay after closing. Do not fold the
 separate crash report (L-182) into a mere UX toggle fix.
 
 ### L-189 Fake Offhand fallback when primary right-click has no useful action

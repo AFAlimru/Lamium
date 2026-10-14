@@ -129,6 +129,7 @@ struct Click { float x, y; bool right; };
 std::optional<Click> pendingClick;
 std::vector<int> pendingKeys;
 bool pendingSearch = false; // Ctrl+F, applied with the next frame.
+bool pendingClose = false;  // The Settings key on a settings page (L-188).
 NumberInput numberInput;
 bool numberDirty = false;
 
@@ -371,6 +372,7 @@ void clear() {
     numberDirty = false; uiHeld.clear(); client = nullptr;
     table_view::reset();
     scene.reset(); seen = false; closing = false; pendingClick.reset(); pendingKeys.clear(); pendingSearch = false;
+    pendingClose = false;
     // A draft is never kept once the screen is gone.
     shapes_view::reset();
     prompt.reset();
@@ -1100,6 +1102,8 @@ void render(ll::event::UIRenderEvent& event) {
         for (int key : std::exchange(pendingKeys, {}))
             if (!exit) exit = hud_editor::key(key, heldShift()) == hud_editor::Result::Exit;
         if (exit) { hud_editor::reset(); selectNav(editorReturn); }
+    } else if (!closing && std::exchange(pendingClose, false)) {
+        close();
     } else if (!closing) {
         if (std::exchange(pendingRelease, false)) {
             table_view::release();
@@ -1214,7 +1218,12 @@ void open(IClientInstance& current) {
         || outsideWorldMenu(current.getScreenName(), current.getLocalPlayer() != nullptr))) return;
     CameraSessions::instance().suspendInput();
     error.clear(); rangeWarning.reset(); seen = false; closing = false; pendingClick.reset(); pendingKeys.clear(); pendingSearch = false;
+    pendingClose = false;
     numberDirty = false; uiHeld.clear();
+    // The key that opened the screen may still be down: its repeats must not
+    // close it again (L-188).
+    auto opener = input::effectiveChord(Runtime::instance().preferences().bindings, input::Action::Settings);
+    if (opener.size() == 1 && opener[0].device == input::Device::Key && keyDown(opener[0].code)) uiHeld.push_back(opener[0]);
     shapes_view::endEditing();
     table_view::open();
     // Category, expansion and scroll persist between openings in a session.
@@ -1432,6 +1441,7 @@ void start() {
         std::lock_guard lock(mutex);
         if (!ownsTop()) return;
         input::Token token{input::Device::Key, event.keyCode()};
+        bool const repeat = event.isDown() && std::find(uiHeld.begin(), uiHeld.end(), token) != uiHeld.end();
         observeHeld(token, event.isDown());
         if (table_view::capturing()) {
             if (event.isDown()) event.cancel();
@@ -1537,6 +1547,12 @@ void start() {
             else if (waypointsView()) waypoints_view::key(key);
             else if (schematicsView()) schematics_view::key(key);
             else table_view::key(key);
+            return;
+        }
+        // The world map, the radial menu and the HUD editor keep their own keys.
+        if (!editing && !repeat && !worldMapOpen && !schematicMenu && !hudEditorView()
+            && input::closesSettings(input::effectiveChord(Runtime::instance().preferences().bindings, input::Action::Settings), key)) {
+            pendingClose = true;
             return;
         }
         pendingKeys.push_back(key);

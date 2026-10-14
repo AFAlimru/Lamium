@@ -173,6 +173,14 @@ inline bool chordUses(Chord const& binding, Chord const& pressed) {
 // Clearing the settings binding would lock the screen shut, so only Reset is
 // offered for it. Loading also ignores a stored empty settings binding.
 inline constexpr bool canClear(Action action) { return action != Action::Settings; }
+// The Settings key also closes the settings screen (L-188), unless it is a
+// single key the screen itself uses for editing or moving around.
+inline bool closesSettings(Chord const& chord, int key) {
+    if (chord.size() != 1 || chord[0].device != Device::Key || chord[0].code != key) return false;
+    for (int used : {0x08, 0x09, 0x0d, 0x1b, 0x20, 0x25, 0x26, 0x27, 0x28})
+        if (key == used) return false;
+    return true;
+}
 
 // Order is the press order and is significant: the last input completes the
 // chord. A wheel impulse is always last.

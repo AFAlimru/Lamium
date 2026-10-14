@@ -77,10 +77,18 @@ action property.
 
 ## Settings key feedback (2026-10-14)
 
-[L-188](BACKLOG.md) proposes making the configured settings shortcut
-(default L) a close/open toggle rather than open-only. Resolve focus in
-text fields, key capture, nested dialogs and remapped bindings before
-changing behavior. Separately, [L-182](BACKLOG.md) tracks an intermittent
+[L-188](BACKLOG.md): the configured settings shortcut (default L) now
+also closes Lamium Settings. Built, not checked in game.
+Rule chosen 2026-10-14 (maintainer approved the proposal): when the
+Settings binding is a single key, pressing it on a settings page (the
+table, Shapes, Waypoints, Schematics) closes the screen like Esc. It does
+nothing special while text or a number is being edited, the search field
+has focus or a key is being captured (those get the key as before), and
+the world map, radial menu, HUD editor, prompts, calculator and language
+list keep their own keys. A binding on Backspace, Tab, Enter, Esc, Space or
+an arrow keeps the screen's meaning. Key repeats are ignored, including a
+key still held from opening the screen, so holding L does not flicker.
+Separately, [L-182](BACKLOG.md) tracks an intermittent
 crash when opening settings while checking a schematic; it needs an actual
 reproduction and is not solved merely by changing the toggle.
 

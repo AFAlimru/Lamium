@@ -73,6 +73,12 @@ void bindingTests() {
         "explicit unbind and old custom J stay while other defaults apply");
     check(!canClear(Action::Settings) && canClear(Action::Zoom) && canClear(Action::ChunkBorders),
         "only the settings action refuses Clear");
+    Chord const lKey{Token{Device::Key, 0x4c}};
+    check(closesSettings(lKey, 0x4c) && !closesSettings(lKey, 0x4d)
+              && !closesSettings(Chord{Token{Device::Key, 0x11}, Token{Device::Key, 0x4c}}, 0x4c)
+              && !closesSettings(Chord{Token{Device::Mouse, 3}}, 3) && !closesSettings(Chord{Token{Device::Key, 0x0d}}, 0x0d)
+              && !closesSettings(Chord{Token{Device::Key, 0x28}}, 0x28),
+          "the single Settings key closes the screen, unless the screen uses that key");
     Token z{Device::Key, 0x5a}, three{Device::Key, 0x33};
     auto chord = canonicalChord({z, three, z}, Behavior::Hold);
     check(chord == Chord{z, three} && canonicalChord({three, z}, Behavior::Hold) == Chord{three, z},

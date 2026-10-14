@@ -55,4 +55,5 @@ std::string clipboardText() {
     CloseClipboard();
     return out;
 }
+bool keyDown(int key) { return key > 0 && key < 256 && (GetAsyncKeyState(key) & 0x8000) != 0; }
 }

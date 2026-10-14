@@ -8,4 +8,6 @@ bool openUrl(std::string const& url);
 bool copyText(std::string const& text);
 // The clipboard's text as UTF-8; empty when there is none.
 std::string clipboardText();
+// Whether the keyboard key (a virtual-key code) is held down right now.
+bool keyDown(int key);
 }
