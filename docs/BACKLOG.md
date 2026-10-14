@@ -478,7 +478,9 @@ face each other and flicker. Cause found from the log (VALIDATION-LOG):
 next to the camera the pairing rule keeps one face of a shared plane, and
 the two placements' sections, built with the camera on different sides,
 each kept theirs. Fix built 2026-10-14: same-kind see-through pairs drop
-both faces even next to the camera. Not checked in game.
+both faces even next to the camera; the flicker remained (VALIDATION-LOG),
+also where no faces meet, alternating between two looks. A perf trace build
+checks whether sections keep being rebuilt.
 
 ## Feature work and research
 

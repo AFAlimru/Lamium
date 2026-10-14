@@ -12,6 +12,16 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-193 flicker remains on `08118df` (2026-10-14)
+
+Maintainer report on `08118df` (DLL `a83ddf23...121e`), two screenshots: the
+flicker remains. It also shows where faces do not meet directly (an air
+cell lies between the glass in the red circle and the near glass), and the
+view alternates between two looks. So it is not two faces in one plane
+alone. Next: the `schematic_perf_trace` build (DLL `aa18be08...265d`, from
+`08118df` with only that option) to see whether sections keep being
+rebuilt while the view alternates.
+
 ## L-193 border log and piston state log (2026-10-14)
 
 Maintainer run on `59ee8da` (1.26.51.01 without LIP), log read here:
