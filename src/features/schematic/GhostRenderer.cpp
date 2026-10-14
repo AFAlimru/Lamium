@@ -152,10 +152,11 @@ void forgetCombined() {
 constexpr std::chrono::milliseconds resortEvery{50};
 constexpr float resortDistance = .25f;
 constexpr size_t manyBlendedQuads = 20000;
-// Sections this near (to their closest point) join the camera-sorted mesh;
-// farther ones draw their own meshes, sections far to near: re-sorting a
-// whole large liquid ghost halved the frame rate (terrain_water_lamium).
-constexpr double nearBlended = 24;
+// The nearest sections (to their closest point) join the camera-sorted mesh
+// up to this many quads; the rest draw their own meshes, sections far to
+// near. A fixed 24-block radius left far overlaps flickering, and sorting a
+// whole large liquid ghost was too slow (terrain_water_lamium).
+constexpr size_t sortedBlendedQuads = 30000;
 
 void release() {
     forgetCombined();
@@ -601,21 +602,29 @@ void drawBlended(BaseActorRenderContext& context) {
     Vec3 const camera = context.mImpl->mCameraPosition;
     auto& region = player->getDimensionBlockSource();
     std::variant<std::monostate, mce::TexturePtr, mce::ClientTexture, mce::ServerTexture> texture{moving->mAtlasTexture.get()};
-    std::vector<BlendQuads const*> parts;
-    std::vector<std::pair<double, Section const*>> far;
-    std::uint64_t key = 1469598103934665603ull;
+    std::vector<std::pair<double, Section const*>> blendedSections;
     for (auto const& [sectionKey, section] : sections) {
         if (!section.blend || section.blend->positions.empty()) continue;
         auto gap = [](double v, double low) { return std::max({low - v, 0., v - (low + sectionSize)}); };
         double gx = gap(camera.x, section.origin.x), gy = gap(camera.y, section.origin.y), gz = gap(camera.z, section.origin.z);
-        if (gx * gx + gy * gy + gz * gz <= nearBlended * nearBlended || !section.blendMesh) {
-            parts.push_back(section.blend.get());
-            key = (key ^ reinterpret_cast<std::uintptr_t>(section.blend.get())) * 1099511628211ull;
+        blendedSections.push_back({gx * gx + gy * gy + gz * gz, &section});
+    }
+    std::stable_sort(blendedSections.begin(), blendedSections.end(), [](auto const& a, auto const& b) { return a.first < b.first; });
+    std::vector<BlendQuads const*> parts;
+    std::vector<std::pair<double, Section const*>> far;
+    std::uint64_t key = 1469598103934665603ull;
+    size_t sorted = 0;
+    for (auto const& [gap, section] : blendedSections) {
+        size_t quads = section->blend->positions.size() / 4;
+        if ((parts.empty() || sorted + quads <= sortedBlendedQuads) || !section->blendMesh) {
+            parts.push_back(section->blend.get());
+            sorted += quads;
+            key = (key ^ reinterpret_cast<std::uintptr_t>(section->blend.get())) * 1099511628211ull;
             continue;
         }
-        double cx = section.origin.x + sectionSize / 2. - camera.x, cy = section.origin.y + sectionSize / 2. - camera.y,
-               cz = section.origin.z + sectionSize / 2. - camera.z;
-        far.push_back({cx * cx + cy * cy + cz * cz, &section});
+        double cx = section->origin.x + sectionSize / 2. - camera.x, cy = section->origin.y + sectionSize / 2. - camera.y,
+               cz = section->origin.z + sectionSize / 2. - camera.z;
+        far.push_back({cx * cx + cy * cy + cz * cz, section});
     }
     std::sort(far.begin(), far.end(), [](auto const& a, auto const& b) { return a.first > b.first; });
     if (parts.empty()) forgetCombined();
@@ -738,6 +747,12 @@ LL_TYPE_INSTANCE_HOOK(GhostBlendPass, ll::memory::HookPriority::Normal, LevelRen
         PerfTimer timer{perf.blendNs};
 #endif
         drawBlended(context);
+        // Once a frame, like the blended ghosts.
+        static std::uint64_t cornersFrame = 0;
+        auto* player = context.mClientInstance.getLocalPlayer();
+        if (player && context.mImpl && std::exchange(cornersFrame, ghostFrame) != ghostFrame)
+            drawSeeThroughCorners(context.mScreenContext, player->getDimensionBlockSource(), context.mImpl->mCameraPosition,
+                                  static_cast<int>(player->getDimensionId()), overlay::faceMaterial(context.mClientInstance));
     } catch (std::exception const& error) {
         static bool reported = false;
         if (!std::exchange(reported, true)) log(std::string("drawing blended ghosts failed: ") + error.what());
@@ -805,7 +820,8 @@ LL_TYPE_INSTANCE_HOOK(GhostPass, ll::memory::HookPriority::Normal, LevelRenderer
         auto faces = overlay::faceMaterial(client);
         drawPoint(context.mScreenContext, context.mImpl->mCameraPosition, faces.material, faces.twoSided);
         stepSave(player->getDimensionBlockSource(), *player);
-        drawSelection(context.mScreenContext, context.mImpl->mCameraPosition, static_cast<int>(player->getDimensionId()), faces);
+        drawSelection(context.mScreenContext, player->getDimensionBlockSource(), context.mImpl->mCameraPosition,
+                      static_cast<int>(player->getDimensionId()), faces);
         drawWaitingColumns(context.mScreenContext, context.mImpl->mCameraPosition, faces.material, faces.twoSided);
     } catch (std::exception const& error) {
         static bool reported = false;

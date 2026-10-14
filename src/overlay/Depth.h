@@ -27,6 +27,7 @@ inline constexpr float worldLinePull = .994f;
 inline constexpr float digitPull = .995f;  // Light digits over their tint
 inline constexpr float markPull = .995f;   // Marks over the vanilla selection outline (the save area)
 inline constexpr float cornerPull = .9945f; // Save-area corners over the area's outline
+inline constexpr float firstCornerPull = .9943f; // Corner 1 over corner 2 where they touch
 inline constexpr float linePull = .993f;   // Light digit lines over both
 // Where a point is drawn after the pull toward `eye`.
 inline Point pulled(Point p, Point eye, float pull) {

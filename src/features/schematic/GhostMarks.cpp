@@ -2,6 +2,7 @@
 #include "features/schematic/AreaSave.h"
 #include "features/schematic/EntityModels.h"
 #include "features/schematic/GhostRenderer.h"
+#include "features/schematic/GhostCommon.h"
 #include "overlay/CellMesh.h"
 #include "overlay/LineColor.h"
 #include "features/schematic/Selection.h"
@@ -29,6 +30,8 @@
 #include "mc/deps/renderer/MatrixStack.h"
 #include "mc/world/level/BlockSource.h"
 #include "mc/world/level/block/Block.h"
+#include "mc/world/level/block/BlockType.h"
+#include "mc/world/level/block/BlockRenderLayer.h"
 #include "mc/world/phys/HitResult.h"
 #include "mc/world/level/ShapeType.h"
 #include <glm/gtc/matrix_transform.hpp>
@@ -78,7 +81,38 @@ void translated(ScreenContext& screen, glm::vec3 offset, std::function<void()> c
 // The area chosen for saving: a white outline, and corner 1 red and corner
 // 2 blue as tinted cells with their outline, drawn over it with a nearer
 // pull (Depth.h rule 3) so a full block still shows which corner it is.
-void drawSelection(ScreenContext& screen, Vec3 const& camera, int dimension, overlay::FaceMaterial const& material) {
+namespace {
+bool overSeeThrough(BlockSource& region, Point p) {
+    BlockPos pos{p.x, p.y, p.z};
+    Block const& real = region.getBlock(pos);
+    return !real.isAir() && blended(real.getBlockType().getRenderLayer(real, region, pos));
+}
+// Corner 1 red and corner 2 blue as tinted cells with their outline, only
+// the sides the eye sees; corner 1 nearer where the two touch.
+void drawCorners(ScreenContext& screen, BlockSource& region, Vec3 const& camera, overlay::FaceMaterial const& material,
+                 selection::State const& state, bool seeThrough) {
+    constexpr float cornerColors[2][3]{{1.f, .25f, .2f}, {.25f, .5f, 1.f}};
+    auto cell = [](Point p) { return overlay::Cell{p.x, p.y, p.z}; };
+    for (int i = 0; i < 2; ++i) {
+        auto const& corner = i == 0 ? state.first : state.second;
+        if (!corner || overSeeThrough(region, *corner) != seeThrough) continue;
+        overlay::CellStyle style{cornerColors[i][0], cornerColors[i][1], cornerColors[i][2], true, overlay::LineColoring::Shader};
+        auto& mesh = cornerMeshes[i];
+        // Rebuilt when the eye passes a side.
+        int seen = overlay::facesSeen(cell(*corner), {camera.x, camera.y, camera.z});
+        auto revision = selectionRevision * 64 + static_cast<std::uint64_t>(seen);
+        if (mesh.stale(revision, style, material)) {
+            auto surface = overlay::seenCellSurface(cell(*corner), seen);
+            overlay::buildCellMesh(screen, mesh, surface.faces, surface.lines, style, material, revision);
+        }
+        overlay::drawCellMesh(screen, camera, mesh, material, i == 0 ? overlay::depth::firstCornerPull : overlay::depth::cornerPull);
+    }
+}
+}
+// The area chosen for saving: a white outline, and the corners drawn over it
+// with a nearer pull (Depth.h rule 3) so a full block still shows which
+// corner it is.
+void drawSelection(ScreenContext& screen, BlockSource& region, Vec3 const& camera, int dimension, overlay::FaceMaterial const& material) {
     auto state = selection::current();
     if (state.dimension != dimension || (!state.first && !state.second)) return;
     if (state.first != drawnSelection.first || state.second != drawnSelection.second || state.dimension != drawnSelection.dimension) {
@@ -95,21 +129,13 @@ void drawSelection(ScreenContext& screen, Vec3 const& camera, int dimension, ove
         overlay::buildCellMesh(screen, areaMesh, {}, outline, white, material, selectionRevision);
     }
     overlay::drawCellMesh(screen, camera, areaMesh, material, overlay::depth::markPull);
-    constexpr float cornerColors[2][3]{{1.f, .25f, .2f}, {.25f, .5f, 1.f}};
-    for (int i = 0; i < 2; ++i) {
-        auto const& corner = i == 0 ? state.first : state.second;
-        if (!corner) continue;
-        overlay::CellStyle style{cornerColors[i][0], cornerColors[i][1], cornerColors[i][2], true, overlay::LineColoring::Shader};
-        auto& mesh = cornerMeshes[i];
-        // Only the sides the eye sees; rebuilt when the eye passes a side.
-        int seen = overlay::facesSeen(cell(*corner), {camera.x, camera.y, camera.z});
-        auto revision = selectionRevision * 64 + static_cast<std::uint64_t>(seen);
-        if (mesh.stale(revision, style, material)) {
-            auto surface = overlay::seenCellSurface(cell(*corner), seen);
-            overlay::buildCellMesh(screen, mesh, surface.faces, surface.lines, style, material, revision);
-        }
-        overlay::drawCellMesh(screen, camera, mesh, material, overlay::depth::cornerPull);
-    }
+    drawCorners(screen, region, camera, material, state, false);
+}
+void drawSeeThroughCorners(ScreenContext& screen, BlockSource& region, Vec3 const& camera, int dimension,
+                           overlay::FaceMaterial const& material) {
+    auto state = selection::current();
+    if (state.dimension != dimension || (!state.first && !state.second)) return;
+    drawCorners(screen, region, camera, material, state, true);
 }
 
 // While a save waits, the chunk columns it still has to read: yellow frames

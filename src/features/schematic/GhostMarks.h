@@ -18,8 +18,13 @@ namespace lamium::schematic::ghosts {
 // Draws with the world matrix moved by `offset` (camera-relative) and pulled
 // toward the eye (Depth.h), popped again also when the draw throws.
 void translated(ScreenContext& screen, glm::vec3 offset, std::function<void()> const& draw);
-// The area chosen for saving, as cell overlays (overlay/CellMesh.h).
-void drawSelection(ScreenContext& screen, Vec3 const& camera, int dimension, overlay::FaceMaterial const& material);
+// The area chosen for saving, as cell overlays (overlay/CellMesh.h). A corner
+// over a real see-through block is drawn by drawSeeThroughCorners instead,
+// after the world's translucent blocks: drawn before them, the real glass
+// covered it in the game's own order, which changes with the camera position.
+void drawSelection(ScreenContext& screen, BlockSource& region, Vec3 const& camera, int dimension, overlay::FaceMaterial const& material);
+void drawSeeThroughCorners(ScreenContext& screen, BlockSource& region, Vec3 const& camera, int dimension,
+                           overlay::FaceMaterial const& material);
 // `twoSided` (overlay::FaceMaterial): the material culls, so each face also
 // gets its reversed quad.
 void drawWaitingColumns(ScreenContext& screen, Vec3 const& camera, mce::MaterialPtr const& faceMaterial, bool twoSided);
