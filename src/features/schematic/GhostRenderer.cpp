@@ -636,8 +636,12 @@ void drawBlended(BaseActorRenderContext& context) {
     size_t total = 0;
     for (auto const* b : parts) total += b->positions.size() / 4;
     auto every = total > manyBlendedQuads ? resortEvery * 5 : resortEvery;
+    // A new set of sections waits for the interval too: while walking, the
+    // last section in the budget changed nearly every frame, and the sort and
+    // upload ran each frame (6-7 ms with a large liquid ghost).
     bool resort = !parts.empty()
-        && (key != combined.key || !combined.mesh || !combined.mesh->isValid() || (moved >= resortDistance && now - combined.sortedAt >= every));
+        && (!combined.mesh || !combined.mesh->isValid()
+            || ((key != combined.key || moved >= resortDistance) && now - combined.sortedAt >= every));
     if (resort) {
         combined.mesh.reset();
         combined.anchor = {std::floor(camera.x), std::floor(camera.y), std::floor(camera.z)};
