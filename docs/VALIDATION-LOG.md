@@ -12,6 +12,25 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Perf trace of `2965ec8`: schematic frame cost (2026-10-14)
+
+Maintainer runs on the `schematic_perf_trace` build of `2965ec8` (DLL
+`48c0576e...d083`), Windows x64:
+- A nearly empty world: terrain_water_lamium about 60 fps still and about
+  40 fps moving; desert village 60 fps still, 55+ moving. Trace with the
+  water schematic (720 sections): ghost pass about 5 ms/frame still;
+  moving, the blended pass 6-7 ms/frame with a re-sort in 203 of 207
+  frames (the section set within the 30000-quad budget changed nearly every
+  frame and each change re-sorted at once; held to the interval in the next
+  build).
+- The busy test world (3086 sections): ghost pass 4-6 ms/frame even
+  standing still with no builds (prepare 0.5, faces 0.8, lines 0.3, block
+  actors 0.4, entities 0.7 ms): per-section draw calls are a standing cost
+  (L-105 material).
+- The far flicker and darkening remain there (likely past the sorted
+  budget with many placements shown). Corners over glass still change
+  colour with the camera position; adjacent corner lines are now stable.
+
 ## Near-only sort, corner marks, schematic frame rate (2026-10-14)
 
 Maintainer report on `5723ac2` (DLL `67bee317...17e5`), one screenshot:

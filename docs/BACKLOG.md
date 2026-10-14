@@ -1554,6 +1554,10 @@ is allowed"; key conflicts, contexts and UI weight to be checked.
 
 ### L-105 Performance: find the real bottleneck before optimizing
 Kind: Research **(strong model)**. Chosen by the maintainer 2026-10-07 from
+Measured 2026-10-14 (VALIDATION-LOG, schematic perf trace): with 3086
+ghost sections shown the ghost pass costs 4-6 ms a frame standing still with
+nothing rebuilt, mostly per-section draws (faces, lines, block actors,
+entities); a candidate is merging sections into fewer meshes.
 their notes.
 Status: open. Step 1 only; no optimization is built until it names a
 bottleneck.
