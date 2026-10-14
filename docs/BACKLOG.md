@@ -611,11 +611,13 @@ shared edge and a stronger result's bar is slightly wider: wrong block >
 unknown block > wrong state > ghost/missing. Wrong beside missing passed;
 wrong-state stairs over a missing block still fought, so within a section only
 the strongest copy of a shared edge is drawn and the width step grew to
-0.002 (not checked yet).
+0.002 (passed, `ee196c6`).
 Ghost tint (maintainer, 2026-10-15): the three choices changed the look too
-sharply, so it is now a 0-100% slider in 5% steps, 40% by default (about the
-former weak); 100% is the former strong, 0% none. Saved as `ghostTintPercent`;
-the former `ghostTint` choice maps to 100/40/0. Not checked in game.
+sharply, so it is now a 0-100% slider in 5% steps; 100% is the former
+strong, 40% about the former weak, 0% none. Saved as `ghostTintPercent`; the
+former `ghostTint` choice maps to 100/40/0. Passed in game (`ee196c6`). The
+maintainer then chose 70% tint and Normal outlines as the defaults: a little
+rugged, but the block and whether it is a ghost read best there.
 Translucent ghosts stay open (maintainer: after the release).
 Goal: distinguish ghost blocks from real blocks while keeping their native
 colors readable. In the reported screenshot a pink concrete ghost overlapped

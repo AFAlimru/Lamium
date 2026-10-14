@@ -19,9 +19,9 @@ save-area operations; a separate held adjust key repeats the last stepper
 operation with the wheel. Dedicated keys remain available, all unbound.
 
 The default ghost look is tinted with a light-blue outline. Since 2026-10-15
-(L-186) the tint strength is a 0-100% setting, 40% by default (100% is the
-earlier look, 0% leaves the outline alone), and the outline can be drawn normal or thick
-as solid bars on the edges (game lines are one pixel). Where neighbors' bars
+(L-186) the tint strength is a 0-100% setting, 70% by default (100% is the
+earlier look, 0% leaves the outline alone), and the outline is normal by
+default, or thin (game lines) or thick; normal and thick are solid bars on the edges (game lines are one pixel). Where neighbors' bars
 meet, only the stronger result's copy is drawn within a section, and its bar
 is slightly wider to cover the other across sections: wrong block, unknown
 block, wrong state, then ghost/missing. Checking,

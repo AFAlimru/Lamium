@@ -12,6 +12,14 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Ghost tint slider and shared outline edges pass (2026-10-15)
+
+Maintainer report on `ee196c6` (DLL `870e781a...1c45`), local: the checklist
+passed: the ghost tint is a percent slider, 40% looks like the former weak,
+0% and 100% work; wrong-state stairs over a missing dirt ghost no longer
+fight at the shared edge. The maintainer then chose 70% tint and Normal
+outlines as the new defaults.
+
 ## Ranked outline bars, first check (2026-10-15)
 
 Maintainer report on `976a628` (DLL `0874f6d4...053b`), local: a wrong block

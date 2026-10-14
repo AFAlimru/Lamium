@@ -341,8 +341,8 @@ void settingsStoreTests() {
     check(old.camera.freeCameraHide == 1 && decodeSettings(R"({"camera":{"freeCameraHide":3}})").camera.freeCameraHide == 3
               && decodeSettings(R"({"camera":{"freeCameraHide":8}})").camera.freeCameraHide == 3,
           "FreeCamera hides the hand by default; the setting loads and is clamped (L-191)");
-    check(old.schematic.ghostTint == 40 && old.schematic.ghostLines == 0,
-          "ghosts default to a 40% tint and thin outlines (L-186)");
+    check(old.schematic.ghostTint == 70 && old.schematic.ghostLines == 1,
+          "ghosts default to a 70% tint and normal outlines (L-186)");
     {
         auto look = decodeSettings(R"({"schematic":{"ghostTintPercent":65,"ghostLines":2}})").schematic;
         auto wild = decodeSettings(R"({"schematic":{"ghostTintPercent":190,"ghostLines":-3}})").schematic;

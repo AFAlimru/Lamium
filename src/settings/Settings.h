@@ -164,8 +164,9 @@ struct Settings {
         // L-186: the light-blue tint over ghost textures in percent (100 is
         // the look before 2026-10-15, 0 none); and the outline width, 0 thin
         // (one pixel), 1 normal, 2 thick.
-        int ghostTint = 40;
-        int ghostLines = 0;
+        // Defaults chosen by the maintainer 2026-10-15: the block and that it is a ghost both read well.
+        int ghostTint = 70;
+        int ghostLines = 1;
     } schematic;
     struct Overlays {
         bool chunkBorders = false;
