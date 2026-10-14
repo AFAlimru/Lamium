@@ -12,6 +12,23 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Near-only sort, corner marks, schematic frame rate (2026-10-14)
+
+Maintainer report on `5723ac2` (DLL `67bee317...17e5`), one screenshot:
+- Frame rate about the same: about 30 fps with terrain_water_lamium, about
+  40 fps with desert village, as before today's changes; heavy schematic
+  drawing in general, not a regression of the sort (to be measured).
+- The flicker is gone near the camera but remains far away (beyond the
+  24-block sorted radius).
+- Corner 1/2 marks still change with the camera position (their faces more
+  than their lines). Two adjacent corners trade which edge line shows on top,
+  over glass and over stone alike.
+Changes in `2965ec8`: see-through corners draw after the world's
+translucent blocks; corner 1 pulled nearer than corner 2; the sorted mesh
+takes the nearest sections up to 30000 quads. Deployed as a
+`schematic_perf_trace` build of `2965ec8` (DLL `48c0576e...d083`) to
+measure the frame time with terrain_water_lamium and desert village.
+
 ## L-192/L-193 pass with the global sort; its cost; corner mark (2026-10-14)
 
 Maintainer report on `995b704` (DLL `5006e9bc...bd80`), local world:
