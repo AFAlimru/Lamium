@@ -152,6 +152,10 @@ void forgetCombined() {
 constexpr std::chrono::milliseconds resortEvery{50};
 constexpr float resortDistance = .25f;
 constexpr size_t manyBlendedQuads = 20000;
+// Sections this near (to their closest point) join the camera-sorted mesh;
+// farther ones draw their own meshes, sections far to near: re-sorting a
+// whole large liquid ghost halved the frame rate (terrain_water_lamium).
+constexpr double nearBlended = 24;
 
 void release() {
     forgetCombined();
@@ -378,6 +382,7 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
             : std::chrono::duration_cast<Clock::duration>(refreshFar);
         bool stale = found == sections.end() || !found->second.complete || (found->second.due && now >= *found->second.due)
             || (found->second.faces && !found->second.faces->isValid())
+            || (found->second.blendMesh && !found->second.blendMesh->isValid())
             || std::any_of(found->second.lines.begin(), found->second.lines.end(), [](auto const& l) { return !l->mesh || !l->mesh->isValid(); })
             || (found->second.marks && !found->second.marks->isValid());
 #ifdef LAMIUM_SCHEMATIC_PERF_TRACE
@@ -597,13 +602,24 @@ void drawBlended(BaseActorRenderContext& context) {
     auto& region = player->getDimensionBlockSource();
     std::variant<std::monostate, mce::TexturePtr, mce::ClientTexture, mce::ServerTexture> texture{moving->mAtlasTexture.get()};
     std::vector<BlendQuads const*> parts;
+    std::vector<std::pair<double, Section const*>> far;
     std::uint64_t key = 1469598103934665603ull;
     for (auto const& [sectionKey, section] : sections) {
         if (!section.blend || section.blend->positions.empty()) continue;
-        parts.push_back(section.blend.get());
-        key = (key ^ reinterpret_cast<std::uintptr_t>(section.blend.get())) * 1099511628211ull;
+        auto gap = [](double v, double low) { return std::max({low - v, 0., v - (low + sectionSize)}); };
+        double gx = gap(camera.x, section.origin.x), gy = gap(camera.y, section.origin.y), gz = gap(camera.z, section.origin.z);
+        if (gx * gx + gy * gy + gz * gz <= nearBlended * nearBlended || !section.blendMesh) {
+            parts.push_back(section.blend.get());
+            key = (key ^ reinterpret_cast<std::uintptr_t>(section.blend.get())) * 1099511628211ull;
+            continue;
+        }
+        double cx = section.origin.x + sectionSize / 2. - camera.x, cy = section.origin.y + sectionSize / 2. - camera.y,
+               cz = section.origin.z + sectionSize / 2. - camera.z;
+        far.push_back({cx * cx + cy * cy + cz * cz, &section});
     }
-    if (parts.empty()) { forgetCombined(); return; }
+    std::sort(far.begin(), far.end(), [](auto const& a, auto const& b) { return a.first > b.first; });
+    if (parts.empty()) forgetCombined();
+    if (parts.empty() && far.empty()) return;
     auto now = Clock::now();
     float moved = std::max({std::abs(camera.x - combined.sortedFrom.x), std::abs(camera.y - combined.sortedFrom.y),
                             std::abs(camera.z - combined.sortedFrom.z)});
@@ -611,8 +627,8 @@ void drawBlended(BaseActorRenderContext& context) {
     size_t total = 0;
     for (auto const* b : parts) total += b->positions.size() / 4;
     auto every = total > manyBlendedQuads ? resortEvery * 5 : resortEvery;
-    bool resort = key != combined.key || !combined.mesh || !combined.mesh->isValid()
-        || (moved >= resortDistance && now - combined.sortedAt >= every);
+    bool resort = !parts.empty()
+        && (key != combined.key || !combined.mesh || !combined.mesh->isValid() || (moved >= resortDistance && now - combined.sortedAt >= every));
     if (resort) {
         combined.mesh.reset();
         combined.anchor = {std::floor(camera.x), std::floor(camera.y), std::floor(camera.z)};
@@ -688,12 +704,19 @@ void drawBlended(BaseActorRenderContext& context) {
     if (camera.x != lastCamera.x || camera.y != lastCamera.y || camera.z != lastCamera.z) ++perf.cameraMoves;
     lastCamera = camera;
 #endif
-    if (!combined.mesh || !combined.vertices) return;
     BrightnessPair full;
     full.sky->mValue = 15;
     full.block->mValue = 15;
     ActorShaderManager::setupShaderParameters(screen, region, full, glm::vec4{1, 1, 1, 1}, 1.f, true, *lightTexture, Vec2{1, 1},
         Vec4{0, 0, 1, 1});
+    for (auto const& [distance, section] : far) {
+        glm::vec3 at{static_cast<float>(section->origin.x - camera.x), static_cast<float>(section->origin.y - camera.y),
+                     static_cast<float>(section->origin.z - camera.z)};
+        translated(screen, at, [&] {
+            section->blendMesh->renderMesh(screen, material, texture, 0, section->blendVertices, OffscreenCaptureDescription{}, nullptr);
+        });
+    }
+    if (parts.empty() || !combined.mesh || !combined.vertices) return;
     glm::vec3 offset{static_cast<float>(combined.anchor.x - camera.x), static_cast<float>(combined.anchor.y - camera.y),
                      static_cast<float>(combined.anchor.z - camera.z)};
     translated(screen, offset, [&] {

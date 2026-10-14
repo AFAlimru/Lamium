@@ -338,7 +338,7 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
     auto [index, sx, sy, sz] = key;
     Point low{sx * sectionSize, sy * sectionSize, sz * sectionSize};
     // Reset in place: meshes cannot be copied or assigned.
-    out.faces.reset(); out.blend.reset(); out.lines.clear(); out.marks.reset();
+    out.faces.reset(); out.blend.reset(); out.blendMesh.reset(); out.lines.clear(); out.marks.reset();
     out.faceVertices = out.blendVertices = out.markVertices = 0;
     out.entities.clear();
     out.due.reset();
@@ -652,9 +652,11 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
         kept->enabled = *data.mFieldEnabled;
         out.blendVertices = see.mCount;
         out.blend = std::move(kept);
+        out.blendMesh.emplace(see.end(Tessellator::UploadMode::Buffered, "Lamium schematic blended ghosts", SupplementaryFieldAutoGenerationMode{}));
+    } else {
+        // Ended either way, so the tessellator never stays open.
+        see.end(Tessellator::UploadMode::Buffered, "Lamium schematic blended ghosts", SupplementaryFieldAutoGenerationMode{});
     }
-    // Ended either way, so the tessellator never stays open.
-    see.end(Tessellator::UploadMode::Buffered, "Lamium schematic blended ghosts", SupplementaryFieldAutoGenerationMode{});
     if (!outlines.empty()) {
         std::map<std::tuple<float, float, float>, std::vector<Outline const*>> byColor;
         for (auto const& o : outlines) byColor[{o.r, o.g, o.b}].push_back(&o);

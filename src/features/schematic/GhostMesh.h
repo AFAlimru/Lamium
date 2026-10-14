@@ -53,7 +53,9 @@ struct Section {
     // blend: blended layers (stained glass, honey, slime) and the mistake
     // marks, drawn last; marks: mistake marks over a real blended block,
     // which the blend mesh's depth would hide.
-    std::optional<mce::Mesh> faces, marks;
+    std::optional<mce::Mesh> faces, marks, blendMesh;
+    // The blended quads twice: uploaded in build order for when the section
+    // is far, and kept for the camera-sorted mesh of the near sections.
     std::shared_ptr<BlendQuads const> blend;
     std::uint32_t faceVertices = 0, blendVertices = 0, markVertices = 0;
     // Outlines, one mesh per color (lines::colored draws one color at a time).
