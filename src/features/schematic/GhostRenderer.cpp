@@ -823,11 +823,13 @@ LL_TYPE_INSTANCE_HOOK(GhostPass, ll::memory::HookPriority::Normal, LevelRenderer
         // The graphics mode, the ghost tint and the outline width are built
         // into the sections: a change rebuilds them.
         auto const& look = runtime.snapshot()->schematic;
-        if (int mode = static_cast<int>(client.getOptions().getGraphicsMode()) * 16 + look.ghostTint * 4 + look.ghostLines;
-            mode != lastGraphicsMode) {
+        int graphics = static_cast<int>(client.getOptions().getGraphicsMode());
+        if (int mode = graphics * 16 + look.ghostTint * 4 + look.ghostLines; mode != lastGraphicsMode) {
             if (lastGraphicsMode >= 0) release();
             lastGraphicsMode = mode;
-            buildCamera.vibrant = mode >= static_cast<int>(GraphicsMode::Advanced);
+            // The graphics mode alone: the combined key made every mode look
+            // like Vibrant Visuals, and mistake faces then hid their outlines.
+            buildCamera.vibrant = graphics >= static_cast<int>(GraphicsMode::Advanced);
         }
         drawPlacements(context, client, *player);
         // Faces of the point, the selection and waiting columns: the overlay's
