@@ -12,6 +12,13 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Ghost outline bars and whole-HUD hiding pass (2026-10-15)
+
+Maintainer report on `7d79bef` (DLL `c206411d...294c`), local: normal and
+thick ghost outlines look like one solid line up close; FreeCamera "Whole
+HUD" also hides Lamium's HUD and it returns when FreeCamera ends.
+Not checked: servers, controllers, Vibrant Visuals for the outline bars.
+
 ## Ghost target, ghost look settings, FreeCamera hiding (2026-10-15)
 
 Maintainer report on `b5daa75` and earlier same-day builds, local:
