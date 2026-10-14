@@ -764,12 +764,6 @@ LL_TYPE_INSTANCE_HOOK(GhostBlendPass, ll::memory::HookPriority::Normal, LevelRen
         PerfTimer timer{perf.blendNs};
 #endif
         drawBlended(context);
-        // Once a frame, like the blended ghosts.
-        static std::uint64_t cornersFrame = 0;
-        auto* player = context.mClientInstance.getLocalPlayer();
-        if (player && context.mImpl && std::exchange(cornersFrame, ghostFrame) != ghostFrame)
-            drawSeeThroughCorners(context.mScreenContext, player->getDimensionBlockSource(), context.mImpl->mCameraPosition,
-                                  static_cast<int>(player->getDimensionId()), overlay::faceMaterial(context.mClientInstance));
     } catch (std::exception const& error) {
         static bool reported = false;
         if (!std::exchange(reported, true)) log(std::string("drawing blended ghosts failed: ") + error.what());
@@ -837,8 +831,7 @@ LL_TYPE_INSTANCE_HOOK(GhostPass, ll::memory::HookPriority::Normal, LevelRenderer
         auto faces = overlay::faceMaterial(client);
         drawPoint(context.mScreenContext, context.mImpl->mCameraPosition, faces.material, faces.twoSided);
         stepSave(player->getDimensionBlockSource(), *player);
-        drawSelection(context.mScreenContext, player->getDimensionBlockSource(), context.mImpl->mCameraPosition,
-                      static_cast<int>(player->getDimensionId()), faces);
+        drawSelection(context.mScreenContext, context.mImpl->mCameraPosition, static_cast<int>(player->getDimensionId()), faces);
         drawWaitingColumns(context.mScreenContext, context.mImpl->mCameraPosition, faces.material, faces.twoSided);
     } catch (std::exception const& error) {
         static bool reported = false;
