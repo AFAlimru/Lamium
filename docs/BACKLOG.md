@@ -402,7 +402,8 @@ separate. [SCHEMATIC.md](SCHEMATIC.md).
 Kind: Bug / Research. User report 2026-10-14; not yet reproduced.
 Status: ghost fix checked 2026-10-14 on `9b3b8a9`: openings under rotation
 and mirror match a structure block. The Check now also compares a placed
-box's opening (`27fff48`, a gated read, unchecked). Check in game: all six directions, each rotation and both
+box's opening (`27fff48`, seen working 2026-10-14) and marks it yellow in
+the world (`c92d93a`, unchecked). Check in game: all six directions, each rotation and both
 mirrors against a structure block load of the same file; if an unturned
 placement is also wrong, the cause is elsewhere (actor load or renderer).
 Shulker boxes in a schematic can be rendered without their
@@ -588,8 +589,9 @@ L-114's Check-tab 3D preview mistake styling.
 Kind: Feature. User feedback 2026-10-14; maintainer chose the range the
 same day: zoom out until everything explored fits on one screen.
 Status: checked 2026-10-14 on `9b3b8a9` (VALIDATION-LOG): whole explored
-area on screen, small worlds unchanged. Open: a brief wrong drawing on a
-quick zoom-in after a far view; fix `00be8f0` to check. Steps to
+area on screen, small worlds unchanged. Open: zooming in after a far view
+(`00be8f0` then `f25188f`, which fixes finer tiles never replacing the
+coarse stand-ins) to check. Steps to
 1/256 GUI units per block open as far as the layer's explored bounds need;
 coarse images skip empty space and rebuild only changed quarters.
 Check in game: zoom out on a large explored world (Overworld and a Nether

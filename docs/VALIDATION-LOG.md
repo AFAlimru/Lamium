@@ -12,6 +12,25 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-187 slot fix, L-179 opening check, Schematics off (2026-10-14)
+
+Maintainer report on `d9a016c`, DLL SHA-256
+`1388c732d6713ffa27f8d1c34ae3fbd903db1642c721d227a50253756b41d023`,
+both 1.26.51.01 instances deployed, Windows x64, local world.
+
+- The three requested checks were "mostly fine".
+- L-187: after zooming in, only part of the view became sharp; the rest
+  stayed coarse, enlarged far images (screenshot). Cause found in code:
+  `00be8f0` kept a waiting slot's last-use time old, so it was reassigned
+  every frame and the finer tiles never showed. Fixed in `f25188f`, not yet
+  checked.
+- L-179: the Check detects a shulker box opening another way (target card
+  `facing up -> east`, screenshot), but no yellow mark appeared on it in the
+  world while red marks showed elsewhere. Cause: the section marks judged the
+  block alone. Fixed in `c92d93a` (shared comparison, section rebuilt when
+  the opening arrives), not yet checked.
+- Schematics off guidance: no problem reported.
+
 ## L-187, L-176, L-188, L-179 batch check (2026-10-14)
 
 Maintainer report on `9b3b8a9`, DLL SHA-256
