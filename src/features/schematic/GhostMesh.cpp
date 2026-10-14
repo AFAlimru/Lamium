@@ -178,18 +178,14 @@ void cullAgainstGhosts(Tessellator& batch, size_t from, BlockSource& region, ses
             bool shared = !realOpaque && (ghostOpaque || (pairAllGhostFaces && reaches));
             bool nearCamera = shared && (camera.near(at) || camera.near(n));
             bool beyond = nearCamera && faces::beyond(side, at.x, at.y, at.z, camera.eye.x, camera.eye.y, camera.eye.z);
-            known = faces::dropFace(realOpaque, ghostOpaque, shared, nearCamera, beyond)
-                || (!realOpaque && !nearCamera && selfBlended
-                    && faces::dropBlendedFace(reaches, nearBlended, near.block && &near.block->getBlockType() == &self.getBlockType(), side));
-            // L-178 follow-up: a border face kept against another placement's
-            // ghost still flickered in game; say why it was kept (bounded).
-            static int keptLogged = 0;
-            if (another && near.block && !*known && keptLogged < 20) {
-                ++keptLogged;
-                log(std::format("border face kept at {} {} {} side {}: neighbor {} sides {} reaches {} blended {}/{} near camera {} real opaque {}",
-                                at.x, at.y, at.z, side, near.block->getTypeName(), near.sides, reaches, selfBlended, nearBlended,
-                                nearCamera, realOpaque));
-            }
+            bool sameType = near.block && &near.block->getBlockType() == &self.getBlockType();
+            // Two see-through ghosts of a kind never keep a face between them,
+            // not even next to the camera: kept there by the camera pairing,
+            // two sections built with the camera on either side each kept
+            // theirs and the pair flickered (L-193, seen in the log).
+            known = (!realOpaque && selfBlended && nearBlended && sameType && reaches)
+                || faces::dropFace(realOpaque, ghostOpaque, shared, nearCamera, beyond)
+                || (!realOpaque && !nearCamera && selfBlended && faces::dropBlendedFace(reaches, nearBlended, sameType, side));
         }
         if (*known) for (size_t k = 1; k < 4; ++k) positions[q + k] = positions[q];
     }
