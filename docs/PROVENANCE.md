@@ -86,6 +86,12 @@ it) while doing so.
 - enchant-order (a web tool, MIT): the problem it solves, named by the
   maintainer 2026-10-12, is the source of the L-170 idea. Its source is not
   opened; Lamium's anvil rules are checked against the game.
+- Quick Container (a Bedrock resource pack on CurseForge; its terms forbid
+  using its code without permission): named by the maintainer 2026-10-15 as
+  evidence that Bedrock can move everything or every matching item at once.
+  Its files are not opened. Only the game's behavior while the maintainer
+  uses it is observed, through Lamium's `transfer_trace` (vanilla handlers,
+  button ids, request timing), for L-169.
 - Item Scroller (Java, LGPL-3.0-only): the key list in its public Modrinth
   description, read 2026-10-12 at the maintainer's request, is the source
   of L-169's gesture proposal. Its source is not opened. Its public
