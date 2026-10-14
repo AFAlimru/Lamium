@@ -11,7 +11,7 @@
 
 ## Status
 
-Lamium 0.2.1 is an early (0.x) release. The main settings, hotkey, HUD,
+Lamium 0.2.2 is an early (0.x) release. The main settings, hotkey, HUD,
 target card, camera and overlay flows have been exercised in Minecraft on a
 local single-player setup. Map features also have external BDS checks;
 server coverage for other features, controllers and broad resource-pack/graphics
@@ -69,7 +69,8 @@ The managed-update ownership and preservation contract is documented in
 
 Press `L` in a world or on the title screen, or click "Lamium <version>"
 in the title screen's bottom right corner, to open Lamium Settings (views
-made of one world's data, such as waypoints, open only in a world). The screen uses a dense
+made of one world's data, such as waypoints, open only in a world); `L`
+closes it again. The screen uses a dense
 Bedrock-fitting sidebar/table layout with search, English, Japanese and
 Simplified Chinese text (following the game language), immediate persistence and no Save/Cancel step. Hotkeys, Shapes and HUD layout
 are first-class views in the same UI. Every feature has one switch that its
@@ -83,7 +84,8 @@ to the defaults.
   position through menus, adjustable speed with a sprint boost, a player- or
   world-fixed position, the camera's own position and facing in the Info HUD
   and Debug View, waypoints added where the camera is, and optionally leaving
-  when your body is hit), Night Vision that can light everything evenly (no
+  when your body is hit; the hand, the hotbar or the whole HUD can be hidden
+  while it flies), Night Vision that can light everything evenly (no
   dark rings by light sources), experimental Connected Textures (glass, glass
   panes, bookshelves and sandstone next to the same block draw as one
   surface, without seams; glass, bookshelves and sandstone at the texture's
@@ -110,7 +112,8 @@ to the defaults.
   used-slots counter such as 13/36, a Status effects HUD (icons, numeric
   levels and remaining time; the game's own effect icons are hidden while it
   shows), arrows and fireworks counted beside bow, crossbow and elytra
-  durability, and toggle toasts.
+  durability, Chat position (off by default: chat messages at the bottom
+  left as on Java Edition, movable in the HUD layout editor), and toggle toasts.
 - **World overlays:** Shapes (box, cone, pyramid, ellipsoid, dome and more)
   with per-world persistence, Java-style Chunk Borders, Hitboxes with eye/look
   markers and a light-level overlay.
@@ -119,14 +122,17 @@ to the defaults.
   item tooltip, every trader level in the trade screen (locked trades shown
   dimmed, with their items' names on hover), English names and IDs found by
   the recipe book and creative search in any game language, inventory sorting,
-  experimental Item Transfer between your inventory and item screens (also
-  from the inventory screen). Unreleased 0.2.2 adds matching/all-item wheel
-  and Alt-click moves, Shift + right drag to leave one, and native slot routes
-  for furnace, brewing stand, beacon and other item screens. Tool Switch and
+  experimental Item Transfer between your inventory and every item screen
+  (chests, furnaces, brewing stands, hoppers, beacons and more, also the
+  inventory screen): the wheel, Shift + wheel and drags move one item or a
+  stack, Ctrl + wheel or Alt + click moves every item of a kind, Ctrl +
+  Shift + wheel or Alt + Shift + click moves everything (the hotbar only when
+  you start over it), and Shift + right drag leaves one in each slot; furnace,
+  brewing and beacon slots get only what they accept. Tool Switch and
   Weapon Switch (optionally fetching a tool or weapon from the inventory, into
   the selected slot or a fixed one), an offhand swap key (`F`, as in Java),
   experimental Fake Offhand (uses a hotbar block or item as if it were in the
-  offhand) and experimental Hand Restock (tops up consumed items in the same
+  offhand, also when the item in your hand has nothing to do where you aim) and experimental Hand Restock (tops up consumed items in the same
   hand slot from the inventory or hotbar, with a threshold and a source order,
   swaps container remainders, and refills an offhand totem after it saves
   you), and experimental Death layout restore (picking up your dropped items
@@ -138,8 +144,9 @@ to the defaults.
   (stops at block edges without sneaking, with an adjustable margin; also on
   servers), experimental Tool Protection (on by
   default: at 1 durability a tool or worn elytra is swapped for a spare, or
-  mining stops), experimental Auto Elytra (a key or a firework jump puts an
-  elytra on; the chestplate returns after landing), breaking restriction
+  mining stops), experimental Auto Elytra (a key, a firework jump or a
+  Riptide trident launch puts an elytra on; the chestplate returns after
+  landing), breaking restriction
   (modes anchored where you start breaking, including a height band) and
   Auto Attack/Use (Periodic, Hold or Fast click).
 - **Map (experimental, off by default):** a minimap HUD element (size,
@@ -149,7 +156,8 @@ to the defaults.
   and dropped items as dots, or optionally as mob faces and player skin
   heads; waypoints with the last death point, shown on the minimap and in
   the world, edited in a Waypoints screen; and a world map (`M`) of the
-  areas you have visited, recorded per world, with a waypoint side panel and
+  areas you have visited, recorded per world (zooming out until everything
+  explored fits on the screen), with a waypoint side panel and
   a link that opens the same place in ChunkBase's seed map. Schematic
   placements and shapes show on the world map, where a click selects one and
   its menu shows or hides it or opens it in its own screen; shapes can also
@@ -159,7 +167,9 @@ to the defaults.
   from `mods/Lamium/schematics/` as ghost blocks (move, turn, mirror, show
   layers along any axis), see what is missing, wrong or in the wrong state
   in the world, the target card (with the expected block and what to change),
-  a Check list and a HUD, count the materials left against what you carry
+  a Check list and a HUD, the ghost you aim at in the target card (named as
+  not placed yet; a real block that differs says what is wrong first), a
+  ghost tint strength and outline width of your choice, count the materials left against what you carry
   (Shulker Boxes included, in chests and stacks), save an area of the world
   as a schematic (also larger than the render distance, by walking along it),
   and work with all of it during play from a radial schematic menu and a key
@@ -210,9 +220,9 @@ Minecraft's "copy coordinates" while Lamium is installed unless you rebind it.
   broader graphics/resource configurations remain untested.
 - Edge Guard is checked in local worlds and on a test BDS (including server
   position corrections); other servers and their anti-cheat are untested.
-- Item Transfer's unreleased bulk/leave-one moves passed a local smoke test
-  in chest, furnace, brewing stand and beacon screens. Other screen families,
-  detailed edge cases and multiplayer for these additions remain untested.
+- Item Transfer's bulk and leave-one moves are checked in chest, furnace,
+  brewing stand and beacon screens, locally and on a test BDS. Other screen
+  families, other servers and rejected moves on laggy servers are untested.
 - The breaking restriction modes will be redesigned.
 - Auto Attack/Use: whether several clicks per tick land on servers is not
   verified.
