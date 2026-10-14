@@ -71,8 +71,9 @@ L-item wins. Every entry names what the task is, not only its number.
 
 1. **Small and medium features and fixes** (maintainer 2026-10-10: these
    come before large features and L-111 integration for now):
-   - Bugs: L-177, L-181, L-192, L-193 (player reports, need reproductions
-     or an agreed rule); L-123 elytra stretched on the inventory model after FreeCamera and
+   - Bugs: L-177, L-181 (player reports, need reproductions or an agreed
+     rule); L-192, L-193, L-194 schematic drawing (maintainer 2026-10-15:
+     schematic drawing work pauses here; far-away cases remain); L-123 elytra stretched on the inventory model after FreeCamera and
      L-91 shield glint in Lamium's icons (both parked); L-132 moving with
      the inventory screen open (paused after eight rounds).
    - Specs to agree with the maintainer before building: L-165 Mass Craft,

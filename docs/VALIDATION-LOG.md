@@ -12,6 +12,19 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-182 reporter's doubt and the log timeline (2026-10-15)
+
+The reporter doubted the cause: the crashes were in the world where the
+schematic was first imported, the only one where schematics were used.
+Their `2026-10-14.4.log` (14:49:27-15:51:56, after the 14:49 crash) shows
+world joins ("World map: saving to ...") alternating between two world
+folders: JDce+B0LUjQ= 14:50:05, fBx9HspzF+c= 15:08:55, JDce 15:09:31, fBx9
+15:48:59, JDce 15:50:04, fBx9 15:50:51, JDce 15:51:46, then the crash at
+15:53:07. Rejoining any world (the same one included) is expected to be
+enough. Asked: the second world, and whether the earlier crashes followed
+a rejoin. Maintainer 2026-10-15: schematic drawing work pauses (L-192,
+L-193 far cases and L-194 remain open).
+
 ## Blended members fix passes; corner over glass isolated (2026-10-15)
 
 Maintainer report on `621d879` (DLL `7a5722fa...d7a`):
