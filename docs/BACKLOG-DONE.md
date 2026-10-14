@@ -10,6 +10,66 @@ Runtime status is in [VALIDATION.md](VALIDATION.md), the evidence in
 
 ## Bugs
 
+### L-176 Preserve Chunk Borders and Hitboxes line colors in Vibrant Visuals
+Done 2026-10-14: colors seen in Vibrant Visuals on `9b3b8a9` (fix `2d176aa`). Ordinary modes, graphics switching and depth stay in VALIDATION.
+Kind: Bug / Research (strong model). Imported from the maintainer's Notion
+idea inbox and chosen for the backlog 2026-10-14; no implementation or
+release selected in this step.
+Status: fixed; colors seen in Vibrant Visuals on `9b3b8a9` (2026-10-14).
+Ordinary modes, graphics switching and depth remain in VALIDATION. The
+maintainer reports that Chunk Borders loses its colors
+with Vibrant Visuals enabled, and has now confirmed the same loss on
+Hitboxes in game. The build/hash and detailed environment for this report
+were not separately identified (VALIDATION-LOG).
+Goal: retain the existing five Chunk Borders color groups and the white
+bounds, red eye marker and blue look line of Hitboxes in both ordinary
+graphics modes and Vibrant Visuals.
+
+Current evidence and candidate fix:
+- `src/overlay/WorldOverlay.cpp` `drawLines()` writes per-group vertex
+  colors into one mesh drawn with the `debug` material. Both features use
+  this path; the renderer's exact cause remains a hypothesis.
+- `src/overlay/LineColor.h` already provides `lines::material()`
+  (`selection_box`, with a `debug` fallback) and `lines::colored()` to set
+  and restore `ShaderColor`. The schematic line path has runtime evidence
+  of colors retained under Vibrant Visuals (SCHEMATIC.md, 2026-10-09).
+- Investigate using that existing path for each nonempty color group:
+  up to five submissions for Chunk Borders and three for Hitboxes. Merely
+  changing the material on a single multicolor draw cannot supply distinct
+  per-draw shader colors. Preserve color/alpha semantics and restore shader
+  state after every draw, including early returns.
+
+Scope: keep geometry, chunk caching, camera following, `worldLinePull`,
+Hitboxes distance filtering and frame interpolation unchanged. Audit all
+shared `drawLines()` callers for side effects; do not expand this task into
+unconfirmed Light Overlay or other rendering changes. Bound submissions
+and retain the existing version/capability and invalid-material fallbacks.
+Likely files: `src/overlay/WorldOverlay.cpp`, `src/overlay/LineColor.h` if
+needed; pure group helpers/tests only if introduced; OVERLAYS and VALIDATION.
+
+Acceptance: compare both features in ordinary modes and Vibrant Visuals,
+including switching graphics settings during play. Verify all existing
+color groups, line thickness, terrain depth/occlusion, lines on walls and
+over the vanilla selection outline, drawing order with other overlays,
+camera tracking and feature OFF restoration. Build/tests alone cannot
+close the item. Technical notes: [OVERLAYS.md](OVERLAYS.md).
+
+### L-179 Schematic ghost orientation for shulker boxes and similar blocks
+Done 2026-10-14: ghost openings under rotation and mirror match a structure block (`dfc262d`, seen on `9b3b8a9`); the Check compares a placed box's opening (`27fff48`) and marks it yellow in the world (`c92d93a`), both passed on `7548f0f`.
+Kind: Bug / Research. User report 2026-10-14; not yet reproduced.
+Status: ghost fix checked 2026-10-14 on `9b3b8a9`: openings under rotation
+and mirror match a structure block. The Check now also compares a placed
+box's opening (`27fff48`, seen working 2026-10-14) and marks it yellow in
+the world (`c92d93a`, unchecked). Check in game: all six directions, each rotation and both
+mirrors against a structure block load of the same file; if an unturned
+placement is also wrong, the cause is elsewhere (actor load or renderer).
+Shulker boxes in a schematic can be rendered without their
+recorded orientation. Determine whether the file contains the expected
+BlockState/NBT and where the placement rotation/mirror, block actor or mesh
+draw path loses it. Test all six shulker directions and transformed placements;
+audit other orientation-sensitive blocks without assuming they share the
+cause. [SCHEMATIC.md](SCHEMATIC.md).
+
 ### L-162 Edge Guard: fall after a server correction re-runs recent ticks
 Done 2026-10-13: `4fe7b29` captures guarded replay input through an owned copy;
 `e8b0a52` also aligns the outgoing raw move vector without modifying physical
@@ -748,6 +808,35 @@ result is only the converted text; Latin typing and Backspace unchanged.
 ---
 
 ## Ready
+
+### L-187 Increase the world map's maximum zoom-out
+Done 2026-10-14: zoom out to the whole explored area (`85207e9`, seen on `9b3b8a9`); the zoom-in drawing fixes `00be8f0` and `f25188f` passed on `7548f0f`. First far build time on very large maps and servers stay in VALIDATION.
+Kind: Feature. User feedback 2026-10-14; maintainer chose the range the
+same day: zoom out until everything explored fits on one screen.
+Status: checked 2026-10-14 on `9b3b8a9` (VALIDATION-LOG): whole explored
+area on screen, small worlds unchanged. Open: zooming in after a far view
+(`00be8f0` then `f25188f`, which fixes finer tiles never replacing the
+coarse stand-ins) to check. Steps to
+1/256 GUI units per block open as far as the layer's explored bounds need;
+coarse images skip empty space and rebuild only changed quarters.
+Check in game: zoom out on a large explored world (Overworld and a Nether
+layer), the first far build time, waypoint/marker readability at the
+farthest step, recording while open, and that a small world still stops at
+1/8. Not chosen: auto-centering on the explored area. No release chosen.
+This request is not to generate or retain more unexplored terrain.
+
+### L-188 Let the settings key toggle the settings screen closed
+Done 2026-10-14: `a123eba` passed on `9b3b8a9` (open/close, held L, typing, binding). A remapped key and the tool pages stay in VALIDATION.
+Kind: Feature. User feedback 2026-10-14. Status: checked 2026-10-14 on
+`9b3b8a9` (open/close, held L, typing, binding); a remapped key and the tool
+pages remain in VALIDATION.
+The default L shortcut closes Lamium Settings as well as opening it; the
+chosen rule is in UX-FOLLOWUP.md "Settings key feedback". Check in game:
+L opens and closes; holding L opens once; typing L in search, a number or
+a name does not close; key capture of L still binds; the world map keeps
+M/Esc; a remapped Settings key works the same; no input leaks into
+gameplay after closing. Do not fold the
+separate crash report (L-182) into a mere UX toggle fix.
 
 ### L-174 Chat messages placed like Java Edition, through the HUD layout
 Done 2026-10-14: initial native chat placement (`5b5750c`) and the

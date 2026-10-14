@@ -12,6 +12,15 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-187 and L-179 follow-up fixes pass (2026-10-14)
+
+Maintainer report on `7548f0f`, DLL SHA-256
+`3618cc102f78a6b9be17cfa56ed8552290d420c28058e8d571d2fbfc52ca3e4f`,
+both 1.26.51.01 instances deployed, Windows x64, local world: both checks
+passed (the whole world map turns sharp after zooming in from a far view;
+a shulker box opening another way gets the yellow mark, which goes away
+when it is placed the right way).
+
 ## L-187 slot fix, L-179 opening check, Schematics off (2026-10-14)
 
 Maintainer report on `d9a016c`, DLL SHA-256

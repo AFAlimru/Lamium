@@ -71,8 +71,8 @@ L-item wins. Every entry names what the task is, not only its number.
 
 1. **Small and medium features and fixes** (maintainer 2026-10-10: these
    come before large features and L-111 integration for now):
-   - Bugs: L-176 Chunk Borders / Hitboxes lose their line colors in Vibrant
-     Visuals; L-123 elytra stretched on the inventory model after FreeCamera and
+   - Bugs: L-177, L-178, L-180 to L-182 (player reports, need reproductions
+     or an agreed rule); L-123 elytra stretched on the inventory model after FreeCamera and
      L-91 shield glint in Lamium's icons (both parked); L-132 moving with
      the inventory screen open (paused after eight rounds).
    - Specs to agree with the maintainer before building: L-165 Mass Craft,
@@ -83,7 +83,8 @@ L-item wins. Every entry names what the task is, not only its number.
      stay later. This list approves no implementation and sets no release.
    - Done since 0.2.0 (BACKLOG-DONE): L-155, L-157 to L-161, L-147, L-148,
      L-150, L-164 with L-133 and L-156, L-171 calculator, L-172 text
-     fields, L-166 repeated villager trades (part 1), L-174 chat position.
+     fields, L-166 repeated villager trades (part 1), L-174 chat position,
+     L-176, L-179, L-187, L-188.
 2. **Schematic — L-93 follow-ups:** the screen review and the 0.1.8
    rendering work shipped in 0.1.8. Open: L-114 the Check tab preview's
    mistake look and see-through emphasis, L-115 entity models beyond the
@@ -398,21 +399,6 @@ Compare retracted/extended, facing and rotation/mirror combinations with the
 file's states and an actual block. Keep mesh/state and texture/UV diagnosis
 separate. [SCHEMATIC.md](SCHEMATIC.md).
 
-### L-179 Schematic ghost orientation for shulker boxes and similar blocks
-Kind: Bug / Research. User report 2026-10-14; not yet reproduced.
-Status: ghost fix checked 2026-10-14 on `9b3b8a9`: openings under rotation
-and mirror match a structure block. The Check now also compares a placed
-box's opening (`27fff48`, seen working 2026-10-14) and marks it yellow in
-the world (`c92d93a`, unchecked). Check in game: all six directions, each rotation and both
-mirrors against a structure block load of the same file; if an unturned
-placement is also wrong, the cause is elsewhere (actor load or renderer).
-Shulker boxes in a schematic can be rendered without their
-recorded orientation. Determine whether the file contains the expected
-BlockState/NBT and where the placement rotation/mirror, block actor or mesh
-draw path loses it. Test all six shulker directions and transformed placements;
-audit other orientation-sensitive blocks without assuming they share the
-cause. [SCHEMATIC.md](SCHEMATIC.md).
-
 ### L-180 Auto Elytra does not trigger on Riptide travel
 Kind: Bug / Research. User report 2026-10-14; scope of expected trigger
 needs confirmation. Status: open, unverified.
@@ -444,49 +430,6 @@ specific cause. Test repeated open/close with active checking and after
 world/dimension changes. No release target; crashing is a priority when
 reproducible. [SCHEMATIC.md](SCHEMATIC.md).
 
-
-### L-176 Preserve Chunk Borders and Hitboxes line colors in Vibrant Visuals
-Kind: Bug / Research (strong model). Imported from the maintainer's Notion
-idea inbox and chosen for the backlog 2026-10-14; no implementation or
-release selected in this step.
-Status: fixed; colors seen in Vibrant Visuals on `9b3b8a9` (2026-10-14).
-Ordinary modes, graphics switching and depth remain in VALIDATION. The
-maintainer reports that Chunk Borders loses its colors
-with Vibrant Visuals enabled, and has now confirmed the same loss on
-Hitboxes in game. The build/hash and detailed environment for this report
-were not separately identified (VALIDATION-LOG).
-Goal: retain the existing five Chunk Borders color groups and the white
-bounds, red eye marker and blue look line of Hitboxes in both ordinary
-graphics modes and Vibrant Visuals.
-
-Current evidence and candidate fix:
-- `src/overlay/WorldOverlay.cpp` `drawLines()` writes per-group vertex
-  colors into one mesh drawn with the `debug` material. Both features use
-  this path; the renderer's exact cause remains a hypothesis.
-- `src/overlay/LineColor.h` already provides `lines::material()`
-  (`selection_box`, with a `debug` fallback) and `lines::colored()` to set
-  and restore `ShaderColor`. The schematic line path has runtime evidence
-  of colors retained under Vibrant Visuals (SCHEMATIC.md, 2026-10-09).
-- Investigate using that existing path for each nonempty color group:
-  up to five submissions for Chunk Borders and three for Hitboxes. Merely
-  changing the material on a single multicolor draw cannot supply distinct
-  per-draw shader colors. Preserve color/alpha semantics and restore shader
-  state after every draw, including early returns.
-
-Scope: keep geometry, chunk caching, camera following, `worldLinePull`,
-Hitboxes distance filtering and frame interpolation unchanged. Audit all
-shared `drawLines()` callers for side effects; do not expand this task into
-unconfirmed Light Overlay or other rendering changes. Bound submissions
-and retain the existing version/capability and invalid-material fallbacks.
-Likely files: `src/overlay/WorldOverlay.cpp`, `src/overlay/LineColor.h` if
-needed; pure group helpers/tests only if introduced; OVERLAYS and VALIDATION.
-
-Acceptance: compare both features in ordinary modes and Vibrant Visuals,
-including switching graphics settings during play. Verify all existing
-color groups, line thickness, terrain depth/occlusion, lines on walls and
-over the vanilla selection outline, drawing order with other overlays,
-camera tracking and feature OFF restoration. Build/tests alone cannot
-close the item. Technical notes: [OVERLAYS.md](OVERLAYS.md).
 
 ### L-123 FreeCamera stretches the worn elytra on the inventory player model
 Kind: Bug, low priority. Reported from use 2026-10-09 (maintainer's notes).
@@ -527,6 +470,16 @@ type 3, scale 1.333, with the font's own material).
 ---
 
 ## Feature work and research
+
+### L-190 Select several rows at once in list screens
+Kind: Design. Maintainer idea 2026-10-14; no implementation or release chosen.
+Goal: in list screens (waypoints, the schematic Check list and similar lists)
+select several rows with Ctrl/Shift + click or by dragging, and act on them
+together (for example hide, delete or show in world).
+Open: which lists and which bulk actions; how Ctrl (toggle one) and Shift
+(range) combine with the current single selection and the detail pane;
+drag selection versus dragging to scroll or reorder; confirmation for
+destructive bulk actions; keyboard equivalents.
 
 ### L-183 Temporarily disregard selected schematic check mismatches
 Kind: Design, then Ready/Research depending on the chosen check state.
@@ -584,33 +537,6 @@ Consider mode/opacity controls only after comparison; avoid changing the
 existing default without the maintainer's decision. Related but distinct:
 L-114's Check-tab 3D preview mistake styling.
 [SCHEMATIC.md](SCHEMATIC.md).
-
-### L-187 Increase the world map's maximum zoom-out
-Kind: Feature. User feedback 2026-10-14; maintainer chose the range the
-same day: zoom out until everything explored fits on one screen.
-Status: checked 2026-10-14 on `9b3b8a9` (VALIDATION-LOG): whole explored
-area on screen, small worlds unchanged. Open: zooming in after a far view
-(`00be8f0` then `f25188f`, which fixes finer tiles never replacing the
-coarse stand-ins) to check. Steps to
-1/256 GUI units per block open as far as the layer's explored bounds need;
-coarse images skip empty space and rebuild only changed quarters.
-Check in game: zoom out on a large explored world (Overworld and a Nether
-layer), the first far build time, waypoint/marker readability at the
-farthest step, recording while open, and that a small world still stops at
-1/8. Not chosen: auto-centering on the explored area. No release chosen.
-This request is not to generate or retain more unexplored terrain.
-
-### L-188 Let the settings key toggle the settings screen closed
-Kind: Feature. User feedback 2026-10-14. Status: checked 2026-10-14 on
-`9b3b8a9` (open/close, held L, typing, binding); a remapped key and the tool
-pages remain in VALIDATION.
-The default L shortcut closes Lamium Settings as well as opening it; the
-chosen rule is in UX-FOLLOWUP.md "Settings key feedback". Check in game:
-L opens and closes; holding L opens once; typing L in search, a number or
-a name does not close; key capture of L still binds; the world map keeps
-M/Esc; a remapped Settings key works the same; no input leaks into
-gameplay after closing. Do not fold the
-separate crash report (L-182) into a mere UX toggle fix.
 
 ### L-189 Fake Offhand fallback when primary right-click has no useful action
 Kind: Research, then Design (strong model). User feedback clarified
