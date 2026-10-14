@@ -100,7 +100,10 @@ leaves); interactive blocks and entities are decided first.
   air there; when the planted block is unknown, crops need the top of
   farmland and nether wart the top of soul sand (`plantsOn`); else the
   component's `canUseOn`. One log line per planter item says how it was
-  judged.
+  judged. Wheat seeds and carrots report neither the planter
+  property nor its component, so vanilla planters also count by name
+  (`plants`: `_seeds`, carrots, potatoes, pitcher pods, nether wart, sweet
+  and glow berries, cocoa beans).
 - Fertilizers (bone meal): the block's `canBeFertilized` with the block
   above.
 - Minecarts: the block's `isRailBlock`.

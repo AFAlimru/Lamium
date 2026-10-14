@@ -36,6 +36,13 @@ too; a liquid is looked for along the aim.
   block must also `canSurvive` there, a farmland / soul sand fallback when
   the planted block is unknown, and one log line per planter item
   ("Fake Offhand: planter ...") saying how it was judged.
+- On `572e7e4` (DLL `dda3f55e...e785`): wheat seeds on stone or dirt still
+  did nothing; seeds and carrots on farmland planted; a carrot at full
+  hunger on dirt used the fake offhand. No planter log line at all: neither
+  wheat seeds nor carrots report the planter property or component, so the
+  planter check was never reached (seeds hit the old `_seeds` rule; a carrot
+  at full hunger on farmland would have used the fake offhand). Next
+  build: vanilla planters also count by name.
 
 ## L-182 reporter's doubt and the log timeline (2026-10-15)
 

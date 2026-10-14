@@ -80,6 +80,13 @@ inline std::string_view plantsOn(std::string_view item) {
     if (item == "nether_wart") return "soul_sand";
     return {};
 }
+// Whether the item plants a block. Wheat seeds and carrots report neither the
+// planter property nor its component (seen in game, L-189), so the vanilla
+// planters also count by name.
+inline bool plants(ItemTraits const& item) {
+    auto id = detail::vanillaId(item.name);
+    return item.planter || !plantsOn(id).empty() || detail::any(id, {"sweet_berries", "glow_berries", "cocoa_beans"});
+}
 // A log, wood, stem or hyphae that is not stripped yet, or a bamboo block.
 inline bool strippable(std::string_view block) {
     return block == "bamboo_block"
@@ -90,7 +97,7 @@ enum class TargetUse { None, Planter, Fertilizer, Rail, Honeycomb, Axe, Shovel, 
 inline TargetUse targetUseOf(ItemTraits const& item, bool shovelTag, bool hoeTag, bool shearsTag) {
     auto id = detail::vanillaId(item.name);
     if (item.empty || id.empty()) return TargetUse::None;
-    if (item.planter) return TargetUse::Planter;
+    if (plants(item)) return TargetUse::Planter;
     if (item.fertilizer) return TargetUse::Fertilizer;
     if (id == "minecart" || id.ends_with("_minecart")) return TargetUse::Rail;
     if (id == "honeycomb") return TargetUse::Honeycomb;
@@ -124,7 +131,7 @@ inline bool primaryPass(ItemTraits const& item, bool blockTarget, bool cannotEat
     if (item.food) {
         if (!cannotEat) return false;
         if (!blockTarget) return true;
-        return plainTarget && (!item.planter || targetUse == false);
+        return plainTarget && (!plants(item) || targetUse == false);
     }
     if (item.wearable || detail::airUse(id)) return false;
     if (item.idleTool) return true;
@@ -133,7 +140,7 @@ inline bool primaryPass(ItemTraits const& item, bool blockTarget, bool cannotEat
     if (!blockTarget) return true;
     // Dyes and books act on signs, lecterns and shelves, which have block
     // entities: on plain blocks they pass.
-    return plainTarget && !item.block && !item.planter && !item.fertilizer && !item.damageable && !detail::blockUse(id);
+    return plainTarget && !item.block && !plants(item) && !item.fertilizer && !item.damageable && !detail::blockUse(id);
 }
 // Whether the secondary item has an instant use the per-call borrow can run.
 // Timed and tethered items (a fishing line follows the selected item) cannot.

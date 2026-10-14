@@ -101,6 +101,11 @@ void fakeOffhandTests() {
     check(plantsOn("wheat_seeds") == "farmland" && plantsOn("carrot") == "farmland" && plantsOn("pitcher_pod") == "farmland"
               && plantsOn("nether_wart") == "soul_sand" && plantsOn("sweet_berries").empty() && plantsOn("cocoa_beans").empty(),
           "the fallback names what crops and nether wart stand on, and leaves the rest unread");
+    ItemTraits plainCarrot{.name = "minecraft:carrot", .food = true, .timed = true};
+    check(targetUseOf(item("minecraft:wheat_seeds"),false,false,false) == TargetUse::Planter
+              && targetUseOf(plainCarrot,false,false,false) == TargetUse::Planter
+              && !primaryPass(plainCarrot,true,true) && primaryPass(plainCarrot,true,true,true,false),
+          "vanilla planters count by name when the game reports no planter (wheat seeds, carrots)");
     // L-189: an air use that cannot act now (no arrows, Riptide out of water,
     // a firework while not gliding, an empty bucket aimed at no liquid).
     for (auto traits : {item("minecraft:firework_rocket"), ItemTraits{.name = "minecraft:bow", .timed = true},
