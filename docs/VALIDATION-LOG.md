@@ -35,6 +35,10 @@ Maintainer report on `621d879` (DLL `7a5722fa...d7a`):
   translucent terrain is drawn after the block entity alpha pass depending
   on the camera's chunk, and the mark's depth hides it. Next build: these
   corners draw in the name tag pass (`GhostLatePass`).
+- On `8b7c76d` (DLL `b970c0b3...e62b`): unchanged over glass and water; the
+  0.02 outset made the faces look lifted over stone (screenshot). The late
+  pass, the alpha-pass move and the outset are reverted (`8d3cdae`,
+  `754a1d6`, and the following commit); parked as L-194.
 
 ## Re-sort interval: faster, but water blinked by section (2026-10-15)
 
