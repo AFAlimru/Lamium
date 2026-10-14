@@ -377,10 +377,8 @@ Hooks: `EffectsPassHook`
 Trace (ghost probe).
 
 ### `src/features/schematic/GhostRenderer.cpp`
-Hooks: `GhostBlendPass`, `GhostLatePass`, `GhostPass`
-Meaning: `GhostLatePass` (the name tag pass) runs after the world's
-translucent terrain, where save corners against real glass or water draw;
-the block tessellator's private fields Lamium sets on its own
+Hooks: `GhostBlendPass`, `GhostPass`
+Meaning: the block tessellator's private fields Lamium sets on its own
 tessellator (render layer, shape set, region), the mesh data streams
 (positions, colors, light UVs) it edits, the alpha pass order, and the
 material names `beacon_beam_transparent`, `holo_hand_pointer`. Gated
