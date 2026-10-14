@@ -12,6 +12,31 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-187, L-176, L-188, L-179 batch check (2026-10-14)
+
+Maintainer report on `9b3b8a9`, DLL SHA-256
+`b1ed4d6a708cbe9b91cad22c717d1435928fa51b3fae29ca46ba643efc151327`,
+deployed to both the 1.26.51.01 and 1.26.51.01 LIP instances (which one ran
+was not stated), Windows x64, local world. All diagnostics off.
+
+- L-187 world map zoom-out: a small world stops at 1/8 as before; a large
+  world zooms out until all explored area is on screen. Defect: right after
+  viewing a large area, a quick wheel zoom-in briefly drew the map wrongly,
+  apparently showing other places than the one zoomed into. Candidate fix
+  `00be8f0` (a reused texture slot is drawn only a few frames after its new
+  image is uploaded; any coarser image stands in), not yet checked.
+- L-176: in Vibrant Visuals Hitboxes and Chunk Borders show their colors.
+  Ordinary modes, graphics switching and depth were not itemized.
+- L-188: L opens and closes settings; holding L opens it once; L typed in
+  search does not close; binding L as a key works.
+- L-179: rotated and mirrored placements with shulker boxes match a
+  structure block load of the same file. Found: the Check counted a placed
+  shulker box with another opening as correct (fixed in `27fff48`, not yet
+  checked).
+- Separately: with the Schematics feature off, R's radial menu items (area
+  selection, save) did nothing, without a clear message. Guidance built in
+  `6a8b37c`, not yet checked.
+
 ## L-176 Chunk Borders and Hitboxes lose colors in Vibrant Visuals (2026-10-14)
 
 Maintainer report: Chunk Borders loses its line colors in Vibrant Visuals,

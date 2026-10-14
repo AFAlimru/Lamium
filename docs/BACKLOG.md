@@ -400,9 +400,9 @@ separate. [SCHEMATIC.md](SCHEMATIC.md).
 
 ### L-179 Schematic ghost orientation for shulker boxes and similar blocks
 Kind: Bug / Research. User report 2026-10-14; not yet reproduced.
-Status: candidate fix built 2026-10-14, not checked in game: the saved
-`facing` in block entity data is now turned with rotated/mirrored placements
-(SCHEMATIC.md). Check in game: all six directions, each rotation and both
+Status: ghost fix checked 2026-10-14 on `9b3b8a9`: openings under rotation
+and mirror match a structure block. The Check now also compares a placed
+box's opening (`27fff48`, a gated read, unchecked). Check in game: all six directions, each rotation and both
 mirrors against a structure block load of the same file; if an unturned
 placement is also wrong, the cause is elsewhere (actor load or renderer).
 Shulker boxes in a schematic can be rendered without their
@@ -448,8 +448,8 @@ reproducible. [SCHEMATIC.md](SCHEMATIC.md).
 Kind: Bug / Research (strong model). Imported from the maintainer's Notion
 idea inbox and chosen for the backlog 2026-10-14; no implementation or
 release selected in this step.
-Status: candidate fix built 2026-10-14, not checked in game (per-group
-submissions with the selection-outline material, OVERLAYS.md). The
+Status: fixed; colors seen in Vibrant Visuals on `9b3b8a9` (2026-10-14).
+Ordinary modes, graphics switching and depth remain in VALIDATION. The
 maintainer reports that Chunk Borders loses its colors
 with Vibrant Visuals enabled, and has now confirmed the same loss on
 Hitboxes in game. The build/hash and detailed environment for this report
@@ -587,7 +587,9 @@ L-114's Check-tab 3D preview mistake styling.
 ### L-187 Increase the world map's maximum zoom-out
 Kind: Feature. User feedback 2026-10-14; maintainer chose the range the
 same day: zoom out until everything explored fits on one screen.
-Status: built, not checked in game (MAP.md "World map zoom-out"). Steps to
+Status: checked 2026-10-14 on `9b3b8a9` (VALIDATION-LOG): whole explored
+area on screen, small worlds unchanged. Open: a brief wrong drawing on a
+quick zoom-in after a far view; fix `00be8f0` to check. Steps to
 1/256 GUI units per block open as far as the layer's explored bounds need;
 coarse images skip empty space and rebuild only changed quarters.
 Check in game: zoom out on a large explored world (Overworld and a Nether
@@ -597,7 +599,9 @@ farthest step, recording while open, and that a small world still stops at
 This request is not to generate or retain more unexplored terrain.
 
 ### L-188 Let the settings key toggle the settings screen closed
-Kind: Feature. User feedback 2026-10-14. Status: built, not checked in game.
+Kind: Feature. User feedback 2026-10-14. Status: checked 2026-10-14 on
+`9b3b8a9` (open/close, held L, typing, binding); a remapped key and the tool
+pages remain in VALIDATION.
 The default L shortcut closes Lamium Settings as well as opening it; the
 chosen rule is in UX-FOLLOWUP.md "Settings key feedback". Check in game:
 L opens and closes; holding L opens once; typing L in search, a number or
