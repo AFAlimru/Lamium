@@ -25,6 +25,9 @@ Maintainer report on `621d879` (DLL `7a5722fa...d7a`):
   so the material's reaction to the real block's depth just behind is
   suspected (the Fancy face material is the hologram pointer). Asked:
   the same in Simple graphics?
+- Answer: it changes in Simple graphics too, so not the material. Next
+  build: the seen faces 0.02 out of the cell, and corners beside a
+  see-through block drawn after the world's translucent blocks.
 
 ## Re-sort interval: faster, but water blinked by section (2026-10-15)
 
