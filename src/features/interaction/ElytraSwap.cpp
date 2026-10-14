@@ -16,6 +16,8 @@
 #include "mc/world/item/ItemStack.h"
 #include "mc/deps/shared_types/legacy/actor/ArmorSlot.h"
 #include "mc/entity/components/MoveInputComponent.h"
+#include "mc/entity/components/RiptideTridentSpinAttackComponent.h"
+#include "mc/world/actor/ActorFlags.h"
 #include "mc/input/MoveInputState.h"
 #include "mc/world/item/enchanting/ItemEnchants.h"
 #include "mc/world/item/enchanting/EnchantmentInstance.h"
@@ -31,7 +33,7 @@ ll::event::ListenerPtr tickListener, exitListener;
 ElytraSwapState state;
 ItemStack worn;      // What the chest held before the elytra went on.
 int dimension = -1;
-bool jumpWasDown = false, keyPressed = false;
+bool jumpWasDown = false, keyPressed = false, wasSpinning = false;
 void trace(char const* stage, int value = 0) noexcept {
 #ifdef LAMIUM_RESTOCK_TRACE
     static TraceBudget budget;
@@ -117,6 +119,11 @@ bool jumpDown(LocalPlayer& player) {
     auto& flags = *input->mInputState->mFlagValues;
     return flags.test(static_cast<size_t>(MoveInputState::Flag::JumpDown));
 }
+// A Riptide launch: the spin the trident starts (L-180).
+bool spinning(LocalPlayer& player) {
+    return player.getEntityContext().tryGetComponent<RiptideTridentSpinAttackComponent>() != nullptr
+        || player.getStatusFlag(ActorFlags::Damagenearbymobs);
+}
 bool holdingFireworks(LocalPlayer& player) {
     auto const& held = player.getInventory().getItem(player.mInventory->mSelected);
     return !empty(held) && held.getTypeName() == "minecraft:firework_rocket";
@@ -125,10 +132,13 @@ void tick() noexcept {
     try {
         bool key = std::exchange(keyPressed,false);
         auto* player = localPlayer();
-        if (!player || !enabled() || player->isCreative()) { jumpWasDown = false; return; }
+        if (!player || !enabled() || player->isCreative()) { jumpWasDown = wasSpinning = false; return; }
         bool down = jumpDown(*player);
         bool jumped = down && !jumpWasDown;
         jumpWasDown = down;
+        bool spin = spinning(*player);
+        bool launched = spin && !wasSpinning;
+        wasSpinning = spin;
         if (state.active && static_cast<int>(player->getDimensionId()) != dimension) { state = {}; trace("forget-dimension"); }
         auto const& settings = Runtime::instance().preferences().interaction;
         if (key) {
@@ -139,6 +149,11 @@ void tick() noexcept {
             && !player->getVehicle() && !player->isInWater()) {
             // Any jump, the one from the ground included (decided 2026-09-30).
             trace("firework-jump");
+            putOn(*player,true);
+        } else if (settings.elytraRiptide && launched && !player->getVehicle()) {
+            // At the launch, not while charging: Riptide flies without an
+            // elytra, so only a real launch is worth a swap (decided 2026-10-14).
+            trace("riptide-launch");
             putOn(*player,true);
         }
         ElytraInput in;

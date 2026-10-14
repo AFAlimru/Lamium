@@ -333,6 +333,7 @@ inline constexpr auto options = std::to_array<Option>({
     toggle<&Settings::interaction, &Settings::Interaction::toolGuardStrict>("interaction.toolGuardStrict", "toolGuard", "toolGuardStrict"),
     toggle<&Settings::interaction, &Settings::Interaction::elytraSwap>("interaction.elytraSwap", "elytraSwap", "elytraSwap"),
     toggle<&Settings::interaction, &Settings::Interaction::elytraFireworkJump>("interaction.elytraFireworkJump", "elytraSwap", "elytraFireworkJump"),
+    toggle<&Settings::interaction, &Settings::Interaction::elytraRiptide>("interaction.elytraRiptide", "elytraSwap", "elytraRiptide"),
     {"interaction.elytraReturnSeconds", "elytraSwap", "elytraReturnSeconds",
         [](Settings const& s) -> OptionValue { return s.interaction.elytraReturnSeconds; },
         [](Settings& s, int direction) { s.interaction.elytraReturnSeconds += direction * .5f; s.normalize(); },

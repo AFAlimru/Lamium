@@ -410,8 +410,12 @@ separate. [SCHEMATIC.md](SCHEMATIC.md).
 
 ### L-180 Auto Elytra does not trigger on Riptide travel
 Kind: Bug / Research. User report 2026-10-14; scope of expected trigger
-needs confirmation. Status: open, unverified. A proposal for the rule is
-in EQUIPMENT.md "Auto Elytra feedback" (2026-10-14), not yet agreed.
+needs confirmation. Rule decided 2026-10-14 (EQUIPMENT.md "Auto Elytra
+feedback"): put the elytra on at the Riptide launch, default on, no
+automatic glide. Status: built, not checked in game. Check in game: a
+Riptide launch in water and in rain puts the elytra on; jumping in the air
+glides; it comes off after landing; the child off keeps vanilla; charging
+without a launch changes nothing; a server.
 Auto Elytra is reported not to respond when a Riptide trident launches the
 player. The current documented trigger is jumping with fireworks in the main
 hand (L-70), so first establish the intended Riptide trigger and the observable

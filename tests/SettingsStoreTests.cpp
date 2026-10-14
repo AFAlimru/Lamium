@@ -327,7 +327,7 @@ void settingsStoreTests() {
           "missing inventory transfer settings default to all gestures on");
     check(old.inventory.restockOffhand && !old.inventory.toolSwitchInventory
           && old.interaction.toolGuard && old.interaction.toolGuardStrict && !old.interaction.elytraSwap
-          && old.interaction.elytraFireworkJump && old.interaction.elytraReturnSeconds == 3,
+          && old.interaction.elytraFireworkJump && old.interaction.elytraRiptide && old.interaction.elytraReturnSeconds == 3,
           "offhand restock and tool protection default on; inventory tool fetch and auto elytra off");
     check(!old.map.minimap && old.map.zoom == map::defaultZoomIndex && !old.map.rotate && !old.map.round && old.map.debugHide
           && old.hud.minimap.anchor == ui::Anchor::TopRight, "the minimap starts off, at 128 blocks, top right");

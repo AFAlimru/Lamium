@@ -98,24 +98,17 @@ what the user expects (equip, enter glide or both), then reproduce the
 Riptide sequence and verify client/server behavior. This is an open report,
 not proof that the existing firework trigger regressed.
 
-Proposal for the maintainer (2026-10-14, not agreed):
-- A child "Riptide with a trident" beside "Jump with fireworks" (default on,
-  like it). It puts the elytra on when the player starts charging a trident
-  with Riptide while Riptide can work (in water or rain), not on release:
-  the throw needs at least half a second of charge, which leaves time for
-  the swap to be confirmed before the launch.
-- No automatic glide (L-71 stays open): the player jumps in the air to glide
-  as in vanilla, as with fireworks.
-- A Riptide launch counts like a firework jump for taking it off: the set
-  time after the first landing. Landing in water does not count as ground,
-  so the elytra stays on while swimming.
-- A charge released without a launch (left the water, cancelled): take the
-  elytra off again after the same delay if the player never left the
-  ground.
-- Server: the same screenless move and authoritative confirmation as the
-  firework trigger.
-Open: charge start versus launch as the trigger, the default, and whether a
-later automatic glide (L-71) should apply to Riptide first.
+Decided 2026-10-14 (maintainer): the trigger is the launch itself, not the
+charge, since Riptide flies without an elytra; default on; no automatic
+glide (L-71 starts later from simpler cases).
+Built 2026-10-14, not checked in game: a child "Riptide launch" (on by
+default) beside "Jump with fireworks". The rising edge of the spin (the
+player's `RiptideTridentSpinAttackComponent`, or the `Damagenearbymobs`
+actor flag) puts the elytra on as a firework jump does, so it comes off the
+set time after the first landing; landing in water is not ground. The
+player jumps in the air to glide. Not in a vehicle or Creative.
+Unknown: whether the local player carries that component or flag during
+the spin on the client, locally and on a server.
 
 ## Verification
 

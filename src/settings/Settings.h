@@ -37,6 +37,7 @@ struct Settings {
         bool elytraSwap = false; // Put on an elytra by key or a firework jump (L-70).
         float elytraReturnSeconds = 3; // Time after landing before the chestplate returns.
         bool elytraFireworkJump = true; // A jump holding fireworks puts the elytra on.
+        bool elytraRiptide = true;      // A Riptide trident launch puts the elytra on (L-180).
         interaction::RestrictionMode breakingMode = interaction::RestrictionMode::Plane;
         float breakingBand = 2; // Height band mode: rows from the feet up (L-15).
         interaction::RestrictionMode placementMode = interaction::RestrictionMode::Plane;
