@@ -2,12 +2,136 @@
 
 ## Current status
 
-L-169's 0.2.2 contract is in BACKLOG.md and DESIGN.md. Its new gestures,
-switches and additional screen support are not implemented yet. The
-contract requires a native-handler investigation before implementation.
-The existing four gestures are unchanged.
+L-169's 0.2.2 contract is implemented, unreleased, awaiting the changed-
+feature runtime checks below. The native-handler investigation passed its
+first local checkpoint on e3f9276; that confirms vanilla paths, not the new
+gestures. Drops, cursor-item operations and W/S moves remain out of scope.
 
-## Research checkpoint (2026-10-15)
+## Current implementation (2026-10-15)
+
+- Ctrl + wheel transfers all matching stacks; Ctrl + Shift + wheel transfers
+  everything in the wheel's direction. Alt + left click and Alt + Shift +
+  left click do the corresponding operation from the clicked side.
+  Everything-from-player retains the hotbar, including when hovered.
+  Everything can start over an empty real slot; matching needs an item.
+- Shift + right drag leaves one in every passed slot. Each new gesture has
+  its own saved child switch, default on; an off gesture passes through to
+  vanilla. The four old switches and saved action IDs are unchanged.
+- The pure helpers in `TransferGesture.h` select gestures, sides, sweep
+  order, hotbar exclusion and candidate count conservation. Matching uses
+  the same native `matchesItem` predicate as the old wheel gestures.
+- A sweep captures owned source stacks, high slots first and the hovered
+  source last. Each queued source must still match its captured item/count.
+  Slots are visited once per entry during a drag, preserving existing
+  re-entry behavior. Releasing the button stops gathering; visited slots
+  may finish.
+- `TransferRoutes` discovers storage collections from the screen's own
+  registered routes, excluding inventory aliases, cursor, armor/offhand,
+  catalogs and crafting previews. This removes the ordinary-storage-only
+  restriction without changing sorting's scope or the shared screen tracker.
+- Vanilla `_handleAutoPlace(amount, collection, index)` owns request creation,
+  prediction and feedback. During that one synchronous Lamium invocation,
+  the manager's amount/stack auto-place calls and request builder receive only native targets
+  on the other side, retaining order and `stopWhenPlaced`. Output collections
+  are not destinations. The game's acceptance/capacity/disabled-slot rules
+  remain authoritative; Lamium does not add a fuel or recipe filter. Native
+  same-player-side fallbacks are removed. No game route map is mutated.
+- The inventory screen still uses explicit placement between the hotbar and
+  main inventory, avoiding auto-equip. Ordinary storage/inventory hover
+  tracking stays as before; added screens use the native hovered slot under
+  the version gate rather than assuming their overrides call the base hook.
+  That hover-field mapping and scoped route-hook interception await runtime
+  confirmation on the new build.
+- A prediction must move a positive amount no greater than requested,
+  conserve source/target counts and change no unrelated stacks. It is only a
+  candidate: all owned request IDs must succeed, then the changed slots must
+  match the reacquired authoritative state before another request runs.
+  Partial stacks resume only after that confirmation, leaving one where
+  requested. A source with no requests and no predicted changes is skipped
+  as a no-op; a return value alone never proves completion.
+- Close, focus loss, world/dimension change, cursor item, text editing,
+  disabled parent/gesture, rejection, timeout, unexpected prediction or
+  changed queued source stops the run without automatically restarting.
+  Input callbacks exchange owned values only. The scoped native references
+  expire within the synchronous call; confirmations keep owned stacks.
+- Budgets: at most 32 routes/targets/collections, 128 real slots per side,
+  128 queued entries/input pulses and one request group per UI tick. A layout
+  that cannot fit the complete side enumeration does not publish an actionable
+  hover. No partial large sweep is silently substituted.
+- `Item Transfer (native slot routes)` gates discovery, native hover and
+  scoped dispatch. On an unverified game the new gestures/additional screens
+  stay vanilla, the original four gestures remain available on old screens,
+  and the settings/toast mark the feature partly paused. Failed native-hook
+  installation also leaves extensions unavailable.
+
+## Completed native checkpoint (2026-10-15)
+
+Build e3f9276, `transfer_trace=y`, DLL SHA-256
+`850CC7B7A8A053F24BE8D6C04A8B0BAB3497623765727A14C322EF54FEF3F103`.
+The maintainer reports unchanged behavior; the log shows a local world and
+LeviLamina 26.51.7. Exact game mode and resource-pack coverage were not stated.
+
+- Alt key code 18 and Alt-modified left clicks reach the loader/game.
+  Take-all moves 64 oak stairs to `cursor_items`; place-all returns them.
+  They are cursor operations, not side/matching sweeps.
+- Inventory, large chest, furnace, brewing stand and beacon all report
+  `_isContainerScreen() == true`. The missing-screen restriction was in
+  transfer type/collection selection, not that shared tracking predicate.
+- Shift transfer reaches `_handleAutoPlace` with the whole-stack sentinel.
+  Player routes list storage before the other player collection: furnace
+  fuel, then ingredient; brewing fuel, ingredient, then three bottle slots;
+  beacon payment. Role routes return to the combined 36-slot inventory.
+- A furnace accepted an elytra into the ingredient slot while charcoal
+  occupied fuel. This agrees with preserving native acceptance rather than
+  assuming occupied inputs are smeltable. The earlier non-burning-fuel-slot
+  observation remains a maintainer report, not this exact trace observation.
+- Beacon payment takes one emerald; a coal transfer instead follows the
+  player-side fallback. These observations require filtering same-side
+  fallbacks for Lamium's other-side-only contract.
+
+Handler snapshots are prediction. The maintainer's report confirms the
+visible vanilla behavior, not exact authoritative counts for each packet.
+Other families, servers and the new Lamium gestures are not yet verified.
+
+## Next runtime checks
+
+Use the normal implementation build with traces off. Enable Item Transfer
+(it was off for the native checkpoint); check all nine child switches are
+present and the five new ones default on. Record commit and DLL hash.
+
+1. Chest with matching/different stacks on both sides: Ctrl + wheel moves
+   all matching items up/down, from either hovered side; Ctrl + Shift +
+   wheel moves everything while leaving the player's hotbar. Alt + left
+   click and Alt + Shift + left click use the clicked side. Try an empty
+   slot for everything; different names/enchantments and full destinations.
+2. Shift + right drag with source counts 1, 2 and a full stack: one remains
+   in each passed slot. Staying still does nothing more; leaving/re-entering
+   the slot follows the established drag behavior. Turn each new switch off
+   individually: its input stays vanilla, including whole-stack Shift +
+   right drag. Restart to check saved choices. Recheck the original four
+   gestures and inventory-screen auto-equip/drag and split-stack behavior.
+3. Repeat every gesture in chest, barrel, shulker box, ender chest, dispenser,
+   dropper, hopper, furnace, blast furnace, smoker, brewing stand, crafter
+   and beacon. Check furnace fuel/input/output, brewing fuel/ingredient/
+   bottles and beacon payment, including full, disabled and unsuitable slots.
+   No transfer may fall back between hotbar and main inventory, put into an
+   output or drop an item. Preserve each screen's native acceptance, even if
+   an accepted furnace input cannot smelt/burn.
+4. During a sweep: close, lose focus, hold a cursor item, edit text, disable
+   the parent/gesture or change a queued source. It stops and does not restart.
+   Check rejection/delay/timeouts and authoritative totals on a server, with
+   a dimension/world change as well. A running furnace/brewing operation may
+   change touched slot counts and conservatively stop the run.
+5. Check an unverified-game build: advanced gestures/screens stay vanilla,
+   Item Transfer is partly paused, the four original gestures still work in
+   old screens, and unrelated vanilla input is unchanged.
+
+Record checked screens in DESIGN and evidence in VALIDATION-LOG/VALIDATION.
+The 0.2.2 part remains open for its required changed-feature runtime checks.
+Release status and any remaining coverage stay in BACKLOG and VALIDATION;
+build/tests do not establish runtime success.
+
+## Earlier research checkpoint (2026-10-15, before the diagnostic run)
 
 Maintainer observation, vanilla storage screen:
 
@@ -62,7 +186,7 @@ The native observations are game-version gated. A handler's
 The budgets cover at most 32 collections, 256 slots per snapshot and
 32 targets per route; restart Minecraft if the sample budget is exhausted.
 
-## First runtime checkpoint
+## Initial native-handler checklist (new-gesture checks are above)
 
 Use a diagnostic build without a release tag. Disable Item Transfer in
 Lamium before observing vanilla; otherwise its existing gestures can

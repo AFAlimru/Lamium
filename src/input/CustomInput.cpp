@@ -178,10 +178,12 @@ void startCustomInput() {
             || contains(keys, Token{Device::Key, 0xA1});
         bool control = contains(keys, Token{Device::Key, 0x11}) || contains(keys, Token{Device::Key, 0xA2})
             || contains(keys, Token{Device::Key, 0xA3});
+        bool alt = contains(keys, Token{Device::Key, 0x12}) || contains(keys, Token{Device::Key, 0xA4})
+            || contains(keys, Token{Device::Key, 0xA5});
         bool transfer = wheel
-            ? inventory::game::TransferSession::wheel(event.buttonData() > 0 ? 1 : -1, shift,
+            ? inventory::game::TransferSession::wheel(event.buttonData() > 0 ? 1 : -1, shift, control,
                                                        event.isCancelled() || consumed)
-            : inventory::game::TransferSession::mouseButton(button, down, shift, control,
+            : inventory::game::TransferSession::mouseButton(button, down, shift, control, alt,
                                                              event.isCancelled() || consumed);
         if ((consumed && down) || transfer) event.cancel();
     });

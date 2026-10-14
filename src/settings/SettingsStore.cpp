@@ -184,6 +184,11 @@ Json encode(Settings const& settings) {
                        {"transferWheelStack", settings.inventory.transferWheelStack},
                        {"transferDragStack", settings.inventory.transferDragStack},
                        {"transferDragOne", settings.inventory.transferDragOne},
+                       {"transferWheelMatching", settings.inventory.transferWheelMatching},
+                       {"transferWheelAll", settings.inventory.transferWheelAll},
+                       {"transferClickMatching", settings.inventory.transferClickMatching},
+                       {"transferClickAll", settings.inventory.transferClickAll},
+                       {"transferDragKeepOne", settings.inventory.transferDragKeepOne},
                        {"toolSwitch", settings.inventory.toolSwitch}, {"handRestock", settings.inventory.handRestock},
                        {"restockFromHotbar", settings.inventory.restockFromHotbar},
                        {"restockOffhand", settings.inventory.restockOffhand},
@@ -520,6 +525,11 @@ Settings decodeSettings(std::string_view text) {
         value.inventory.transferWheelStack = data.at("inventory").value("transferWheelStack", value.inventory.transferWheelStack);
         value.inventory.transferDragStack = data.at("inventory").value("transferDragStack", value.inventory.transferDragStack);
         value.inventory.transferDragOne = data.at("inventory").value("transferDragOne", value.inventory.transferDragOne);
+        value.inventory.transferWheelMatching = data.at("inventory").value("transferWheelMatching", value.inventory.transferWheelMatching);
+        value.inventory.transferWheelAll = data.at("inventory").value("transferWheelAll", value.inventory.transferWheelAll);
+        value.inventory.transferClickMatching = data.at("inventory").value("transferClickMatching", value.inventory.transferClickMatching);
+        value.inventory.transferClickAll = data.at("inventory").value("transferClickAll", value.inventory.transferClickAll);
+        value.inventory.transferDragKeepOne = data.at("inventory").value("transferDragKeepOne", value.inventory.transferDragKeepOne);
         value.inventory.toolSwitch = data.at("inventory").value("toolSwitch", value.inventory.toolSwitch);
         value.inventory.handRestock = data.at("inventory").value("handRestock", value.inventory.handRestock);
         value.inventory.restockFromHotbar = data.at("inventory").value("restockFromHotbar", value.inventory.restockFromHotbar);

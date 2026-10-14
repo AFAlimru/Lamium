@@ -5,6 +5,7 @@
 #include "features/inventory/game/SortSession.h"
 #include "features/inventory/game/TransferSession.h"
 #include "features/inventory/game/TransferTrace.h"
+#include "features/inventory/game/TransferRoutes.h"
 #include "features/inventory/game/RequestTracker.h"
 #include "features/inventory/game/RestockTrace.h"
 #include "features/inventory/game/InventoryMove.h"
@@ -23,6 +24,7 @@ bool start() {
         restock::start();
         game::TextInputTracker::getInstance().install();
         game::ScreenTracker::getInstance().install();
+        game::transferRoutes::start();
         game::transferTrace::start();
         return true;
     } catch (std::exception const& error) {
@@ -34,6 +36,7 @@ bool start() {
 void stop() {
     game::SortSession::cancel("inventory feature stopped");
     game::TransferSession::cancel();
+    game::transferRoutes::stop();
     game::transferTrace::stop();
     restock::stop();
     game::restockTrace::stop();

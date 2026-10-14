@@ -374,6 +374,7 @@ void settingsStoreTests() {
               && lamium::paused::onUnverified("zoom") == Level::No, "fully, partly or not paused");
         lamium::Settings s;
         s.inventory.repeatTrades = false;
+        s.inventory.transfer = false;
         s.lighting.nightVision = true;
         s.visuals.hideEffects = true;
         s.visuals.hideWater = s.visuals.hideLava = s.visuals.hidePowderSnow = s.visuals.hideDistanceFog = false;
@@ -387,6 +388,10 @@ void settingsStoreTests() {
         check(lamium::paused::inUse(s).size() == 3
               && lamium::paused::onUnverified("repeatTrades") == Level::Fully,
               "repeated trades are named and fully paused on unverified games");
+        s.inventory.transfer = true;
+        check(lamium::paused::inUse(s).size() == 4
+              && lamium::paused::onUnverified("transfer") == Level::Partly,
+              "transfer native routes are partly paused while the old storage gestures remain usable");
     }
     {
         auto loaded = decodeSettings(R"({"map":{"zoom":9,"rotate":true},"hud":{"minimap":{"dx":-30}}})");
@@ -604,6 +609,11 @@ void settingsStoreTests() {
     old.inventory.transferWheelStack = false;
     old.inventory.transferDragStack = false;
     old.inventory.transferDragOne = false;
+    old.inventory.transferWheelMatching = false;
+    old.inventory.transferWheelAll = false;
+    old.inventory.transferClickMatching = false;
+    old.inventory.transferClickAll = false;
+    old.inventory.transferDragKeepOne = false;
     old.ui.automationStatus = false;
     old.interaction.attackTicks = 12;
     old.camera.freelookToggle = true;
@@ -626,6 +636,14 @@ void settingsStoreTests() {
     check(!loaded.inventory.transferWheelOne && !loaded.inventory.transferWheelStack
           && !loaded.inventory.transferDragStack && !loaded.inventory.transferDragOne,
           "transfer gesture switches survive saves");
+    check(!loaded.inventory.transferWheelMatching && !loaded.inventory.transferWheelAll
+          && !loaded.inventory.transferClickMatching && !loaded.inventory.transferClickAll
+          && !loaded.inventory.transferDragKeepOne, "new transfer switches survive saves");
+    auto legacyTransfer = decodeSettings(R"({"inventory":{"transfer":false,"transferDragOne":false}})");
+    check(!legacyTransfer.inventory.transfer && !legacyTransfer.inventory.transferDragOne
+          && legacyTransfer.inventory.transferWheelMatching && legacyTransfer.inventory.transferWheelAll
+          && legacyTransfer.inventory.transferClickMatching && legacyTransfer.inventory.transferClickAll
+          && legacyTransfer.inventory.transferDragKeepOne, "older settings retain old choices and default new gestures on");
     check(!loaded.ui.automationStatus, "hidden automation status survives restart");
     auto contents = [&]() {
         std::ifstream file(path);

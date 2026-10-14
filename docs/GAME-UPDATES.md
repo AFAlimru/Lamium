@@ -47,6 +47,7 @@ use. A new gate gets its feature there as well.
 | Night Vision (light texture data) | `NightVision.cpp` | vanilla light | the key and setting (no effect) |
 | Edge Guard (movement request) | `EdgeGuard.cpp` (movement request and move vector), `EdgeGuardHistory.cpp` (replay input capture) | vanilla movement and history capture | the setting (no effect) |
 | Repeated trades (trade row handlers) | `RepeatTrades.cpp` | vanilla single trading | the setting and key |
+| Item Transfer (native slot routes) | `TransferRoutes.cpp`, `TransferSession.cpp` | no new gestures or additional screens; no native hover/route filtering | the original four gestures in ordinary storage and inventory screens |
 | Hide effects (fog and camera medium) | `HideEffects.cpp` `MediumFogVisibility` | water/lava/powder snow fog, distance fog | the other hide effects |
 | Hide effects (weather densities) | `HideEffects.cpp` `WeatherVisibility` | rain and snow drawn | the other hide effects |
 | Hide effects (portal screen) | `HideEffects.cpp` `PortalScreenVisibility` | the purple Nether portal screen | the other hide effects |
@@ -324,6 +325,17 @@ Trace.
 ### `src/features/inventory/game/ScreenTracker.cpp`
 Hooks: `ContainerScreenLeaveHook`
 Rebuild.
+
+### `src/features/inventory/game/TransferRoutes.cpp`
+Hooks: `TransferAutoPlaceOrder`, `TransferAutoPlaceStackOrder`, `TransferAutoPlaceOutputsOrder`
+Meaning: the screen's registered collection/slot-role order and native hover
+slot. Native orders were observed in the L-169 e3f9276 diagnostic checkpoint;
+the additional-screen hover-field mapping awaits the new-gesture smoke test.
+Only the manager
+call inside Lamium's synchronous auto-place invocation gets a filtered
+order; vanilla input is unchanged. Gated at discovery/invocation; SDK
+layouts and method signatures rebuild. Verify amount, role restrictions,
+request IDs and authoritative slot counts after a game update.
 
 ### `src/features/inventory/game/TransferTrace.cpp`
 Hooks: `TransferTakeAllTrace`, `TransferPlaceAllTrace`, `TransferAutoPlaceTrace`

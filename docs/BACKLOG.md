@@ -722,21 +722,22 @@ used Java inventory mod gives them (PROVENANCE: public key list only):
   moves.
 - Check in game per screen family and gesture, locally and on a server.
 
-Implementation checkpoint (2026-10-15): the maintainer reports that vanilla
-Alt + left click selects an item normally and Shift + right drag transfers
-a whole stack. Read-only native-handler/input/layout diagnostics are added
-under `transfer_trace`; the new gestures and broader screen support are
-not implemented. The required take-all/place-all effects and slot-role
-investigation remains pending. Evidence, constraints and the first runtime
-checklist: [ITEM-TRANSFER.md](ITEM-TRANSFER.md).
+Implementation checkpoint (2026-10-15): the required native investigation
+passed its first local check on e3f9276: Alt arrives; take-all/place-all are
+cursor operations; Shift transfer uses auto-place and role-specific native
+orders. The 0.2.2 gestures, five default-on switches, native route discovery
+and filtering, and authoritative per-request slot checks are implemented,
+unreleased. The normal implementation build's gesture/screen smoke test is
+pending; no new-gesture success is claimed. Evidence, implementation and
+the next local/server checklist: [ITEM-TRANSFER.md](ITEM-TRANSFER.md).
 
 Maintainer follow-up (2026-10-15): chest inputs remain vanilla; Shift +
 left click routes by role in furnace, brewing stand and beacon screens,
 but the furnace fuel slot also accepts an item that cannot burn. Preserve
 native acceptance/routing rather than adding a stricter fuel filter.
-The installed DLL differs from the diagnostic DLL and the current log has
-no L-169 observations; native handler effects, collection names and
-registered routes remain to be captured before implementation.
+That observation preceded deployment of e3f9276. The later diagnostic run
+captured the handlers, collections and orders; it also shows an elytra
+accepted in the ingredient slot. New Lamium behavior remains unchecked.
 
 Goals:
 1. Screens that do not work today: dispenser, dropper, hopper, the furnace
@@ -832,9 +833,10 @@ the maintainer):
   and side rules, tests in `tests/TransferGestureTests.cpp`);
   `src/features/inventory/game/TransferSession.cpp` (requests and their
   confirmation); `src/features/inventory/game/ScreenTracker.cpp` (which
-  screen is open; only controllers with `_isContainerScreen()` are kept,
-  which is why furnaces, brewing stands, hoppers and droppers are missing);
-  `InventoryMove.cpp` and `RequestTracker.cpp` for the move requests.
+  screen is open; keeps `_isContainerScreen()` controllers, including the
+  traced furnace, brewing stand and beacon; sorting has its own type guard);
+  `InventoryMove.cpp` and `RequestTracker.cpp` for the move requests;
+  `TransferRoutes.cpp` discovers native roles and scopes destination filtering.
 - Keep pure planning (which slots, in which order, by slot role) in headers
   with tests; game glue in .cpp. Never touch inventories from the input
   event (queue to the client thread, AGENTS rule 2); confirm each move from

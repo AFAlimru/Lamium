@@ -224,7 +224,9 @@ void settingsRowsTests() {
             "breaking restriction key appears beside its own switch");
     }
     for (auto id : {"inventory.transferWheelOne", "inventory.transferWheelStack",
-                    "inventory.transferDragStack", "inventory.transferDragOne"})
+                    "inventory.transferDragStack", "inventory.transferDragOne", "inventory.transferWheelMatching",
+                    "inventory.transferWheelAll", "inventory.transferClickMatching", "inventory.transferClickAll",
+                    "inventory.transferDragKeepOne"})
         check(options.contains(id), "transfer gesture switches appear under Inventory Transfer");
     {
         Settings changed;

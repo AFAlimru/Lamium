@@ -12,6 +12,34 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-169 native-handler checkpoint passes locally (2026-10-15)
+
+Maintainer report on e3f9276, `transfer_trace=y`, deployed DLL SHA-256
+`850CC7B7A8A053F24BE8D6C04A8B0BAB3497623765727A14C322EF54FEF3F103`:
+the requested chest and furnace/brewing/beacon checks are finished and
+behavior remains as before. The diagnostic log shows a local-world load
+and LeviLamina 26.51.7; game target is the verified 1.26.51.01 executable.
+Game mode and pack coverage were not stated. Item Transfer was to be off
+for observing vanilla; the logged tested clicks are not cancelled.
+
+Alt key code 18 reaches the loader, and Alt + left clicks reach take-all.
+Take-all changes cursor false to true with 64 oak stairs; place-all returns
+them and clears the cursor. These are cursor operations, not side sweeps.
+Shift transfer reaches auto-place with the whole-stack sentinel. Inventory,
+large chest, furnace, brewing stand and beacon report is-container true.
+The native orders identify player/storage collections, furnace fuel then
+ingredient, brewing fuel/ingredient/bottles, and beacon payment. Outputs
+route to the player inventory; player routes also contain hotbar/main
+fallbacks. An elytra was accepted into the furnace ingredient slot while
+charcoal occupied fuel. Beacon payment takes one emerald; coal instead
+follows a player-side fallback. See ITEM-TRANSFER.md for the selected path.
+
+Snapshots immediately after handlers are prediction. The user confirms
+unchanged visible vanilla behavior, not exact authoritative packet counts.
+No new Lamium gesture, native hover-field mapping or scoped manager route
+filter was tested in this build. Other screen families and servers remain
+unchecked. The 0.2.2 implementation's changed-feature smoke test is next.
+
 ## L-169 vanilla slot-role observations (2026-10-15)
 
 Maintainer follow-up: chest Alt + left click, Shift + right drag and

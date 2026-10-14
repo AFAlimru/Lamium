@@ -89,6 +89,11 @@ struct Settings {
         bool transferWheelStack = true;
         bool transferDragStack = true;
         bool transferDragOne = true;
+        bool transferWheelMatching = true;
+        bool transferWheelAll = true;
+        bool transferClickMatching = true;
+        bool transferClickAll = true;
+        bool transferDragKeepOne = true;
         bool toolSwitch = false;
         bool handRestock = false;
         bool restockFromHotbar = true;
