@@ -141,11 +141,13 @@ and broader lifecycle cases still need coverage.
 
 Known bug (L-176, reported 2026-10-14): both Chunk Borders and Hitboxes lose
 their line colors with Vibrant Visuals enabled; Hitboxes is now confirmed
-in game, not only suspected from the shared path. `drawLines()` currently
-submits one `debug` mesh with vertex colors. A candidate is the existing
-`LineColor.h` selection-outline material and restored per-draw shader color,
-with separate submissions for each nonempty color group. The cause and fix
-are not yet runtime-verified. BACKLOG owns the scope and acceptance checks;
+in game, not only suspected from the shared path. `drawLines()` submitted
+one `debug` mesh with vertex colors. Built 2026-10-14, not checked in game:
+it now submits each nonempty color group separately (up to five for Chunk
+Borders, three for Hitboxes) with the `LineColor.h` selection-outline
+material and that group's shader color, restored after every draw; vertex
+colors stay for the `debug` fallback. Geometry, the eye pull and caching are
+unchanged. The cause is not yet runtime-verified. BACKLOG owns the scope and acceptance checks;
 VALIDATION-LOG records the observation without assuming a test build.
 
 Chunk border line coordinates are cached per render thread by chunk origin and

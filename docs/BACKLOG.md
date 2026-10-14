@@ -443,7 +443,9 @@ reproducible. [SCHEMATIC.md](SCHEMATIC.md).
 Kind: Bug / Research (strong model). Imported from the maintainer's Notion
 idea inbox and chosen for the backlog 2026-10-14; no implementation or
 release selected in this step.
-Status: open. The maintainer reports that Chunk Borders loses its colors
+Status: candidate fix built 2026-10-14, not checked in game (per-group
+submissions with the selection-outline material, OVERLAYS.md). The
+maintainer reports that Chunk Borders loses its colors
 with Vibrant Visuals enabled, and has now confirmed the same loss on
 Hitboxes in game. The build/hash and detailed environment for this report
 were not separately identified (VALIDATION-LOG).

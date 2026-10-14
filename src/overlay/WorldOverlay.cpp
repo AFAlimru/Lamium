@@ -4,6 +4,7 @@
 #include "overlay/ChunkBorders.h"
 #include "overlay/Hitboxes.h"
 #include "overlay/Depth.h"
+#include "overlay/LineColor.h"
 #include "features/camera/CameraSessions.h"
 #include "overlay/LightOverlay.h"
 #include "overlay/ShapeSession.h"
@@ -179,33 +180,38 @@ void drawShape(BaseActorRenderContext& context, FaceMaterial const& faceMaterial
 }
 // Per-batch colors so one frame can carry Java-style color coding.
 struct LineBatch { std::span<Line const> lines; float r, g, b, a = 1; };
+// One submission per nonempty batch: the selection-outline material takes
+// its color from the shader color, which keeps the colors under Vibrant
+// Visuals (L-176); one multicolor debug mesh drew them black there.
 void drawLines(BaseActorRenderContext& context, std::span<LineBatch const> batches) {
     if (batches.empty() || !context.mImpl) return;
     ScreenContext& screen = context.mScreenContext;
     Tessellator& shared = screen.tessellator;
-    // Own the temporary tessellation state. Never reset or reuse a partially
-    // assembled vanilla batch. Mesh lifetime follows the engine submission API.
-    size_t count = 0;
-    for (auto const& group : batches) count += group.lines.size();
-    if (!count) return;
-    Tessellator batch(shared.mBufferResourceService);
-    batch.begin({}, mce::PrimitiveMode::LineList, static_cast<int>(count * 2), false);
+    mce::MaterialPtr material = lines::material();
+    if (!material.mRenderMaterialInfoPtr) return;
     Vec3 const camera = context.mImpl->mCameraPosition;
     // Pulled toward the eye (Depth.h rule 2): chunk walls lie on block faces,
     // and unpulled lines there broke up into dashes against the terrain (L-157);
     // the pull also keeps them over the vanilla selection outline.
     constexpr float pull = depth::worldLinePull;
     for (auto const& group : batches) {
+        if (group.lines.empty()) continue;
+        auto const count = group.lines.size();
+        // Own the temporary tessellation state. Never reset or reuse a partially
+        // assembled vanilla batch. Mesh lifetime follows the engine submission API.
+        Tessellator batch(shared.mBufferResourceService);
+        batch.begin({}, mce::PrimitiveMode::LineList, static_cast<int>(count * 2), false);
+        // Vertex colors too, for the debug material fallback.
         batch.color(group.r, group.g, group.b, group.a);
         for (auto const& line : group.lines) for (auto p : {line.from, line.to})
             batch.vertex(static_cast<float>(p.x - camera.x) * pull, static_cast<float>(p.y - camera.y) * pull,
                 static_cast<float>(p.z - camera.z) * pull);
+        auto mesh = batch.end(Tessellator::UploadMode::Buffered, "Lamium world lines", SupplementaryFieldAutoGenerationMode{});
+        lines::colored(screen, group.r, group.g, group.b, [&] {
+            mesh.renderMesh(screen, material, gsl::span<mce::ClientTexture const*>{}, 0,
+                static_cast<uint>(count * 2), OffscreenCaptureDescription{}, nullptr);
+        });
     }
-    auto mesh = batch.end(Tessellator::UploadMode::Buffered, "Lamium world lines", SupplementaryFieldAutoGenerationMode{});
-    mce::MaterialPtr material(mce::RenderMaterialGroup::common(), HashedString{"debug"});
-    if (!material.mRenderMaterialInfoPtr) return;
-    mesh.renderMesh(screen, material, gsl::span<mce::ClientTexture const*>{}, 0,
-        static_cast<uint>(count * 2), OffscreenCaptureDescription{}, nullptr);
 }
 void drawLines(BaseActorRenderContext& context, std::span<Line const> lines, bool hitboxes = false) {
     LineBatch single{lines, 1, 1, 1};
