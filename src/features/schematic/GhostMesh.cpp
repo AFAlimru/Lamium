@@ -27,6 +27,7 @@
 #include <glm/glm.hpp>
 #include <algorithm>
 #include <cmath>
+#include <format>
 #include <map>
 #include <tuple>
 
@@ -180,6 +181,15 @@ void cullAgainstGhosts(Tessellator& batch, size_t from, BlockSource& region, ses
             known = faces::dropFace(realOpaque, ghostOpaque, shared, nearCamera, beyond)
                 || (!realOpaque && !nearCamera && selfBlended
                     && faces::dropBlendedFace(reaches, nearBlended, near.block && &near.block->getBlockType() == &self.getBlockType(), side));
+            // L-178 follow-up: a border face kept against another placement's
+            // ghost still flickered in game; say why it was kept (bounded).
+            static int keptLogged = 0;
+            if (another && near.block && !*known && keptLogged < 20) {
+                ++keptLogged;
+                log(std::format("border face kept at {} {} {} side {}: neighbor {} sides {} reaches {} blended {}/{} near camera {} real opaque {}",
+                                at.x, at.y, at.z, side, near.block->getTypeName(), near.sides, reaches, selfBlended, nearBlended,
+                                nearCamera, realOpaque));
+            }
         }
         if (*known) for (size_t k = 1; k < 4; ++k) positions[q + k] = positions[q];
     }
