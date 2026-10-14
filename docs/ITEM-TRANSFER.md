@@ -17,6 +17,17 @@ Maintainer observation, vanilla storage screen:
 - Shift + right drag transfers the whole hovered stack. Its L-169
   replacement deliberately leaves one item; switching that gesture off
   must preserve vanilla's whole-stack transfer.
+- Follow-up: the chest's Alt + left click, Shift + right drag and ordinary
+  take/place operations behave as before. Vanilla Shift + left click routes
+  items to the expected roles in a furnace, brewing stand and beacon.
+  The maintainer reports that a furnace's fuel slot also accepts an item
+  that cannot burn; exact items and counts were not supplied. Brewing and
+  beacon acceptance appeared restricted to suitable items, not exhaustively
+  checked. Follow native routing and acceptance; occupying a fuel slot is
+  not evidence that the item is fuel.
+- The installed DLL found at follow-up differs from the prepared diagnostic
+  DLL, and the current log has no `L-169` lines. These observations do not
+  establish native handler names, collection names or auto-place orders.
 
 Source evidence:
 
@@ -30,8 +41,8 @@ Source evidence:
   operations without observing their cursor and slot effects.
 - Native `tryGetAutoPlaceOrder(collection)` returns per-source target
   collections with `stopWhenPlaced`. This is the candidate route for
-  role-specific destinations; actual furnace/brewing/beacon behavior is
-  still unverified.
+  role-specific destinations. The reported vanilla routing above does not
+  yet identify the registered furnace/brewing/beacon collections and orders.
 - Today's transfer is restricted by both `ScreenTracker`'s
   `_isContainerScreen()` check and `TransferSession`'s ordinary-storage
   type/collection whitelist. The claim that the first check excludes the

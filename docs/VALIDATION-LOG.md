@@ -12,6 +12,25 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-169 vanilla slot-role observations (2026-10-15)
+
+Maintainer follow-up: chest Alt + left click, Shift + right drag and
+ordinary take/place remain as before. Vanilla Shift + left click routes
+items by role in furnace, brewing stand and beacon screens. A furnace's
+fuel slot also accepts an item that cannot burn; exact item/count was not
+given. Brewing/beacon slots appeared to accept suitable items only; this
+was not an exhaustive acceptance check. Local/server context, packs and
+the exact tested build were not stated.
+
+At follow-up, the installed DLL SHA-256 was
+`3664E3EF9B025885C9F56F899CBAA8E0BFFFC6E89DB73EA54CB34CBD49C33951`,
+different from e3f9276's prepared diagnostic DLL
+`850CC7B7A8A053F24BE8D6C04A8B0BAB3497623765727A14C322EF54FEF3F103`.
+The current log names LeviLamina 26.51.7 and has no L-169 diagnostic lines.
+The observations are not attributed to the diagnostic build and do not
+verify the new gestures, handler names, collection names or registered
+routes. ITEM-TRANSFER.md retains the pending diagnostic checkpoint.
+
 ## L-169 vanilla input observations (2026-10-15)
 
 Maintainer report during the 0.2.2 implementation investigation: in a

@@ -730,6 +730,14 @@ not implemented. The required take-all/place-all effects and slot-role
 investigation remains pending. Evidence, constraints and the first runtime
 checklist: [ITEM-TRANSFER.md](ITEM-TRANSFER.md).
 
+Maintainer follow-up (2026-10-15): chest inputs remain vanilla; Shift +
+left click routes by role in furnace, brewing stand and beacon screens,
+but the furnace fuel slot also accepts an item that cannot burn. Preserve
+native acceptance/routing rather than adding a stricter fuel filter.
+The installed DLL differs from the diagnostic DLL and the current log has
+no L-169 observations; native handler effects, collection names and
+registered routes remain to be captured before implementation.
+
 Goals:
 1. Screens that do not work today: dispenser, dropper, hopper, the furnace
    family (furnace, blast furnace, smoker), brewing stand, and others found

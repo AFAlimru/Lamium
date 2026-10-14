@@ -584,6 +584,15 @@ exactly one switch, one mode and one set of keys:
   click on an empty slot with a cursor item, a wheel "all but one", drop
   gestures, W/S moves.
 
+Vanilla baseline reported 2026-10-15: chest inputs behave as before;
+Shift + left click routes items by role in furnace, brewing stand and
+beacon screens. A furnace fuel slot also accepted an item that cannot
+burn. Native slot acceptance and routing, rather than a new Lamium fuel
+filter, remain the baseline. Brewing/beacon restrictions were not checked
+exhaustively. This is not validation of Lamium's additional transfers;
+their checked-screen list is still empty. Research evidence and pending
+handler/collection checks: [ITEM-TRANSFER.md](ITEM-TRANSFER.md).
+
 ## Repeated villager trading (Decided 2026-10-12, trigger 2026-10-13, L-166)
 
 - Shift + right click on an unlocked trade row trades it as often as
