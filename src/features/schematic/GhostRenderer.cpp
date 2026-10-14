@@ -32,6 +32,9 @@
 #include "mc/client/renderer/blockactor/MovingBlockActorRenderer.h"
 #include "mc/client/renderer/game/LevelRendererCamera.h"
 #include "mc/client/renderer/game/LevelRendererPlayer.h"
+#include "mc/deps/minecraft_renderer/objects/ViewRenderObject.h"
+#include "mc/client/gui/Font.h"
+#include "ll/api/service/TargetedBedrock.h"
 #include "mc/deps/core_graphics/enums/PrimitiveMode.h"
 #include "mc/deps/minecraft_renderer/renderer/MaterialPtr.h"
 #include "mc/deps/minecraft_renderer/renderer/Mesh.h"
@@ -751,6 +754,9 @@ void drawBlended(BaseActorRenderContext& context) {
 }
 // Calls of the alpha pass per ghost frame, logged once (spike: is it once a frame?).
 int alphaCalls = 0;
+// Where the ghost pass saw the camera this frame, for the late pass.
+std::optional<Vec3> lateCamera;
+std::uint64_t lateFrame = 0;
 
 LL_TYPE_INSTANCE_HOOK(GhostBlendPass, ll::memory::HookPriority::Normal, LevelRendererCamera,
     &LevelRendererCamera::$renderBlockEntities, void, BaseActorRenderContext& context, bool renderAlphaLayer) {
@@ -764,15 +770,31 @@ LL_TYPE_INSTANCE_HOOK(GhostBlendPass, ll::memory::HookPriority::Normal, LevelRen
         PerfTimer timer{perf.blendNs};
 #endif
         drawBlended(context);
-        // Once a frame, like the blended ghosts.
-        static std::uint64_t cornersFrame = 0;
-        auto* player = context.mClientInstance.getLocalPlayer();
-        if (player && context.mImpl && std::exchange(cornersFrame, ghostFrame) != ghostFrame)
-            drawSeeThroughCorners(context.mScreenContext, player->getDimensionBlockSource(), context.mImpl->mCameraPosition,
-                                  static_cast<int>(player->getDimensionId()), overlay::faceMaterial(context.mClientInstance));
     } catch (std::exception const& error) {
         static bool reported = false;
         if (!std::exchange(reported, true)) log(std::string("drawing blended ghosts failed: ") + error.what());
+    }
+}
+// After the world's own see-through blocks (the name tag pass): a save
+// corner against real glass or water. In the block entity alpha pass the
+// game drew some of its translucent terrain after the mark or before it
+// depending on the camera position, and the mark's depth hid it or not
+// (2026-10-15).
+LL_TYPE_INSTANCE_HOOK(GhostLatePass, ll::memory::HookPriority::Normal, LevelRendererPlayer,
+    &LevelRendererPlayer::$callRenderNameTags, void, ScreenContext& screen, ViewRenderObject const& view, Font& font) {
+    origin(screen, view, font);
+    auto& runtime = Runtime::instance();
+    if (!runtime.enabled() || !runtime.snapshot()->schematic.enabled || !lateCamera) return;
+    if (std::exchange(lateFrame, ghostFrame) == ghostFrame) return;
+    try {
+        auto client = ll::service::getClientInstance();
+        auto* player = client ? client->getLocalPlayer() : nullptr;
+        if (!player) return;
+        drawSeeThroughCorners(screen, player->getDimensionBlockSource(), *lateCamera, static_cast<int>(player->getDimensionId()),
+                              overlay::faceMaterial(*client));
+    } catch (std::exception const& error) {
+        static bool reported = false;
+        if (!std::exchange(reported, true)) log(std::string("drawing late marks failed: ") + error.what());
     }
 }
 #ifdef LAMIUM_SCHEMATIC_PERF_TRACE
@@ -822,7 +844,8 @@ LL_TYPE_INSTANCE_HOOK(GhostPass, ll::memory::HookPriority::Normal, LevelRenderer
     }
     IClientInstance& client = context.mClientInstance;
     auto* player = client.getLocalPlayer();
-    if (!player) return;
+    if (!player) { lateCamera.reset(); return; }
+    lateCamera = context.mImpl->mCameraPosition;
     try {
         // A new graphics mode rebuilds the sections (mistake faces differ).
         if (int mode = static_cast<int>(client.getOptions().getGraphicsMode()); mode != lastGraphicsMode) {
@@ -853,6 +876,7 @@ void start() {
     installed = GhostPass::hook(true) == 0;
     if (!installed) throw std::runtime_error("Could not install the schematic ghost pass");
     if (GhostBlendPass::hook(true) != 0) log("could not install the blended ghost pass");
+    if (GhostLatePass::hook(true) != 0) log("could not install the late ghost pass");
     if (!startActorLight()) log("could not install the ghost actor light hooks");
     exitListener = ll::event::EventBus::getInstance().emplaceListener<ll::event::ClientExitLevelEvent>(
         [](auto&) { releaseRequested = true; items::forget(); selection::clear(); });
@@ -863,6 +887,7 @@ void stop() {
         exitListener.reset();
     }
     GhostBlendPass::unhook(true);
+    GhostLatePass::unhook(true);
     stopActorLight();
     if (installed && GhostPass::unhook(true)) installed = false;
     releaseRequested = true;
