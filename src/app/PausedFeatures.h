@@ -12,13 +12,14 @@
 namespace lamium::paused {
 enum class Level { No, Partly, Fully };
 // Feature ids as in ui::features.
-inline constexpr std::array<std::string_view, 10> gatedFeatures{
+inline constexpr std::array<std::string_view, 11> gatedFeatures{
     "nightVision", "edgeGuard", "connectedTextures", "freecamera", "hideEffects", "schematic", "repeatTrades", "gameLanguage",
-    "skipServerPacks", "chatPosition"};
+    "skipServerPacks", "chatPosition", "fakeOffhand"};
 inline Level onUnverified(std::string_view feature) {
     if (feature == "nightVision" || feature == "edgeGuard" || feature == "connectedTextures" || feature == "repeatTrades"
         || feature == "gameLanguage" || feature == "skipServerPacks" || feature == "chatPosition") return Level::Fully;
-    if (feature == "freecamera" || feature == "hideEffects" || feature == "schematic") return Level::Partly;
+    if (feature == "freecamera" || feature == "hideEffects" || feature == "schematic" || feature == "fakeOffhand")
+        return Level::Partly;
     return Level::No;
 }
 // Gated features switched on in these settings, for the join toast. FreeCamera
@@ -37,6 +38,7 @@ inline std::vector<std::string_view> inUse(Settings const& s) {
                           || v.hidePortal))
         out.push_back("hideEffects");
     if (s.schematic.enabled) out.push_back("schematic");
+    if (s.inventory.fakeOffhand) out.push_back("fakeOffhand");
     return out;
 }
 }

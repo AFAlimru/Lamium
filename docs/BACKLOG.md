@@ -588,17 +588,19 @@ L-114's Check-tab 3D preview mistake styling.
 [SCHEMATIC.md](SCHEMATIC.md).
 
 ### L-189 Fake Offhand fallback when primary right-click has no useful action
-Kind: Research, then Design (strong model). User feedback clarified
+Kind: Feature (was Research, then Design). User feedback 2026-10-14.
 Clarified by the maintainer 2026-10-15: the primary hand's item suppresses
 the fake offhand whenever its kind has a right-click role, whether or not
 it would act: bread at full hunger aimed at a block, a shovel aimed at stone.
-Proposal for the maintainer (not agreed), in FAKE-OFFHAND.md
-"Primary pass proposal (L-189)": food at confirmed full hunger that is not
-always-edible and places no block passes on ordinary blocks too; shovels,
-hoes and axes pass on ordinary blocks except those they transform (listed);
-other damageable tools keep priority; anything uncertain keeps vanilla.
-2026-10-14; no implementation or release approved.
-Goal: if the main-hand right-click has no meaningful applicable action,
+Decided 2026-10-15 (maintainer): include as much as possible, using the
+game's own checks where they exist. Status: built, not checked in game
+(FAKE-OFFHAND.md "Target-specific primary uses"). Check in game: bread at
+full hunger on stone; a shovel on stone (passes) and on grass (paths);
+seeds on stone (passes) and on farmland (plants); bone meal on stone and on
+grass; an axe on a log, on copper and on stone; a minecart on stone and on
+a rail; a bow without arrows aimed at the sky; an empty bucket at the sky
+and at water.
+Original goal: if the main-hand right-click has no meaningful applicable action,
 allow the configured Fake Offhand item to receive that use. Reported
 examples are fireworks that cannot be used while the player is full or is
 holding a shovel/axe; this is a generalized input priority rule, not a

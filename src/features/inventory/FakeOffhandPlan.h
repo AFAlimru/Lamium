@@ -37,8 +37,8 @@ inline bool airUse(std::string_view id) {
 // Block-target uses of non-block items that the generic properties do not reveal.
 inline bool blockUse(std::string_view id) {
     return any(id, {"fire_charge", "armor_stand", "end_crystal", "frame", "glow_frame", "painting",
-        "lead", "honeycomb", "ender_eye", "ink_sac", "glow_ink_sac", "compass", "trial_key",
-        "ominous_trial_key", "book", "enchanted_book", "writable_book", "written_book", "lodestone_compass",
+        "lead", "honeycomb", "ender_eye", "compass", "trial_key",
+        "ominous_trial_key", "writable_book", "written_book", "lodestone_compass",
         "resin_clump",
         "glass_bottle", "bed", "cake", "banner", "repeater", "comparator", "cauldron",
         "brewing_stand", "flower_pot", "hopper", "campfire", "soul_campfire", "string", "redstone",
@@ -62,24 +62,70 @@ inline std::string_view vanillaId(std::string_view name) {
     return name.starts_with(prefix) ? name.substr(prefix.size()) : std::string_view{};
 }
 }
+// L-189: the few tools whose block use the game offers no check for, by the
+// vanilla blocks they change (ids without "minecraft:"). Blocks with a block
+// entity (a lit campfire, a beehive) never reach this: plain targets only.
+inline bool shovelChanges(std::string_view block) {
+    return detail::any(block, {"grass_block", "dirt", "coarse_dirt", "podzol", "mycelium", "dirt_with_roots", "rooted_dirt"});
+}
+inline bool hoeChanges(std::string_view block) {
+    return detail::any(block, {"grass_block", "dirt", "coarse_dirt", "dirt_with_roots", "rooted_dirt", "grass_path", "dirt_path"});
+}
+inline bool shearsChange(std::string_view block) { return detail::any(block, {"pumpkin", "trip_wire", "tripwire"}); }
+// A log, wood, stem or hyphae that is not stripped yet, or a bamboo block.
+inline bool strippable(std::string_view block) {
+    return block == "bamboo_block"
+        || (!block.starts_with("stripped_") && detail::suffix(block, {"_log", "_wood", "_stem", "_hyphae"}));
+}
+// Which target-specific use an item has, so the glue knows what to read.
+enum class TargetUse { None, Planter, Fertilizer, Rail, Honeycomb, Axe, Shovel, Hoe, Shears, Fill };
+inline TargetUse targetUseOf(ItemTraits const& item, bool shovelTag, bool hoeTag, bool shearsTag) {
+    auto id = detail::vanillaId(item.name);
+    if (item.empty || id.empty()) return TargetUse::None;
+    if (item.planter) return TargetUse::Planter;
+    if (item.fertilizer) return TargetUse::Fertilizer;
+    if (id == "minecart" || id.ends_with("_minecart")) return TargetUse::Rail;
+    if (id == "honeycomb") return TargetUse::Honeycomb;
+    if (id.ends_with("_axe")) return TargetUse::Axe;
+    if (shovelTag) return TargetUse::Shovel;
+    if (hoeTag) return TargetUse::Hoe;
+    if (shearsTag || id == "shears") return TargetUse::Shears;
+    if (id == "bucket" || id == "glass_bottle") return TargetUse::Fill;
+    return TargetUse::None;
+}
 // Whether the primary item's ordinary use cannot act on this aim. Interactive
 // blocks and entities are decided before this and keep vanilla priority.
 // `plainTarget`: a solid block without a block entity. Items act on special
 // blocks (decorated pots, lecterns, signs, bookshelves, vaults) mostly through
 // their block entity, so other materials pass only on plain blocks; an item
 // the identity list misses cannot lose such a use (2026-10-07).
-inline bool primaryPass(ItemTraits const& item, bool blockTarget, bool cannotEat, bool plainTarget = true) {
+// L-189: `targetUse` is what the game says the item's target-specific use can
+// do on this block (a planter's canUseOn, a fertilizable block, rails, copper
+// state, the tool lists above); none when unread or the item has none, which
+// keeps vanilla priority. `airIdle`: aimed at nothing, the item's air use
+// cannot act now (a bow without arrows, Riptide out of water and rain, a
+// firework while not gliding, an empty bucket or bottle aimed at no liquid).
+inline bool primaryPass(ItemTraits const& item, bool blockTarget, bool cannotEat, bool plainTarget = true,
+                        std::optional<bool> targetUse = std::nullopt, bool airIdle = false) {
     if (item.empty) return true;
     auto id = detail::vanillaId(item.name);
     if (id.empty()) return false;
-    // Seeds-like foods plant on blocks; full hunger only blocks eating.
-    if (item.food) return !blockTarget && cannotEat;
+    if (!blockTarget && airIdle) return true;
+    // Full hunger only stops eating; a food that plants (carrots) still can
+    // where its planter says so.
+    if (item.food) {
+        if (!cannotEat) return false;
+        if (!blockTarget) return true;
+        return plainTarget && (!item.planter || targetUse == false);
+    }
     if (item.wearable || detail::airUse(id)) return false;
     if (item.idleTool) return true;
+    if (blockTarget && plainTarget && targetUse == false) return true;
     if (item.timed || detail::throwable(item, id) || detail::bucket(item, id) || item.liquidClip) return false;
     if (!blockTarget) return true;
-    return plainTarget && !item.block && !item.planter && !item.fertilizer && !item.dye && !item.damageable
-        && !detail::blockUse(id);
+    // Dyes and books act on signs, lecterns and shelves, which have block
+    // entities: on plain blocks they pass.
+    return plainTarget && !item.block && !item.planter && !item.fertilizer && !item.damageable && !detail::blockUse(id);
 }
 // Whether the secondary item has an instant use the per-call borrow can run.
 // Timed and tethered items (a fishing line follows the selected item) cannot.

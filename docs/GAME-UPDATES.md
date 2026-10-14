@@ -57,6 +57,7 @@ use. A new gate gets its feature there as well.
 | Schematic entity models (actor renderers) | `GhostMarks.cpp` | missing entities as dashed frames | everything else |
 | Game language (native apply) | `GameLanguage.cpp` | no in-world language list; vanilla title-screen Settings > Language | everything else |
 | Skip server resource packs (pack stack packet) | `ServerPacks.cpp` | server packs applied as vanilla | the setting and key (no effect) |
+| Fake Offhand (item use targets) | `FakeOffhand.cpp` `targetUse` (planter component by name, copper fields, `canBeFertilized`, `isRailBlock`) | the primary item keeps priority on blocks as before L-189 | air checks, the rest of Fake Offhand |
 | Chat position (HUD control positions) | `ChatPosition.cpp` | vanilla chat position | the setting, key and layout preview |
 
 ## Playbook for a new Minecraft or LeviLamina version

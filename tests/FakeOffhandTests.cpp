@@ -32,11 +32,14 @@ void fakeOffhandTests() {
         && primaryPass(empty,true,false,false),
         "checked swords and pickaxes pass despite a reported use duration");
     ItemTraits flesh{.name = "minecraft:rotten_flesh", .food = true, .timed = true};
-    ItemTraits carrot{.name = "minecraft:carrot", .food = true, .timed = true};
+    ItemTraits carrot{.name = "minecraft:carrot", .food = true, .timed = true, .planter = true};
     check(primaryPass(flesh,false,true) && !primaryPass(flesh,false,false),
         "food passes in air only when it cannot be eaten");
-    check(!primaryPass(carrot,true,true),
-        "food keeps block targets at full hunger because some foods plant crops");
+    check(!primaryPass(carrot,true,true) && !primaryPass(carrot,true,true,true,true) && primaryPass(carrot,true,true,true,false),
+        "a food that plants keeps a block at full hunger unless its planter cannot be used there");
+    ItemTraits bread{.name = "minecraft:bread", .food = true, .timed = true};
+    check(primaryPass(bread,true,true) && !primaryPass(bread,true,true,false) && !primaryPass(bread,true,false),
+        "L-189: at full hunger bread passes on plain blocks; hungry, or on a special block, it keeps priority");
     for (auto traits : {ItemTraits{.name = "minecraft:spyglass", .timed = true},
         ItemTraits{.name = "minecraft:snowball"}, ItemTraits{.name = "minecraft:egg", .throwable = true},
         ItemTraits{.name = "minecraft:water_bucket", .timed = true},
@@ -49,11 +52,58 @@ void fakeOffhandTests() {
     for (auto traits : {item("minecraft:wheat_seeds"), item("minecraft:oak_door"), item("minecraft:oak_sign"),
         item("minecraft:redstone"), item("minecraft:string"), item("minecraft:cow_spawn_egg"),
         item("minecraft:minecart"), item("minecraft:honeycomb"), item("minecraft:ender_eye"),
-        item("minecraft:music_disc_cat"), item("minecraft:book"), item("minecraft:flower_pot"),
+        item("minecraft:music_disc_cat"), item("minecraft:flower_pot"),
         ItemTraits{.name = "minecraft:bone_meal", .fertilizer = true},
-        ItemTraits{.name = "minecraft:white_dye", .dye = true},
         ItemTraits{.name = "minecraft:sweet_berries", .planter = true}}) {
         check(!primaryPass(traits,true,false), "items with a block use keep vanilla priority on blocks");
+    }
+    // L-189: dyes and books act through block entities (signs, lecterns,
+    // shelves), which are not plain targets.
+    for (auto traits : {ItemTraits{.name = "minecraft:white_dye", .dye = true}, item("minecraft:ink_sac"),
+        item("minecraft:glow_ink_sac"), item("minecraft:book"), item("minecraft:enchanted_book")}) {
+        check(primaryPass(traits,true,false) && !primaryPass(traits,true,false,false),
+            "dyes and books pass on plain blocks and keep blocks with a block entity");
+    }
+    // L-189: a target-specific use the game says cannot act here passes on a
+    // plain block; one that can, or that could not be read, keeps priority.
+    using lamium::inventory::fakeOffhand::TargetUse;
+    using lamium::inventory::fakeOffhand::targetUseOf;
+    for (auto traits : {item("minecraft:wheat_seeds"), ItemTraits{.name = "minecraft:wheat_seeds", .planter = true},
+        ItemTraits{.name = "minecraft:bone_meal", .fertilizer = true}, item("minecraft:minecart"),
+        item("minecraft:hopper_minecart"), item("minecraft:honeycomb"),
+        ItemTraits{.name = "minecraft:iron_axe", .damageable = true}, ItemTraits{.name = "minecraft:iron_shovel", .damageable = true},
+        ItemTraits{.name = "minecraft:shears", .damageable = true}, ItemTraits{.name = "minecraft:bucket", .bucket = true},
+        ItemTraits{.name = "minecraft:glass_bottle", .liquidClip = true}}) {
+        check(primaryPass(traits,true,false,true,false) && !primaryPass(traits,true,false,true,true)
+                  && !primaryPass(traits,true,false,true) && !primaryPass(traits,true,false,false,false),
+              "a target use that cannot act passes on plain blocks only");
+    }
+    ItemTraits seeds{.name = "minecraft:wheat_seeds", .planter = true}, bone{.name = "minecraft:bone_meal", .fertilizer = true};
+    check(targetUseOf(seeds,false,false,false) == TargetUse::Planter && targetUseOf(bone,false,false,false) == TargetUse::Fertilizer
+              && targetUseOf(item("minecraft:chest_minecart"),false,false,false) == TargetUse::Rail
+              && targetUseOf(item("minecraft:honeycomb"),false,false,false) == TargetUse::Honeycomb
+              && targetUseOf(item("minecraft:netherite_axe"),false,false,false) == TargetUse::Axe
+              && targetUseOf(item("minecraft:diamond_pickaxe"),false,false,false) == TargetUse::None
+              && targetUseOf(item("minecraft:iron_shovel"),true,false,false) == TargetUse::Shovel
+              && targetUseOf(item("minecraft:iron_hoe"),false,true,false) == TargetUse::Hoe
+              && targetUseOf(item("minecraft:shears"),false,false,false) == TargetUse::Shears
+              && targetUseOf(item("minecraft:bucket"),false,false,false) == TargetUse::Fill
+              && targetUseOf(item("minecraft:water_bucket"),false,false,false) == TargetUse::None
+              && targetUseOf(item("custom:axe"),false,false,false) == TargetUse::None,
+          "each item has the target use its kind, tags or name say");
+    using namespace lamium::inventory::fakeOffhand;
+    check(shovelChanges("grass_block") && shovelChanges("podzol") && !shovelChanges("stone") && hoeChanges("dirt")
+              && !hoeChanges("podzol") && shearsChange("pumpkin") && !shearsChange("carved_pumpkin"),
+          "the shovel, hoe and shears lists name the blocks they change");
+    check(strippable("oak_log") && strippable("crimson_hyphae") && strippable("bamboo_block") && !strippable("stripped_oak_log")
+              && !strippable("oak_planks"),
+          "unstripped logs, woods, stems, hyphae and bamboo blocks can be stripped");
+    // L-189: an air use that cannot act now (no arrows, Riptide out of water,
+    // a firework while not gliding, an empty bucket aimed at no liquid).
+    for (auto traits : {item("minecraft:firework_rocket"), ItemTraits{.name = "minecraft:bow", .timed = true},
+        ItemTraits{.name = "minecraft:trident", .timed = true, .throwable = true}, ItemTraits{.name = "minecraft:bucket", .bucket = true}}) {
+        check(primaryPass(traits,false,false,true,std::nullopt,true) && !primaryPass(traits,false,false),
+              "an idle air use passes in air");
     }
     check(!primaryPass(item("custom:stick"),false,false) && !primaryPass(ItemTraits{},false,false),
         "unknown and unreadable primary items remain vanilla");

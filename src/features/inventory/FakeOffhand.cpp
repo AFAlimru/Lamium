@@ -33,6 +33,12 @@
 #include "mc/world/level/block/Block.h"
 #include "mc/world/level/block/BlockType.h"
 #include "mc/world/level/block/actor/BlockActorType.h"
+#include "mc/world/level/block/CopperBehavior.h"
+#include "mc/world/item/components/PlanterItemComponent.h"
+#include "mc/world/item/enchanting/Enchant.h"
+#include "mc/world/item/enchanting/EnchantUtils.h"
+#include "mc/deps/nbt/CompoundTag.h"
+#include "app/Versions.h"
 #include "mc/world/phys/HitResult.h"
 #include <atomic>
 #include <chrono>
@@ -94,7 +100,8 @@ ItemTraits traitsOf(ItemStack const& item, std::string const& name) {
     traits.bucket = native.isBucket();
     traits.liquidClip = native.isLiquidClipItem();
     traits.wearable = native.isHumanoidArmor() || native.hasTag(VanillaItemTags::Armor());
-    traits.planter = native.isBlockPlanterItem();
+    // Foods that plant (carrots) may report only the component (L-189).
+    traits.planter = native.isBlockPlanterItem() || native.getComponent(HashedString{"minecraft:block_placer"}) != nullptr;
     traits.fertilizer = native.isFertilizer();
     traits.dye = native.isDye();
     traits.damageable = native.isDamageable();
@@ -109,6 +116,72 @@ bool plainBlock(LocalPlayer& player, HitResult const& hit) {
     auto const& type = player.getDimensionBlockSource().getBlock(hit.mBlock).getBlockType();
     return type.mSolid && type.getBlockEntityType() == BlockActorType::Undefined;
 }
+// L-189: what the primary item's target-specific use can do on the aimed
+// block, asked of the game where it has a check (a planter's canUseOn, a
+// fertilizable block, rails, copper state) and from the short tool lists
+// elsewhere. None when the item has no such use or it cannot be read.
+std::optional<bool> targetUse(ItemStack const& item, ItemTraits const& traits, LocalPlayer& player, HitResult const& hit,
+                              bool liquidAimed) {
+    if (hit.mType != HitResultType::Tile || !item.mItem) return std::nullopt;
+    auto const& native = *item.mItem;
+    auto use = targetUseOf(traits, native.hasTag(VanillaItemTags::Shovel()), native.hasTag(VanillaItemTags::Hoe()),
+                           native.hasTag(VanillaItemTags::Shears()));
+    if (use == TargetUse::None || !versionSensitiveAllowed("Fake Offhand (item use targets)")) return std::nullopt;
+    auto& region = player.getDimensionBlockSource();
+    Block const& block = region.getBlock(hit.mBlock);
+    auto const& type = block.getBlockType();
+    std::string name = block.getTypeName();
+    auto id = detail::vanillaId(name);
+    switch (use) {
+    case TargetUse::Planter: {
+        // The game keys its components by name; "minecraft:block_placer" is
+        // the planter's (gated above, like the copper fields).
+        auto* component = native.getComponent(HashedString{"minecraft:block_placer"});
+        if (!component) return std::nullopt;
+        return static_cast<PlanterItemComponent const*>(component)->canUseOn(item, player, hit.mBlock, hit.mFacing);
+    }
+    case TargetUse::Fertilizer:
+        return type.canBeFertilized(region, hit.mBlock, region.getBlock(BlockPos{hit.mBlock.x, hit.mBlock.y + 1, hit.mBlock.z}));
+    case TargetUse::Rail: return type.isRailBlock();
+    case TargetUse::Honeycomb: {
+        auto const* copper = type.tryGetCopperBehavior();
+        return copper && !static_cast<bool>(copper->mIsWaxed);
+    }
+    case TargetUse::Axe: {
+        if (strippable(id)) return true;
+        auto const* copper = type.tryGetCopperBehavior();
+        return copper && (static_cast<bool>(copper->mIsWaxed) || static_cast<CopperType>(copper->mType) != CopperType::Default);
+    }
+    case TargetUse::Shovel: return shovelChanges(id);
+    case TargetUse::Hoe: return hoeChanges(id);
+    case TargetUse::Shears: return shearsChange(id);
+    case TargetUse::Fill: return liquidAimed;
+    default: return std::nullopt;
+    }
+}
+bool holdsAmmo(LocalPlayer& player, bool fireworksToo) {
+    auto ammo = [&](ItemStack const& stack) {
+        if (stack.isNull()) return false;
+        auto name = stack.getTypeName();
+        return name == "minecraft:arrow" || (fireworksToo && name == "minecraft:firework_rocket");
+    };
+    for (int slot = 0; slot < 36; ++slot)
+        if (ammo(player.getInventory().getItem(slot))) return true;
+    return ammo(player.getOffhandSlot());
+}
+// L-189: aimed at nothing, the primary item's air use cannot act now.
+bool airIdle(ItemStack const& item, ItemTraits const& traits, LocalPlayer& player, bool liquidAimed) {
+    auto id = detail::vanillaId(traits.name);
+    if (id == "firework_rocket") return !player.isGliding();
+    if (id == "bucket" || id == "glass_bottle") return !liquidAimed;
+    if (id == "trident") return EnchantUtils::getEnchantLevel(Enchant::Type::Riptide, item) > 0 && !player.isInWaterOrRain();
+    if (id == "bow" || id == "crossbow") {
+        if (player.isCreative()) return false;
+        if (id == "crossbow" && item.mUserData && item.mUserData->contains("chargedItem")) return false;
+        return !holdsAmmo(player, id == "crossbow");
+    }
+    return false;
+}
 bool primaryPasses(ItemStack const& item, LocalPlayer& player, HitResult const& hit) {
     auto name = nameOf(item);
     auto traits = traitsOf(item, name);
@@ -120,7 +193,14 @@ bool primaryPasses(ItemStack const& item, LocalPlayer& player, HitResult const& 
         cannotEat = foodBlocked(food->canAlwaysEat(), player.isCreative(),
             static_cast<float>(hunger->mCurrentValue), hunger->mCurrentMaxValue);
     }
-    return primaryPass(traits, hit.mType == HitResultType::Tile, cannotEat, plainBlock(player, hit));
+    // A liquid along the aim, in this hit or the latest one (the build hook's
+    // hit may skip liquids).
+    auto client = ll::service::getClientInstance();
+    bool liquidAimed = hit.mIsHitLiquid || (client && client->getLatestHitResult().mIsHitLiquid);
+    bool blockTarget = hit.mType == HitResultType::Tile;
+    return primaryPass(traits, blockTarget, cannotEat, plainBlock(player, hit),
+                       blockTarget ? targetUse(item, traits, player, hit, liquidAimed) : std::nullopt,
+                       !blockTarget && hit.mType != HitResultType::Entity && airIdle(item, traits, player, liquidAimed));
 }
 bool secondaryUsable(ItemStack const& item, LocalPlayer& player, HitResult const& hit) {
     auto name = nameOf(item);

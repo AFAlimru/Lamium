@@ -86,23 +86,36 @@ Primary (selected slot) passes when its ordinary use cannot act:
 | Air (NoHit) | Every other block item except liquid-placed ones; any item without a use duration, projectile, bucket or liquid-clip property; food at confirmed full hunger | Timed, projectile, bucket and liquid-clip items; hungry, always-edible, creative or unreadable food |
 | Ordinary block | Non-block items with none of the properties above and no planter, fertilizer, dye or durability property, and not a known block-use identity (seeds, doors, signs, redstone, string, spawn eggs, minecarts, boats, honeycomb, books, discs, lodestone compass, resin clump, ...), aimed at a solid block without a block entity (2026-10-07) | Block items (placement), food (some plant crops), damageable tools, the listed identities, and every such material aimed at a block with a block entity (decorated pot, lectern, sign, chiseled bookshelf, vault, ...) or a non-solid block |
 
-### Primary pass proposal (L-189, 2026-10-15, not agreed)
+### Target-specific primary uses (L-189, decided and built 2026-10-15)
 
-The table judges the primary item by its kind alone on ordinary blocks:
-food and every damageable tool keep priority there even when they cannot
-act (bread at full hunger, a shovel aimed at stone). Proposed, with
-anything uncertain still keeping vanilla priority:
-- Food at confirmed full hunger, not always-edible, placing no block
-  (not carrots, potatoes, sweet or glow berries) also passes on ordinary
-  blocks.
-- Shovels pass unless aimed at grass, dirt, coarse dirt, podzol, mycelium,
-  rooted dirt (path) or a lit campfire (put out); hoes unless aimed at grass,
-  dirt, coarse dirt, rooted dirt or a dirt path (till); axes unless aimed at
-  an unstripped log, wood, stem or hyphae, a bamboo block, or an oxidized or
-  waxed copper block (strip, scrape, unwax).
-- Other damageable tools (shears, flint and steel, brush, ...) keep
-  priority. The lists are hand-kept: a missing entry makes the secondary
-  act where the tool could have; judged from the client's view of the block.
+Maintainer 2026-10-15: include as much as possible, and prefer the game's
+own checks to hand-kept lists. Built, not checked in game. On top of the
+table above, a primary item whose use only acts on certain blocks or in
+certain states passes when the game says it cannot act now; anything
+unread keeps vanilla priority. Block targets still have to be plain
+(solid, no block entity); interactive blocks and entities are decided first.
+- Planters (seeds, carrots, potatoes, nether wart, berries, cocoa beans,
+  any item with the `minecraft:block_placer` component): the component's
+  `canUseOn` for the aimed block and face.
+- Fertilizers (bone meal): the block's `canBeFertilized` with the block
+  above.
+- Minecarts: the block's `isRailBlock`.
+- Honeycomb: the block's copper behaviour, not waxed yet. Axes: an
+  unstripped log, wood, stem, hyphae or bamboo block (by name), or copper
+  that is waxed or oxidized.
+- Shovels (tag), hoes (tag) and shears: short vanilla block lists
+  (`shovelChanges`, `hoeChanges`, `shearsChange` in FakeOffhandPlan.h).
+- Empty buckets and glass bottles: a liquid along the aim (this hit or the
+  latest one). Food at confirmed full hunger passes on plain blocks unless
+  it plants and its planter could be used there. Dyes, ink sacs and books
+  pass on plain blocks (their uses need block entities).
+- Aimed at nothing: a firework while not gliding, an empty bucket or bottle
+  with no liquid aimed at, a Riptide trident out of water and rain, a bow
+  without arrows or an uncharged crossbow without arrows or fireworks
+  (survival; inventory and offhand searched).
+The planter component, the copper fields and the block checks are gated
+as "Fake Offhand (item use targets)" (GAME-UPDATES.md); on an unverified
+game the block rules fall back to the table above.
 
 Entities, active primary timed use and interactive blocks (unless sneaking)
 are decided before this and stay vanilla. The block-target identity list is
