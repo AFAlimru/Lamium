@@ -663,17 +663,20 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
         std::map<std::tuple<float, float, float>, std::vector<Outline const*>> byColor;
         for (auto const& o : outlines) byColor[{o.r, o.g, o.b}].push_back(&o);
         constexpr int edges[12][2] = {{0,1},{2,3},{4,5},{6,7},{0,2},{1,3},{4,6},{5,7},{0,4},{1,5},{2,6},{3,7}};
-        float const half = faces::barHalfWidth(Runtime::instance().snapshot()->schematic.ghostLines);
+        int const width = Runtime::instance().snapshot()->schematic.ghostLines;
         // Thin: game lines; wider: bars as quads, drawn with the same material.
-        int const perEdge = half > 0 ? 32 : 2;
+        int const perEdge = width > 0 ? 32 : 2;
         for (auto const& [color, group] : byColor) {
+            float const half = faces::rankedBarHalfWidth(width, faces::outlineRank(std::get<0>(color), std::get<1>(color), std::get<2>(color)));
+            // Bars sit on the edge itself, so neighbors' bars share one center.
+            glm::vec3 const grow{half > 0 ? 0.f : .002f};
             Tessellator lines(screen.tessellator.mBufferResourceService);
             lines.begin({}, half > 0 ? mce::PrimitiveMode::QuadList : mce::PrimitiveMode::LineList,
                         static_cast<int>(group.size() * 12 * perEdge), false);
             auto [r, g, b] = color;
             lines.color(r, g, b, 1.f);
             for (auto const* o : group) {
-                glm::vec3 low = o->min - glm::vec3{.002f} - out.origin, high = o->max + glm::vec3{.002f} - out.origin, c[8];
+                glm::vec3 low = o->min - grow - out.origin, high = o->max + grow - out.origin, c[8];
                 for (int i = 0; i < 8; ++i) c[i] = {i & 1 ? high.x : low.x, i & 2 ? high.y : low.y, i & 4 ? high.z : low.z};
                 for (auto [i, j] : edges) {
                     if (half <= 0) {

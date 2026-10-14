@@ -28,6 +28,19 @@ inline constexpr std::array<float, 3> ghostTint(int setting) {
 // (game lines). Copies of a line at small offsets left visible gaps up
 // close (2026-10-15), so wider outlines are square bars.
 inline constexpr float barHalfWidth(int width) { return width <= 0 ? 0.f : width == 1 ? .008f : .016f; }
+// Neighbors' bars share an edge. Coplanar bars of two colors flickered, so a
+// stronger mistake's bar is a little wider and encloses the weaker one: wrong
+// block (red) over unknown block (orange) over wrong state (yellow) over a
+// ghost or missing block (light blue).
+inline constexpr int outlineRank(float r, float g, float b) {
+    if (b > .5f) return 0;
+    if (r > .9f && g < .4f) return 3;
+    if (r > .9f && g < .7f) return 2;
+    return 1;
+}
+inline constexpr float rankedBarHalfWidth(int width, int rank) {
+    return width <= 0 ? 0.f : barHalfWidth(width) + .0015f * static_cast<float>(rank);
+}
 // The four sides of a square bar around the axis-aligned segment p-q, each
 // in both windings (the material may cull either): 32 corners, quads.
 inline std::vector<std::array<float, 3>> barQuads(std::array<float, 3> p, std::array<float, 3> q, float half) {

@@ -888,6 +888,14 @@ void ghostLook() {
     for (auto const& v : bar) around = around && (v[0] == 0.f || v[0] == 1.f) && std::abs(std::abs(v[1]) - .01f) < 1e-6f
                                       && std::abs(std::abs(v[2]) - .01f) < 1e-6f;
     check(around, "a bar is four sides around the edge, both windings, ends on the edge's ends");
+    using lamium::schematic::faces::outlineRank;
+    using lamium::schematic::faces::rankedBarHalfWidth;
+    int wrong = outlineRank(1.f, .25f, .2f), unknown = outlineRank(1.f, .55f, .1f), state = outlineRank(1.f, .8f, .2f),
+        missing = outlineRank(.35f, .85f, 1.f);
+    check(wrong > unknown && unknown > state && state > missing, "wrong over unknown over wrong state over missing");
+    check(rankedBarHalfWidth(1, wrong) > rankedBarHalfWidth(1, state) && rankedBarHalfWidth(1, state) > rankedBarHalfWidth(1, missing)
+          && rankedBarHalfWidth(2, missing) == barHalfWidth(2) && rankedBarHalfWidth(0, wrong) == 0.f,
+          "a stronger mistake's bar encloses a weaker neighbor's; thin stays a game line");
 }
 void schematicTests() {
     rayCells();

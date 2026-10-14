@@ -605,6 +605,12 @@ Part built 2026-10-15 (maintainer: choice (c) plus an outline width): a
 "Ghost tint" setting (strong = the earlier look, weak = default, none) and a
 "Ghost outlines" width (thin = one pixel, default; normal and thick draw each
 axis-aligned edge again at four offsets across it). Not checked in game.
+Later the same day normal/thick became solid bars (`7d79bef`, passed). Bars
+of neighbors with different check results flickered; they now sit on the
+shared edge and a stronger result's bar is slightly wider: wrong block >
+unknown block > wrong state > ghost/missing (not checked yet).
+Open (maintainer, 2026-10-15): the three tint choices are easy to read but
+change the look sharply; a finer tint control is being considered. Not decided.
 Translucent ghosts stay open (maintainer: after the release).
 Goal: distinguish ghost blocks from real blocks while keeping their native
 colors readable. In the reported screenshot a pink concrete ghost overlapped
