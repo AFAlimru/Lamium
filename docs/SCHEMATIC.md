@@ -52,7 +52,15 @@ images are not embedded in this repository.
   the file's value unchanged. Ghosts now turn it with the placement's mirror
   and quarter turns (`toWorldFace`, tested against the cell transform); the
   mirror follows block states (X swaps east and west). Not checked in game;
-  whether unturned placements were also wrong is still unknown.
+  whether unturned placements were also wrong is still unknown. The Check also compares
+  a placed box's opening with the turned file value (a gated read of the
+  block actor; unreadable keeps the block-only result), listed as a
+  `facing` state difference.
+- **Schematics off (maintainer 2026-10-14):** the R menu and schematic keys
+  did nothing visible while the feature was off. Now schematic keys show a
+  toast saying how to turn it on; the radial menu opens at Show, where the
+  feature switch is, with a toast, and runs only the switch, the HUD switch
+  and screen items until the feature is on.
 - **L-182 (crash):** settings opened with the default L key can sometimes
   crash while working with an active schematic check. Reproduce with
   logs/stack before attributing cause to the check or settings screen.
