@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <iterator>
 #include <optional>
 #include <string>
 #include <vector>
@@ -59,14 +60,6 @@ inline std::vector<CardRow> cardRows(TargetInfo const& target, CardOptions const
             add({detail.label, detail.value, true, detail.valueIsKey, detail.progress,
                  detail.progress ? options.growth : Meter::Number});
     }
-    for (auto const& detail : target.details)
-        if (detail.kind == DetailKind::Schematic) {
-            CardRow row{detail.label, detail.value, detail.labelIsKey, detail.valueIsKey};
-            row.icon = detail.icon;
-            row.tone = detail.tone;
-            row.before = detail.before;
-            add(std::move(row));
-        }
     if (options.coordinates && target.blockPosition) {
         auto const& p = *target.blockPosition;
         add({"target.position", std::to_string(p.x) + ", " + std::to_string(p.y) + ", " + std::to_string(p.z)});
@@ -79,6 +72,27 @@ inline std::vector<CardRow> cardRows(TargetInfo const& target, CardOptions const
         if (split == std::string::npos) add({state, "", false});
         else add({state.substr(0, split), state.substr(split + 2), false});
     }
+    return rows;
+}
+// The extra section has its own capacity and label column. It never displaces
+// the real target's coordinates or state rows.
+inline std::vector<CardRow> schematicCardRows(TargetInfo::Schematic const& schematic, CardOptions const& options,
+                                               size_t limit = 10) {
+    std::vector<CardRow> rows;
+    TargetInfo expected{schematic.name, schematic.identifier};
+    expected.blockPosition = schematic.blockPosition;
+    expected.states = schematic.states;
+    for (auto const& detail : schematic.details) {
+        if (detail.kind != DetailKind::Schematic) { expected.details.push_back(detail); continue; }
+        if (rows.size() == limit) continue;
+        CardRow row{detail.label, detail.value, detail.labelIsKey, detail.valueIsKey};
+        row.icon = detail.icon;
+        row.tone = detail.tone;
+        row.before = detail.before;
+        rows.push_back(std::move(row));
+    }
+    auto ordinary = cardRows(expected, options, limit - rows.size());
+    rows.insert(rows.end(), std::make_move_iterator(ordinary.begin()), std::make_move_iterator(ordinary.end()));
     return rows;
 }
 // Ten icons like the vanilla armor bar: each is full, half or empty.

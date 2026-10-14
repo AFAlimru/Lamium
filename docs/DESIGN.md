@@ -226,6 +226,18 @@ Contents:
   While Freelook or FreeCamera is active the card follows the camera: the
   nearest block or entity box along the rendered camera's forward, water and
   lava excluded.
+- **Target and Schematics** (decided 2026-10-15): keep the ordinary target
+  information above a divider and append a schematic section below it, in
+  the same HUD element. The upper icon, name, ID, coordinates, state rows,
+  text size and visibility options retain their ordinary behavior. Schematic
+  rows have their own capacity and never replace actual state rows. The
+  lower section identifies the placement as "Schematic: <name>", shows the
+  expected block with the same icon size as the upper header, and names the
+  mismatch in the check's colors. Differing states read current -> expected
+  with the drawn arrow. A ghost without a real target uses the schematic
+  section alone; a nearer ghost must not replace a real target's information.
+  When height is limited, preserve the ordinary section first. Saved container
+  contents and expanded inspection remain L-184 follow-ups.
 - One "Range" (2-64 blocks, default 6) for every viewpoint: the card picks
   along the body's view normally and along the camera during Freelook and
   FreeCamera. Why: one mental model ("this far from where I look"); the

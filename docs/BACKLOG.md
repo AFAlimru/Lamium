@@ -551,12 +551,21 @@ to completion totals/HUD/nearest-mistake, and how to unignore/review them.
 Keep the original strict comparison available. [SCHEMATIC.md](SCHEMATIC.md).
 
 ### L-184 Inspect ghost block data and schematic container contents
-Kind: Design / Research. User feedback clarified 2026-10-14; no
-implementation or release approved.
-Part built 2026-10-15 (maintainer chose it for the next release): the target
-card takes the nearest ghost in front of the aimed block (or in the air) as
-its target: icon, name, states and a "Ghost of <placement>" row. Not
-checked in game. Container contents and saved block entity data remain open.
+Kind: Design / Research for saved data inspection; the agreed target-card
+presentation is Ready (strong model), built and awaiting runtime checks.
+User feedback clarified 2026-10-14. The initial 2026-10-15 implementation
+(chosen for the next release) made the nearest ghost the main target with a
+"Ghost of <placement>" row. The presentation below supersedes that approach.
+Target-card presentation approved 2026-10-15: the maintainer chose an ordinary
+upper section plus a separated schematic lower section, with state differences
+compared horizontally inside the latter (DESIGN "Target and Schematics").
+Preserve ordinary block information and its options, including actual states
+that differ from the file; the extra section gets its own row capacity. A
+nearer ghost adds information instead of replacing the real target. Built,
+awaiting in-game checks: wrong/extra/state differences, air-only ghosts,
+ghosts in front of real blocks, other-details/ID/icon/coordinates switches,
+card/none background, HUD scale and short screens. Container inspection and
+saved Block Entity data remain Design / Research.
 Goal: inspect the ghost under the crosshair: expected block name, facing,
 BlockState and available saved Block Entity data. Provide a way to
 understand inventory contents of barrels/hoppers and other data relevant

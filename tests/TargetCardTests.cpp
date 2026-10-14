@@ -111,12 +111,20 @@ void targetCardTests() {
         TargetInfo::DetailRow state{"weirdo_direction", "2 (now 1)"};
         state.kind = DetailKind::Schematic;
         state.labelIsKey = false;
-        block.details = {line, state};
+        TargetInfo::Schematic schematic;
+        schematic.details = {line, state};
+        block.schematic = schematic;
         block.states = {"weirdo_direction: 1"};
         CardOptions plain;
-        auto shown = cardRows(block, plain);
+        auto shown = schematicCardRows(*block.schematic, plain);
         check(shown.size() == 2 && shown[0].icon == "icon" && shown[1].label == "weirdo_direction" && !shown[1].labelIsKey,
-              "schematic rows show without details, the first with the expected block's icon");
+              "the separate schematic rows show without details and keep their icons");
+        check(cardRows(block, plain).empty(), "schematic rows are not part of the ordinary card");
+        plain.details = true;
+        auto actual = cardRows(block, plain, 1);
+        check(actual.size() == 1 && actual[0].value == "1", "a schematic difference does not replace the real state");
+        check(schematicCardRows(schematic, plain, 0).empty()
+              && schematicCardRows(schematic, plain, 1).size() == 1, "schematic capacity is independent, including zero");
     }
     {
         // L-112: common states by name.
@@ -135,10 +143,7 @@ void targetCardTests() {
         // L-93: schematic rows say what to do.
         auto translate = [](std::string_view key) { return "<" + std::string(key) + ">"; };
         using lamium::schematic::CellState;
-        auto wrong = schematicRows(CellState::Wrong, "Dirt", "icon", {}, "minecraft:stone", translate);
-        check(wrong.size() == 1 && wrong[0].label == "schematic.shouldBe" && wrong[0].value == "Dirt"
-              && wrong[0].icon == "icon" && wrong[0].tone == Tone::Wrong, "a wrong block reads 'Should be' with its icon");
-        auto stairs = schematicRows(CellState::State, "Stairs", "icon",
+        auto stairs = schematicStateRows(
             {{"weirdo_direction", "0", "3"}, {"minecraft:corner", "none", "inner_left"}}, "minecraft:stone_stairs", translate);
         check(stairs.size() == 2 && stairs[0].label == "target.facing" && stairs[0].labelIsKey
               && stairs[0].before == "<target.dirNorth>" && stairs[0].value == "<target.dirEast>" && stairs[0].tone == Tone::State,
@@ -147,12 +152,67 @@ void targetCardTests() {
               && stairs[1].value == "none",
               "an unknown state keeps its raw name and values");
         TargetInfo card{"Stairs", "minecraft:stone_stairs"};
-        card.details = stairs;
-        auto drawn = cardRows(card, CardOptions{});
+        TargetInfo::Schematic section;
+        section.details = stairs;
+        card.schematic = section;
+        auto drawn = schematicCardRows(*card.schematic, CardOptions{});
         check(drawn.size() == 2 && drawn[0].before == "<target.dirNorth>" && drawn[0].tone == Tone::State,
               "card rows keep the change and its color");
-        auto extra = schematicRows(CellState::Extra, "", "", {}, "minecraft:dirt", translate);
-        check(extra.size() == 1 && extra[0].value == "<schematic.air>" && extra[0].icon.empty(), "an extra block should be air");
+        lamium::schematic::Mismatch mismatch;
+        mismatch.state = CellState::State;
+        mismatch.expectedName = "Stairs";
+        mismatch.expected = "item";
+        mismatch.identifier = "minecraft:stone_stairs";
+        mismatch.states = {{"weirdo_direction", "0", "3"}};
+        auto compared = schematicTarget(mismatch, "Warehouse", translate);
+        check(compared && compared->placement == "Warehouse" && compared->name == "Stairs" && compared->item == "item"
+              && compared->status == "target.schematicState" && compared->tone == Tone::State
+              && compared->details[0].before == "<target.dirNorth>" && compared->details[0].value == "<target.dirEast>",
+              "the schematic section carries its placement, expected block and named state comparison");
+        mismatch.state = CellState::Extra;
+        compared = schematicTarget(mismatch, "Warehouse", translate);
+        check(compared && compared->name == "<schematic.air>" && compared->tone == Tone::Wrong
+              && compared->details.empty() && compared->item.empty(),
+              "extra blocks have air as the expected header and no stale state differences");
+        mismatch.state = CellState::Wrong;
+        compared = schematicTarget(mismatch, "Warehouse", translate);
+        check(compared && compared->name == "Stairs" && compared->item == "item"
+              && compared->status == "target.schematicWrong" && compared->tone == Tone::Wrong,
+              "a wrong block retains the expected name and full-size item icon");
+        mismatch.state = CellState::Missing;
+        compared = schematicTarget(mismatch, "Warehouse", translate);
+        check(compared && compared->status == "schematic.kind.missing" && compared->tone == Tone::Missing,
+              "missing blocks have an explicit light-blue status");
+        for (auto kind : {CellState::Correct, CellState::Unknown, CellState::Ignored}) {
+            mismatch.state = kind;
+            check(!schematicTarget(mismatch, "Warehouse", translate), "non-mistakes do not add a comparison section");
+        }
+    }
+    {
+        TargetInfo actual{"Wire", "minecraft:redstone_wire"};
+        actual.blockPosition = TargetInfo::BlockPosition{12, 64, 80};
+        actual.details = {{"target.power", "12", false, .8f}};
+        for (int i = 0; i < 12; ++i) actual.states.push_back("state" + std::to_string(i) + ": 1");
+        CardOptions all;
+        all.details = all.coordinates = true;
+        auto before = cardRows(actual, all, 10);
+        TargetInfo::Schematic section;
+        section.details = schematicStateRows({{"redstone_signal", "0", "12"}},
+            actual.identifier, [](std::string_view key) { return std::string(key); });
+        actual.schematic = section;
+        auto after = cardRows(actual, all, 10);
+        bool same = before.size() == after.size();
+        for (size_t i = 0; same && i < before.size(); ++i)
+            same = before[i].label == after[i].label && before[i].value == after[i].value && before[i].progress == after[i].progress;
+        check(same && after.size() == 10 && after[0].label == "target.position" && after[1].label == "target.power",
+              "adding a schematic preserves the full ordinary row budget, coordinates and actual power");
+        section.details.clear();
+        section.blockPosition = TargetInfo::BlockPosition{12, 65, 80};
+        section.details.push_back({"target.growth", "5 / 7", false, 5.f / 7, DetailKind::Growth});
+        section.states = {"custom: 4"};
+        auto ghost = schematicCardRows(section, all);
+        check(ghost.size() == 3 && ghost[0].label == "target.growth" && ghost[1].value == "12, 65, 80"
+              && ghost[2].value == "4", "a ghost's states and position belong to the lower section");
     }
     check(cardContentFits(0, 0, 100, 50, 0, 0, 100, 50) && cardContentFits(-10, -5, 120, 60, 0, 0, 100, 50),
           "the card content shows when the background covers its box");

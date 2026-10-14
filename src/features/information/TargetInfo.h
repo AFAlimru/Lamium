@@ -7,8 +7,8 @@
 #include <vector>
 class IClientInstance;
 namespace lamium::information {
-// Schematic: the selected placement's block here when it differs (L-93),
-// shown whether or not other details are.
+// Schematic differences belong to a separate lower section, independent of
+// the ordinary target's state visibility and capacity (L-184).
 enum class DetailKind { Other, Health, Armor, Growth, Schematic };
 // Schematic rows take the verifier's colors: red for a wrong or extra block,
 // yellow for a wrong state, light blue for a missing one.
@@ -43,6 +43,18 @@ struct TargetInfo {
     std::vector<DetailRow> details;
     struct BlockPosition { int x, y, z; };
     std::optional<BlockPosition> blockPosition = std::nullopt;
+    struct Schematic {
+        std::string placement, name, identifier;
+        TargetIcon icon;
+        std::string item; // Expected block's item as binary NBT, when supplied by the check.
+        std::string status;
+        Tone tone = Tone::Normal;
+        std::vector<DetailRow> details;
+        std::vector<std::string> states;
+        std::optional<BlockPosition> blockPosition;
+    };
+    std::optional<Schematic> schematic;
+    bool ghostOnly = false; // No real target; draw the schematic section alone.
 };
 enum class StateKind { Integer, Text };
 // Max growth/age stage for common crops; unknown blocks show the value only.

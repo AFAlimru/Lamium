@@ -27,6 +27,19 @@ built. Materials include carried shulker-box contents. File entities use named
 dashed frames and are checked by type near their recorded spot, within client
 observation range; pose, equipment and contents are not verified.
 
+Target-card presentation (2026-10-15, built; in-game checks pending): ordinary
+block information stays above a divider. A separate lower section shows
+"Schematic: <placement>", the expected block's full-size icon/name and a
+colored mismatch label. State differences use the drawn current-to-expected
+arrow without removing the upper section's actual state rows. The schematic
+section has an independent row budget; limited height trims it before ordinary
+information. The inspected cell is compared live after verifying the selected
+placement's revision, rather than reading a possibly old/capped mismatch list.
+Air-only ghosts use the schematic section alone. When a ghost is in front of
+a real block, that block's normal information remains above, and the ghost's
+coordinates (if enabled) belong to the lower section. This supersedes the
+older inline schematic/"Ghost of" rows described in the dated records below.
+
 Area save reads bounded chunk columns and waits for unloaded ones as the
 player approaches; it can be stopped. Blocks, states, the water layer and
 block entity data as the client knows it are saved (since 2026-10-09). Optional entities retain type, position
