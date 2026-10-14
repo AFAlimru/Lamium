@@ -453,6 +453,7 @@ type 3, scale 1.333, with the font's own material).
 
 ### L-192 Glass ghost brightness changes by section with the camera position
 Kind: Bug / Research. Maintainer report 2026-10-14 (VALIDATION-LOG).
+Status update 2026-10-14: happens only where a real see-through block is below the ghost; fix built (real see-through faces hide the ghost face in their plane), not checked in game.
 Status: open. More evidence 2026-10-14: only the current camera position
 matters (not where the camera was), so the build-time sort hypothesis below
 does not fit; with the camera below the floor both sides darken.
@@ -472,6 +473,7 @@ whether walking below and back above the floor flips which sections are dark.
 
 ### L-193 Glass ghosts of two adjacent placements flicker at their border
 Kind: Bug. Split from L-178 on 2026-10-14.
+Status update 2026-10-14: does not happen with one placement; the flicker needs real see-through blocks below too; same fix as L-192, not checked in game.
 Status: open. `pistons` (8x3x7 at -95 84 -60) and `shulkers` (5x5x5 at -87 84
 -63) touch across x = -87; their white glass ghosts at y 84, z -60 and -59
 face each other and flicker. Cause found from the log (VALIDATION-LOG):

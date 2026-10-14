@@ -12,6 +12,24 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-192/L-193 isolated: real see-through blocks below (2026-10-14)
+
+Maintainer report on `59ac118` (DLL `93738313...7cfc`), three screenshots:
+- With one placement shown the border flicker does not occur. Glass ghosts
+  darken by camera position (L-192) only where a real see-through block
+  (glass) is below; jumping changes it only there. With two placements over
+  real glass the flicker is limited to some areas.
+- Simple graphics: the same. Vibrant Visuals: white glass ghosts do not
+  draw correctly, so no flicker there.
+- The flicker is irregular, every few frames at 60 fps, like an old
+  fluorescent lamp.
+Reading: real glass writes depth in the plane of the ghost's bottom face
+(both sides drawn, no depth writes, unpulled), so the two fight by float
+precision, which differs per section offset and camera position. Fix
+`cddccc2`: such ghost faces are left out like faces against opaque
+blocks. Not checked in game. Vibrant Visuals' wrong white glass ghost is a
+separate observation.
+
 ## L-193 perf traces: Lamium's draw is constant while it flickers (2026-10-14)
 
 Maintainer runs of two `schematic_perf_trace` builds (DLL `aa18be08...265d`
