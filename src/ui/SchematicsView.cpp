@@ -307,6 +307,9 @@ void deleteSelectedPlacement() {
     else pickSchematic(SchematicPick::None, -1);
 }
 void showSelectedMismatch() {
+    // The rows are from before a move or layer change: their cells are not
+    // the ones shown now (L-177).
+    if (verification && verification->stale) { screen::setMessage(translated("schematic.toast.counting")); return; }
     if (verifySelected >= 0 && verifySelected < static_cast<int>(verifyRows.size())) {
         schematic::ghosts::point(verifyRows[static_cast<size_t>(verifySelected)]->position);
         screen::close();

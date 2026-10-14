@@ -298,6 +298,12 @@ void stepScan(BlockSource& region, session::Snapshot const& snapshot, int dimens
     if (scan.key != key) {
         scan = {};
         scan.key = key;
+        std::lock_guard lock(resultMutex);
+        if (published->complete && !published->stale) {
+            auto kept = std::make_shared<Verification>(*published);
+            kept->stale = true;
+            published = std::move(kept);
+        }
     }
     scan.revision = snapshot.revision;
     scan.placement = index;

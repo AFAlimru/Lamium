@@ -30,6 +30,10 @@ struct Verification {
     std::uint64_t revision = 0; // the placement snapshot this belongs to
     int placement = -1;         // index of the selected placement, -1 when none is checked
     bool complete = false;      // a whole pass finished
+    // The placement moved or its layers changed since: the rows are the last
+    // pass's, kept on screen while the next counts, but no longer where the
+    // ghosts are, so nothing points into the world from them (L-177).
+    bool stale = false;
     Tally visible;              // counts within the shown layers
     std::vector<Mismatch> mismatches; // within the shown layers, nearest first, capped
     std::vector<MaterialLine> materials, visibleMaterials;
