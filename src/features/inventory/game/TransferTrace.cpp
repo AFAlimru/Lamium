@@ -8,6 +8,19 @@
 #include "ll/api/memory/Hook.h"
 #include "mc/client/gui/screens/controllers/ContainerScreenController.h"
 #include "mc/client/gui/screens/ScreenView.h"
+#include "mc/client/gui/screens/ScreenController.h"
+#include "mc/client/gui/screens/ScreenEvent.h"
+#include "mc/client/gui/screens/ScreenEventType.h"
+#include "mc/client/network/ClientNetworkHandler.h"
+#include "mc/network/packet/ItemStackResponseSlotInfo.h"
+#include "mc/network/packet/ItemStackResponseContainerInfo.h"
+#include "mc/network/packet/ItemStackResponseInfo.h"
+#include "mc/network/packet/ItemStackResponsePacket.h"
+#include "mc/world/actor/player/Player.h"
+#include "mc/world/containers/managers/models/ContainerManagerModel.h"
+#include "mc/world/inventory/network/ItemStackNetManagerClient.h"
+#include "mc/world/inventory/network/ItemStackRequestBatch.h"
+#include "mc/world/inventory/network/ItemStackRequestData.h"
 #include "mc/deps/input/MouseAction.h"
 #include "mc/world/containers/controllers/AutoPlaceItem.h"
 #include "mc/world/containers/managers/controllers/ContainerManagerController.h"
@@ -25,7 +38,7 @@
 
 namespace lamium::inventory::game::transferTrace {
 namespace {
-TraceBudget viewBudget, screenBudget, routeBudget, inputBudget, callBudget;
+TraceBudget viewBudget, screenBudget, routeBudget, inputBudget, callBudget, buttonBudget, responseBudget;
 std::atomic<int64_t> screenAt{0};
 std::atomic<bool> altEvent{false};
 ll::event::ListenerPtr mouseListener, keyListener;
@@ -70,12 +83,24 @@ std::string snapshot(ContainerScreenController& controller) {
     }
     return result;
 }
+// Whether vanilla waits for answers: the open request and the batch not yet sent.
+std::string requests(ContainerScreenController& controller) {
+    auto manager = controller.mContainerManagerController;
+    if (!manager) return "requests=?";
+    auto model = manager->mContainerManagerModel.lock();
+    if (!model) return "requests=?";
+    auto* base = model->mPlayer.mItemStackNetManager.get();
+    if (!base || !base->mIsClientSide) return "requests=?";
+    auto* client = static_cast<ItemStackNetManagerClient*>(base);
+    return std::format("open-request={} batched={}", bool(client->mRequest),
+        client->mRequestBatch ? client->mRequestBatch->mRequests->size() : 0);
+}
 void observe(ContainerScreenController& controller, char const* operation, char const* stage,
              std::string const& collection, int index, int amount) noexcept {
     try {
-        if (!recent() || !allowed() || !callBudget.take(160)) return;
-        Runtime::instance().self().getLogger().info("L-169 vanilla {} {} {}:{} amount={} {} {}",
-            operation, stage, collection, index, amount, modifiers(), snapshot(controller));
+        if (!recent() || !allowed() || !callBudget.take(600)) return;
+        Runtime::instance().self().getLogger().info("L-169 vanilla t={} {} {} {}:{} amount={} {} {} {}",
+            now(), operation, stage, collection, index, amount, requests(controller), modifiers(), snapshot(controller));
     } catch (...) {}
 }
 // Observe ordinary player operations only; no diagnostic invokes a handler.
@@ -97,11 +122,78 @@ LL_TYPE_INSTANCE_HOOK(TransferAutoPlaceTrace, ll::memory::HookPriority::Normal, 
     origin(amount, collection, index);
     observe(*this, "auto-place", "predicted-after", collection, index, amount);
 }
+LL_TYPE_INSTANCE_HOOK(TransferAddAllTrace, ll::memory::HookPriority::Normal, ContainerScreenController,
+    &ContainerScreenController::_handleAddAllToCursor, void, std::string const& collection, int index) {
+    observe(*this, "add-all-to-cursor", "before", collection, index, -1);
+    origin(collection, index);
+    observe(*this, "add-all-to-cursor", "predicted-after", collection, index, -1);
+}
+LL_TYPE_INSTANCE_HOOK(TransferTakeAmountTrace, ll::memory::HookPriority::Normal, ContainerScreenController,
+    &ContainerScreenController::_handleTakeAmount, void, int amount, std::string const& collection, int index) {
+    observe(*this, "take-amount", "before", collection, index, amount);
+    origin(amount, collection, index);
+    observe(*this, "take-amount", "predicted-after", collection, index, amount);
+}
+LL_TYPE_INSTANCE_HOOK(TransferTakePlaceTrace, ll::memory::HookPriority::Normal, ContainerScreenController,
+    &ContainerScreenController::$_handleTakePlace, int, std::string const& collection, int index, bool all) {
+    observe(*this, "take-place", "before", collection, index, all ? -1 : 1);
+    int result = origin(collection, index, all);
+    observe(*this, "take-place", "predicted-after", collection, index, result);
+    return result;
+}
+LL_TYPE_INSTANCE_HOOK(TransferPlaceOneTrace, ll::memory::HookPriority::Normal, ContainerScreenController,
+    &ContainerScreenController::$_handlePlaceOne, void, std::string const& collection, int index) {
+    observe(*this, "place-one", "before", collection, index, 1);
+    origin(collection, index);
+    observe(*this, "place-one", "predicted-after", collection, index, 1);
+}
+LL_TYPE_INSTANCE_HOOK(TransferTakeHalfTrace, ll::memory::HookPriority::Normal, ContainerScreenController,
+    &ContainerScreenController::$_handleTakeHalf, void, std::string const& collection, int index) {
+    observe(*this, "take-half", "before", collection, index, -2);
+    origin(collection, index);
+    observe(*this, "take-half", "predicted-after", collection, index, -2);
+}
+// Which button a pack's control sends. Ids are matched to names by pressing
+// known vanilla controls (Shift + click is container_auto_place) in the same run.
+LL_TYPE_INSTANCE_HOOK(TransferButtonTrace, ll::memory::HookPriority::Normal, ScreenController,
+    &ScreenController::_handleEvent, ::ui::ViewRequest, ScreenEvent& event) {
+    try {
+        if (event.type == ScreenEventType::ButtonEvent && recent() && allowed()) {
+            auto const& button = event.data->button.get();
+            traceLog(buttonBudget, 600, "L-169 button t={} id={} from={} state={}->{} interacted={} {}", now(),
+                button.id, button.fromButtonId, int(button.previousState), int(button.state),
+                bool(button.isInteracted), modifiers());
+        }
+    } catch (...) {}
+    return origin(event);
+}
+LL_TYPE_INSTANCE_HOOK(TransferResponseTrace, ll::memory::HookPriority::Normal, ClientNetworkHandler,
+    &ClientNetworkHandler::$handle, void, NetworkIdentifier const& source, ItemStackResponsePacket const& packet) {
+    try {
+        if (recent() && allowed()) {
+            std::string ids;
+            size_t shown = 0;
+            for (auto const& response : packet.mResponses.get()) {
+                if (++shown > 32) { ids += " truncated"; break; }
+                ids += std::format(" {}:{}", response.mClientRequestId->mRawId, int(response.mResult));
+            }
+            traceLog(responseBudget, 400, "L-169 responses t={} count={}{}", now(), packet.mResponses->size(), ids);
+        }
+    } catch (...) {}
+    origin(source, packet);
+}
 struct Hook { int (*install)(bool); bool (*remove)(bool); bool installed = false; };
 Hook hooks[]{
     {TransferTakeAllTrace::hook, TransferTakeAllTrace::unhook},
     {TransferPlaceAllTrace::hook, TransferPlaceAllTrace::unhook},
-    {TransferAutoPlaceTrace::hook, TransferAutoPlaceTrace::unhook}
+    {TransferAutoPlaceTrace::hook, TransferAutoPlaceTrace::unhook},
+    {TransferAddAllTrace::hook, TransferAddAllTrace::unhook},
+    {TransferTakeAmountTrace::hook, TransferTakeAmountTrace::unhook},
+    {TransferTakePlaceTrace::hook, TransferTakePlaceTrace::unhook},
+    {TransferPlaceOneTrace::hook, TransferPlaceOneTrace::unhook},
+    {TransferTakeHalfTrace::hook, TransferTakeHalfTrace::unhook},
+    {TransferButtonTrace::hook, TransferButtonTrace::unhook},
+    {TransferResponseTrace::hook, TransferResponseTrace::unhook}
 };
 }
 void inspectView(ScreenView& view) noexcept {

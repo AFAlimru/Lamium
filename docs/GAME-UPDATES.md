@@ -338,9 +338,10 @@ layouts and method signatures rebuild. Verify amount, role restrictions,
 request IDs and authoritative slot counts after a game update.
 
 ### `src/features/inventory/game/TransferTrace.cpp`
-Hooks: `TransferTakeAllTrace`, `TransferPlaceAllTrace`, `TransferAutoPlaceTrace`
+Hooks: `TransferTakeAllTrace`, `TransferPlaceAllTrace`, `TransferAutoPlaceTrace`, `TransferAddAllTrace`, `TransferTakeAmountTrace`, `TransferTakePlaceTrace`, `TransferPlaceOneTrace`, `TransferTakeHalfTrace`, `TransferButtonTrace`, `TransferResponseTrace`
 Trace (`transfer_trace`): read-only L-169 input, cursor, collection and native
-auto-place order observations. Protected by the game-version gate. The
+auto-place order observations; screen button ids, cursor handlers, the
+open request and unsent batch size, and item stack responses with times. Protected by the game-version gate. The
 after-handler snapshot is prediction, not authoritative completion.
 
 ### `src/features/inventory/game/TextInputTracker.cpp`
