@@ -69,6 +69,8 @@ Keep this section short. It is only the ordering layer; task details and status
 live in the L-items below. If this summary ever disagrees with an L-item, the
 L-item wins. Every entry names what the task is, not only its number.
 
+0. **Next: L-169's 0.2.2 contract** (bulk and all-but-one moves in every
+   item screen), then release 0.2.2 (maintainer 2026-10-15).
 1. **Small and medium features and fixes** (maintainer 2026-10-10: these
    come before large features and L-111 integration for now):
    - Bugs: L-177, L-181 (player reports, need reproductions or an agreed
@@ -78,7 +80,7 @@ L-item wins. Every entry names what the task is, not only its number.
      the inventory screen open (paused after eight rounds).
    - Specs to agree with the maintainer before building: L-165 Mass Craft,
      L-167 in-world language (chosen: native-path research in progress), L-168 trade
-     finder, L-169 Item Transfer in more screens and bulk moves, L-170
+     finder, L-169's later parts (drops and the rest), L-170
      enchantment order planner, L-173 quick shapes and beacon range, L-163
      a Lamium-drawn inventory screen. L-151 to L-154
      stay later. This list approves no implementation and sets no release.
@@ -122,9 +124,8 @@ L-item wins. Every entry names what the task is, not only its number.
    breeding timers, L-105 performance profiling (measure before any
    optimization).
 6. **Before a release:** the pre-release checks below. 0.2.1 was released
-   on 2026-10-14 (0.2.0 on 2026-10-11). No date for the next one (maintainer 2026-10-13: releases
-   came often lately and the changes since are mostly features, so no
-   hurry). Server checks stay listed below as known gaps (the Release
+   on 2026-10-14 (0.2.0 on 2026-10-11). The next is 0.2.2, after L-169's
+   0.2.2 contract (maintainer 2026-10-15). Server checks stay listed below as known gaps (the Release
    policy does not require a full regression).
 
 The 2026-10-14 player-feedback triage is recorded as L-177 through L-189:
@@ -682,9 +683,43 @@ screen comes later.
 Open (maintainer): whether the anvil highlight is wanted later.
 
 ### L-169 Item Transfer in more screens, and bulk transfer
-Kind: Design, then Research (strong model). Requested by the maintainer
-2026-10-12; extends L-41/L-103 (DESIGN "Inventory transfer"). L-154's other
-gestures stay later.
+Kind: Ready for the 0.2.2 part below (decided by the maintainer 2026-10-15);
+the rest stays Design. Requested 2026-10-12; extends L-41/L-103 (DESIGN
+"Inventory transfer"). The 0.2.2 part supersedes the proposals and open
+points further down; those remain as history and for later parts.
+
+**0.2.2 contract (decided 2026-10-15).** Gestures, in the meaning a widely
+used Java inventory mod gives them (PROVENANCE: public key list only):
+| Gesture | Effect |
+|---|---|
+| Ctrl + wheel | every stack of the hovered kind to the other side (up: into the container, down: into the inventory, as the plain wheel) |
+| Ctrl + Shift + wheel | everything to the other side; from the inventory the hotbar stays |
+| Alt + left click | as Ctrl + wheel, toward the other side from the clicked slot's side |
+| Alt + Shift + left click | as Ctrl + Shift + wheel, from the clicked slot's side |
+| Shift + right drag | from each passed slot, all but one item to the other side |
+- Screens: every screen that holds items beside the player inventory: chest
+  family, barrel, shulker box, ender chest, furnace, blast furnace, smoker,
+  dispenser, dropper, hopper, brewing stand, crafter, beacon and any other
+  found while testing. Record the list of checked screens in DESIGN.
+- Slots with roles: send to the slot that accepts the item (fuel to the fuel
+  slot, smeltable items to the input, bottles / ingredient / blaze powder to
+  their brewing slots, the payment to the beacon slot); take from outputs only.
+  An item a slot role cannot take is not moved; no valid destination does
+  nothing. Where vanilla shift-click already routes by role, follow it.
+- The existing four gestures keep their meaning and switches. Each new
+  gesture gets its own child switch, on by default like the existing ones.
+- Same safety as today: one request at a time, each confirmed from
+  authoritative state; stop on screen close, focus loss, a cursor item, text
+  editing, a rejected or timed-out request or a changed source count.
+- Research first, report before building around it: whether Alt reaches the
+  game in screens (if not, stop and ask; do not pick another key); whether
+  vanilla's take-all / place-all / auto-place handlers do exactly the above
+  and can be called from the client thread; that Shift + right drag has no
+  vanilla meaning on Bedrock that players rely on.
+- Not in 0.2.2 (maintainer 2026-10-15): Shift + click on an empty slot with
+  items on the cursor, a wheel version of "all but one", drop gestures, W/S
+  moves.
+- Check in game per screen family and gesture, locally and on a server.
 Goals:
 1. Screens that do not work today: dispenser, dropper, hopper, the furnace
    family (furnace, blast furnace, smoker), brewing stand, and others found
@@ -769,7 +804,9 @@ The maintainer will settle it with the implementing agent, comparing it with
 reference mods (listed in PROVENANCE.md, reference only) and with how it
 plays. Treat the gestures above as the starting proposal, not a contract.
 
-Handoff for the implementing agent (read AGENTS.md first; strong model):
+Handoff for the implementing agent (read AGENTS.md first; implementation of
+the 0.2.2 contract may go to another agent; product questions come back to
+the maintainer):
 - Current behaviour and rules: DESIGN.md "Inventory transfer" (the four
   gestures, one request at a time, stop conditions); L-41 and L-103 in
   BACKLOG-DONE.md; VALIDATION.md rows for Inventory transfer.

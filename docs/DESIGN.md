@@ -570,6 +570,20 @@ exactly one switch, one mode and one set of keys:
   A sweep also stops if a source count changes before its request runs.
   Mouse release stops gathering slots but lets already visited ones finish.
 
+### Bulk moves and more screens (Decided 2026-10-15 for 0.2.2, L-169; not built)
+
+- Ctrl + wheel moves every stack of the hovered kind, Ctrl + Shift + wheel
+  everything, in the plain wheel's direction. Alt + left click and Alt +
+  Shift + left click do the same from the clicked slot's side to the other.
+  "Everything" from the player inventory leaves the hotbar.
+- Shift + right drag moves all but one item from each passed slot.
+- Transfers work in every screen that holds items beside the player
+  inventory. Slots with roles get only what they accept; outputs are only
+  taken from.
+- Each new gesture has its own switch, on by default. Not chosen: Shift +
+  click on an empty slot with a cursor item, a wheel "all but one", drop
+  gestures, W/S moves.
+
 ## Repeated villager trading (Decided 2026-10-12, trigger 2026-10-13, L-166)
 
 - Shift + right click on an unlocked trade row trades it as often as
