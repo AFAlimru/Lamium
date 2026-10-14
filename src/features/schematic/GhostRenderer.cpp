@@ -1,4 +1,5 @@
 #include "features/schematic/GhostRenderer.h"
+#include "mc/world/level/block/actor/BlockActorType.h"
 #include "features/schematic/AreaSave.h"
 #include "features/schematic/PlacementOverlap.h"
 #include "features/schematic/EntityModels.h"
@@ -514,7 +515,15 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
                 actorView = std::make_unique<SchematicRegion>(region);
                 actorView->fullLight = true;
             }
-            actorView->answer = [&](BlockPos const& at) { return at == pos ? block : nullptr; };
+            // A piston's renderer may also look at its head's cell: the
+            // placement's ghost there (the arm block), not the world's air.
+            bool piston = block->getBlockType().mBlockEntityType == BlockActorType::PistonArm;
+            auto placementIndex = static_cast<size_t>(std::get<0>(key));
+            actorView->answer = [&, piston, placementIndex](BlockPos const& at) -> Block const* {
+                if (at == pos) return block;
+                if (!piston || placementIndex >= resolved.size()) return nullptr;
+                return ghostDrawnAt(region, snapshot.placements[placementIndex], resolved[placementIndex], {at.x, at.y, at.z}).block;
+            };
             auto& actor = actors[{pos.x, pos.y, pos.z, block}];
             if (!actor)
                 actor = makeBlockActor(*block, pos, data ? &*data : nullptr,

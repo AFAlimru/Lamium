@@ -22,6 +22,11 @@
 #include "mc/world/level/block/BrightnessPair.h"
 #include "mc/world/level/block/actor/BlockActor.h"
 #include "mc/world/level/block/actor/VanillaBlockActorFactory.h"
+#include "mc/world/level/block/actor/PistonBlockActor.h"
+#include "mc/world/level/block/actor/BlockActorType.h"
+#include "app/Versions.h"
+#include <format>
+#include <set>
 #include <atomic>
 
 namespace lamium::schematic::ghosts {
@@ -32,6 +37,32 @@ namespace {
 // underground as the other ghosts.
 std::atomic<BlockSource const*> ghostActorSource{nullptr};
 
+// An extended piston ghost drew retracted (L-178, 2026-10-14). What load
+// left in the actor is logged once per kind, and the file's progress and
+// state are put back where they differ; the head is drawn from them.
+void keepPistonState(PistonBlockActor& piston, nbt::Compound const& data) {
+    float progress = 0, last = 0;
+    std::int64_t state = 0, next = 0;
+    auto number = [&](char const* key, float& out) {
+        if (auto const* tag = data.find(key); tag && tag->as<float>()) { out = *tag->as<float>(); return true; }
+        return false;
+    };
+    auto integer = [&](char const* key, std::int64_t& out) { auto const* tag = data.find(key); return tag && tag->integer(out); };
+    bool known = number("Progress", progress) & number("LastProgress", last) & integer("State", state) & integer("NewState", next);
+    auto was = std::format("file {}/{} state {}/{}, loaded {}/{} state {}/{}", progress, last, state, next,
+                           static_cast<float>(piston.mProgress), static_cast<float>(piston.mLastProgress),
+                           static_cast<int>(static_cast<PistonState>(piston.mState)),
+                           static_cast<int>(static_cast<PistonState>(piston.mNewState)));
+    static std::set<std::string> seen;
+    if (seen.size() < 16 && seen.insert(was).second) log("piston ghost: " + was);
+    if (!known || state < 0 || state > 3 || next < 0 || next > 3) return;
+    if (!versionSensitiveAllowed("Schematic piston ghosts (piston actor state)")) return;
+    piston.mProgress = progress;
+    piston.mLastProgress = last;
+    piston.mState = static_cast<PistonState>(state);
+    piston.mOldState = static_cast<PistonState>(state);
+    piston.mNewState = static_cast<PistonState>(next);
+}
 // Loads the file's block entity data into a ghost's block actor: at its
 // world cell, a skull's rotation and a shulker box's opening turned with the
 // placement (bed parts and standing banners and signs turn through their
@@ -52,6 +83,7 @@ void loadBlockEntity(BlockActor& actor, nbt::Compound data, BlockPos const& pos,
     if (!tag) return;
     DefaultDataLoadHelper helper;
     actor.load(region.getILevel(), *tag, helper);
+    if (actor.getType() == BlockActorType::PistonArm) keepPistonState(static_cast<PistonBlockActor&>(actor), root.compound);
 }
 
 BrightnessPair fullBrightness() {
