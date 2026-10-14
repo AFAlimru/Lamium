@@ -12,6 +12,15 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-189 passes (2026-10-15)
+
+Maintainer report on `a1a758e` (DLL `58377e90...8089`), local survival:
+wheat seeds on stone and dirt use the fake offhand and plant on farmland;
+a carrot at full hunger uses the fake offhand on dirt and plants on
+farmland. With the earlier rounds, every listed case is as expected.
+Not checked: hoes, shears, honeycomb, crossbows, Riptide tridents, primary
+fireworks, servers.
+
 ## L-189 first check (2026-10-15)
 
 Maintainer report on `9c487e5` (DLL `47142c2e...82c1`), local, survival:

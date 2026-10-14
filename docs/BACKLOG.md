@@ -85,7 +85,7 @@ L-item wins. Every entry names what the task is, not only its number.
    - Done since 0.2.0 (BACKLOG-DONE): L-155, L-157 to L-161, L-147, L-148,
      L-150, L-164 with L-133 and L-156, L-171 calculator, L-172 text
      fields, L-166 repeated villager trades (part 1), L-174 chat position,
-     L-176, L-179, L-187, L-188.
+     L-176, L-179, L-187, L-188, L-180, L-182, L-178, L-189.
 2. **Schematic — L-93 follow-ups:** the screen review and the 0.1.8
    rendering work shipped in 0.1.8. Open: L-114 the Check tab preview's
    mistake look and see-through emphasis, L-115 entity models beyond the
@@ -586,34 +586,6 @@ Consider mode/opacity controls only after comparison; avoid changing the
 existing default without the maintainer's decision. Related but distinct:
 L-114's Check-tab 3D preview mistake styling.
 [SCHEMATIC.md](SCHEMATIC.md).
-
-### L-189 Fake Offhand fallback when primary right-click has no useful action
-Kind: Feature (was Research, then Design). User feedback 2026-10-14.
-Clarified by the maintainer 2026-10-15: the primary hand's item suppresses
-the fake offhand whenever its kind has a right-click role, whether or not
-it would act: bread at full hunger aimed at a block, a shovel aimed at stone.
-Decided 2026-10-15 (maintainer): include as much as possible, using the
-game's own checks where they exist. Status: built, not checked in game
-(FAKE-OFFHAND.md "Target-specific primary uses"). Check in game: bread at
-full hunger on stone; a shovel on stone (passes) and on grass (paths);
-seeds on stone (passes) and on farmland (plants); bone meal on stone and on
-grass; an axe on a log, on copper and on stone; a minecart on stone and on
-a rail; a bow without arrows aimed at the sky; an empty bucket at the sky
-and at water.
-Original goal: if the main-hand right-click has no meaningful applicable action,
-allow the configured Fake Offhand item to receive that use. Reported
-examples are fireworks that cannot be used while the player is full or is
-holding a shovel/axe; this is a generalized input priority rule, not a
-firework-only exception.
-Research the native action/result and target-interaction outcomes: a
-non-mutating or nominally successful primary callback may not be a real
-use; conversely a false return does not prove that trying the other hand
-is safe. Never double-use, break valid block/entity interactions, fire
-accidentally, overwrite the selected slot or assume server success.
-Settle what counts as a genuine no-op before defining exact fallback order;
-check air, blocks, entities, cooldowns and server correction.
-[FAKE-OFFHAND.md](FAKE-OFFHAND.md).
-
 
 ### L-173 Quick shapes: a beacon's range at a glance, shapes that are not saved
 Kind: Design. From the maintainer's notes (2026-10-13); not chosen for
