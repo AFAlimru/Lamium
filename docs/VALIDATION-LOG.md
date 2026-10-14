@@ -28,6 +28,13 @@ Maintainer report on `621d879` (DLL `7a5722fa...d7a`):
 - Answer: it changes in Simple graphics too, so not the material. Next
   build: the seen faces 0.02 out of the cell, and corners beside a
   see-through block drawn after the world's translucent blocks.
+- On `8570986` (DLL `e58097ee...13e1`), four screenshots (Fancy and
+  Simple, each side of the line): still changes over glass and water. From
+  one side the real water behind the mark is hidden, from the other it shows
+  through; the line lies on Chunk Borders lines. Reading: some of the game's
+  translucent terrain is drawn after the block entity alpha pass depending
+  on the camera's chunk, and the mark's depth hides it. Next build: these
+  corners draw in the name tag pass (`GhostLatePass`).
 
 ## Re-sort interval: faster, but water blinked by section (2026-10-15)
 
