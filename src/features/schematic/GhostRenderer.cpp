@@ -79,7 +79,12 @@ struct Perf {
                   prepareNs = 0, facesNs = 0, linesNs = 0, actorsNs = 0, framesNs = 0, entitiesNs = 0, extrasNs = 0;
     std::uint64_t reasons[5]{}; // new, looked-at change, signature changed, mesh gone, chunk incomplete
     std::size_t sections = 0;
+    // L-193: frames whose blended section order or camera position differ
+    // from the previous blended frame.
+    std::uint64_t orderChanges = 0, cameraMoves = 0, blendedFrames = 0;
 } perf;
+std::uint64_t lastOrder = 0;
+Vec3 lastCamera{};
 struct PerfTimer {
     std::uint64_t& into;
     std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
@@ -577,6 +582,15 @@ void drawBlended(BaseActorRenderContext& context) {
     }
     std::sort(order.begin(), order.end(), [](auto const& a, auto const& b) { return a.first > b.first; });
     if (order.empty()) return;
+#ifdef LAMIUM_SCHEMATIC_PERF_TRACE
+    std::uint64_t hash = 1469598103934665603ull;
+    for (auto const& [distance, section] : order) hash = (hash ^ reinterpret_cast<std::uintptr_t>(section)) * 1099511628211ull;
+    ++perf.blendedFrames;
+    if (hash != lastOrder) ++perf.orderChanges;
+    if (camera.x != lastCamera.x || camera.y != lastCamera.y || camera.z != lastCamera.z) ++perf.cameraMoves;
+    lastOrder = hash;
+    lastCamera = camera;
+#endif
     BrightnessPair full;
     full.sky->mValue = 15;
     full.block->mValue = 15;
@@ -619,13 +633,14 @@ void perfReport() {
     log(std::format("perf {} frames: ghost pass {:.3f} ms/frame (max {:.2f}), builds {} ({:.3f} ms/frame, max {:.2f} ms each; "
                     "new {} looked-at {} changed {} mesh-gone {} incomplete {}), checks {} ({:.3f} ms/frame), check/scan {:.3f} ms/frame, "
                     "blended pass {:.3f} ms/frame, sections {}, never-built waiting avg {:.1f} max {}, looked-at latency avg {:.0f} ms max {:.0f} ms; "
-                    "prepare {:.3f}, faces {:.3f}, lines {:.3f}, block actors {:.3f}, frames {:.3f}, entities {:.3f}, name tags {:.3f} ms/frame",
+                    "prepare {:.3f}, faces {:.3f}, lines {:.3f}, block actors {:.3f}, frames {:.3f}, entities {:.3f}, name tags {:.3f} ms/frame; "
+                    "blended frames {}, order changes {}, camera moves {}",
                     perf.frames, per(perf.frameNs), ms(perf.maxFrameNs), perf.builds, per(perf.buildNs), ms(perf.maxBuildNs), perf.reasons[0],
                     perf.reasons[1], perf.reasons[2], perf.reasons[3], perf.reasons[4], perf.checks, per(perf.checkNs), per(perf.scanNs),
                     per(perf.blendNs), perf.sections, static_cast<double>(perf.waiting) / static_cast<double>(perf.frames), perf.maxWaiting,
                     perf.dueCount ? ms(perf.dueLatencyNs) / static_cast<double>(perf.dueCount) : 0., ms(perf.maxDueLatencyNs),
                     per(perf.prepareNs), per(perf.facesNs), per(perf.linesNs), per(perf.actorsNs), per(perf.framesNs), per(perf.entitiesNs),
-                    per(perf.extrasNs)));
+                    per(perf.extrasNs), perf.blendedFrames, perf.orderChanges, perf.cameraMoves));
     perf = Perf{};
 }
 #endif
