@@ -546,11 +546,11 @@ Keep the original strict comparison available. [SCHEMATIC.md](SCHEMATIC.md).
 
 ### L-184 Inspect ghost block data and schematic container contents
 Kind: Design / Research. User feedback clarified 2026-10-14; no
+implementation or release approved.
 Part built 2026-10-15 (maintainer chose it for the next release): the target
 card takes the nearest ghost in front of the aimed block (or in the air) as
 its target: icon, name, states and a "Ghost of <placement>" row. Not
 checked in game. Container contents and saved block entity data remain open.
-implementation or release approved.
 Goal: inspect the ghost under the crosshair: expected block name, facing,
 BlockState and available saved Block Entity data. Provide a way to
 understand inventory contents of barrels/hoppers and other data relevant
@@ -576,12 +576,12 @@ acceptance or bypass permission checks. [SCHEMATIC.md](SCHEMATIC.md).
 
 ### L-186 Improve schematic ghost legibility and reconsider translucency
 Kind: Design / Research (strong model). User feedback 2026-10-14;
+no renderer or release choice yet.
 Part built 2026-10-15 (maintainer: choice (c) plus an outline width): a
 "Ghost tint" setting (strong = the earlier look, weak = default, none) and a
 "Ghost outlines" width (thin = one pixel, default; normal and thick draw each
 axis-aligned edge again at four offsets across it). Not checked in game.
 Translucent ghosts stay open (maintainer: after the release).
-no renderer or release choice yet.
 Goal: distinguish ghost blocks from real blocks while keeping their native
 colors readable. In the reported screenshot a pink concrete ghost overlapped
 a light-blue overlay enough that the pink color, and even whether it was a
