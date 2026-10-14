@@ -12,6 +12,13 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Placed list headers and 0.2.2 release build (2026-10-15)
+
+Maintainer report, local: the release build `6ae5977` (DLL `8d3d2fad...a6ac4`)
+starts and shows "Lamium 0.2.2"; on `bd28452` (DLL `71490ffc...5b7d`) the
+Schematics > Placed headers "Done" and "Shown" are apart and above their
+values and switches, also docked right and in Japanese (L-195).
+
 ## Hotbar section and BDS pass for Item Transfer (2026-10-15, L-169)
 
 Maintainer report on `37c3745` (DLL `5786921f...ebfac`), traces off:

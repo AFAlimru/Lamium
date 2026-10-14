@@ -472,18 +472,6 @@ type 3, scale 1.333, with the font's own material).
 
 ---
 
-### L-195 Separate the Done and Shown headers in the Placed list
-Kind: Bug / Ready. Maintainer screenshot/report 2026-10-15.
-Status: recorded for later; explicitly outside the current Target View work.
-The English Schematics > Placed column headers read as "DoneShown" because
-their text touches/overlaps. The screenshot shows two placements and 0%/1%
-progress; the row switches remain recognizable. Reserve separate measured
-widths and a normal shared gap for both headers, keeping the headers aligned
-with their progress values and switches. Check English, Japanese and Simplified
-Chinese at normal and docked widths. Built 2026-10-15 for 0.2.2 (maintainer
-raised it before tagging): both headers measured, "Shown" centered over the
-switch within the list, "Done" right-aligned 6 units before it. Not checked.
-
 ### L-192 Glass ghost brightness changes by section with the camera position
 Kind: Bug / Research. Maintainer report 2026-10-14 (VALIDATION-LOG).
 Status update 2026-10-14 (2): the real see-through part passed; darkening left where blended quads overlap; fixed by sorting all blended quads together from the current camera, not checked.
