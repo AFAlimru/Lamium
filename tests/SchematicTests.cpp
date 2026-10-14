@@ -873,8 +873,20 @@ void rayCells() {
     check(back.size() == 3 && back[1] == Point{-1, 1, 0} && back[2] == Point{-1, 0, 0}, "negative directions and coordinates floor");
     check(cellsAlong(0, 0, 0, 0, 0, 0, 5).empty(), "no direction, no cells");
 }
+// L-186: tint by setting, outline copies by width.
+void ghostLook() {
+    using lamium::schematic::faces::ghostTint;
+    using lamium::schematic::faces::lineOffsets;
+    check(ghostTint(0)[0] == .62f && ghostTint(1)[0] > ghostTint(0)[0] && ghostTint(2)[0] == 1.f && ghostTint(2)[1] == 1.f
+              && ghostTint(7)[0] == ghostTint(1)[0],
+          "strong, weak and no tint, weak for anything else");
+    check(lineOffsets(0).size() == 1 && lineOffsets(1).size() == 5 && lineOffsets(2).size() == 5
+              && lineOffsets(2)[1][0] > lineOffsets(1)[1][0] && lineOffsets(1)[0][0] == 0.f,
+          "thin draws one line, normal and thick add four copies further apart");
+}
 void schematicTests() {
     rayCells();
+    ghostLook();
     otherHalves();
     liquidChecks();
     blockEntitySaves();

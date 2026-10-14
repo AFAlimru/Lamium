@@ -1,4 +1,5 @@
 #include "features/schematic/GhostMesh.h"
+#include "app/Runtime.h"
 #include "features/schematic/GhostRenderer.h"
 #include "features/schematic/GhostVerify.h"
 #include "features/schematic/GhostFaces.h"
@@ -346,6 +347,7 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
     out.built = out.checked = Clock::now();
     out.signature = signatureOf(region, shown, key);
     out.complete = true;
+    auto const tint = faces::ghostTint(Runtime::instance().snapshot()->schematic.ghostTint);
 
     prepareShapes(screen, own, blocks);
     Point drawing{};
@@ -478,11 +480,11 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
     if (batch.mCount) {
         // Section-relative vertices keep float precision far from the origin.
         for (auto& p : batch.mMeshData->mPositions.get()) p -= out.origin;
-        finishColors(batch, .62f, .85f, 1.f);
+        finishColors(batch, tint[0], tint[1], tint[2]);
         out.faceVertices = batch.mCount;
         out.faces.emplace(batch.end(Tessellator::UploadMode::Buffered, "Lamium schematic ghosts", SupplementaryFieldAutoGenerationMode{}));
     }
-    finishColors(see, .62f, .85f, 1.f);
+    finishColors(see, tint[0], tint[1], tint[2]);
     // The second layer: water in a waterlogged block, under its ghost (the
     // world's cell still empty). A placed block missing its water gets a
     // yellow mark instead: a shell there looked like real water.
@@ -661,19 +663,33 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
         std::map<std::tuple<float, float, float>, std::vector<Outline const*>> byColor;
         for (auto const& o : outlines) byColor[{o.r, o.g, o.b}].push_back(&o);
         constexpr int edges[12][2] = {{0,1},{2,3},{4,5},{6,7},{0,2},{1,3},{4,6},{5,7},{0,4},{1,5},{2,6},{3,7}};
+        auto offsets = faces::lineOffsets(Runtime::instance().snapshot()->schematic.ghostLines);
         for (auto const& [color, group] : byColor) {
             Tessellator lines(screen.tessellator.mBufferResourceService);
-            lines.begin({}, mce::PrimitiveMode::LineList, static_cast<int>(group.size() * 24), false);
+            lines.begin({}, mce::PrimitiveMode::LineList, static_cast<int>(group.size() * 24 * offsets.size()), false);
             auto [r, g, b] = color;
             lines.color(r, g, b, 1.f);
             for (auto const* o : group) {
                 glm::vec3 low = o->min - glm::vec3{.002f} - out.origin, high = o->max + glm::vec3{.002f} - out.origin, c[8];
                 for (int i = 0; i < 8; ++i) c[i] = {i & 1 ? high.x : low.x, i & 2 ? high.y : low.y, i & 4 ? high.z : low.z};
-                for (auto [i, j] : edges) { lines.vertex(c[i].x, c[i].y, c[i].z); lines.vertex(c[j].x, c[j].y, c[j].z); }
+                for (auto [i, j] : edges) {
+                    // Each edge runs along one axis; copies move across it.
+                    glm::vec3 along = glm::abs(c[j] - c[i]);
+                    int axis = along.x > along.y && along.x > along.z ? 0 : along.y > along.z ? 1 : 2;
+                    int a = (axis + 1) % 3, b = (axis + 2) % 3;
+                    for (auto const& o : offsets) {
+                        glm::vec3 shift{0.f};
+                        shift[a] = o[0];
+                        shift[b] = o[1];
+                        glm::vec3 p = c[i] + shift, q = c[j] + shift;
+                        lines.vertex(p.x, p.y, p.z);
+                        lines.vertex(q.x, q.y, q.z);
+                    }
+                }
             }
             auto entry = std::make_unique<Section::ColorLines>();
             entry->color = {r, g, b};
-            entry->vertices = static_cast<std::uint32_t>(group.size() * 24);
+            entry->vertices = static_cast<std::uint32_t>(group.size() * 24 * offsets.size());
             entry->mesh.emplace(lines.end(Tessellator::UploadMode::Buffered, "Lamium schematic outlines", SupplementaryFieldAutoGenerationMode{}));
             out.lines.push_back(std::move(entry));
         }

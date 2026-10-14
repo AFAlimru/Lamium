@@ -820,7 +820,11 @@ LL_TYPE_INSTANCE_HOOK(GhostPass, ll::memory::HookPriority::Normal, LevelRenderer
     if (!player) return;
     try {
         // A new graphics mode rebuilds the sections (mistake faces differ).
-        if (int mode = static_cast<int>(client.getOptions().getGraphicsMode()); mode != lastGraphicsMode) {
+        // The graphics mode, the ghost tint and the outline width are built
+        // into the sections: a change rebuilds them.
+        auto const& look = runtime.snapshot()->schematic;
+        if (int mode = static_cast<int>(client.getOptions().getGraphicsMode()) * 16 + look.ghostTint * 4 + look.ghostLines;
+            mode != lastGraphicsMode) {
             if (lastGraphicsMode >= 0) release();
             lastGraphicsMode = mode;
             buildCamera.vibrant = mode >= static_cast<int>(GraphicsMode::Advanced);

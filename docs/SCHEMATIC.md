@@ -18,7 +18,10 @@ selection, checking and materials. A radial menu exposes placement and
 save-area operations; a separate held adjust key repeats the last stepper
 operation with the wheel. Dedicated keys remain available, all unbound.
 
-The default ghost look is tinted with a light-blue outline. Checking,
+The default ghost look is tinted with a light-blue outline. Since 2026-10-15
+(L-186) the tint is a setting, weak by default (strong is the earlier look,
+none leaves the outline alone), and the outline can be drawn normal or thick
+(each edge repeated at four small offsets, since game lines are one pixel). Checking,
 materials, the optional HUD, target-card line and nearest-mistake marker are
 built. Materials include carried shulker-box contents. File entities use named
 dashed frames and are checked by type near their recorded spot, within client

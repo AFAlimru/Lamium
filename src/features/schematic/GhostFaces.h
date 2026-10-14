@@ -1,4 +1,5 @@
 #pragma once
+#include <array>
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
@@ -13,6 +14,21 @@ namespace lamium::schematic::faces {
 struct Vertex { float x, y, z; };
 // Sides: 0 west (-x), 1 east (+x), 2 down (-y), 3 up (+y), 4 north (-z), 5 south (+z).
 inline constexpr int offsets[6][3] = {{-1,0,0},{1,0,0},{0,-1,0},{0,1,0},{0,0,-1},{0,0,1}};
+// L-186: the ghost tint over block textures by setting (strong, weak, none),
+// and the offsets an outline edge is drawn again at, across the edge, by
+// width (thin, normal, thick): game lines are one pixel wide.
+inline constexpr std::array<float, 3> ghostTint(int setting) {
+    switch (setting) {
+    case 0: return {.62f, .85f, 1.f};
+    case 2: return {1.f, 1.f, 1.f};
+    default: return {.85f, .93f, 1.f};
+    }
+}
+inline std::vector<std::array<float, 2>> lineOffsets(int width) {
+    if (width <= 0) return {{0.f, 0.f}};
+    float d = width == 1 ? .012f : .025f;
+    return {{0.f, 0.f}, {d, 0.f}, {-d, 0.f}, {0.f, d}, {0.f, -d}};
+}
 // The game's face (down, up, north, south, west, east) of the neighbor on
 // `side` that looks back at this cell.
 inline constexpr unsigned char facingToward(int side) {

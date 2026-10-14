@@ -77,6 +77,8 @@ inline constexpr auto lineBackgroundLabels = std::to_array<std::string_view>(
     {"hudBackgroundNone", "hudBackgroundCard", "hudBackgroundLine"});
 inline constexpr std::array<std::string_view,2> debugBackgroundLabels{"hudBackgroundNone","hudBackgroundLine"};
 inline constexpr std::array<std::string_view,3> menuBackgroundLabels{"menuBackground.none", "menuBackground.light", "menuBackground.dark"};
+inline constexpr std::array<std::string_view,3> ghostTintLabels{"ghostTint.strong", "ghostTint.weak", "ghostTint.none"};
+inline constexpr std::array<std::string_view,3> ghostLinesLabels{"ghostLines.thin", "ghostLines.normal", "ghostLines.thick"};
 // L-97: the selected slot, then hotbar slots 1-9.
 inline constexpr std::array<std::string_view,10> fetchSlotLabels{"fetchSlot.selected", "hotbarSlot.1", "hotbarSlot.2",
     "hotbarSlot.3", "hotbarSlot.4", "hotbarSlot.5", "hotbarSlot.6", "hotbarSlot.7", "hotbarSlot.8", "hotbarSlot.9"};
@@ -444,6 +446,8 @@ inline constexpr auto options = std::to_array<Option>({
     toggle<&Settings::map, &Settings::Map::worldMapNames>("map.worldMapNames", "worldMap", "worldMapNames"),
     toggle<&Settings::map, &Settings::Map::seedLink>("map.seedLink", "worldMap", "mapSeedLink"),
     toggle<&Settings::schematic, &Settings::Schematic::enabled>("schematic.enabled", "schematic", "schematicShown"),
+    choice<&Settings::schematic, &Settings::Schematic::ghostTint, ghostTintLabels>("schematic.ghostTint", "schematic", "schematicGhostTint"),
+    choice<&Settings::schematic, &Settings::Schematic::ghostLines, ghostLinesLabels>("schematic.ghostLines", "schematic", "schematicGhostLines"),
     choice<&Settings::schematic, &Settings::Schematic::menuBackground, menuBackgroundLabels>("schematic.menuBackground", "schematicMenu", "schematicMenuBackground"),
     toggle<&Settings::schematic, &Settings::Schematic::menuSmall>("schematic.menuSmall", "schematicMenu", "schematicMenuSmall"),
     toggle<&Settings::schematic, &Settings::Schematic::menuReopen>("schematic.menuReopen", "schematicMenu", "schematicMenuReopen"),

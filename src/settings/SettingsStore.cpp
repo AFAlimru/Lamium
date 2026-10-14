@@ -223,6 +223,7 @@ Json encode(Settings const& settings) {
         {"schematic", {{"enabled", settings.schematic.enabled}, {"hud", settings.schematic.hud},
                        {"hudVerify", settings.schematic.hudVerify}, {"hudMaterials", settings.schematic.hudMaterials},
                        {"menuBackground", settings.schematic.menuBackground}, {"menuSmall", settings.schematic.menuSmall},
+                       {"ghostTint", settings.schematic.ghostTint}, {"ghostLines", settings.schematic.ghostLines},
                        {"menuReopen", settings.schematic.menuReopen}, {"outlineDistance", settings.schematic.outlineDistance}}}
     };
 }
@@ -473,6 +474,8 @@ Settings decodeSettings(std::string_view text) {
         value.schematic.hudVerify = schematic.value("hudVerify", value.schematic.hudVerify);
         value.schematic.hudMaterials = schematic.value("hudMaterials", value.schematic.hudMaterials);
         value.schematic.menuBackground = schematic.value("menuBackground", value.schematic.menuBackground);
+        value.schematic.ghostTint = schematic.value("ghostTint", value.schematic.ghostTint);
+        value.schematic.ghostLines = schematic.value("ghostLines", value.schematic.ghostLines);
         value.schematic.menuSmall = schematic.value("menuSmall", value.schematic.menuSmall);
         value.schematic.menuReopen = schematic.value("menuReopen", value.schematic.menuReopen);
         value.schematic.outlineDistance = schematic.value("outlineDistance", value.schematic.outlineDistance);

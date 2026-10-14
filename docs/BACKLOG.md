@@ -576,6 +576,11 @@ acceptance or bypass permission checks. [SCHEMATIC.md](SCHEMATIC.md).
 
 ### L-186 Improve schematic ghost legibility and reconsider translucency
 Kind: Design / Research (strong model). User feedback 2026-10-14;
+Part built 2026-10-15 (maintainer: choice (c) plus an outline width): a
+"Ghost tint" setting (strong = the earlier look, weak = default, none) and a
+"Ghost outlines" width (thin = one pixel, default; normal and thick draw each
+axis-aligned edge again at four offsets across it). Not checked in game.
+Translucent ghosts stay open (maintainer: after the release).
 no renderer or release choice yet.
 Goal: distinguish ghost blocks from real blocks while keeping their native
 colors readable. In the reported screenshot a pink concrete ghost overlapped

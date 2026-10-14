@@ -332,6 +332,14 @@ void settingsStoreTests() {
     check(!old.map.minimap && old.map.zoom == map::defaultZoomIndex && !old.map.rotate && !old.map.round && old.map.debugHide
           && old.hud.minimap.anchor == ui::Anchor::TopRight, "the minimap starts off, at 128 blocks, top right");
     check(!old.map.minimapShapes, "shapes stay off the minimap until turned on (L-139)");
+    check(old.schematic.ghostTint == 1 && old.schematic.ghostLines == 0,
+          "ghosts default to the weak tint and thin outlines (L-186)");
+    {
+        auto look = decodeSettings(R"({"schematic":{"ghostTint":2,"ghostLines":2}})").schematic;
+        auto wild = decodeSettings(R"({"schematic":{"ghostTint":9,"ghostLines":-3}})").schematic;
+        check(look.ghostTint == 2 && look.ghostLines == 2 && wild.ghostTint == 2 && wild.ghostLines == 0,
+              "the ghost tint and outline width load and are clamped");
+    }
     check(decodeSettings(R"({"map":{"minimapShapes":true}})").map.minimapShapes, "shapes on the minimap load when saved on");
     check(!old.map.worldMapNames && decodeSettings(R"({"map":{"worldMapNames":true}})").map.worldMapNames,
           "world map names show on hover until Always is saved on");
