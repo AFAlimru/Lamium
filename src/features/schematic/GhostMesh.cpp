@@ -412,6 +412,15 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
                 });
                 dropDuplicateQuads(batch, batchFrom);
                 dropDuplicateQuads(see, seeFrom);
+                // A piston's mesh is its base; the head and arm are its block
+                // actor's to draw (L-178), with the file's progress and state.
+                if (meshed && expected->getBlockType().mBlockEntityType == BlockActorType::PistonArm) {
+                    std::optional<nbt::Compound> data;
+                    if (auto found = structure.blockEntities.find(structure.cell(local->x, local->y, local->z));
+                        found != structure.blockEntities.end())
+                        data = found->second;
+                    out.entities.push_back({pos, expected, std::move(data)});
+                }
                 if (!meshed) {
                     // No block mesh: block entities draw through their renderer;
                     // others keep the outline alone.
