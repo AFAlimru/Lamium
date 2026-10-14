@@ -733,6 +733,11 @@ Still open for the maintainer: the defaults per gesture, the hotbar in
 "everything", "fill existing stacks only", and the two 2026-10-15
 alternatives.
 
+Update 2026-10-15 (maintainer, later): the gesture set itself is not final.
+The maintainer will settle it with the implementing agent, comparing it with
+reference mods (listed in PROVENANCE.md, reference only) and with how it
+plays. Treat the gestures above as the starting proposal, not a contract.
+
 Handoff for the implementing agent (read AGENTS.md first; strong model):
 - Current behaviour and rules: DESIGN.md "Inventory transfer" (the four
   gestures, one request at a time, stop conditions); L-41 and L-103 in

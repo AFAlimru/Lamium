@@ -12,6 +12,20 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Ghost target, ghost look settings, FreeCamera hiding (2026-10-15)
+
+Maintainer report on `b5daa75` and earlier same-day builds, local:
+- Ghost target card (L-184 part): aiming at a ghost cell shows "Ghost of"
+  with the block; aiming at a real block shows the usual card.
+- Ghost tint and outline width (L-186 part): changing either applies at
+  once. Normal and thick outlines, then four offset copies of a 1 px line,
+  looked like parallel thin lines up close; replaced by bars afterwards
+  (not checked yet).
+- FreeCamera hiding (L-191): the hand hides while flying; "Hand and hotbar"
+  also hides the hotbar; "Whole HUD" left Lamium's own HUD drawn (fixed in
+  `a86fa68`, not checked yet); everything returns when FreeCamera ends.
+Not checked: servers, controllers, Vibrant Visuals for the new outlines.
+
 ## L-189 passes (2026-10-15)
 
 Maintainer report on `a1a758e` (DLL `58377e90...8089`), local survival:
