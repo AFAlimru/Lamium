@@ -12,6 +12,17 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Hotbar section and BDS pass for Item Transfer (2026-10-15, L-169)
+
+Maintainer report on `37c3745` (DLL `5786921f...ebfac`), traces off:
+- Local: "everything" over a hotbar slot moves the hotbar alone (chest and
+  Alt + Shift click), over the main inventory leaves the hotbar, and in the
+  inventory screen moves the hotbar into the main inventory.
+- BDS: the `7586995` checklist (everything both ways, matching coal by wheel
+  and Alt click, hotbar kept, Shift + right drag leaving one, furnace and
+  brewing stand routing) and the hotbar checklist above: no problems seen.
+Not itemized: rejections/timeouts, latency, other screen families.
+
 ## Batched Item Transfer pass (2026-10-15, L-169)
 
 Maintainer report on `7586995` (DLL `d93cfd79...a376`), local, Quick
