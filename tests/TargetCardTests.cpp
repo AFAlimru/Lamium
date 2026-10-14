@@ -3,6 +3,30 @@
 void check(bool, char const*);
 void targetCardTests() {
     using namespace lamium::information;
+    {
+        auto beside = targetCardLayout(2, false, {640, 240}, {180, 110}, {160, 80}, 12, 14);
+        check(beside.beside && beside.width == 352 && beside.height == 124 && beside.ordinaryWidth == 180
+              && beside.schematicWidth == 160 && beside.schematicX == 192 && beside.ordinaryY == 14,
+              "side-by-side sections keep independent widths and reserve the ordinary heading above its content");
+        auto narrow = targetCardLayout(2, false, {320, 240}, {180, 110}, {160, 80}, 12, 14);
+        check(!narrow.beside && narrow.width == 180 && narrow.height == 202 && narrow.schematicY == 122
+              && narrow.ordinaryY == 0, "narrow screens stack instead of squeezing ordinary information");
+        auto shortScreen = targetCardLayout(2, false, {640, 120}, {180, 110}, {160, 80}, 12, 14);
+        check(!shortScreen.beside && shortScreen.ordinaryY == 0,
+              "a short screen does not add a column heading that would push ordinary information off screen");
+        auto stacked = targetCardLayout(1, false, {640, 240}, {180, 110}, {160, 80}, 9, 14);
+        check(!stacked.beside && stacked.width == 180 && stacked.height == 199 && stacked.schematicY == 119,
+              "stacked display retains the upper ordinary section and lower schematic section");
+        for (int mode : {1, 2}) {
+            auto ghost = targetCardLayout(mode, true, {640, 240}, {}, {160, 80}, 12, 14);
+            check(!ghost.beside && ghost.width == 160 && ghost.height == 80 && ghost.schematicX == 0
+                  && ghost.schematicY == 0, "both schematic layouts show a nearer ghost as one standalone section");
+        }
+        auto none = targetCardLayout(0, false, {640, 240}, {180, 110}, {160, 80}, 12, 14);
+        auto hiddenGhost = targetCardLayout(0, true, {640, 240}, {}, {160, 80}, 12, 14);
+        check(none.width == 180 && none.height == 110 && none.schematicWidth == 0 && hiddenGhost.width == 0,
+              "none reserves no schematic area and does not turn a ghost into ordinary block information");
+    }
     TargetInfo mob{"Zombie", "minecraft:zombie"};
     mob.details.push_back({"target.armor", "2"});
     mob.details.push_back({"target.health", "16 / 20", false, .8f, DetailKind::Health, 16, 20});

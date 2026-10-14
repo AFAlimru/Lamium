@@ -18,6 +18,14 @@
 void check(bool, char const*);
 void settingsStoreTests() {
     using namespace lamium;
+    check(decodeSettings("{}").information.targetSchematic == 1,
+          "existing settings keep stacked schematic information when the new option is absent");
+    check(decodeSettings(R"({"information":{"targetSchematic":0}})").information.targetSchematic == 0
+          && decodeSettings(R"({"information":{"targetSchematic":2}})").information.targetSchematic == 2,
+          "none and side-by-side schematic information load independently");
+    check(decodeSettings(R"({"information":{"targetSchematic":-10}})").information.targetSchematic == 0
+          && decodeSettings(R"({"information":{"targetSchematic":10}})").information.targetSchematic == 2,
+          "invalid schematic display modes are bounded to the supported choices");
     {
         check(decodeSettings("{}").visuals.hideNausea
               && !decodeSettings(R"({"visuals":{"hideNausea":false}})").visuals.hideNausea,
@@ -488,6 +496,12 @@ void settingsStoreTests() {
     } cleanup{path};
     writeSettings(path, disabledTrading);
     check(!readSettings(path).inventory.repeatTrades, "disabled repeated trading survives saving");
+    for (int mode : {0, 1, 2}) {
+        Settings target;
+        target.information.targetSchematic = mode;
+        writeSettings(path, target);
+        check(readSettings(path).information.targetSchematic == mode, "every schematic display choice survives restart");
+    }
     {
         auto encoded = [&](Settings const& value) {
             writeSettings(path, value);

@@ -131,7 +131,7 @@ inline std::optional<TargetInfo::DetailRow> interpretBlockState(std::string_view
 // A camera ray for detached views; without one the game's own hit is used.
 struct ViewRay { double x, y, z, dx, dy, dz; double reach; };
 std::optional<TargetInfo> collectTargetInfo(IClientInstance&, bool includeStates = false,
-                                            std::optional<ViewRay> ray = std::nullopt);
+                                            std::optional<ViewRay> ray = std::nullopt, bool includeSchematic = true);
 // Drops per-world icon lookups on world exit.
 void startTargetIcons();
 void stopTargetIcons();

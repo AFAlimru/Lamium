@@ -31,6 +31,42 @@ struct CardRow {
     Tone tone = Tone::Normal;
     std::string before;           // A change: this, an arrow, then the value
 };
+struct TargetCardLayout {
+    float width = 0, height = 0;
+    float ordinaryWidth = 0, ordinaryY = 0;
+    float schematicWidth = 0, schematicX = 0, schematicY = 0;
+    bool beside = false;
+};
+struct CardExtent { float width = 0, height = 0; };
+// Never squeeze the ordinary information to fit a second column. A narrow
+// screen uses the stacked arrangement with the same text size and row budget.
+inline TargetCardLayout targetCardLayout(int display, bool ghostOnly, CardExtent available,
+    CardExtent ordinary, CardExtent schematic, float gap, float headingH) {
+    TargetCardLayout result;
+    if (display == 0 || schematic.height <= 0) {
+        if (!ghostOnly) {
+            result.width = result.ordinaryWidth = ordinary.width;
+            result.height = ordinary.height;
+        }
+    } else if (ghostOnly) {
+        result.width = result.schematicWidth = schematic.width;
+        result.height = schematic.height;
+    } else if (display == 2 && ordinary.width + gap + schematic.width <= available.width
+               && ordinary.height + headingH <= available.height) {
+        result.beside = true;
+        result.width = ordinary.width + gap + schematic.width;
+        result.height = std::max(ordinary.height + headingH, schematic.height);
+        result.ordinaryWidth = ordinary.width;
+        result.ordinaryY = headingH;
+        result.schematicWidth = schematic.width;
+        result.schematicX = ordinary.width + gap;
+    } else {
+        result.width = result.ordinaryWidth = result.schematicWidth = std::max(ordinary.width, schematic.width);
+        result.height = ordinary.height + gap + schematic.height;
+        result.schematicY = ordinary.height + gap;
+    }
+    return result;
+}
 // One heart is 2 HP and the slots follow the maximum (L-88), ten per line.
 // Past five lines the hearts can no longer be read, so the row becomes a bar.
 inline constexpr int heartsPerLine = 10, maxHeartLines = 5;

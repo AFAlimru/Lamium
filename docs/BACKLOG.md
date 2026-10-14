@@ -562,7 +562,8 @@ Keep the original strict comparison available. [SCHEMATIC.md](SCHEMATIC.md).
 
 ### L-184 Inspect ghost block data and schematic container contents
 Kind: Design / Research for saved data inspection; the agreed target-card
-presentation is Ready (strong model), built and awaiting runtime checks.
+presentation is Ready (strong model). The corrected stacked presentation was
+accepted by the maintainer on `0b89cd2`; selectable display modes await checks.
 User feedback clarified 2026-10-14. The initial 2026-10-15 implementation
 (chosen for the next release) made the nearest ghost the main target with a
 "Ghost of <placement>" row. The presentation below supersedes that approach.
@@ -574,10 +575,18 @@ that differ from the file; the extra section gets its own row capacity.
 Correction after the maintainer's `334889a` check: the heading says "Schematic"
 without the placement name. If a ghost is hit first, show its schematic
 section alone; do not pair it with the real block at a different coordinate
-behind it. Real-block comparisons remain at the real target's cell. Built,
+behind it. Real-block comparisons remain at the real target's cell.
+Follow-up approved 2026-10-15: a Target Info child option, "Schematic
+information: None / Stacked / Side by side", default Stacked and saved with
+missing-key compatibility. None leaves ordinary targeting; Stacked is the
+accepted layout; Side by side preserves ordinary information on the left and
+adds the schematic on the right. Ghost-first targets remain one schematic
+section in both enabled modes, with no placement name. Width or height that
+cannot fit both columns uses Stacked without reducing ordinary text/rows. Built,
 awaiting in-game checks: wrong/extra/state differences, air-only ghosts,
 ghosts in front of real blocks, other-details/ID/icon/coordinates switches,
-card/none background, HUD scale and short screens. Container inspection and
+card/none background, HUD scale, short screens and display-choice persistence.
+Container inspection and
 saved Block Entity data remain Design / Research.
 Goal: inspect the ghost under the crosshair: expected block name, facing,
 BlockState and available saved Block Entity data. Provide a way to

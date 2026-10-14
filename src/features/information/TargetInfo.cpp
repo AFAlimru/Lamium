@@ -266,7 +266,7 @@ std::optional<TargetInfo> ghostTarget(LocalPlayer& player, BlockSource& source, 
     if (includeStates) appendStates(result, block);
     return makeGhostTarget(std::move(result));
 }
-std::optional<TargetInfo> collectTargetInfo(IClientInstance& client, bool includeStates, std::optional<ViewRay> ray) {
+std::optional<TargetInfo> collectTargetInfo(IClientInstance& client, bool includeStates, std::optional<ViewRay> ray, bool includeSchematic) {
     auto* player = client.getLocalPlayer();
     if (!player) return {};
     Pick pick;
@@ -280,7 +280,7 @@ std::optional<TargetInfo> collectTargetInfo(IClientInstance& client, bool includ
     struct { HitResultType mType; BlockPos mBlock; } hit{pick.type, pick.block};
     // A nearer ghost is a different cell from the real block behind it. Do
     // not present those two blocks as a same-cell comparison.
-    if (hit.mType != HitResultType::Entity)
+    if (includeSchematic && hit.mType != HitResultType::Entity)
         if (auto ghost = ghostTarget(*player, player->getDimensionBlockSource(), includeStates, ray)) return ghost;
     if (hit.mType == HitResultType::Entity) {
         auto* entity = pick.entity;
@@ -336,7 +336,7 @@ std::optional<TargetInfo> collectTargetInfo(IClientInstance& client, bool includ
     result.icon = blockIcon(source, hit.mBlock, block);
     if (result.name.empty()) result.name = result.identifier;
     if (includeStates) appendStates(result, block);
-    if (auto& runtime = Runtime::instance(); runtime.enabled() && runtime.snapshot()->schematic.enabled) {
+    if (auto& runtime = Runtime::instance(); includeSchematic && runtime.enabled() && runtime.snapshot()->schematic.enabled) {
         auto verification = schematic::ghosts::verification();
         auto snapshot = schematic::session::snapshot();
         int index = verification->placement;

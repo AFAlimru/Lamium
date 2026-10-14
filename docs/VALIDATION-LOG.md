@@ -12,6 +12,16 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Corrected schematic target presentation accepted (2026-10-15)
+
+Maintainer accepted the corrected stacked presentation after the supplied
+`0b89cd2` build, DLL SHA-256
+`41c58dde3b3e237709dd57a93f89ee593a8164442bf0340734586dd14c248434`,
+then requested a None / Stacked / Side by side display option for Target Info.
+No individual test cases or new environment details were supplied. This is
+acceptance of that presentation, not a claim of complete regression coverage.
+The new display choices and their persistence/fallback still need runtime checks.
+
 ## Target-card schematic feedback and Placed headers (2026-10-15)
 
 Maintainer feedback after the supplied `334889a` build, DLL SHA-256

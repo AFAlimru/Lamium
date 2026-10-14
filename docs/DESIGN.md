@@ -226,12 +226,16 @@ Contents:
   While Freelook or FreeCamera is active the card follows the camera: the
   nearest block or entity box along the rendered camera's forward, water and
   lava excluded.
-- **Target and Schematics** (decided 2026-10-15): keep the ordinary target
-  information above a divider and append a schematic section below it, in
-  the same HUD element. The upper icon, name, ID, coordinates, state rows,
+- **Target and Schematics** (decided 2026-10-15): Target Info offers
+  "Schematic information: None / Stacked / Side by side", default Stacked.
+  Stacked keeps ordinary information above a divider and the schematic below;
+  Side by side puts ordinary information on the left and the schematic on the
+  right, separated by a vertical divider in the same HUD element. Its ordinary
+  column has a "Current block" heading. The ordinary icon, name, ID, coordinates,
+  state rows,
   text size and visibility options retain their ordinary behavior. Schematic
   rows have their own capacity and never replace actual state rows. The
-  lower section is headed "Schematic" without a placement name, shows the
+  schematic section is headed "Schematic" without a placement name, shows the
   expected block with the same icon size as the upper header, and names the
   mismatch in the check's colors. Differing states read current -> expected
   with the drawn arrow. Compare only blocks at the same world cell. If a ghost
@@ -239,6 +243,10 @@ Contents:
   coordinates; do not pair it with the unrelated real block behind it. This
   supersedes the initial same-day choice to keep that rear block visible
   (maintainer feedback on `334889a`). A real target retains its ordinary data.
+  None disables schematic target picking as well as its display, leaving the
+  ordinary Target Info behavior. Side by side falls back to Stacked when the
+  screen cannot fit both columns without squeezing ordinary information.
+  Existing settings without the option retain Stacked; the choice persists.
   When height is limited, preserve the ordinary section first. Saved container
   contents and expanded inspection remain L-184 follow-ups.
 - One "Range" (2-64 blocks, default 6) for every viewpoint: the card picks

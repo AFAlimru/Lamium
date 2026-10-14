@@ -93,6 +93,7 @@ Json encode(Settings const& settings) {
                          {"targetDistance", settings.information.targetDistance},
                          {"targetStates", settings.information.targetStates},
                          {"targetCoordinates", settings.information.targetCoordinates},
+                         {"targetSchematic", settings.information.targetSchematic},
                          {"durabilityHud", settings.information.durabilityHud},
                          {"durabilityLook", settings.information.durabilityLook},
                          {"durabilityOffhand", settings.information.durabilityOffhand},
@@ -299,6 +300,7 @@ Settings decodeSettings(std::string_view text) {
         value.information.targetGrowth = info.value("targetGrowth", value.information.targetGrowth);
         value.information.targetDistance = info.value("targetDistance", value.information.targetDistance);
         value.information.targetCoordinates = info.value("targetCoordinates", value.information.targetCoordinates);
+        value.information.targetSchematic = info.value("targetSchematic", value.information.targetSchematic);
         value.information.durabilityHud = info.value("durabilityHud", value.information.durabilityHud);
         value.information.durabilityLook = info.value("durabilityLook", value.information.durabilityLook);
         value.information.durabilityOffhand = info.value("durabilityOffhand", value.information.durabilityOffhand);

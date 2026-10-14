@@ -708,19 +708,25 @@ std::optional<ui::hud_editor::Box> drawTargetCard(MinecraftUIRenderContext& cont
     float headerW = target.ghostOnly ? 0 : iconSize + iconGap + std::max(nameW, idW);
     float rowsW = rows.empty() ? 0 : labelW + 6 * z + valuesW;
     float contentW = std::min(std::max(headerW, rowsW), 260 * z);
-    float boxW = contentW + 2 * padX;
     float rowsH = 0;
     for (auto const& row : rows) rowsH += heightOf(row);
-    float boxH = headerH + (rows.empty() ? 0 : 3 * z + rowsH) + 2 * padY;
-    // The lower section is measured separately, so it cannot widen the real
+    float ordinaryH = headerH + (rows.empty() ? 0 : 3 * z + rowsH);
+    float ordinaryW = contentW;
+    float headingH = lineH + 3 * z;
+    auto currentTitle = ui::translated("target.current");
+    if (settings.targetSchematic == 2 && !target.ghostOnly)
+        ordinaryW = std::max(ordinaryW, ui::labelWidth(context, currentTitle, z));
+    CardExtent availableSize{width - 2 * padX - 8 * z, height - 2 * padY - 8 * z};
+    auto layout = targetCardLayout(0, target.ghostOnly, availableSize, {contentW, ordinaryH}, {}, 0, 0);
+    // The extra section is measured separately, so it cannot widen the real
     // target's label column or consume its row budget.
-    auto const* section = target.schematic ? &*target.schematic : nullptr;
+    auto const* section = settings.targetSchematic != 0 && target.schematic ? &*target.schematic : nullptr;
     TargetInfo expected;
     ItemStack expectedStack;
     ItemStack const* expectedIcon = nullptr;
     bool expectedTexture = false;
     float expectedIconSize = 0, expectedIconGap = 0, expectedTextH = 0, expectedHeaderH = 0;
-    float sectionGap = target.ghostOnly ? 0 : 9 * z;
+    float sectionGap = settings.targetSchematic == 2 ? 12 * z : 9 * z;
     float sectionH = 0, sectionLabelW = 0, sectionValuesW = 0;
     std::string sectionTitle, sectionStatus;
     std::vector<CardRow> sectionRows;
@@ -748,33 +754,40 @@ std::optional<ui::hud_editor::Box> drawTargetCard(MinecraftUIRenderContext& cont
         float expectedW = expectedIconSize + expectedIconGap + std::max(ui::labelWidth(context, expected.name, z),
             settings.targetIdentifier ? ui::labelWidth(context, expected.identifier, z) : 0.f);
         sectionH = lineH + 3 * z + expectedHeaderH;
-        // Keep the whole ordinary section when the screen is short. Only the
-        // extra section's rows are trimmed to the remaining height.
-        if (boxH + sectionGap + sectionH > height - 8 * z) section = nullptr;
-        else {
-            sectionRows = schematicCardRows(*section, options);
-            float available = height - 8 * z - boxH - sectionGap - sectionH - 3 * z;
+        sectionRows = schematicCardRows(*section, options);
+        for (auto const& row : sectionRows) {
+            sectionLabels.push_back(row.labelIsKey ? ui::translated(row.label) : row.label);
+            sectionValues.push_back(row.valueIsKey ? ui::translated(row.value) : row.value);
+            sectionLabelW = std::max(sectionLabelW, ui::labelWidth(context, sectionLabels.back(), z));
+            sectionValuesW = std::max(sectionValuesW, valueWidth(row, sectionValues.back()));
+        }
+        float sectionW = std::min(std::max({titleW + 6 * z + statusW, expectedW,
+            sectionRows.empty() ? 0.f : sectionLabelW + 6 * z + sectionValuesW}), 260 * z);
+        layout = targetCardLayout(settings.targetSchematic, target.ghostOnly, availableSize,
+                                  {ordinaryW, ordinaryH}, {sectionW, sectionH}, sectionGap, headingH);
+        float availableH = availableSize.height - layout.schematicY;
+        // Only trim extra rows. The ordinary section keeps its capacity.
+        if (sectionH > availableH) {
+            section = nullptr;
+            layout = targetCardLayout(0, target.ghostOnly, availableSize, {contentW, ordinaryH}, {}, 0, 0);
+        } else {
+            float available = availableH - sectionH - 3 * z;
             float used = 0;
             size_t count = 0;
             while (count < sectionRows.size() && used + heightOf(sectionRows[count]) <= available)
                 used += heightOf(sectionRows[count++]);
             sectionRows.resize(count);
+            sectionLabels.resize(count);
+            sectionValues.resize(count);
             if (!sectionRows.empty()) sectionH += 3 * z + used;
-            for (auto const& row : sectionRows) {
-                sectionLabels.push_back(row.labelIsKey ? ui::translated(row.label) : row.label);
-                sectionValues.push_back(row.valueIsKey ? ui::translated(row.value) : row.value);
-                sectionLabelW = std::max(sectionLabelW, ui::labelWidth(context, sectionLabels.back(), z));
-                sectionValuesW = std::max(sectionValuesW, valueWidth(row, sectionValues.back()));
-            }
-            float sectionW = std::max({titleW + 6 * z + statusW, expectedW,
-                sectionRows.empty() ? 0.f : sectionLabelW + 6 * z + sectionValuesW});
-            contentW = std::min(std::max(contentW, sectionW), 260 * z);
-            sectionLabelW = std::min(sectionLabelW, std::max(0.f, contentW - 6 * z - std::min(sectionValuesW, 140 * z)));
-            boxW = contentW + 2 * padX;
-            boxH += sectionGap + sectionH;
+            layout = targetCardLayout(settings.targetSchematic, target.ghostOnly, availableSize,
+                                      {ordinaryW, ordinaryH}, {sectionW, sectionH}, sectionGap, headingH);
+            sectionLabelW = std::min(sectionLabelW,
+                std::max(0.f, layout.schematicWidth - 6 * z - std::min(sectionValuesW, 140 * z)));
         }
     }
     if (target.ghostOnly && !section) return std::nullopt;
+    float boxW = layout.width + 2 * padX, boxH = layout.height + 2 * padY;
     auto placement = ui::placeElement(width, height, boxW, boxH, element);
     ui::hud_editor::Box finalBox{placement.x, placement.y, boxW, boxH};
     // Ease the card between targets; the content appears once it settles.
@@ -800,14 +813,18 @@ std::optional<ui::hud_editor::Box> drawTargetCard(MinecraftUIRenderContext& cont
                          finalBox.w, finalBox.h))
         return finalBox;
     float left = finalBox.x + padX, top = finalBox.y + padY;
+    float ordinaryTop = top + layout.ordinaryY;
+    if (layout.beside)
+        ui::labelScaled(context, left, top, layout.ordinaryWidth + 2, currentTitle, z, ui::palette::dim,
+                        ui::Align::Left, element.shadow);
     if (!target.ghostOnly && icon) {
-        inspection::render::drawItemIcon(context, {&stack, left, top + (headerH - iconSize) / 2, z}, 17);
+        inspection::render::drawItemIcon(context, {&stack, left, ordinaryTop + (headerH - iconSize) / 2, z}, 17);
     } else if (!target.ghostOnly && texture) {
-        ui::imageUv(context, target.icon.name, {left, top + (headerH - iconSize) / 2, iconSize, iconSize},
+        ui::imageUv(context, target.icon.name, {left, ordinaryTop + (headerH - iconSize) / 2, iconSize, iconSize},
                     target.icon.u0, target.icon.v0, target.icon.u1, target.icon.v1);
     }
-    float textX = left + iconSize + iconGap, textW = contentW - iconSize - iconGap;
-    float textTop = top + (headerH - headerTextH) / 2;
+    float textX = left + iconSize + iconGap, textW = layout.ordinaryWidth - iconSize - iconGap;
+    float textTop = ordinaryTop + (headerH - headerTextH) / 2;
     if (!target.ghostOnly)
         ui::labelScaled(context, textX, textTop, textW + 2, target.name, z, ui::palette::text, ui::Align::Left, element.shadow);
     if (!target.ghostOnly && settings.targetIdentifier)
@@ -818,11 +835,11 @@ std::optional<ui::hud_editor::Box> drawTargetCard(MinecraftUIRenderContext& cont
             : tone == Tone::Missing ? ui::Rgb{.75f, .85f, .9f} : ui::palette::text;
     };
     auto drawRows = [&](std::vector<CardRow> const& blockRows, std::vector<std::string> const& blockLabels,
-                        std::vector<std::string> const& blockValues, float columnW, float y) {
-        float valueX = left + columnW + 6 * z;
+                        std::vector<std::string> const& blockValues, float columnW, float blockLeft, float blockW, float y) {
+        float valueX = blockLeft + columnW + 6 * z;
         for (size_t i = 0; i < blockRows.size(); y += heightOf(blockRows[i]), ++i) {
             auto const& row = blockRows[i];
-            ui::labelScaled(context, left, y, columnW + 2, blockLabels[i], z, ui::palette::faint, ui::Align::Left, element.shadow);
+            ui::labelScaled(context, blockLeft, y, columnW + 2, blockLabels[i], z, ui::palette::faint, ui::Align::Left, element.shadow);
             float x = valueX;
             if (row.progress && row.meter == Meter::Bar) {
                 float barY = y + 3 * z, barH = 5 * z, barW = barUnits * z;
@@ -845,7 +862,7 @@ std::optional<ui::hud_editor::Box> drawTargetCard(MinecraftUIRenderContext& cont
             }
             auto color = toneColor(row.tone);
             if (!row.before.empty()) {
-                float available = std::max(0.f, left + contentW - x - (ui::changeArrowWidth + 6) * z);
+                float available = std::max(0.f, blockLeft + blockW - x - (ui::changeArrowWidth + 6) * z);
                 float w = std::min(ui::labelWidth(context, row.before, z),
                     std::max(0.f, available - std::min(ui::labelWidth(context, blockValues[i], z), 64 * z)));
                 ui::labelScaled(context, x, y, w + 2, row.before, z, color, ui::Align::Left, element.shadow);
@@ -853,35 +870,40 @@ std::optional<ui::hud_editor::Box> drawTargetCard(MinecraftUIRenderContext& cont
                 ui::changeArrow(context, x, y + (1.5f + ui::shapeTextDrop()) * z, z, color);
                 x += (ui::changeArrowWidth + 3) * z;
             }
-            ui::labelScaled(context, x, y, left + contentW - x + 2, blockValues[i], z, color, ui::Align::Left, element.shadow);
+            ui::labelScaled(context, x, y, blockLeft + blockW - x + 2, blockValues[i], z, color, ui::Align::Left, element.shadow);
         }
     };
-    drawRows(rows, labels, values, labelW, top + headerH + 3 * z);
+    float ordinaryLabelW = labelW;
+    if (layout.beside)
+        ordinaryLabelW = std::min(labelW, std::max(0.f, layout.ordinaryWidth - 6 * z - std::min(valuesW, 140 * z)));
+    drawRows(rows, labels, values, ordinaryLabelW, left, layout.ordinaryWidth, ordinaryTop + headerH + 3 * z);
     if (section) {
-        float y = top + headerH + (rows.empty() ? 0 : 3 * z + rowsH);
-        if (!target.ghostOnly) {
-            ui::fill(context, left, y + 4 * z, contentW, z, ui::palette::faint, .4f);
-            y += sectionGap;
-        }
-        float statusW = std::min(ui::labelWidth(context, sectionStatus, z), contentW);
-        ui::labelScaled(context, left, y, std::max(0.f, contentW - statusW - 6 * z), sectionTitle, z,
+        float sectionLeft = left + layout.schematicX;
+        float sectionW = layout.schematicWidth;
+        float y = top + layout.schematicY;
+        if (layout.beside)
+            ui::fill(context, left + layout.ordinaryWidth + sectionGap / 2, top, z, layout.height, ui::palette::faint, .4f);
+        else if (!target.ghostOnly)
+            ui::fill(context, left, y - sectionGap / 2, sectionW, z, ui::palette::faint, .4f);
+        float statusW = std::min(ui::labelWidth(context, sectionStatus, z), sectionW);
+        ui::labelScaled(context, sectionLeft, y, std::max(0.f, sectionW - statusW - 6 * z), sectionTitle, z,
                         toneColor(Tone::Missing), ui::Align::Left, element.shadow);
-        ui::labelScaled(context, left + contentW - statusW, y, statusW + 2, sectionStatus, z,
+        ui::labelScaled(context, sectionLeft + sectionW - statusW, y, statusW + 2, sectionStatus, z,
                         toneColor(section->tone), ui::Align::Left, element.shadow);
         y += lineH + 3 * z;
         if (expectedIcon)
-            inspection::render::drawItemIcon(context, {expectedIcon, left, y + (expectedHeaderH - expectedIconSize) / 2, z}, 17);
+            inspection::render::drawItemIcon(context, {expectedIcon, sectionLeft, y + (expectedHeaderH - expectedIconSize) / 2, z}, 17);
         else if (expectedTexture)
-            ui::imageUv(context, expected.icon.name, {left, y + (expectedHeaderH - expectedIconSize) / 2, expectedIconSize, expectedIconSize},
+            ui::imageUv(context, expected.icon.name, {sectionLeft, y + (expectedHeaderH - expectedIconSize) / 2, expectedIconSize, expectedIconSize},
                         expected.icon.u0, expected.icon.v0, expected.icon.u1, expected.icon.v1);
-        float x = left + expectedIconSize + expectedIconGap;
+        float x = sectionLeft + expectedIconSize + expectedIconGap;
         float nameY = y + (expectedHeaderH - expectedTextH) / 2;
-        ui::labelScaled(context, x, nameY, left + contentW - x + 2, expected.name, z, ui::palette::text,
+        ui::labelScaled(context, x, nameY, sectionLeft + sectionW - x + 2, expected.name, z, ui::palette::text,
                         ui::Align::Left, element.shadow);
         if (settings.targetIdentifier && !expected.identifier.empty())
-            ui::labelScaled(context, x, nameY + lineH, left + contentW - x + 2, expected.identifier, z, ui::palette::faint,
+            ui::labelScaled(context, x, nameY + lineH, sectionLeft + sectionW - x + 2, expected.identifier, z, ui::palette::faint,
                             ui::Align::Left, element.shadow);
-        drawRows(sectionRows, sectionLabels, sectionValues, sectionLabelW, y + expectedHeaderH + 3 * z);
+        drawRows(sectionRows, sectionLabels, sectionValues, sectionLabelW, sectionLeft, sectionW, y + expectedHeaderH + 3 * z);
     }
     context.flushText(0, std::nullopt);
     return finalBox;
@@ -1599,7 +1621,7 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
         // One distance for every viewpoint: the body normally, the camera
         // during Freelook and FreeCamera (it looks elsewhere than the body).
         auto ray = viewRay(settings.targetDistance);
-        auto target = collectTargetInfo(context.mClient, true, ray);
+        auto target = collectTargetInfo(context.mClient, true, ray, settings.targetSchematic != 0);
         if (!target && preview) {
             TargetInfo sample{ui::translated("feature.targetInfo"), "minecraft:grass_block"};
             sample.icon = {IconKind::Item, "minecraft:grass_block", 0};

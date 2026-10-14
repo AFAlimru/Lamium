@@ -21,6 +21,14 @@ void settingsRowsTests() {
         check(navigation.current == 4, "manual navigation from a dedicated screen becomes the normal destination");
     }
     auto translate = [](std::string_view key) { return std::string(ui::translations::find(key, "en_US")); };
+    {
+        auto rows = ui::buildSettingsRows(false, "section.information", {}, {"targetInfo"}, translate);
+        auto found = std::ranges::find_if(rows, [](auto const& row) {
+            return row.option && row.option->id == "information.targetSchematic";
+        });
+        check(found != rows.end() && found->kind == RowKind::Option && found->feature->id == "targetInfo",
+              "schematic display is a child option of Target Info in the settings row catalog");
+    }
     check(translate(ui::actionTranslationKey(input::Action::FreeCameraSpeedUp,true)) == "Increase speed"
           && translate(ui::actionTranslationKey(input::Action::FreeCameraSpeedDown,true)) == "Decrease speed"
           && translate(ui::actionTranslationKey(input::Action::FreeCameraSpeedUp)) == "Increase FreeCamera speed",

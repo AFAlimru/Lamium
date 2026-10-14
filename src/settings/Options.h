@@ -51,6 +51,8 @@ inline constexpr std::array<std::string_view,2> cameraReferenceLabels{"cameraRef
 inline constexpr std::array<std::string_view,3> perspectiveLabels{"perspective.first","perspective.rear","perspective.front"};
 inline constexpr std::array<std::string_view,3> healthMeterLabels{"meter.hearts","meter.bar","meter.number"};
 inline constexpr std::array<std::string_view,2> growthMeterLabels{"meter.bar","meter.number"};
+inline constexpr std::array<std::string_view,3> targetSchematicLabels{
+    "targetSchematic.none", "targetSchematic.stacked", "targetSchematic.beside"};
 inline constexpr std::array<std::string_view,3> durabilityLookLabels{"durabilityLook.barAndNumber","durabilityLook.number","durabilityLook.bar"};
 inline constexpr std::array<std::string_view,3> armorMeterLabels{"meter.icons","meter.bar","meter.number"};
 inline constexpr std::array<std::string_view,2> restockOrderLabels{"restockOrder.largest","restockOrder.smallest"};
@@ -201,6 +203,7 @@ inline constexpr auto options = std::to_array<Option>({
         NumericOption{2, 64, [](Settings& s, float v) { s.information.targetDistance = v; }, 1}},
     toggle<&Settings::information, &Settings::Information::targetStates>("information.targetStates", "targetInfo", "targetStates"),
     toggle<&Settings::information, &Settings::Information::targetCoordinates>("information.targetCoordinates", "targetInfo", "targetCoordinates"),
+    choice<&Settings::information, &Settings::Information::targetSchematic, targetSchematicLabels>("information.targetSchematic", "targetInfo", "targetSchematic"),
     toggle<&Settings::information, &Settings::Information::durabilityHud>("information.durabilityHud", "durabilityHud", "durabilityHud"),
     choice<&Settings::information, &Settings::Information::durabilityLook, durabilityLookLabels>("information.durabilityLook", "durabilityHud", "durabilityLook"),
     toggle<&Settings::information, &Settings::Information::durabilityOffhand>("information.durabilityOffhand", "durabilityHud", "durabilityOffhand"),
