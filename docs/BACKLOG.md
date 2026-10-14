@@ -389,6 +389,8 @@ found later are handled as bugs.
 ### L-177 Schematic mismatch highlight appears at the wrong position
 Kind: Bug / Research. User report 2026-10-14.
 Status: cause found and fix built 2026-10-14 (`0235527`), not checked in game.
+Maintainer 2026-10-15: checked when the reporter next uses the schematic
+features; no dedicated check before that.
 Details from the reporter: with a layer view, Show in world / Nearest
 mistake lit a cell far above the shown ghosts; showing it again was right.
 Changing layers or moving a placement restarts the check, but the last
@@ -406,7 +408,8 @@ highlights and targeted blocks across transformed placements. Record a
 reproduction before choosing a fix. [SCHEMATIC.md](SCHEMATIC.md).
 
 ### L-181 FreeCamera trident interaction affects the player unexpectedly
-Kind: Bug / Research. User report 2026-10-14; not yet reproduced.
+Kind: Bug / Research, low priority (maintainer 2026-10-15: drawing only,
+harmless). User report 2026-10-14; not yet reproduced.
 Clarified 2026-10-14: nothing hits the player. In FreeCamera the trident in
 the player's hand is drawn the wrong way round, so it looks stuck in the
 player. A drawing problem like L-123 (stale pose state while the body is
@@ -586,6 +589,14 @@ L-114's Check-tab 3D preview mistake styling.
 
 ### L-189 Fake Offhand fallback when primary right-click has no useful action
 Kind: Research, then Design (strong model). User feedback clarified
+Clarified by the maintainer 2026-10-15: the primary hand's item suppresses
+the fake offhand whenever its kind has a right-click role, whether or not
+it would act: bread at full hunger aimed at a block, a shovel aimed at stone.
+Proposal for the maintainer (not agreed), in FAKE-OFFHAND.md
+"Primary pass proposal (L-189)": food at confirmed full hunger that is not
+always-edible and places no block passes on ordinary blocks too; shovels,
+hoes and axes pass on ordinary blocks except those they transform (listed);
+other damageable tools keep priority; anything uncertain keeps vanilla.
 2026-10-14; no implementation or release approved.
 Goal: if the main-hand right-click has no meaningful applicable action,
 allow the configured Fake Offhand item to receive that use. Reported

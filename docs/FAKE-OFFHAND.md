@@ -86,6 +86,24 @@ Primary (selected slot) passes when its ordinary use cannot act:
 | Air (NoHit) | Every other block item except liquid-placed ones; any item without a use duration, projectile, bucket or liquid-clip property; food at confirmed full hunger | Timed, projectile, bucket and liquid-clip items; hungry, always-edible, creative or unreadable food |
 | Ordinary block | Non-block items with none of the properties above and no planter, fertilizer, dye or durability property, and not a known block-use identity (seeds, doors, signs, redstone, string, spawn eggs, minecarts, boats, honeycomb, books, discs, lodestone compass, resin clump, ...), aimed at a solid block without a block entity (2026-10-07) | Block items (placement), food (some plant crops), damageable tools, the listed identities, and every such material aimed at a block with a block entity (decorated pot, lectern, sign, chiseled bookshelf, vault, ...) or a non-solid block |
 
+### Primary pass proposal (L-189, 2026-10-15, not agreed)
+
+The table judges the primary item by its kind alone on ordinary blocks:
+food and every damageable tool keep priority there even when they cannot
+act (bread at full hunger, a shovel aimed at stone). Proposed, with
+anything uncertain still keeping vanilla priority:
+- Food at confirmed full hunger, not always-edible, placing no block
+  (not carrots, potatoes, sweet or glow berries) also passes on ordinary
+  blocks.
+- Shovels pass unless aimed at grass, dirt, coarse dirt, podzol, mycelium,
+  rooted dirt (path) or a lit campfire (put out); hoes unless aimed at grass,
+  dirt, coarse dirt, rooted dirt or a dirt path (till); axes unless aimed at
+  an unstripped log, wood, stem or hyphae, a bamboo block, or an oxidized or
+  waxed copper block (strip, scrape, unwax).
+- Other damageable tools (shears, flint and steel, brush, ...) keep
+  priority. The lists are hand-kept: a missing entry makes the secondary
+  act where the tool could have; judged from the client's view of the block.
+
 Entities, active primary timed use and interactive blocks (unless sneaking)
 are decided before this and stay vanilla. The block-target identity list is
 the uncertain part: an unlisted vanilla item whose block use the properties do
