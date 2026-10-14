@@ -78,7 +78,6 @@ inline constexpr auto lineBackgroundLabels = std::to_array<std::string_view>(
 inline constexpr std::array<std::string_view,2> debugBackgroundLabels{"hudBackgroundNone","hudBackgroundLine"};
 inline constexpr std::array<std::string_view,3> menuBackgroundLabels{"menuBackground.none", "menuBackground.light", "menuBackground.dark"};
 inline constexpr std::array<std::string_view,4> freeCameraHideLabels{"freeCameraHide.nothing", "freeCameraHide.hand", "freeCameraHide.hotbar", "freeCameraHide.hud"};
-inline constexpr std::array<std::string_view,3> ghostTintLabels{"ghostTint.strong", "ghostTint.weak", "ghostTint.none"};
 inline constexpr std::array<std::string_view,3> ghostLinesLabels{"ghostLines.thin", "ghostLines.normal", "ghostLines.thick"};
 // L-97: the selected slot, then hotbar slots 1-9.
 inline constexpr std::array<std::string_view,10> fetchSlotLabels{"fetchSlot.selected", "hotbarSlot.1", "hotbarSlot.2",
@@ -449,7 +448,10 @@ inline constexpr auto options = std::to_array<Option>({
     toggle<&Settings::map, &Settings::Map::worldMapNames>("map.worldMapNames", "worldMap", "worldMapNames"),
     toggle<&Settings::map, &Settings::Map::seedLink>("map.seedLink", "worldMap", "mapSeedLink"),
     toggle<&Settings::schematic, &Settings::Schematic::enabled>("schematic.enabled", "schematic", "schematicShown"),
-    choice<&Settings::schematic, &Settings::Schematic::ghostTint, ghostTintLabels>("schematic.ghostTint", "schematic", "schematicGhostTint"),
+    {"schematic.ghostTint", "schematic", "schematicGhostTint",
+        [](Settings const& s) -> OptionValue { return static_cast<float>(s.schematic.ghostTint); },
+        [](Settings& s, int direction) { s.schematic.ghostTint += direction * 5; s.normalize(); },
+        NumericOption{0, 100, [](Settings& s, float v) { s.schematic.ghostTint = static_cast<int>(std::lround(v)); }, 5}},
     choice<&Settings::schematic, &Settings::Schematic::ghostLines, ghostLinesLabels>("schematic.ghostLines", "schematic", "schematicGhostLines"),
     choice<&Settings::schematic, &Settings::Schematic::menuBackground, menuBackgroundLabels>("schematic.menuBackground", "schematicMenu", "schematicMenuBackground"),
     toggle<&Settings::schematic, &Settings::Schematic::menuSmall>("schematic.menuSmall", "schematicMenu", "schematicMenuSmall"),

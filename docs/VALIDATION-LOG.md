@@ -12,6 +12,13 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Ranked outline bars, first check (2026-10-15)
+
+Maintainer report on `976a628` (DLL `0874f6d4...053b`), local: a wrong block
+beside a missing ghost no longer flickers. Wrong-state stairs above a missing
+dirt ghost: the yellow and light-blue lines still fought slightly at the
+shared edge. Fixed in the next build (strongest copy only), not checked yet.
+
 ## Mistake outlines missing (2026-10-15)
 
 Maintainer report on `cdf288d` (DLL `6fab1a59...1c3d`), local: the outline

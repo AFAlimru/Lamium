@@ -161,10 +161,10 @@ struct Settings {
         bool menuSmall = false;   // Small in the lower right instead of centered.
         bool menuReopen = false;  // Reopen where it was closed instead of at the list.
         float outlineDistance = 48; // Ghost outlines up to this many blocks away; 0 draws them all.
-        // L-186: the light-blue tint over ghost textures, 0 strong (before
-        // 2026-10-15), 1 weak, 2 none; and the outline width, 0 thin (one
-        // pixel), 1 normal, 2 thick.
-        int ghostTint = 1;
+        // L-186: the light-blue tint over ghost textures in percent (100 is
+        // the look before 2026-10-15, 0 none); and the outline width, 0 thin
+        // (one pixel), 1 normal, 2 thick.
+        int ghostTint = 40;
         int ghostLines = 0;
     } schematic;
     struct Overlays {
@@ -287,7 +287,7 @@ struct Settings {
         information.debugLabels = std::clamp(information.debugLabels, 0, 1);
         schematic.menuBackground = std::clamp(schematic.menuBackground, 0, 2);
         camera.freeCameraHide = std::clamp(camera.freeCameraHide, 0, 3);
-        schematic.ghostTint = std::clamp(schematic.ghostTint, 0, 2);
+        schematic.ghostTint = std::clamp(schematic.ghostTint, 0, 100);
         schematic.ghostLines = std::clamp(schematic.ghostLines, 0, 2);
         if (!std::isfinite(schematic.outlineDistance)) schematic.outlineDistance = 48;
         schematic.outlineDistance = std::clamp(std::round(schematic.outlineDistance / 16) * 16, 0.f, 192.f);

@@ -14,15 +14,13 @@ namespace lamium::schematic::faces {
 struct Vertex { float x, y, z; };
 // Sides: 0 west (-x), 1 east (+x), 2 down (-y), 3 up (+y), 4 north (-z), 5 south (+z).
 inline constexpr int offsets[6][3] = {{-1,0,0},{1,0,0},{0,-1,0},{0,1,0},{0,0,-1},{0,0,1}};
-// L-186: the ghost tint over block textures by setting (strong, weak, none),
+// L-186: the ghost tint over block textures by its strength in percent,
 // and the offsets an outline edge is drawn again at, across the edge, by
 // width (thin, normal, thick): game lines are one pixel wide.
-inline constexpr std::array<float, 3> ghostTint(int setting) {
-    switch (setting) {
-    case 0: return {.62f, .85f, 1.f};
-    case 2: return {1.f, 1.f, 1.f};
-    default: return {.85f, .93f, 1.f};
-    }
+inline constexpr std::array<float, 3> ghostTint(int percent) {
+    // From white (0%) toward the full tint (100%, the look before 2026-10-15).
+    float t = static_cast<float>(std::clamp(percent, 0, 100)) / 100.f;
+    return {1.f - .38f * t, 1.f - .15f * t, 1.f};
 }
 // Half the width of a normal or thick outline bar, in blocks; 0 for thin
 // (game lines). Copies of a line at small offsets left visible gaps up
@@ -39,7 +37,15 @@ inline constexpr int outlineRank(float r, float g, float b) {
     return 1;
 }
 inline constexpr float rankedBarHalfWidth(int width, int rank) {
-    return width <= 0 ? 0.f : barHalfWidth(width) + .0015f * static_cast<float>(rank);
+    return width <= 0 ? 0.f : barHalfWidth(width) + .002f * static_cast<float>(rank);
+}
+// An edge by its ends to 1/256 block, so two boxes' copies of one edge match.
+// Within a section only the strongest result's copy is drawn; the wider bar
+// covers the rest across section borders, where 0.0015 lost to depth precision
+// a few blocks away (wrong-state stairs over a missing block, 2026-10-15).
+inline std::array<int, 6> edgeKey(std::array<float, 3> p, std::array<float, 3> q) {
+    auto at = [](float v) { return static_cast<int>(std::lround(v * 256.f)); };
+    return {at(p[0]), at(p[1]), at(p[2]), at(q[0]), at(q[1]), at(q[2])};
 }
 // The four sides of a square bar around the axis-aligned segment p-q, each
 // in both windings (the material may cull either): 32 corners, quads.

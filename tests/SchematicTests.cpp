@@ -876,9 +876,10 @@ void rayCells() {
 // L-186: tint by setting, outline copies by width.
 void ghostLook() {
     using lamium::schematic::faces::ghostTint;
-    check(ghostTint(0)[0] == .62f && ghostTint(1)[0] > ghostTint(0)[0] && ghostTint(2)[0] == 1.f && ghostTint(2)[1] == 1.f
-              && ghostTint(7)[0] == ghostTint(1)[0],
-          "strong, weak and no tint, weak for anything else");
+    check(std::abs(ghostTint(100)[0] - .62f) < 1e-6f && std::abs(ghostTint(100)[1] - .85f) < 1e-6f
+              && ghostTint(0)[0] == 1.f && ghostTint(0)[1] == 1.f && ghostTint(40)[0] > ghostTint(100)[0]
+              && ghostTint(40)[0] < 1.f && ghostTint(150)[0] == ghostTint(100)[0],
+          "the tint runs from none at 0% to the earlier strong look at 100%");
     using lamium::schematic::faces::barHalfWidth;
     using lamium::schematic::faces::barQuads;
     check(barHalfWidth(0) == 0.f && barHalfWidth(2) > barHalfWidth(1) && barHalfWidth(1) > 0.f,
@@ -896,6 +897,10 @@ void ghostLook() {
     check(rankedBarHalfWidth(1, wrong) > rankedBarHalfWidth(1, state) && rankedBarHalfWidth(1, state) > rankedBarHalfWidth(1, missing)
           && rankedBarHalfWidth(2, missing) == barHalfWidth(2) && rankedBarHalfWidth(0, wrong) == 0.f,
           "a stronger mistake's bar encloses a weaker neighbor's; thin stays a game line");
+    using lamium::schematic::faces::edgeKey;
+    check(edgeKey({0, 1, 0}, {1, 1, 0}) == edgeKey({0.001f, 1.f, 0.f}, {1.f, 1.001f, 0.f})
+              && edgeKey({0, 1, 0}, {1, 1, 0}) != edgeKey({0, 1, 0}, {1, 1, 1}),
+          "two boxes' copies of one edge share a key, other edges do not");
 }
 void schematicTests() {
     rayCells();

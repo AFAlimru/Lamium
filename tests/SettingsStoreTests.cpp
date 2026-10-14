@@ -341,13 +341,18 @@ void settingsStoreTests() {
     check(old.camera.freeCameraHide == 1 && decodeSettings(R"({"camera":{"freeCameraHide":3}})").camera.freeCameraHide == 3
               && decodeSettings(R"({"camera":{"freeCameraHide":8}})").camera.freeCameraHide == 3,
           "FreeCamera hides the hand by default; the setting loads and is clamped (L-191)");
-    check(old.schematic.ghostTint == 1 && old.schematic.ghostLines == 0,
-          "ghosts default to the weak tint and thin outlines (L-186)");
+    check(old.schematic.ghostTint == 40 && old.schematic.ghostLines == 0,
+          "ghosts default to a 40% tint and thin outlines (L-186)");
     {
-        auto look = decodeSettings(R"({"schematic":{"ghostTint":2,"ghostLines":2}})").schematic;
-        auto wild = decodeSettings(R"({"schematic":{"ghostTint":9,"ghostLines":-3}})").schematic;
-        check(look.ghostTint == 2 && look.ghostLines == 2 && wild.ghostTint == 2 && wild.ghostLines == 0,
+        auto look = decodeSettings(R"({"schematic":{"ghostTintPercent":65,"ghostLines":2}})").schematic;
+        auto wild = decodeSettings(R"({"schematic":{"ghostTintPercent":190,"ghostLines":-3}})").schematic;
+        check(look.ghostTint == 65 && look.ghostLines == 2 && wild.ghostTint == 100 && wild.ghostLines == 0,
               "the ghost tint and outline width load and are clamped");
+        check(decodeSettings(R"({"schematic":{"ghostTint":0}})").schematic.ghostTint == 100
+              && decodeSettings(R"({"schematic":{"ghostTint":1}})").schematic.ghostTint == 40
+              && decodeSettings(R"({"schematic":{"ghostTint":2}})").schematic.ghostTint == 0
+              && decodeSettings(R"({"schematic":{"ghostTint":2,"ghostTintPercent":55}})").schematic.ghostTint == 55,
+              "the earlier strong, weak and none choices become 100%, 40% and 0%");
     }
     check(decodeSettings(R"({"map":{"minimapShapes":true}})").map.minimapShapes, "shapes on the minimap load when saved on");
     check(!old.map.worldMapNames && decodeSettings(R"({"map":{"worldMapNames":true}})").map.worldMapNames,

@@ -608,9 +608,14 @@ axis-aligned edge again at four offsets across it). Not checked in game.
 Later the same day normal/thick became solid bars (`7d79bef`, passed). Bars
 of neighbors with different check results flickered; they now sit on the
 shared edge and a stronger result's bar is slightly wider: wrong block >
-unknown block > wrong state > ghost/missing (not checked yet).
-Open (maintainer, 2026-10-15): the three tint choices are easy to read but
-change the look sharply; a finer tint control is being considered. Not decided.
+unknown block > wrong state > ghost/missing. Wrong beside missing passed;
+wrong-state stairs over a missing block still fought, so within a section only
+the strongest copy of a shared edge is drawn and the width step grew to
+0.002 (not checked yet).
+Ghost tint (maintainer, 2026-10-15): the three choices changed the look too
+sharply, so it is now a 0-100% slider in 5% steps, 40% by default (about the
+former weak); 100% is the former strong, 0% none. Saved as `ghostTintPercent`;
+the former `ghostTint` choice maps to 100/40/0. Not checked in game.
 Translucent ghosts stay open (maintainer: after the release).
 Goal: distinguish ghost blocks from real blocks while keeping their native
 colors readable. In the reported screenshot a pink concrete ghost overlapped

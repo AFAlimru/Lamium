@@ -1,5 +1,6 @@
 #include "settings/SettingsStore.h"
 #include "nlohmann/json.hpp"
+#include <array>
 #include <fstream>
 #include <stdexcept>
 #include <system_error>
@@ -225,7 +226,7 @@ Json encode(Settings const& settings) {
         {"schematic", {{"enabled", settings.schematic.enabled}, {"hud", settings.schematic.hud},
                        {"hudVerify", settings.schematic.hudVerify}, {"hudMaterials", settings.schematic.hudMaterials},
                        {"menuBackground", settings.schematic.menuBackground}, {"menuSmall", settings.schematic.menuSmall},
-                       {"ghostTint", settings.schematic.ghostTint}, {"ghostLines", settings.schematic.ghostLines},
+                       {"ghostTintPercent", settings.schematic.ghostTint}, {"ghostLines", settings.schematic.ghostLines},
                        {"menuReopen", settings.schematic.menuReopen}, {"outlineDistance", settings.schematic.outlineDistance}}}
     };
 }
@@ -481,7 +482,10 @@ Settings decodeSettings(std::string_view text) {
         value.schematic.hudVerify = schematic.value("hudVerify", value.schematic.hudVerify);
         value.schematic.hudMaterials = schematic.value("hudMaterials", value.schematic.hudMaterials);
         value.schematic.menuBackground = schematic.value("menuBackground", value.schematic.menuBackground);
-        value.schematic.ghostTint = schematic.value("ghostTint", value.schematic.ghostTint);
+        // Builds of 2026-10-15 saved a choice: 0 strong, 1 weak, 2 none.
+        if (int choice = schematic.value("ghostTint", -1); choice >= 0 && choice <= 2)
+            value.schematic.ghostTint = std::array{100, 40, 0}[static_cast<size_t>(choice)];
+        value.schematic.ghostTint = schematic.value("ghostTintPercent", value.schematic.ghostTint);
         value.schematic.ghostLines = schematic.value("ghostLines", value.schematic.ghostLines);
         value.schematic.menuSmall = schematic.value("menuSmall", value.schematic.menuSmall);
         value.schematic.menuReopen = schematic.value("menuReopen", value.schematic.menuReopen);
