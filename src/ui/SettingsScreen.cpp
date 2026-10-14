@@ -559,6 +559,10 @@ void runMenuItem(schematic::menu::Item const& item, int amount) {
     namespace menu = schematic::menu;
     using C = menu::Command;
     if (!client) return;
+    if (!Runtime::instance().preferences().schematic.enabled && !menu::worksWhileOff(item)) {
+        showMessageToast(translated("schematic.offMenu"));
+        return;
+    }
     if (item.stepper()) { schematic::actions::step(*client, std::get<menu::Stepper>(item.what), amount ? amount : 1); return; }
     if (amount) return; // The wheel only changes steppers.
     auto command = std::get<menu::Command>(item.what);
@@ -1285,6 +1289,12 @@ void openSchematicMenu(IClientInstance& current) {
     if (!scene) return;
     auto const preferences = Runtime::instance().preferences();
     schematicMenu = SchematicMenu{};
+    if (!preferences.schematic.enabled) {
+        // Off: open where the switch is and say so (selecting did nothing before).
+        schematicMenu->show(schematic::menu::showCategory);
+        showMessageToast(translated("schematic.offMenu"));
+        return;
+    }
     schematicMenu->show(schematic::menu::openAt(preferences.schematic.menuReopen, schematicMenuClosedAt));
 }
 void openCalculator(IClientInstance& current) {

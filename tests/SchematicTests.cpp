@@ -607,6 +607,13 @@ void menuRules() {
           "only the move commands choose a target");
     check(openAt(false, 3) == -1 && openAt(true, 3) == 3 && openAt(true, -1) == -1 && openAt(true, 99) == -1,
           "the menu opens at the list unless set to reopen where it was closed");
+    bool switchThere = false;
+    for (auto const& item : categories[showCategory].items)
+        switchThere = switchThere || (!item.stepper() && std::get<Command>(item.what) == Command::ToggleFeature);
+    check(switchThere && worksWhileOff({"", Command::ToggleFeature}) && worksWhileOff({"", Command::CheckTab})
+              && !worksWhileOff({"", Command::Corner1Here}) && !worksWhileOff({"", Command::SaveArea})
+              && !worksWhileOff({"", Stepper::Rotate}),
+          "with Schematics off the menu opens at its switch, and only the switch and screens run");
 
     using lamium::ui::RadialLayout;
     RadialLayout::Sizes sizes{100, 26, 140, 62};

@@ -609,6 +609,8 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"schematic.toast.cornerArea", "Corner {}: {}, {}, {} ({}×{}×{})", "角 {}: {}, {}, {}（{}×{}×{}）"},
     {"schematic.toast.lookAtBlock", "Look at a block", "ブロックを見てください"},
     {"schematic.toast.noArea", "Set both corners first", "先に角を 2 つとも決めてください"},
+    {"schematic.off", "Schematics is off. Turn it on in the schematic menu (Show) or under Schematics in the settings.", "設計図はオフです。設計図メニューの「表示」か、設定の「設計図」で有効にできます。"},
+    {"schematic.offMenu", "Schematics is off. Choose Schematics here to turn it on.", "設計図はオフです。ここの「設計図」を選ぶと有効になります。"},
     {"schematic.save.title", "Save the area as a schematic", "範囲を設計図として保存"},
     {"schematic.save.corner1", "Corner 1", "角 1"},
     {"schematic.save.corner2", "Corner 2", "角 2"},

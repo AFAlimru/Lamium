@@ -52,6 +52,18 @@ inline constexpr std::array<Item, 5> screen{{{"schematic.menu.filesTab", C::File
     {"schematic.menu.checkTab", C::CheckTab}, {"schematic.menu.materialsTab", C::MaterialsTab}, {"schematic.menu.keySettings", C::KeySettings}}};
 }
 inline constexpr int moveCategory = 0;
+inline constexpr int showCategory = 3; // Holds the feature switch.
+// With Schematics off, only what turns it on or opens a screen runs; the rest
+// would act on placements and an area nothing draws.
+inline constexpr bool worksWhileOff(Item const& item) {
+    if (item.stepper()) return false;
+    switch (std::get<Command>(item.what)) {
+    case Command::ToggleFeature: case Command::ToggleHud: case Command::PlaceFile: case Command::DeletePlacement:
+    case Command::FilesTab: case Command::PlacedTab: case Command::CheckTab: case Command::MaterialsTab: case Command::KeySettings:
+        return true;
+    default: return false;
+    }
+}
 inline constexpr std::array<Category, 8> categories{{
     {"schematic.menu.cat.move", detail::move}, {"schematic.menu.cat.turn", detail::turn}, {"schematic.menu.cat.layers", detail::layers},
     {"schematic.menu.cat.show", detail::show}, {"schematic.menu.cat.area", detail::area}, {"schematic.menu.cat.placement", detail::placement},

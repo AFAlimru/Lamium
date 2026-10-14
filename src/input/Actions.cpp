@@ -149,6 +149,12 @@ void executeAction(IClientInstance& client, input::Action action) {
     if (action == input::Action::OpenSchematicPlaced) { ui::openSchematics(client, 1); return; }
     if (action == input::Action::OpenSchematicCheck) { ui::openSchematics(client, 2); return; }
     if (action == input::Action::OpenSchematicMaterials) { ui::openSchematics(client, 3); return; }
+    bool const schematicKey = schematic::actions::handles(action) || action == input::Action::AdjustSchematic
+        || action == input::Action::SaveSchematicArea;
+    if (schematicKey && !runtime.preferences().schematic.enabled) {
+        ui::showMessageToast(ui::translated("schematic.off"));
+        return;
+    }
     if (schematic::actions::handles(action)) {
         schematic::actions::press(client, action);
         return;

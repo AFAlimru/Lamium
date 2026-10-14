@@ -601,6 +601,8 @@ inline constexpr auto simplifiedChinese = std::to_array<Text>({
     {"schematic.toast.cornerArea", "角 {}: {}, {}, {}（{}×{}×{}）"},
     {"schematic.toast.lookAtBlock", "请看向一个方块"},
     {"schematic.toast.noArea", "请先设定两个角"},
+    {"schematic.off", "蓝图已关闭。可在蓝图菜单的“显示”或设置的“蓝图”中开启。"},
+    {"schematic.offMenu", "蓝图已关闭。选择此处的“蓝图”即可开启。"},
     {"schematic.save.title", "将范围保存为蓝图"},
     {"schematic.save.corner1", "角 1"},
     {"schematic.save.corner2", "角 2"},
