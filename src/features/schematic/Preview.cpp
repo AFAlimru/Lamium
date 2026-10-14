@@ -43,6 +43,7 @@
 #include "mc/world/level/block/BlockRenderLayer.h"
 #include "mc/world/level/block/BrightnessPair.h"
 #include "mc/world/level/block/actor/BlockActorRendererId.h"
+#include "mc/world/level/block/actor/BlockActorType.h"
 #include <glm/gtc/matrix_transform.hpp>
 #include <algorithm>
 #include <unordered_map>
@@ -366,8 +367,10 @@ bool step() {
             ghosts::eachLayer(block, *j.region, spot, [&](std::optional<BlockRenderLayer> layer) {
                 ghosts::tessellateLayer(*j.blocks, batch, block, spot, layer);
             });
-            // No mesh: a block entity, drawn by its renderer after the mesh.
-            if (positions.size() == from) j.actorCells.push_back({static_cast<std::uint32_t>(cell), &block});
+            // No mesh: a block entity, drawn by its renderer after the mesh. A
+            // piston has both: its base mesh and its head drawn by its actor (L-178).
+            if (positions.size() == from || block.getBlockType().mBlockEntityType == BlockActorType::PistonArm)
+                j.actorCells.push_back({static_cast<std::uint32_t>(cell), &block});
             if (static_cast<size_t>(cell) < s.liquids.size())
                 if (auto i = s.liquids[static_cast<size_t>(cell)]; i >= 0 && static_cast<size_t>(i) < j.palette.size() && j.palette[static_cast<size_t>(i)]
                     && ghosts::liquidKind(*j.palette[static_cast<size_t>(i)]))
