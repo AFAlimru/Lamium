@@ -51,6 +51,7 @@ struct Settings {
         bool freeCameraToggle = true;
         bool freeCameraWorldFixed = false;
         bool freeCameraLeaveOnHit = false; // L-126: any hit, even without damage, ends FreeCamera.
+        int freeCameraHide = 1; // L-191: hidden while flying: 0 nothing, 1 hand, 2 hand and hotbar, 3 whole HUD.
         float freeCameraSpeed = 20.f;
         float magnification = 3.0f;
         bool zoomWideAngle = false; // L-140: the wheel may go below 1x.
@@ -284,6 +285,7 @@ struct Settings {
         information.targetArmor = std::clamp(information.targetArmor, 0, 2);
         information.debugLabels = std::clamp(information.debugLabels, 0, 1);
         schematic.menuBackground = std::clamp(schematic.menuBackground, 0, 2);
+        camera.freeCameraHide = std::clamp(camera.freeCameraHide, 0, 3);
         schematic.ghostTint = std::clamp(schematic.ghostTint, 0, 2);
         schematic.ghostLines = std::clamp(schematic.ghostLines, 0, 2);
         if (!std::isfinite(schematic.outlineDistance)) schematic.outlineDistance = 48;

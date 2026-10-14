@@ -57,6 +57,7 @@ use. A new gate gets its feature there as well.
 | Schematic entity models (actor renderers) | `GhostMarks.cpp` | missing entities as dashed frames | everything else |
 | Game language (native apply) | `GameLanguage.cpp` | no in-world language list; vanilla title-screen Settings > Language | everything else |
 | Skip server resource packs (pack stack packet) | `ServerPacks.cpp` | server packs applied as vanilla | the setting and key (no effect) |
+| FreeCamera hide (hotbar control) | `FreeCameraHide.cpp` `FreeCameraHud` (the hotbar control's visibility, restored after the draw) | the hotbar stays drawn in FreeCamera | hiding the hand and the whole HUD |
 | Fake Offhand (item use targets) | `FakeOffhand.cpp` `targetUse` (planter component by name, copper fields, `canBeFertilized`, `isRailBlock`) | the primary item keeps priority on blocks as before L-189 | air checks, the rest of Fake Offhand |
 | Chat position (HUD control positions) | `ChatPosition.cpp` | vanilla chat position | the setting, key and layout preview |
 
@@ -122,6 +123,14 @@ Hooks: `TerrainCullerRequest`, `TerrainPreRender`
 Meaning: the native culler type values (3 requested, 5 retained) and the
 virtual slot of `updateLevelCullerType`. Gated (FreeCamera terrain); also
 checks the loader version and that the slot points into game code.
+
+### `src/features/camera/FreeCameraHide.cpp`
+Hooks: `FreeCameraHand`, `FreeCameraHud`
+Meaning: the first-person hand pass (`ItemInHandRenderer::renderFirstPerson`)
+and the HUD screen's draw (`ScreenView::render`, the `.hud_screen` root
+name, the hotbar control names `desktop_hotbar`, `pocket_hotbar`,
+`hotbar_panel` and their `mVisible` flag, set back after the draw). The
+hotbar part is gated (FreeCamera hide).
 
 ### `src/features/information/DebugVanillaHud.cpp`
 Hooks: `DebugPositionSprite`, `DebugPositionText`, `DebugPaperDoll`

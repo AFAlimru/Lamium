@@ -27,6 +27,7 @@
 #include "features/interaction/MiningSessionHooks.h"
 #include "features/inventory/DeathRestore.h"
 #include "features/interaction/ElytraSwap.h"
+#include "features/camera/FreeCameraHide.h"
 #include "features/interaction/PeriodicInput.h"
 #include "features/interaction/AutomationTrace.h"
 #include "features/camera/CameraSessions.h"
@@ -133,6 +134,7 @@ Feature const features[] = {
     {"Custom input", started<input::startCustomInput>, input::stopCustomInput},
     {"World overlay", started<overlay::start>, overlay::stop},
     {"Offhand visibility", started<visuals::start>, visuals::stop},
+    {"FreeCamera hiding", started<camera::freeCameraHide::start>, camera::freeCameraHide::stop},
     {"Connected Textures", visuals::connected::start, visuals::connected::stop},
     {"Server resource packs", visuals::serverPacks::start, visuals::serverPacks::stop},
     {"Tool Switch", started<inventory::tools::start>, inventory::tools::stop},

@@ -518,6 +518,8 @@ Decided 2026-10-15 (maintainer, as proposed): a FreeCamera child setting
 "Hide in FreeCamera": nothing / hand / hand and hotbar / whole HUD (as F1);
 default hand. What FreeCamera lets the player do stays blocked as today;
 allowing actions is L-25, later.
+Status: built 2026-10-15, not checked in game (CAMERA.md "Hiding the hand
+and HUD while flying").
 In FreeCamera almost nothing can be operated, yet the first-person hand and
 held item and the hotbar are still drawn. Consider hiding them while
 FreeCamera is on (option, default to decide), together with the question of

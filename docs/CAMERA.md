@@ -535,3 +535,15 @@ changes, death, riding, sleeping, perspective changes, Zoom, and another camera
 mod. Check view/frustum alignment, overlay coordinates, hands, and unloaded
 terrain. Instrumentation should remain local and optional; none of these checks
 has been completed for detached cameras.
+
+## Hiding the hand and HUD while flying (L-191, 2026-10-15)
+
+Decided by the maintainer 2026-10-15; built, not checked in game. FreeCamera
+setting "Hide while flying": nothing, hand (default), hand and hotbar, or
+the whole HUD. The hand is the first-person item pass
+(`ItemInHandRenderer::renderFirstPerson`); the whole HUD skips the HUD
+screen's draw, as F1 does, Lamium's HUD included; the hotbar hides its
+control (`desktop_hotbar`, `pocket_hotbar`, `hotbar_panel`) for each draw
+only and restores it right after (gated). Only while FreeCamera owns the
+view; nothing in the game's options changes. What FreeCamera allows the
+player to do is unchanged (L-25).

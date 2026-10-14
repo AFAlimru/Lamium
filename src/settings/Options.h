@@ -77,6 +77,7 @@ inline constexpr auto lineBackgroundLabels = std::to_array<std::string_view>(
     {"hudBackgroundNone", "hudBackgroundCard", "hudBackgroundLine"});
 inline constexpr std::array<std::string_view,2> debugBackgroundLabels{"hudBackgroundNone","hudBackgroundLine"};
 inline constexpr std::array<std::string_view,3> menuBackgroundLabels{"menuBackground.none", "menuBackground.light", "menuBackground.dark"};
+inline constexpr std::array<std::string_view,4> freeCameraHideLabels{"freeCameraHide.nothing", "freeCameraHide.hand", "freeCameraHide.hotbar", "freeCameraHide.hud"};
 inline constexpr std::array<std::string_view,3> ghostTintLabels{"ghostTint.strong", "ghostTint.weak", "ghostTint.none"};
 inline constexpr std::array<std::string_view,3> ghostLinesLabels{"ghostLines.thin", "ghostLines.normal", "ghostLines.thick"};
 // L-97: the selected slot, then hotbar slots 1-9.
@@ -348,6 +349,7 @@ inline constexpr auto options = std::to_array<Option>({
     choice<&Settings::camera, &Settings::Camera::freeCameraToggle, activationLabels>("camera.freecameraActivation", "freecamera", "freecameraActivation"),
     choice<&Settings::camera, &Settings::Camera::freeCameraWorldFixed, cameraReferenceLabels>("camera.freeCameraWorldFixed", "freecamera", "freeCameraReference"),
     toggle<&Settings::camera, &Settings::Camera::freeCameraLeaveOnHit>("camera.freeCameraLeaveOnHit", "freecamera", "freeCameraLeaveOnHit"),
+    choice<&Settings::camera, &Settings::Camera::freeCameraHide, freeCameraHideLabels>("camera.freeCameraHide", "freecamera", "freeCameraHide"),
     {"camera.freeCameraSpeed", "freecamera", "freeCameraSpeed",
         [](Settings const& s) -> OptionValue { return s.camera.freeCameraSpeed; },
         [](Settings& s, int direction) { s.camera.freeCameraSpeed = camera::adjustFlightSpeed(s.camera.freeCameraSpeed, direction); },

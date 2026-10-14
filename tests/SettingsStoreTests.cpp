@@ -332,6 +332,9 @@ void settingsStoreTests() {
     check(!old.map.minimap && old.map.zoom == map::defaultZoomIndex && !old.map.rotate && !old.map.round && old.map.debugHide
           && old.hud.minimap.anchor == ui::Anchor::TopRight, "the minimap starts off, at 128 blocks, top right");
     check(!old.map.minimapShapes, "shapes stay off the minimap until turned on (L-139)");
+    check(old.camera.freeCameraHide == 1 && decodeSettings(R"({"camera":{"freeCameraHide":3}})").camera.freeCameraHide == 3
+              && decodeSettings(R"({"camera":{"freeCameraHide":8}})").camera.freeCameraHide == 3,
+          "FreeCamera hides the hand by default; the setting loads and is clamped (L-191)");
     check(old.schematic.ghostTint == 1 && old.schematic.ghostLines == 0,
           "ghosts default to the weak tint and thin outlines (L-186)");
     {
