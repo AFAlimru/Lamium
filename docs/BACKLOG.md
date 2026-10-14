@@ -401,8 +401,8 @@ reproduction before choosing a fix. [SCHEMATIC.md](SCHEMATIC.md).
 
 ### L-178 Schematic piston face texture does not match geometry
 Kind: Bug / Research. User report 2026-10-14; not yet reproduced.
-Status: heads draw since `b9c9d69` (seen 2026-10-14), but extended pistons
-draw them retracted; candidate fix with a log line in the next build. Glass
+Status: world ghosts right since `5711cc3` (extended, rotated, mirrored;
+seen 2026-10-14). The 3D preview lacked the heads; fix `27150e5` unchecked. Glass
 next to piston ghosts no longer fights; glass ghosts of two different
 placements still do (open). Earlier status: cause found and fix built 2026-10-14 (`b9c9d69`). The maintainer's test file `pistons.mcstructure` showed the real
 symptom: the base draws, but the pushing face and arm never draw, in any
@@ -438,7 +438,12 @@ lines (Lamium logs only its own messages). LeviLamina's CrashLogger writes
 trace names Lamium frames as `Lamium.dll+offset` without the PDB, which can
 be resolved here with the release's symbol asset. Ask for both files and
 the Lamium version.
-Status: open. Pressing the settings key (default L) while a schematic is
+Status: cause found 2026-10-14 from the reporter's three 0.2.1 traces
+(VALIDATION-LOG): the schematic 3D preview kept blocks and block actors from
+the previous world and made actors from them; fixed in `95a09e0` (reset on
+world exit). Check in game: leave and rejoin a world with a checked
+placement, open the Check tab preview repeatedly.
+Original report: pressing the settings key (default L) while a schematic is
 being checked/used can occasionally crash. Capture crash log/stack and
 placement, Check-tab, background work and world-exit state; look for
 lifetime/reentrancy, UI ownership and stale pointers without assuming a
@@ -487,7 +492,10 @@ type 3, scale 1.333, with the font's own material).
 
 ### L-192 Glass ghost brightness changes by section with the camera position
 Kind: Bug / Research. Maintainer report 2026-10-14 (VALIDATION-LOG).
-Status: open. White stained glass ghosts turn darker or lighter in
+Status: open. More evidence 2026-10-14: only the current camera position
+matters (not where the camera was), so the build-time sort hypothesis below
+does not fit; with the camera below the floor both sides darken.
+White stained glass ghosts turn darker or lighter in
 world-aligned groups that look like the 8-block ghost sections, depending on
 where the camera is, not which way it looks; moving the placement keeps the
 dark area at the same world coordinates.

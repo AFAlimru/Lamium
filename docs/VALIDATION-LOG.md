@@ -12,6 +12,31 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-182 crash traces resolved; L-178/L-192 follow-up (2026-10-14)
+
+L-182: the reporter sent three CrashLogger traces and minidumps
+(13:59:00, 14:49:03, 15:53:07) from Lamium 0.2.1 on Minecraft 1.26.51 and
+LeviLamina 26.51.5. Resolved here with the 0.2.1 symbol asset
+(`Lamium-0.2.1-client-windows-x64.pdb.zip` from the GitHub release). All
+three: SettingsSceneRender detour -> settings render -> table_view
+renderTable -> schematics_view renderContent / drawSchematicsBody ->
+preview::draw -> preview drawActors -> makeBlockActor (14:49, 15:53;
+access at [rcx+0x30], rcx null or garbage) or renderBlockActor (13:59).
+Cause: the preview kept its blocks and block actors across worlds;
+preview::reset() was never called. Fixed in `95a09e0` (reset on world exit
+and stop); not reproduced or checked in game.
+
+Maintainer report on `5711cc3`, Windows x64, local world:
+- Piston ghosts in the world are right, extended included, and under
+  rotation and mirror. In the Schematics 3D preview the heads are still
+  missing (fix `27150e5`, unchecked).
+- The remaining z-fighting is between two adjacent placements (screenshot:
+  a vertical boundary between their glass ghosts).
+- L-192: the dark glass sections depend only on the current camera
+  position, not on where the camera was before; with the camera below the
+  floor both sides turn dark, back above only the right one; the 8-block
+  size was checked against Chunk Borders.
+
 ## L-178 follow-up: piston heads, border faces, glass brightness (2026-10-14)
 
 Maintainer report on `c364a64`, DLL SHA-256
