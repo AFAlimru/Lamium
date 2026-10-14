@@ -1,5 +1,6 @@
 #include "features/schematic/GhostMesh.h"
 #include "features/schematic/GhostRenderer.h"
+#include "features/schematic/GhostVerify.h"
 #include "features/schematic/GhostFaces.h"
 #include "features/schematic/LiquidShape.h"
 #include "features/schematic/SchematicRegion.h"
@@ -18,6 +19,7 @@
 #include "mc/world/level/block/Block.h"
 #include "mc/world/level/block/BlockRenderLayer.h"
 #include "mc/world/level/block/BlockType.h"
+#include "mc/world/level/block/actor/BlockActorType.h"
 #include "mc/world/level/chunk/ChunkState.h"
 #include "mc/world/level/chunk/LevelChunk.h"
 #include "mc/world/level/material/Material.h"
@@ -271,8 +273,13 @@ std::uint64_t signatureOf(BlockSource& region, session::Shown const& shown, Sect
     eachCell(shown, key, 1, [&](int x, int y, int z) {
         BlockPos pos{x, y, z};
         auto* chunk = region.getChunkAt(pos);
-        auto value = chunk && chunk->mLoadState->load() >= ChunkState::Loaded ? reinterpret_cast<std::uintptr_t>(&region.getBlock(pos)) : 1;
+        bool loaded = chunk && chunk->mLoadState->load() >= ChunkState::Loaded;
+        Block const* block = loaded ? &region.getBlock(pos) : nullptr;
+        auto value = block ? reinterpret_cast<std::uintptr_t>(block) : 1;
         hash = (hash ^ static_cast<std::uint64_t>(value)) * 1099511628211ull;
+        // A shulker box's opening arrives with its block actor, after the block.
+        if (block && block->getBlockType().mBlockEntityType == BlockActorType::ShulkerBox)
+            hash = (hash ^ static_cast<std::uint64_t>(actualShulkerFace(region, {x, y, z}) + 2)) * 1099511628211ull;
     });
     return hash;
 }
@@ -361,7 +368,11 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
                         if (auto index = structure.liquids[cellIndex]; index != voidCell && static_cast<size_t>(index) < blocks.blocks.size())
                             fileLiquid = blocks.blocks[static_cast<size_t>(index)];
                     Block const& extra = region.getExtraBlock(pos);
-                    if (fileLiquid != (extra.isAir() ? nullptr : &extra)) marks.push_back({boxLow, boxHigh, 1.f, .8f, .2f});
+                    // A shulker box opening another way is a state mistake too.
+                    int face = expectedShulkerFace(structure, structure.cell(local->x, local->y, local->z), placement.placement);
+                    int placedFace = face >= 0 ? actualShulkerFace(region, {x, y, z}) : -1;
+                    if (fileLiquid != (extra.isAir() ? nullptr : &extra) || (placedFace >= 0 && placedFace != face))
+                        marks.push_back({boxLow, boxHigh, 1.f, .8f, .2f});
                     continue;
                 }
                 if (!actual.isAir()) {

@@ -22,6 +22,11 @@ void stepScan(BlockSource& region, session::Snapshot const& snapshot, int dimens
 void stepProgress(BlockSource& region, session::Snapshot const& snapshot, int dimension, std::vector<Resolved> const& resolved);
 // The checked placement's cell at `world` (mismatchAt in GhostRenderer.h).
 std::optional<Mismatch> checkedCell(BlockSource& region, Point world, std::vector<Resolved> const& resolved);
+// A shulker box's opening (block entity data, L-179): the file's turned with
+// the placement, and the world's at `world`; -1 when not a shulker box or
+// unreadable. The Check list and the in-world marks share them.
+int expectedShulkerFace(Structure const& structure, std::int32_t cell, Placement const& placement);
+int actualShulkerFace(BlockSource& region, Point world);
 // Drops the running pass and publishes an empty result.
 void resetVerification();
 }

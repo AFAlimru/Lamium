@@ -46,22 +46,6 @@ struct Cell {
     // turned with the placement, and the world's; -1 when not compared.
     int expectedFace = -1, actualFace = -1;
 };
-// The file's opening for a shulker box cell, in world terms; -1 for others.
-int expectedShulkerFace(Structure const& structure, std::int32_t cell, Placement const& placement) {
-    auto found = structure.blockEntities.find(cell);
-    if (found == structure.blockEntities.end()) return -1;
-    auto const* id = found->second.find("id");
-    auto const* facing = found->second.find("facing");
-    if (!id || !id->as<std::string>() || *id->as<std::string>() != "ShulkerBox" || !facing || !facing->as<std::int8_t>()) return -1;
-    return toWorldFace(*facing->as<std::int8_t>(), placement);
-}
-// The world's opening; -1 when it cannot be read (no block actor yet).
-int actualShulkerFace(BlockSource& region, BlockPos const& pos) {
-    if (!versionSensitiveAllowed("Schematic check (shulker box facing)")) return -1;
-    auto const* actor = static_cast<BlockSource const&>(region).getBlockEntity(pos);
-    if (!actor || actor->getType() != BlockActorType::ShulkerBox) return -1;
-    return static_cast<ShulkerBoxBlockActor const*>(actor)->mFacing;
-}
 struct Scan {
     std::uint64_t revision = 0;
     std::string key; // drawKey of the placement being checked
@@ -81,6 +65,21 @@ void publish(std::shared_ptr<Verification const> value) {
     std::lock_guard lock(resultMutex);
     published = std::move(value);
 }
+}
+
+int expectedShulkerFace(Structure const& structure, std::int32_t cell, Placement const& placement) {
+    auto found = structure.blockEntities.find(cell);
+    if (found == structure.blockEntities.end()) return -1;
+    auto const* id = found->second.find("id");
+    auto const* facing = found->second.find("facing");
+    if (!id || !id->as<std::string>() || *id->as<std::string>() != "ShulkerBox" || !facing || !facing->as<std::int8_t>()) return -1;
+    return toWorldFace(*facing->as<std::int8_t>(), placement);
+}
+int actualShulkerFace(BlockSource& region, Point world) {
+    if (!versionSensitiveAllowed("Schematic check (shulker box facing)")) return -1;
+    auto const* actor = static_cast<BlockSource const&>(region).getBlockEntity(BlockPos{world.x, world.y, world.z});
+    if (!actor || actor->getType() != BlockActorType::ShulkerBox) return -1;
+    return static_cast<ShulkerBoxBlockActor const*>(actor)->mFacing;
 }
 
 void checkEntities(BlockSource& region, LocalPlayer& player, session::Snapshot const& snapshot, int dimension,
@@ -191,7 +190,7 @@ Cell classifyCell(BlockSource& region, session::Shown const& shown, Resolved con
     bool same = against && actual == against;
     if (same && !c.air) {
         c.expectedFace = expectedShulkerFace(structure, static_cast<std::int32_t>(cellIndex), placement.placement);
-        if (c.expectedFace >= 0) c.actualFace = actualShulkerFace(region, pos);
+        if (c.expectedFace >= 0) c.actualFace = actualShulkerFace(region, c.world);
         // Unreadable is not a mistake: the block alone decides, as before.
         if (c.actualFace >= 0 && c.actualFace != c.expectedFace) same = false;
     }
