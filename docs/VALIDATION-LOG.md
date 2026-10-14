@@ -12,6 +12,20 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-193 perf traces: Lamium's draw is constant while it flickers (2026-10-14)
+
+Maintainer runs of two `schematic_perf_trace` builds (DLL `aa18be08...265d`
+on `08118df`, then `82929ec8...343e` on `59ac118` with order and camera
+counters), standing still where the glass ghosts flicker; the flicker is
+seen from every angle and position nearby.
+- No section rebuilds in the still periods (builds 0 for 5-7 periods of
+  about 5 s); rebuilds seen only while looking around (looked-at).
+- Second build, seven still periods: blended order changes 0, camera moves
+  0, a blended draw every frame. Lamium draws the same thing each frame, so
+  the alternation comes from what the game draws around it.
+Next: isolate in game (one placement hidden, no water below, graphics
+setting, how fast it alternates). Normal build `59ac118` redeployed.
+
 ## L-193 flicker remains on `08118df` (2026-10-14)
 
 Maintainer report on `08118df` (DLL `a83ddf23...121e`), two screenshots: the
