@@ -36,7 +36,7 @@ void buildCellMesh(ScreenContext& screen, CellMesh& mesh, std::span<CellFace con
     if (style.faces && !faces.empty()) {
         // On the cells' own planes: the pull toward the eye keeps them in
         // front of the block faces there (depth rules, Depth.h).
-        auto corners = faceCorners(faces, material.twoSided);
+        auto corners = faceCorners(faces, material.twoSided, style.outset);
         Tessellator batch(screen.tessellator.mBufferResourceService);
         batch.begin({}, mce::PrimitiveMode::QuadList, static_cast<int>(corners.size()), false);
         batch.color(style.r, style.g, style.b, material.alpha);

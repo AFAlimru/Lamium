@@ -1,4 +1,5 @@
 #include "overlay/Geometry.h"
+#include <cmath>
 #include "overlay/ChunkBorders.h"
 #include "overlay/Hitboxes.h"
 #include "overlay/Depth.h"
@@ -15,6 +16,10 @@ void overlayGeometryTests() {
         bool onPlanes = true;
         for (auto p : corners) onPlanes = onPlanes && p.x >= 2 && p.x <= 3 && p.y >= 3 && p.y <= 4 && p.z >= 4 && p.z <= 5;
         check(corners.size() == 24 && onPlanes, "faces lie on the cell's own planes, never inset or pushed out");
+        auto up = faceCorners(std::vector<CellFace>{{{2, 3, 4}, Face::Up}}, false, .02);
+        auto west = faceCorners(std::vector<CellFace>{{{2, 3, 4}, Face::West}}, false, .02);
+        check(std::abs(up[0].y - 4.02) < 1e-9 && std::abs(west[0].x - 1.98) < 1e-9 && up[0].x == 2,
+              "an outset moves a face out of its cell along its normal only");
         auto both = faceCorners(one.faces, true);
         check(both.size() == 48 && both[4] == both[3] && both[7] == both[0], "a culling material gets each face again reversed");
         // A corner mark shows only the sides the eye sees.
