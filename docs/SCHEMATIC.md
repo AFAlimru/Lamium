@@ -37,7 +37,8 @@ first is the target, named in light blue with "Schematic: Not placed yet" and
 no placement name; the real block behind it is not paired with it. A real
 block's differences are read live for that cell after checking the selected
 placement's revision, visibility, dimension and shown layers, rather than from
-the capped background list. Difference rows come first on the card.
+the capped background list. Difference rows come first on the card, starting
+with "Schematic: Wrong block / Extra block / Wrong state" in the check's color.
 
 Area save reads bounded chunk columns and waits for unloaded ones as the
 player approaches; it can be stopped. Blocks, states, the water layer and

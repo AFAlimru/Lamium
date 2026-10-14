@@ -12,6 +12,16 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Mistake outlines missing (2026-10-15)
+
+Maintainer report on `cdf288d` (DLL `6fab1a59...1c3d`), local: the outline
+around red and yellow mistake faces is gone; when it went is not known. Cause
+found in code: since `2515d62` the sections' rebuild key (graphics mode, tint,
+outline width) was also compared as the graphics mode, so every mode was
+treated as Vibrant Visuals and mistake marks used that path. Fixed in the next
+build, not checked yet. The target card should also name the mismatch
+("Schematic: Wrong block / Wrong state"); added in the same build.
+
 ## Schematic sections on the target card rejected (2026-10-15)
 
 Maintainer feedback on the `771ba02` presentation (no new build or hash

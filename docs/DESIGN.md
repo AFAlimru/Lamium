@@ -234,7 +234,8 @@ Contents:
   A ghost hit before a real block is the target: its icon, name (in the
   ghost's light blue), ID, coordinates and states, plus "Schematic: Not placed
   yet". The placement name is not shown. A real block that differs from the
-  selected placement at the same cell gets rows in the check's colors:
+  selected placement at the same cell gets rows in the check's colors: first
+  "Schematic: Wrong block / Extra block / Wrong state", then
   "Should be: <icon> <block>" (red; air for an extra block), or one row per
   differing state, current -> expected with the drawn arrow (yellow), which
   stands in for that state's ordinary row. Schematic rows come first, right
