@@ -35,6 +35,8 @@
 #include "mc/deps/core_graphics/enums/PrimitiveMode.h"
 #include "mc/deps/minecraft_renderer/renderer/MaterialPtr.h"
 #include "mc/deps/minecraft_renderer/renderer/Mesh.h"
+#include "mc/deps/minecraft_renderer/renderer/MeshData.h"
+#include "mc/client/renderer/SupplementaryFieldAutoGenerationMode.h"
 #include "mc/deps/minecraft_renderer/renderer/TexturePtr.h"
 #include "mc/deps/minecraft_renderer/resources/ClientTexture.h"
 #include "mc/deps/minecraft_renderer/resources/OffscreenCaptureDescription.h"
@@ -79,11 +81,10 @@ struct Perf {
                   prepareNs = 0, facesNs = 0, linesNs = 0, actorsNs = 0, framesNs = 0, entitiesNs = 0, extrasNs = 0;
     std::uint64_t reasons[5]{}; // new, looked-at change, signature changed, mesh gone, chunk incomplete
     std::size_t sections = 0;
-    // L-193: frames whose blended section order or camera position differ
-    // from the previous blended frame.
+    // L-193: blended re-sorts, and frames whose camera position differs from
+    // the previous blended frame.
     std::uint64_t orderChanges = 0, cameraMoves = 0, blendedFrames = 0;
 } perf;
-std::uint64_t lastOrder = 0;
 Vec3 lastCamera{};
 struct PerfTimer {
     std::uint64_t& into;
@@ -131,7 +132,29 @@ std::atomic<bool> releaseRequested{false};
 ll::event::ListenerPtr exitListener;
 bool installed = false;
 
+// Every section's blended quads in one mesh, sorted far to near from where
+// the camera was (L-192, L-193). Sorted again when the camera has moved or
+// the quads changed, at most this often; standing still keeps one order.
+struct Combined {
+    std::optional<mce::Mesh> mesh;
+    std::uint32_t vertices = 0;
+    glm::dvec3 anchor{}; // positions are relative to it
+    std::uint64_t key = 0;
+    Vec3 sortedFrom{};
+    Clock::time_point sortedAt{};
+} combined;
+// Meshes cannot be assigned: cleared member by member.
+void forgetCombined() {
+    combined.mesh.reset();
+    combined.vertices = 0;
+    combined.key = 0;
+}
+constexpr std::chrono::milliseconds resortEvery{50};
+constexpr float resortDistance = .25f;
+constexpr size_t manyBlendedQuads = 20000;
+
 void release() {
+    forgetCombined();
     sections.clear();
     wantedCache.valid = false;
     resetMarks();
@@ -354,7 +377,7 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
         auto refreshAfter = w.distance <= nearDistance ? std::chrono::duration_cast<Clock::duration>(refreshNear)
             : std::chrono::duration_cast<Clock::duration>(refreshFar);
         bool stale = found == sections.end() || !found->second.complete || (found->second.due && now >= *found->second.due)
-            || (found->second.faces && !found->second.faces->isValid()) || (found->second.blend && !found->second.blend->isValid())
+            || (found->second.faces && !found->second.faces->isValid())
             || std::any_of(found->second.lines.begin(), found->second.lines.end(), [](auto const& l) { return !l->mesh || !l->mesh->isValid(); })
             || (found->second.marks && !found->second.marks->isValid());
 #ifdef LAMIUM_SCHEMATIC_PERF_TRACE
@@ -573,36 +596,109 @@ void drawBlended(BaseActorRenderContext& context) {
     Vec3 const camera = context.mImpl->mCameraPosition;
     auto& region = player->getDimensionBlockSource();
     std::variant<std::monostate, mce::TexturePtr, mce::ClientTexture, mce::ServerTexture> texture{moving->mAtlasTexture.get()};
-    std::vector<std::pair<double, Section const*>> order;
-    for (auto const& [key, section] : sections) {
-        if (!section.blend) continue;
-        double cx = section.origin.x + sectionSize / 2. - camera.x, cy = section.origin.y + sectionSize / 2. - camera.y,
-               cz = section.origin.z + sectionSize / 2. - camera.z;
-        order.push_back({cx * cx + cy * cy + cz * cz, &section});
+    std::vector<BlendQuads const*> parts;
+    std::uint64_t key = 1469598103934665603ull;
+    for (auto const& [sectionKey, section] : sections) {
+        if (!section.blend || section.blend->positions.empty()) continue;
+        parts.push_back(section.blend.get());
+        key = (key ^ reinterpret_cast<std::uintptr_t>(section.blend.get())) * 1099511628211ull;
     }
-    std::sort(order.begin(), order.end(), [](auto const& a, auto const& b) { return a.first > b.first; });
-    if (order.empty()) return;
+    if (parts.empty()) { forgetCombined(); return; }
+    auto now = Clock::now();
+    float moved = std::max({std::abs(camera.x - combined.sortedFrom.x), std::abs(camera.y - combined.sortedFrom.y),
+                            std::abs(camera.z - combined.sortedFrom.z)});
+    // Many quads (large liquid ghosts) sort and upload less often while moving.
+    size_t total = 0;
+    for (auto const* b : parts) total += b->positions.size() / 4;
+    auto every = total > manyBlendedQuads ? resortEvery * 5 : resortEvery;
+    bool resort = key != combined.key || !combined.mesh || !combined.mesh->isValid()
+        || (moved >= resortDistance && now - combined.sortedAt >= every);
+    if (resort) {
+        combined.mesh.reset();
+        combined.anchor = {std::floor(camera.x), std::floor(camera.y), std::floor(camera.z)};
+        // Every quad by its center, far to near from the camera.
+        struct Quad { float distance; std::uint32_t part, index; };
+        std::vector<Quad> quads;
+        for (std::uint32_t p = 0; p < parts.size(); ++p) {
+            auto const& b = *parts[p];
+            for (std::uint32_t q = 0; q < b.positions.size() / 4; ++q) {
+                glm::vec3 c = (b.positions[q * 4] + b.positions[q * 4 + 1] + b.positions[q * 4 + 2] + b.positions[q * 4 + 3]) * .25f
+                    + b.origin;
+                float dx = c.x - camera.x, dy = c.y - camera.y, dz = c.z - camera.z;
+                quads.push_back({dx * dx + dy * dy + dz * dz, p, q});
+            }
+        }
+        std::stable_sort(quads.begin(), quads.end(), [](Quad const& a, Quad const& b) { return a.distance > b.distance; });
+        Tessellator batch(screen.tessellator.mBufferResourceService);
+        batch.begin({}, mce::PrimitiveMode::QuadList, static_cast<int>(quads.size() * 4), false);
+        auto& data = static_cast<mce::MeshData&>(batch.mMeshData);
+        // A stream is kept only when every part has it for every vertex.
+        auto merge = [&](auto member, auto& to) {
+            to.clear();
+            for (auto const* b : parts)
+                if ((b->*member).size() != b->positions.size()) return;
+            to.reserve(quads.size() * 4);
+            for (auto const& q : quads)
+                for (std::uint32_t k = 0; k < 4; ++k) to.push_back((parts[q.part]->*member)[q.index * 4 + k]);
+        };
+        auto& positions = *data.mPositions;
+        positions.clear();
+        positions.reserve(quads.size() * 4);
+        glm::vec3 low{1e9f}, high{-1e9f};
+        for (auto const& q : quads) {
+            auto const& b = *parts[q.part];
+            glm::dvec3 shift = glm::dvec3(b.origin) - combined.anchor;
+            for (std::uint32_t k = 0; k < 4; ++k) {
+                glm::vec3 v = glm::vec3(glm::dvec3(b.positions[q.index * 4 + k]) + shift);
+                positions.push_back(v);
+                low = glm::min(low, v);
+                high = glm::max(high, v);
+            }
+        }
+        merge(&BlendQuads::normals, *data.mNormals);
+        merge(&BlendQuads::tangents, *data.mTangents);
+        merge(&BlendQuads::colors, *data.mColors);
+        merge(&BlendQuads::mers, *data.mMERS);
+        merge(&BlendQuads::bones, *data.mBoneId0s);
+        merge(&BlendQuads::pbr, *data.mPBRTextureIndices);
+        merge(&BlendQuads::geo, *data.mGeoType);
+        for (int i = 0; i < 3; ++i) {
+            auto& to = *data.mTextureUVs[i];
+            to.clear();
+            bool all = std::all_of(parts.begin(), parts.end(), [&](auto const* b) { return b->uvs[i].size() == b->positions.size(); });
+            if (!all) continue;
+            to.reserve(quads.size() * 4);
+            for (auto const& q : quads)
+                for (std::uint32_t k = 0; k < 4; ++k) to.push_back(parts[q.part]->uvs[i][q.index * 4 + k]);
+        }
+        *data.mFieldEnabled = parts.front()->enabled;
+        *data.mAABB = {low, high};
+        static_cast<unsigned&>(batch.mCount) = static_cast<unsigned>(quads.size() * 4);
+        combined.vertices = static_cast<std::uint32_t>(quads.size() * 4);
+        combined.mesh.emplace(batch.end(Tessellator::UploadMode::Buffered, "Lamium schematic blended ghosts", SupplementaryFieldAutoGenerationMode{}));
+        combined.key = key;
+        combined.sortedFrom = camera;
+        combined.sortedAt = now;
 #ifdef LAMIUM_SCHEMATIC_PERF_TRACE
-    std::uint64_t hash = 1469598103934665603ull;
-    for (auto const& [distance, section] : order) hash = (hash ^ reinterpret_cast<std::uintptr_t>(section)) * 1099511628211ull;
+        ++perf.orderChanges;
+#endif
+    }
+#ifdef LAMIUM_SCHEMATIC_PERF_TRACE
     ++perf.blendedFrames;
-    if (hash != lastOrder) ++perf.orderChanges;
     if (camera.x != lastCamera.x || camera.y != lastCamera.y || camera.z != lastCamera.z) ++perf.cameraMoves;
-    lastOrder = hash;
     lastCamera = camera;
 #endif
+    if (!combined.mesh || !combined.vertices) return;
     BrightnessPair full;
     full.sky->mValue = 15;
     full.block->mValue = 15;
     ActorShaderManager::setupShaderParameters(screen, region, full, glm::vec4{1, 1, 1, 1}, 1.f, true, *lightTexture, Vec2{1, 1},
         Vec4{0, 0, 1, 1});
-    for (auto const& [distance, section] : order) {
-        glm::vec3 offset{static_cast<float>(section->origin.x - camera.x), static_cast<float>(section->origin.y - camera.y),
-                         static_cast<float>(section->origin.z - camera.z)};
-        translated(screen, offset, [&] {
-            section->blend->renderMesh(screen, material, texture, 0, section->blendVertices, OffscreenCaptureDescription{}, nullptr);
-        });
-    }
+    glm::vec3 offset{static_cast<float>(combined.anchor.x - camera.x), static_cast<float>(combined.anchor.y - camera.y),
+                     static_cast<float>(combined.anchor.z - camera.z)};
+    translated(screen, offset, [&] {
+        combined.mesh->renderMesh(screen, material, texture, 0, combined.vertices, OffscreenCaptureDescription{}, nullptr);
+    });
 }
 // Calls of the alpha pass per ghost frame, logged once (spike: is it once a frame?).
 int alphaCalls = 0;
@@ -634,7 +730,7 @@ void perfReport() {
                     "new {} looked-at {} changed {} mesh-gone {} incomplete {}), checks {} ({:.3f} ms/frame), check/scan {:.3f} ms/frame, "
                     "blended pass {:.3f} ms/frame, sections {}, never-built waiting avg {:.1f} max {}, looked-at latency avg {:.0f} ms max {:.0f} ms; "
                     "prepare {:.3f}, faces {:.3f}, lines {:.3f}, block actors {:.3f}, frames {:.3f}, entities {:.3f}, name tags {:.3f} ms/frame; "
-                    "blended frames {}, order changes {}, camera moves {}",
+                    "blended frames {}, re-sorts {}, camera moves {}",
                     perf.frames, per(perf.frameNs), ms(perf.maxFrameNs), perf.builds, per(perf.buildNs), ms(perf.maxBuildNs), perf.reasons[0],
                     perf.reasons[1], perf.reasons[2], perf.reasons[3], perf.reasons[4], perf.checks, per(perf.checkNs), per(perf.scanNs),
                     per(perf.blendNs), perf.sections, static_cast<double>(perf.waiting) / static_cast<double>(perf.frames), perf.maxWaiting,

@@ -7,6 +7,8 @@
 #include "features/schematic/SchematicSession.h"
 #include "features/schematic/Nbt.h"
 #include "mc/deps/minecraft_renderer/renderer/Mesh.h"
+#include <glm/vec2.hpp>
+#include <glm/vec4.hpp>
 #include "mc/deps/core/math/Vec3.h"
 #include "mc/world/level/BlockPos.h"
 #include <glm/vec3.hpp>
@@ -29,13 +31,30 @@ constexpr int sectionSize = 8;
 // A ghost drawn by its block-entity renderer, with the file's block entity
 // data for it (bed color, skull type and rotation, sign text, banner).
 struct EntityCell { BlockPos pos; Block const* block; std::optional<nbt::Compound> data; };
+
+// A section's blended quads (see-through ghosts and mistake marks), kept on
+// the CPU: every section's are sorted together, far to near from the current
+// camera, into one mesh when drawn (L-193). Sorted per section, the quads of
+// two placements' sections at one spot drew in a fixed order and kept the
+// order of the last build after the camera moved (L-192).
+struct BlendQuads {
+    glm::vec3 origin{}; // the positions are relative to it
+    std::vector<glm::vec3> positions;
+    std::vector<glm::vec4> normals, tangents;
+    std::vector<unsigned> colors, mers;
+    std::vector<unsigned short> bones, pbr;
+    std::vector<glm::vec2> uvs[3];
+    std::vector<unsigned char> geo;
+    std::array<bool, 15> enabled{};
+};
 struct Section {
     glm::vec3 origin{};
     // faces: every render layer but the blended ones, drawn alpha-tested;
     // blend: blended layers (stained glass, honey, slime) and the mistake
     // marks, drawn last; marks: mistake marks over a real blended block,
     // which the blend mesh's depth would hide.
-    std::optional<mce::Mesh> faces, blend, marks;
+    std::optional<mce::Mesh> faces, marks;
+    std::shared_ptr<BlendQuads const> blend;
     std::uint32_t faceVertices = 0, blendVertices = 0, markVertices = 0;
     // Outlines, one mesh per color (lines::colored draws one color at a time).
     struct ColorLines {

@@ -637,12 +637,24 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
         glm::vec3 eye{static_cast<float>(camera.eye.x), static_cast<float>(camera.eye.y), static_cast<float>(camera.eye.z)};
         reorderQuads(see, faces::farToNear(std::span<glm::vec3 const>(positions), eye));
         for (auto& p : see.mMeshData->mPositions.get()) p -= out.origin;
+        auto& data = static_cast<mce::MeshData&>(see.mMeshData);
+        auto kept = std::make_shared<BlendQuads>();
+        kept->origin = out.origin;
+        kept->positions = *data.mPositions;
+        kept->normals = *data.mNormals;
+        kept->tangents = *data.mTangents;
+        kept->colors = *data.mColors;
+        kept->mers = *data.mMERS;
+        kept->bones = *data.mBoneId0s;
+        kept->pbr = *data.mPBRTextureIndices;
+        for (int i = 0; i < 3; ++i) kept->uvs[i] = *data.mTextureUVs[i];
+        kept->geo = *data.mGeoType;
+        kept->enabled = *data.mFieldEnabled;
         out.blendVertices = see.mCount;
-        out.blend.emplace(see.end(Tessellator::UploadMode::Buffered, "Lamium schematic blended ghosts", SupplementaryFieldAutoGenerationMode{}));
-    } else {
-        // Ended either way, so the tessellator never stays open.
-        see.end(Tessellator::UploadMode::Buffered, "Lamium schematic blended ghosts", SupplementaryFieldAutoGenerationMode{});
+        out.blend = std::move(kept);
     }
+    // Ended either way, so the tessellator never stays open.
+    see.end(Tessellator::UploadMode::Buffered, "Lamium schematic blended ghosts", SupplementaryFieldAutoGenerationMode{});
     if (!outlines.empty()) {
         std::map<std::tuple<float, float, float>, std::vector<Outline const*>> byColor;
         for (auto const& o : outlines) byColor[{o.r, o.g, o.b}].push_back(&o);
