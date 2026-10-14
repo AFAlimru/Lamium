@@ -63,6 +63,17 @@ inline bool dropFace(bool realOpaque, bool ghostOpaque, bool shared, bool nearCa
     if (shared && nearCamera) return !cameraBeyond;
     return ghostOpaque;
 }
+// A see-through ghost's face on a side where the neighbor ghost (this
+// placement's or another's) also has a face: the material draws both sides,
+// so two faces there fought (L-178 follow-up). Against a solid ghost the
+// see-through face goes; two of the same kind drop both, as the game draws
+// no face between two glass blocks; two different see-through kinds keep
+// one, the one on the positive side (`side` odd).
+inline bool dropBlendedFace(bool neighborReaches, bool neighborBlended, bool sameType, int side) {
+    if (!neighborReaches) return false;
+    if (!neighborBlended || sameType) return true;
+    return side % 2 == 0;
+}
 // Whether a quad with normal `n` at `center` is seen from behind from `eye`;
 // never for a quad without a usable normal. P: any point with x, y, z.
 template <class P>

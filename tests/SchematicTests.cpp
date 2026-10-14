@@ -581,6 +581,13 @@ void ghostFaces() {
           "next to the camera a shared plane keeps only the face the camera sees");
     check(!dropFace(false, false, true, false, false) && dropFace(false, false, true, true, false)
           && !dropFace(false, false, false, true, false), "a see-through ghost's shared plane is paired only next to the camera");
+    using lamium::schematic::faces::dropBlendedFace;
+    check(dropBlendedFace(true, false, false, 0) && dropBlendedFace(true, true, true, 1) && !dropBlendedFace(false, false, false, 0),
+          "a see-through ghost's face goes against a solid ghost's face and between two of its kind");
+    bool onePerPlane = true;
+    for (int side = 0; side < 6; ++side)
+        onePerPlane = onePerPlane && dropBlendedFace(true, true, false, side) != dropBlendedFace(true, true, false, side ^ 1);
+    check(onePerPlane, "two different see-through ghosts keep exactly one face between them");
     using lamium::schematic::faces::facesAway;
     Vertex up{0, 1, 0}, center{0, 0, 0};
     check(facesAway(up, center, Vertex{0, -1, 0}) && !facesAway(up, center, Vertex{0, 1, 0})
@@ -688,6 +695,15 @@ void placementOverlap() {
     auto before = overlap::earlierKey(list, 1);
     list[0].structure = std::make_shared<Structure>(*structure); // its file read again
     check(overlap::earlierKey(list, 1) != before, "a new structure for the earlier placement rebuilds the overlap");
+    // Border faces: placements that touch, earlier or later, not distant ones.
+    session::Shown beside{{}, structure};
+    beside.placement.file = "a.mcstructure";
+    beside.placement.placement.origin = {2, 0, 0}; // right after the first's x 0..1
+    std::vector<session::Shown> row{first, beside, far};
+    check(overlap::touching(row, 0) == std::vector<size_t>{1} && overlap::touching(row, 1) == std::vector<size_t>{0}
+              && overlap::touching(row, 2).empty() && !overlap::touchingKey(row, 0).empty() && overlap::touchingKey(row, 2).empty(),
+          "a placement right next to another touches it both ways; a distant one touches none");
+    check(overlap::paletteAt(first, 0, {0, 0, 0}) == 0 && !overlap::paletteAt(first, 0, {1, 0, 0}), "the palette index of a drawn cell");
 }
 
 void placementDocuments() {

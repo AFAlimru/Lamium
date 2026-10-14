@@ -6,6 +6,7 @@
 #include "features/schematic/PlacementStore.h"
 #include "features/schematic/SchematicSession.h"
 #include <format>
+#include <optional>
 #include <span>
 #include <string>
 #include <vector>
@@ -13,20 +14,24 @@
 namespace lamium::schematic::overlap {
 // Whether a placement shown in this dimension has a ghost block (not void,
 // not air, within its shown layers) at a world cell.
-inline bool drawsCell(session::Shown const& shown, int dimension, Point cell) {
-    if (!shown.structure || !shown.placement.visible || shown.placement.dimension != dimension) return false;
+// Its palette index there, or none.
+inline std::optional<int> paletteAt(session::Shown const& shown, int dimension, Point cell);
+inline bool drawsCell(session::Shown const& shown, int dimension, Point cell) { return paletteAt(shown, dimension, cell).has_value(); }
+inline std::optional<int> paletteAt(session::Shown const& shown, int dimension, Point cell) {
+    if (!shown.structure || !shown.placement.visible || shown.placement.dimension != dimension) return std::nullopt;
     auto const& structure = *shown.structure;
     auto const& placement = shown.placement.placement;
     auto local = toLocal(structure.size, placement, cell);
-    if (!local) return false;
+    if (!local) return std::nullopt;
     Size placed = placedSize(structure.size, placement.rotation);
     Point offset{cell.x - placement.origin.x, cell.y - placement.origin.y, cell.z - placement.origin.z};
-    if (!layerShown(shown.placement.layers, placed, offset)) return false;
+    if (!layerShown(shown.placement.layers, placed, offset)) return std::nullopt;
     auto at = static_cast<size_t>(structure.cell(local->x, local->y, local->z));
-    if (at >= structure.blocks.size()) return false;
+    if (at >= structure.blocks.size()) return std::nullopt;
     auto index = structure.blocks[at];
-    return index != voidCell && static_cast<size_t>(index) < structure.palette.size()
-        && !structure.palette[static_cast<size_t>(index)].isAir();
+    if (index == voidCell || static_cast<size_t>(index) >= structure.palette.size()
+        || structure.palette[static_cast<size_t>(index)].isAir()) return std::nullopt;
+    return static_cast<int>(index);
 }
 inline bool boxesMeet(session::Shown const& a, session::Shown const& b) {
     if (!a.structure || !b.structure || a.placement.dimension != b.placement.dimension) return false;
@@ -35,6 +40,25 @@ inline bool boxesMeet(session::Shown const& a, session::Shown const& b) {
     Point oa = a.placement.placement.origin, ob = b.placement.placement.origin;
     return oa.x < ob.x + sb.x && ob.x < oa.x + sa.x && oa.y < ob.y + sb.y && ob.y < oa.y + sa.y
         && oa.z < ob.z + sb.z && ob.z < oa.z + sa.z;
+}
+// Boxes that meet or touch (one cell apart): ghosts on the shared border
+// face each other in the same plane.
+inline bool boxesTouch(session::Shown const& a, session::Shown const& b) {
+    if (!a.structure || !b.structure || a.placement.dimension != b.placement.dimension) return false;
+    Size sa = placedSize(a.structure->size, a.placement.placement.rotation);
+    Size sb = placedSize(b.structure->size, b.placement.placement.rotation);
+    Point oa = a.placement.placement.origin, ob = b.placement.placement.origin;
+    return oa.x <= ob.x + sb.x && ob.x <= oa.x + sa.x && oa.y <= ob.y + sb.y && ob.y <= oa.y + sa.y
+        && oa.z <= ob.z + sb.z && ob.z <= oa.z + sa.z;
+}
+// The other shown placements touching this one: their ghosts next to its
+// cells decide which border faces it keeps.
+inline std::vector<size_t> touching(std::span<session::Shown const> placements, size_t index) {
+    std::vector<size_t> out;
+    for (size_t j = 0; j < placements.size(); ++j)
+        if (j != index && index < placements.size() && placements[j].placement.visible && boxesTouch(placements[j], placements[index]))
+            out.push_back(j);
+    return out;
 }
 // The earlier shown placements whose boxes meet this one's: only these can
 // own its cells, so a section build looks at them alone.
@@ -55,6 +79,14 @@ inline bool ownedEarlier(std::span<session::Shown const> placements, std::span<s
 inline std::string earlierKey(std::span<session::Shown const> placements, size_t index) {
     std::string key;
     for (size_t j : earlierMeeting(placements, index))
+        key += std::format("#{}@{}", drawKey(placements[j].placement), static_cast<void const*>(placements[j].structure.get()));
+    return key;
+}
+// The same for every touching placement, earlier or later: its border
+// faces change with them too.
+inline std::string touchingKey(std::span<session::Shown const> placements, size_t index) {
+    std::string key;
+    for (size_t j : touching(placements, index))
         key += std::format("#{}@{}", drawKey(placements[j].placement), static_cast<void const*>(placements[j].structure.get()));
     return key;
 }

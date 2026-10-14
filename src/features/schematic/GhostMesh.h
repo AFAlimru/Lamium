@@ -71,8 +71,21 @@ struct BuildCamera {
 // The world's blocks in a section's cells, hashed: equal values mean nothing
 // there changed and the built meshes still hold.
 std::uint64_t signatureOf(BlockSource& region, session::Shown const& shown, SectionKey key);
+// A ghost drawn at a cell: its block and the sides of the cell it reaches
+// (sidesReached bits); no block where none is drawn.
+struct NeighborGhost {
+    Block const* block = nullptr;
+    int sides = 0;
+};
+// Each palette block's shape facts (meshless, sides reached, sides covered),
+// once per resolved placement; buildSection does it for its own.
+void prepareShapes(ScreenContext& screen, BlockTessellator& own, Resolved const& blocks);
+// The ghost a placement draws at a cell (needs prepareShapes).
+NeighborGhost ghostDrawnAt(BlockSource& region, session::Shown const& shown, Resolved const& blocks, Point n);
 // `owned`: cells an earlier placement draws (L-141), left out here.
+// `others`: another touching placement's ghost at a cell, for the faces on
+// the border between them.
 void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& view, BlockTessellator& own,
                   session::Shown const& shown, Resolved const& blocks, SectionKey key, BuildCamera const& camera,
-                  std::function<bool(Point)> const& owned, Section& out);
+                  std::function<bool(Point)> const& owned, std::function<NeighborGhost(Point)> const& others, Section& out);
 }

@@ -75,21 +75,24 @@ bool ghostOpaqueAt(BlockSource& region, session::Shown const& shown, Resolved co
 // The sides of its cell that the ghost drawn at `n` reaches (sidesReached
 // bits), 0 where no ghost is drawn (nothing expected in a shown layer,
 // something real there, a liquid).
-int ghostSidesAt(BlockSource& region, session::Shown const& shown, Resolved const& blocks, Point n) {
+NeighborGhost ghostAt(BlockSource& region, session::Shown const& shown, Resolved const& blocks, Point n) {
     auto const& structure = *shown.structure;
     auto const& placement = shown.placement;
     Size placed = placedSize(structure.size, placement.placement.rotation);
     Point const& origin = placement.placement.origin;
     auto local = toLocal(structure.size, placement.placement, n);
-    if (!local || !layerShown(placement.layers, placed, {n.x - origin.x, n.y - origin.y, n.z - origin.z})) return 0;
+    if (!local || !layerShown(placement.layers, placed, {n.x - origin.x, n.y - origin.y, n.z - origin.z})) return {};
     auto index = structure.blocks[static_cast<size_t>(structure.cell(local->x, local->y, local->z))];
-    if (index == voidCell || static_cast<size_t>(index) >= blocks.blocks.size() || static_cast<size_t>(index) >= blocks.sideMasks.size()) return 0;
+    if (index == voidCell || static_cast<size_t>(index) >= blocks.blocks.size() || static_cast<size_t>(index) >= blocks.sideMasks.size()) return {};
     Block const* block = blocks.blocks[static_cast<size_t>(index)];
-    if (!block || liquidKind(*block)) return 0;
+    if (!block || liquidKind(*block)) return {};
     BlockPos pos{n.x, n.y, n.z};
     auto* chunk = region.getChunkAt(pos);
-    if (!chunk || chunk->mLoadState->load() < ChunkState::Loaded || !region.getBlock(pos).isAir()) return 0;
-    return blocks.sideMasks[static_cast<size_t>(index)];
+    if (!chunk || chunk->mLoadState->load() < ChunkState::Loaded || !region.getBlock(pos).isAir()) return {};
+    return {block, blocks.sideMasks[static_cast<size_t>(index)]};
+}
+int ghostSidesAt(BlockSource& region, session::Shown const& shown, Resolved const& blocks, Point n) {
+    return ghostAt(region, shown, blocks, n).sides;
 }
 bool ghostBoxAt(BlockSource& region, session::Shown const& shown, Resolved const& blocks, Point n) {
     return ghostSidesAt(region, shown, blocks, n) == 63;
@@ -145,7 +148,8 @@ bool enclosed(BlockSource& region, session::Shown const& shown, Resolved const& 
 // the near clip plane cuts the closest face, with nothing fighting in one
 // plane (the material draws both sides).
 void cullAgainstGhosts(Tessellator& batch, size_t from, BlockSource& region, session::Shown const& shown, Resolved const& blocks, Point at,
-                       BuildCamera const& camera) {
+                       BuildCamera const& camera, Block const& self, bool selfBlended,
+                       std::function<NeighborGhost(Point)> const& others) {
     auto& positions = batch.mMeshData->mPositions.get();
     std::array<std::optional<bool>, 6> hidden;
     for (size_t q = from; q + 4 <= positions.size(); q += 4) {
@@ -161,12 +165,21 @@ void cullAgainstGhosts(Tessellator& batch, size_t from, BlockSource& region, ses
             Block const& real = region.getBlock(np);
             // Honey and slime count as opaque full blocks but are see-through.
             bool realOpaque = real.getBlockType().mIsOpaqueFullBlock && !blended(real.getBlockType().getRenderLayer(real, region, np));
-            bool ghostOpaque = !realOpaque && ghostOpaqueAt(region, shown, blocks, n);
-            bool shared = !realOpaque
-                && (ghostOpaque || (pairAllGhostFaces && (ghostSidesAt(region, shown, blocks, n) >> (side ^ 1) & 1)));
+            // This placement's ghost there, else a touching placement's.
+            NeighborGhost near = ghostAt(region, shown, blocks, n);
+            bool another = !near.block && others;
+            if (another) near = others(n);
+            bool reaches = near.block && (near.sides >> (side ^ 1) & 1);
+            bool nearBlended = near.block && blended(near.block->getBlockType().getRenderLayer(*near.block, region, np));
+            bool ghostOpaque = !realOpaque
+                && (another ? near.block && near.sides == 63 && near.block->getBlockType().mIsOpaqueFullBlock && !nearBlended
+                            : ghostOpaqueAt(region, shown, blocks, n));
+            bool shared = !realOpaque && (ghostOpaque || (pairAllGhostFaces && reaches));
             bool nearCamera = shared && (camera.near(at) || camera.near(n));
             bool beyond = nearCamera && faces::beyond(side, at.x, at.y, at.z, camera.eye.x, camera.eye.y, camera.eye.z);
-            known = faces::dropFace(realOpaque, ghostOpaque, shared, nearCamera, beyond);
+            known = faces::dropFace(realOpaque, ghostOpaque, shared, nearCamera, beyond)
+                || (!realOpaque && !nearCamera && selfBlended
+                    && faces::dropBlendedFace(reaches, nearBlended, near.block && &near.block->getBlockType() == &self.getBlockType(), side));
         }
         if (*known) for (size_t k = 1; k < 4; ++k) positions[q + k] = positions[q];
     }
@@ -284,9 +297,28 @@ std::uint64_t signatureOf(BlockSource& region, session::Shown const& shown, Sect
     return hash;
 }
 
+void prepareShapes(ScreenContext& screen, BlockTessellator& own, Resolved const& blocks) {
+    if (blocks.meshless.size() == blocks.blocks.size()) return;
+    auto& meshless = const_cast<Resolved&>(blocks).meshless;
+    meshless.assign(blocks.blocks.size(), false);
+    for (size_t i = 0; i < blocks.blocks.size(); ++i)
+        if (auto const* b = blocks.blocks[i]; b && b->getBlockType().mIsOpaqueFullBlock) meshless[i] = !coversNeighbors(*b, own, screen);
+    auto& masks = const_cast<Resolved&>(blocks).sideMasks;
+    masks.assign(blocks.blocks.size(), 0);
+    for (size_t i = 0; i < blocks.blocks.size(); ++i)
+        if (auto const* b = blocks.blocks[i]) masks[i] = sidesReached(*b, own, screen, true, .02f);
+    auto& covers = const_cast<Resolved&>(blocks).coverMasks;
+    covers.assign(blocks.blocks.size(), 0);
+    for (size_t i = 0; i < blocks.blocks.size(); ++i)
+        if (auto const* b = blocks.blocks[i]; b && !liquidKind(*b)) covers[i] = sidesCovered(*b, own, screen);
+}
+NeighborGhost ghostDrawnAt(BlockSource& region, session::Shown const& shown, Resolved const& blocks, Point n) {
+    return ghostAt(region, shown, blocks, n);
+}
+
 void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& view, BlockTessellator& own,
                   session::Shown const& shown, Resolved const& blocks, SectionKey key, BuildCamera const& camera,
-                  std::function<bool(Point)> const& owned, Section& out) {
+                  std::function<bool(Point)> const& owned, std::function<NeighborGhost(Point)> const& others, Section& out) {
     auto const& structure = *shown.structure;
     auto const& placement = shown.placement;
     Size placed = placedSize(structure.size, placement.placement.rotation);
@@ -303,20 +335,7 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
     out.signature = signatureOf(region, shown, key);
     out.complete = true;
 
-    if (blocks.meshless.size() != blocks.blocks.size()) {
-        auto& meshless = const_cast<Resolved&>(blocks).meshless;
-        meshless.assign(blocks.blocks.size(), false);
-        for (size_t i = 0; i < blocks.blocks.size(); ++i)
-            if (auto const* b = blocks.blocks[i]; b && b->getBlockType().mIsOpaqueFullBlock) meshless[i] = !coversNeighbors(*b, own, screen);
-        auto& masks = const_cast<Resolved&>(blocks).sideMasks;
-        masks.assign(blocks.blocks.size(), 0);
-        for (size_t i = 0; i < blocks.blocks.size(); ++i)
-            if (auto const* b = blocks.blocks[i]) masks[i] = sidesReached(*b, own, screen, true, .02f);
-        auto& covers = const_cast<Resolved&>(blocks).coverMasks;
-        covers.assign(blocks.blocks.size(), 0);
-        for (size_t i = 0; i < blocks.blocks.size(); ++i)
-            if (auto const* b = blocks.blocks[i]; b && !liquidKind(*b)) covers[i] = sidesCovered(*b, own, screen);
-    }
+    prepareShapes(screen, own, blocks);
     Point drawing{};
     int drawn = -1;
     view.answer = [&](BlockPos const& p) { return ghostNeighbor(region, shown, blocks, {p.x, p.y, p.z}, drawing, drawn, camera); };
@@ -400,7 +419,7 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
                     Tessellator& target = layer && blended(*layer) ? see : batch;
                     size_t before = target.mMeshData->mPositions->size();
                     tessellateLayer(own, target, *expected, pos, layer);
-                    cullAgainstGhosts(target, before, region, shown, blocks, {x, y, z}, camera);
+                    cullAgainstGhosts(target, before, region, shown, blocks, {x, y, z}, camera, *expected, &target == &see, others);
                     if (std::any_of(camera.cells.begin(), camera.cells.end(), [&](auto const& c) { return c == Point{x, y, z}; }))
                         dropBackFaces(target, before, camera);
                     auto const& positions = target.mMeshData->mPositions.get();

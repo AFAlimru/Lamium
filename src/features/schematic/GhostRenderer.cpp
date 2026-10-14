@@ -169,7 +169,7 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
             auto const& shown = snapshot.placements[static_cast<size_t>(i)];
             // Overlapping earlier placements are part of the key: they decide
             // which cells this one leaves out (L-141).
-            auto key = drawKey(shown.placement) + overlap::earlierKey(snapshot.placements, static_cast<size_t>(i));
+            auto key = drawKey(shown.placement) + overlap::touchingKey(snapshot.placements, static_cast<size_t>(i));
             int old = -1;
             for (int j = 0; j < static_cast<int>(builtKeys.size()); ++j)
                 if (!taken[static_cast<size_t>(j)] && builtKeys[static_cast<size_t>(j)] == key
@@ -397,8 +397,19 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
         std::function<bool(Point)> owned;
         if (!earlier.empty())
             owned = [&](Point cell) { return overlap::ownedEarlier(snapshot.placements, earlier, dimension, cell); };
+        auto neighbors = overlap::touching(snapshot.placements, index);
+        std::function<NeighborGhost(Point)> others;
+        if (!neighbors.empty()) {
+            for (size_t j : neighbors) if (j < resolved.size()) prepareShapes(screen, *own, resolved[j]);
+            others = [&](Point cell) {
+                for (size_t j : neighbors)
+                    if (j < resolved.size())
+                        if (auto ghost = ghostDrawnAt(region, snapshot.placements[j], resolved[j], cell); ghost.block) return ghost;
+                return NeighborGhost{};
+            };
+        }
         buildSection(screen, region, *view, *own, snapshot.placements[index], resolved[index], w.key, buildCamera, owned,
-                     sections[w.key]);
+                     others, sections[w.key]);
 #ifdef LAMIUM_SCHEMATIC_PERF_TRACE
         auto took = static_cast<std::uint64_t>((std::chrono::steady_clock::now() - buildStart).count());
         perf.buildNs += took;
