@@ -12,6 +12,20 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Blended members fix passes; corner over glass isolated (2026-10-15)
+
+Maintainer report on `621d879` (DLL `7a5722fa...d7a`):
+- Walking around terrain_water_lamium: no water sections blink, about
+  55 fps as before.
+- Corner marks: over air no change with position; over water and over
+  glass the look changes, across a block plane through the corner (left or
+  right of it, screenshot with a sandstone strip at the boundary), also for
+  a corner one block above glass wherever a glass face lies against the mark.
+  Reading: the seen-sides change at that plane; over air it shows nothing,
+  so the material's reaction to the real block's depth just behind is
+  suspected (the Fancy face material is the hologram pointer). Asked:
+  the same in Simple graphics?
+
 ## Re-sort interval: faster, but water blinked by section (2026-10-15)
 
 Maintainer report on `dc38abd` (DLL `61a4a7d5...d6d5`): walking around
