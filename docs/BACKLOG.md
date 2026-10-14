@@ -159,6 +159,11 @@ passed the maintainer's checks, including reset to the chosen flush-left,
 bottom offset -44 default on `dc3ac45`. Fresh settings and broader layout,
 pack and server coverage remain in VALIDATION (CHAT-POSITION.md).
 
+L-182 (schematic preview crash after rejoining a world): fixed in
+`95a09e0`; the reporter's doubt likely came from not knowing that rejoining
+the same world is enough (maintainer 2026-10-15). No further action unless
+it recurs after the next release.
+
 ### Shipped in 0.2.1 (smoke-tested; remaining gaps in VALIDATION.md)
 
 Changed features for the next smoke test; coverage is in VALIDATION.md:
