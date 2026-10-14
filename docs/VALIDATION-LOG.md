@@ -12,6 +12,16 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-169 vanilla input observations (2026-10-15)
+
+Maintainer report during the 0.2.2 implementation investigation: in a
+vanilla storage screen, Shift + right drag transfers the whole hovered
+stack; Alt + left click selects an item like an ordinary click. Exact
+screen, local/server context, game/loader versions, Lamium build and DLL
+hash were not recorded for this observation. No new L-169 gesture, native
+handler effect, additional screen or role-specific route was verified.
+The read-only diagnostic checkpoint is in ITEM-TRANSFER.md.
+
 ## Ghost tint slider and shared outline edges pass (2026-10-15)
 
 Maintainer report on `ee196c6` (DLL `870e781a...1c45`), local: the checklist

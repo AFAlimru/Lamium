@@ -325,6 +325,12 @@ Trace.
 Hooks: `ContainerScreenLeaveHook`
 Rebuild.
 
+### `src/features/inventory/game/TransferTrace.cpp`
+Hooks: `TransferTakeAllTrace`, `TransferPlaceAllTrace`, `TransferAutoPlaceTrace`
+Trace (`transfer_trace`): read-only L-169 input, cursor, collection and native
+auto-place order observations. Protected by the game-version gate. The
+after-handler snapshot is prediction, not authoritative completion.
+
 ### `src/features/inventory/game/TextInputTracker.cpp`
 Hooks: `TextEditSelectedHook`
 Rebuild.

@@ -4,6 +4,7 @@
 #include "features/inventory/game/TextInputTracker.h"
 #include "features/inventory/game/SortSession.h"
 #include "features/inventory/game/TransferSession.h"
+#include "features/inventory/game/TransferTrace.h"
 #include "features/inventory/game/RequestTracker.h"
 #include "features/inventory/game/RestockTrace.h"
 #include "features/inventory/game/InventoryMove.h"
@@ -22,6 +23,7 @@ bool start() {
         restock::start();
         game::TextInputTracker::getInstance().install();
         game::ScreenTracker::getInstance().install();
+        game::transferTrace::start();
         return true;
     } catch (std::exception const& error) {
         Runtime::instance().self().getLogger().error("Inventory initialization failed: {}", error.what());
@@ -32,6 +34,7 @@ bool start() {
 void stop() {
     game::SortSession::cancel("inventory feature stopped");
     game::TransferSession::cancel();
+    game::transferTrace::stop();
     restock::stop();
     game::restockTrace::stop();
     game::ScreenTracker::getInstance().uninstall();

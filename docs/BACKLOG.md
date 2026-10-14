@@ -697,6 +697,7 @@ used Java inventory mod gives them (PROVENANCE: public key list only):
 | Alt + left click | as Ctrl + wheel, toward the other side from the clicked slot's side |
 | Alt + Shift + left click | as Ctrl + Shift + wheel, from the clicked slot's side |
 | Shift + right drag | from each passed slot, all but one item to the other side |
+
 - Screens: every screen that holds items beside the player inventory: chest
   family, barrel, shulker box, ender chest, furnace, blast furnace, smoker,
   dispenser, dropper, hopper, brewing stand, crafter, beacon and any other
@@ -720,6 +721,15 @@ used Java inventory mod gives them (PROVENANCE: public key list only):
   items on the cursor, a wheel version of "all but one", drop gestures, W/S
   moves.
 - Check in game per screen family and gesture, locally and on a server.
+
+Implementation checkpoint (2026-10-15): the maintainer reports that vanilla
+Alt + left click selects an item normally and Shift + right drag transfers
+a whole stack. Read-only native-handler/input/layout diagnostics are added
+under `transfer_trace`; the new gestures and broader screen support are
+not implemented. The required take-all/place-all effects and slot-role
+investigation remains pending. Evidence, constraints and the first runtime
+checklist: [ITEM-TRANSFER.md](ITEM-TRANSFER.md).
+
 Goals:
 1. Screens that do not work today: dispenser, dropper, hopper, the furnace
    family (furnace, blast furnace, smoker), brewing stand, and others found

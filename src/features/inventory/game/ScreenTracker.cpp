@@ -3,6 +3,7 @@
 #include "features/inventory/game/TextInputTracker.h"
 #include "features/inventory/game/SortSession.h"
 #include "features/inventory/game/TransferSession.h"
+#include "features/inventory/game/TransferTrace.h"
 
 #include "ll/api/event/EventBus.h"
 #include "ll/api/event/client/ClientExitLevelEvent.h"
@@ -98,6 +99,7 @@ void ScreenTracker::onControllerLeft(ContainerScreenController& controller) {
 }
 
 void ScreenTracker::onAfterUIRender(ll::event::AfterUIRenderEvent& event) {
+    transferTrace::inspectView(event.screenView());
     // Every ScreenView on the stack renders each frame; keep the most recent
     // container screen. The HUD and other overlays are not container screens.
     auto const& controller = event.screenView().mController;
@@ -113,7 +115,8 @@ void ScreenTracker::onAfterUIRender(ll::event::AfterUIRenderEvent& event) {
         }
         return;
     }
-    if (mCurrent.lock() != controller) {
+    bool const changed = mCurrent.lock() != controller;
+    if (changed) {
         SortSession::cancel("container screen changed");
         TransferSession::cancel();
         mCurrent     = controller;
@@ -131,6 +134,7 @@ void ScreenTracker::onAfterUIRender(ll::event::AfterUIRenderEvent& event) {
     }
     try {
         auto& screen = *std::static_pointer_cast<ContainerScreenController>(controller);
+        transferTrace::inspect(screen, changed);
         SortSession::tick(screen);
         TransferSession::tick(screen);
     }
