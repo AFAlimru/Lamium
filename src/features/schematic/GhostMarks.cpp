@@ -82,17 +82,10 @@ void translated(ScreenContext& screen, glm::vec3 offset, std::function<void()> c
 // 2 blue as tinted cells with their outline, drawn over it with a nearer
 // pull (Depth.h rule 3) so a full block still shows which corner it is.
 namespace {
-// A real see-through block in the cell or beside it: its faces lie against
-// the mark's.
 bool overSeeThrough(BlockSource& region, Point p) {
-    auto seeThrough = [&](BlockPos pos) {
-        Block const& real = region.getBlock(pos);
-        return !real.isAir() && blended(real.getBlockType().getRenderLayer(real, region, pos));
-    };
-    if (seeThrough({p.x, p.y, p.z})) return true;
-    for (auto const& n : overlay::neighbours)
-        if (seeThrough({p.x + n.x, p.y + n.y, p.z + n.z})) return true;
-    return false;
+    BlockPos pos{p.x, p.y, p.z};
+    Block const& real = region.getBlock(pos);
+    return !real.isAir() && blended(real.getBlockType().getRenderLayer(real, region, pos));
 }
 // Corner 1 red and corner 2 blue as tinted cells with their outline, only
 // the sides the eye sees; corner 1 nearer where the two touch.
@@ -103,10 +96,7 @@ void drawCorners(ScreenContext& screen, BlockSource& region, Vec3 const& camera,
     for (int i = 0; i < 2; ++i) {
         auto const& corner = i == 0 ? state.first : state.second;
         if (!corner || overSeeThrough(region, *corner) != seeThrough) continue;
-        // The seen sides just out of the cell: in the plane of a real
-        // see-through block's face their depth test went either way, so
-        // the look changed across that plane with the eye (2026-10-15).
-        overlay::CellStyle style{cornerColors[i][0], cornerColors[i][1], cornerColors[i][2], true, overlay::LineColoring::Shader, .02f};
+        overlay::CellStyle style{cornerColors[i][0], cornerColors[i][1], cornerColors[i][2], true, overlay::LineColoring::Shader};
         auto& mesh = cornerMeshes[i];
         // Rebuilt when the eye passes a side.
         int seen = overlay::facesSeen(cell(*corner), {camera.x, camera.y, camera.z});

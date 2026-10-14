@@ -24,7 +24,6 @@ struct CellStyle {
     float r = 1, g = 1, b = 1;
     bool faces = true; // false: outline only
     LineColoring lines = LineColoring::Vertex;
-    float outset = 0; // faces moved out of their cells (faceCorners)
     bool operator==(CellStyle const&) const = default;
 };
 // A cell overlay uploaded once, relative to `origin`, and reused while the

@@ -70,15 +70,11 @@ inline Cell surfaceOrigin(std::span<CellFace const> faces, std::span<Line const>
 // culls (`bothWindings`) gets each face again reversed so it shows from
 // inside too; a material that draws both sides must not, as a second quad
 // in the same plane flickers.
-// `outset` moves each face out of its cell along its normal (toward the side
-// the eye must be on for a seen face, Depth.h rule 1).
-inline std::vector<Point> faceCorners(std::span<CellFace const> faces, bool bothWindings, double outset = 0) {
+inline std::vector<Point> faceCorners(std::span<CellFace const> faces, bool bothWindings) {
     std::vector<Point> out;
     out.reserve(faces.size() * (bothWindings ? 8 : 4));
     for (auto const& face : faces) {
         auto corners = faceVertices(face);
-        auto const& n = neighbours[static_cast<size_t>(face.face)];
-        for (auto& p : corners) { p.x += n.x * outset; p.y += n.y * outset; p.z += n.z * outset; }
         out.insert(out.end(), corners.begin(), corners.end());
         if (bothWindings) out.insert(out.end(), corners.rbegin(), corners.rend());
     }
