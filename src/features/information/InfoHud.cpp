@@ -1,4 +1,5 @@
 #include "features/information/InfoHud.h"
+#include "features/camera/FreeCameraHide.h"
 #include "features/information/ChatPosition.h"
 #include "features/information/PlayerInfo.h"
 #include "features/information/FrameTiming.h"
@@ -1417,7 +1418,7 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
     };
     // Vanilla Hide HUD (F1) hides every element; recording and death
     // tracking below keep running (L-107).
-    bool hidden = !preview && context.mClient.getOptions().getHideHud();
+    bool hidden = !preview && (context.mClient.getOptions().getHideHud() || camera::freeCameraHide::hudHidden());
     if (settings.debug && !hidden && !preview) {
         // No player, no panel: invented values would read as real ones.
         if (auto values = collectDebugValues(context.mClient, viewRay(settings.targetDistance))) {

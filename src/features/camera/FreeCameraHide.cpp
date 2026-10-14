@@ -55,6 +55,7 @@ LL_TYPE_INSTANCE_HOOK(FreeCameraHud, ll::memory::HookPriority::Normal, ScreenVie
     origin(context);
 }
 }
+bool hudHidden() noexcept { return hidesHud(hiding()); }
 void start() {
     if (!handInstalled) handInstalled = FreeCameraHand::hook(true) == 0;
     if (!hudInstalled) hudInstalled = FreeCameraHud::hook(true) == 0;

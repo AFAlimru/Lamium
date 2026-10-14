@@ -1,4 +1,5 @@
 #include "features/map/WaypointMarkers.h"
+#include "features/camera/FreeCameraHide.h"
 #include "features/map/WaypointSession.h"
 #include "features/map/Waypoints.h"
 #include "app/Runtime.h"
@@ -116,7 +117,7 @@ std::optional<CameraView> lastCamera() {
 }
 void draw(MinecraftUIRenderContext& context, float width, float height, Settings::Map const& settings) {
     if (!settings.waypoints || !worldMarkersShown(settings.waypointsWorld, held.load())) return;
-    if (context.mClient.getOptions().getHideHud()) return;
+    if (context.mClient.getOptions().getHideHud() || camera::freeCameraHide::hudHidden()) return;
     auto* player = context.mClient.getLocalPlayer();
     if (!player) return;
     auto view = lastCamera();

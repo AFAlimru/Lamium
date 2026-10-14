@@ -8,6 +8,8 @@ enum class Hide { Nothing = 0, Hand = 1, Hotbar = 2, Hud = 3 };
 inline bool hidesHand(int setting) { return setting >= static_cast<int>(Hide::Hand); }
 inline bool hidesHotbar(int setting) { return setting == static_cast<int>(Hide::Hotbar); }
 inline bool hidesHud(int setting) { return setting >= static_cast<int>(Hide::Hud); }
+// The whole HUD is hidden now: Lamium's own HUD treats it like F1.
+bool hudHidden() noexcept;
 void start();
 void stop();
 }
