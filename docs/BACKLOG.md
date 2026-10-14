@@ -71,7 +71,7 @@ L-item wins. Every entry names what the task is, not only its number.
 
 1. **Small and medium features and fixes** (maintainer 2026-10-10: these
    come before large features and L-111 integration for now):
-   - Bugs: L-177, L-178, L-180 to L-182 (player reports, need reproductions
+   - Bugs: L-177, L-178, L-181, L-182 (player reports, need reproductions
      or an agreed rule); L-123 elytra stretched on the inventory model after FreeCamera and
      L-91 shield glint in Lamium's icons (both parked); L-132 moving with
      the inventory screen open (paused after eight rounds).
@@ -401,29 +401,18 @@ reproduction before choosing a fix. [SCHEMATIC.md](SCHEMATIC.md).
 
 ### L-178 Schematic piston face texture does not match geometry
 Kind: Bug / Research. User report 2026-10-14; not yet reproduced.
-Status: open. A piston ghost can show the texture intended for its extending
+Status: cause found and fix built 2026-10-14 (`b9c9d69`), not checked in
+game. The maintainer's test file `pistons.mcstructure` showed the real
+symptom: the base draws, but the pushing face and arm never draw, in any
+state. Ghosts drew a block actor only for blocks without a mesh; a piston's
+mesh is only its base. The z-fighting seen beside it (glass next to piston
+ghosts and next to another placement's glass) is fixed in `17d7201`.
+Original wording: a piston ghost can show the texture intended for its extending
 face on a face that does not extend. The rendered shape and face texture
 disagree; this is not yet evidence that the stored facing/state is wrong.
 Compare retracted/extended, facing and rotation/mirror combinations with the
 file's states and an actual block. Keep mesh/state and texture/UV diagnosis
 separate. [SCHEMATIC.md](SCHEMATIC.md).
-
-### L-180 Auto Elytra does not trigger on Riptide travel
-Kind: Bug / Research. User report 2026-10-14; scope of expected trigger
-needs confirmation. Rule decided 2026-10-14 (EQUIPMENT.md "Auto Elytra
-feedback"): put the elytra on at the Riptide launch, default on, no
-automatic glide. Status: built, not checked in game. Check in game: a
-Riptide launch in water and in rain puts the elytra on; jumping in the air
-glides; it comes off after landing; the child off keeps vanilla; charging
-without a launch changes nothing; a server.
-Auto Elytra is reported not to respond when a Riptide trident launches the
-player. The current documented trigger is jumping with fireworks in the main
-hand (L-70), so first establish the intended Riptide trigger and the observable
-transition into flight, rather than treating every trident use as an existing
-guarantee. Test whether an elytra is available, whether launch occurs in
-water/rain, and whether any attempted equip/glide is authorized by the
-server. Do not change vanilla movement without an agreed rule.
-[EQUIPMENT.md](EQUIPMENT.md).
 
 ### L-181 FreeCamera trident interaction affects the player unexpectedly
 Kind: Bug / Research. User report 2026-10-14; not yet reproduced.

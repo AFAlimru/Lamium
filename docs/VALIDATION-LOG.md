@@ -12,6 +12,27 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-180 Riptide launch and L-178 piston ghosts (2026-10-14)
+
+Maintainer report on `e8c5e3f`, DLL SHA-256
+`77d901375df4cf780f5910a45f7525fe1749f7a407df87c4668c5eabe4a57e0b`,
+1.26.51.01 LIP instance, Windows x64, local world.
+
+- L-180: a Riptide launch in water and in rain puts the elytra on; a jump in
+  the air glides; the chestplate returns a few seconds after landing; a
+  charge without a launch and the child off change nothing. All passed.
+- L-178 (on the earlier `253ff81` build, 1.26.51.01 without LIP): with
+  `pistons.mcstructure` (pistons and sticky pistons in six directions,
+  retracted and extended with their arms), the base draws correctly but the
+  pushing face and arm never draw, in any state. The earlier wording of the
+  report was the maintainer's reading of the reporter's screenshot. Cause:
+  ghosts drew a block actor only for blocks without a mesh. Fix `b9c9d69`,
+  not yet checked.
+- Z-fighting seen where a glass ghost meets a piston ghost of the same
+  placement, and where it meets another placement's glass ghost. Fix
+  `17d7201` (one face per plane for see-through ghosts, touching placements
+  counted), not yet checked.
+
 ## L-187 and L-179 follow-up fixes pass (2026-10-14)
 
 Maintainer report on `7548f0f`, DLL SHA-256
