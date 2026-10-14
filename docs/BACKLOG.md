@@ -73,11 +73,14 @@ L-item wins. Every entry names what the task is, not only its number.
    follows the items below.
 1. **Small and medium features and fixes** (maintainer 2026-10-10: these
    come before large features and L-111 integration for now):
-   - Bugs: L-177, L-181 (player reports, need reproductions or an agreed
+   - Bugs: L-197 settings descriptions cut off without a way to read the
+     rest (Design); L-177, L-181 (player reports, need reproductions or an agreed
      rule); L-192, L-193, L-194 schematic drawing (maintainer 2026-10-15:
      schematic drawing work pauses here; far-away cases remain); L-123 elytra stretched on the inventory model after FreeCamera and
      L-91 shield glint in Lamium's icons (both parked); L-132 moving with
      the inventory screen open (paused after eight rounds).
+   - L-196 license/provenance follow-up: verify notices and distribution
+     evidence, then make the supported documentation/packaging changes.
    - Specs to agree with the maintainer before building: L-165 Mass Craft,
      L-167 in-world language (chosen: native-path research in progress), L-168 trade
      finder, L-169's later parts (drops and the rest), L-170
@@ -402,6 +405,51 @@ found later are handled as bugs.
 
 ## Bugs
 
+### L-197 Make long settings descriptions fully readable
+Kind: Bug / Design, then Ready once the interaction is agreed.
+Imported at the maintainer's request on 2026-10-15 from the
+[Notion idea inbox](https://app.notion.com/p/3f7c12ab5b2d8121b2a0db32608f6b7a).
+Status: accepted for design; not implemented, no release chosen.
+
+Problem confirmed in the current code: `SettingsTableView.cpp` draws the
+footer description with a two-line `paragraph`, or a one-line `label` when
+`SettingsTable.h` selects `shortFooter` below 230 GUI units of panel height.
+`TextFit.h` truncates overflow with `...`; there is no route to the rest of
+the text. The missing content depends on font measurement, language and
+available space, rather than a limit on the stored description. This is a
+settings-comprehension bug; the affected runtime layouts have not been
+reproduced in this task.
+
+Design candidate: keep the compact footer and offer a full-text view only
+when the description is actually truncated. Open it by mouse and keyboard;
+allow scrolling when needed, and close with Esc or an outside click. Keep
+the settings list's row heights, selection and scroll position intact.
+Open choices: the affordance's wording and placement, keyboard entry/focus
+and return behavior, and the full-text panel's layout. Agree these before
+building; the candidate is not yet a Decided UI rule.
+
+Requirements for the chosen design:
+
+- Detect overflow using the current font, available width, line limit and
+  explicit newlines; account for language, GUI scale and resizing. Do not
+  use a fixed character/byte limit or break UTF-8 boundaries. Short text
+  must not gain an unnecessary expansion control.
+- Make all description content reachable. Numeric options currently return
+  range/operation text before looking up `help.<option>` in `description()`;
+  include the option's own help as well as its range and controls.
+- Preserve key capture, numeric/text editing, conflict tooltips, footer
+  errors and operation hints. Define focus and input ownership so opening
+  or closing help cannot change a setting or close the settings screen.
+
+Files to inspect: `src/ui/SettingsTableView.cpp`, `SettingsTable.h`,
+`TextFit.h`, shared widgets and screen input, translations in all three
+languages, and their pure layout/text tests. Foundation: [UX-FOLLOWUP.md](UX-FOLLOWUP.md).
+Acceptance: pure tests for measured overflow, wrapping and UTF-8; in-game
+checks at wide, narrow and short sizes in English, Japanese and Simplified
+Chinese, including long Schematics and Item Transfer descriptions and
+numeric help. Exercise mouse/keyboard opening, scrolling, closing, focus
+return and editing/capture conflicts; the full text must remain readable.
+
 ### L-177 Schematic mismatch highlight appears at the wrong position
 Kind: Bug / Research. User report 2026-10-14.
 Status: cause found and fix built 2026-10-14 (`0235527`), not checked in game.
@@ -527,6 +575,63 @@ find where the game draws translucent terrain relative to the camera's
 chunk, or draw the faces with a material that does not write depth.
 
 ## Feature work and research
+
+### L-196 Review license notices, source access and provenance classification
+Kind: Research, then Ready for changes supported by the findings.
+Imported at the maintainer's request on 2026-10-15 from the current-tree
+follow-up in the [Notion license/provenance review](https://app.notion.com/p/3e7c12ab5b2d81f09eb2d7bf61cd81a2).
+Status: accepted for investigation; no audit or implementation completed by
+this import, no release chosen. The source review covered public main /
+v0.2.1; recheck the current tree and distributed version when doing the work.
+Keep `LGPL-3.0-only` and the existing source-use boundaries in
+[PROVENANCE.md](PROVENANCE.md). This task does not approve importing outside
+source or changing the project license. Historical/private migration
+records stay outside the public repository.
+
+Work in the source proposal's priority order:
+
+1. **P1: independent-project notice.** Read LeviLamina's current Usage
+   Guidelines (English and Chinese) and EULA before deciding the required
+   wording. Check README, release descriptions and Bedrinth/LeviLauncher
+   listing text for a clear statement that Lamium is an independent
+   community project, not an official LeviMC product and not affiliated
+   with or endorsed by LeviMC. Add a supported notice where missing; record
+   which external surfaces were checked or still need an update. Do not
+   treat the proposal's missing-notice observation as a verified violation.
+2. **P2: corresponding source and distribution.** For GitHub Releases, LIP,
+   Bedrinth and LeviLauncher, trace the distributed DLL to its exact source
+   tag/commit, build instructions and dependency versions. Review SDK header
+   terms, generated import libraries and linking/distribution conditions.
+   Inspect the actual archive and its notices. If needed, add a source guide
+   to the ZIP or release text and enforce it in the package checks. A source
+   URL alone is not evidence that the whole distribution review is complete.
+3. **P3: earlier authored components, one-time check.** Check authorship and
+   third-party contributions in LaminaPeek, LaminaSort and LaminaView for
+   the code actually used by Lamium. Verify retained copyright/MIT notices
+   where required and record the scope and evidence in PROVENANCE / notices.
+   Do not assume sole ownership from the repository owner or an agent's
+   generated-code label.
+4. **P4: SPDX metadata.** Confirm the installed xmake accepts
+   `LGPL-3.0-only`, including dependency compatibility checks, before replacing
+   `set_license("LGPL-3.0")`. Keep project metadata and notices consistent.
+5. **P5: dependency classification.** Clarify direct source copies versus
+   external packages/header-only dependencies compiled into the DLL, notably
+   nlohmann/json in PROVENANCE group 2. Preserve its notice and the rule that
+   new source incorporation needs an explicit provenance record.
+
+Quick Container remains reference-only under the existing PROVENANCE entry;
+no additional action is proposed for the already recorded behavior-only
+L-169 observation. Its pack files/source/assets must not be opened for this
+task. Comparisons and legal analyses remain in external research notes;
+repository docs record concrete dependency facts, decisions and work status.
+
+Files to inspect: `README.md`, `THIRD_PARTY_NOTICES.md`,
+`docs/PROVENANCE.md`, `docs/DISTRIBUTION.md`, `xmake.lua`, release workflow,
+`scripts/Check-Package.ps1`, `scripts/New-ReleaseArchive.ps1` and package
+metadata. Acceptance: dated source/evidence references and resolved or
+explicitly outstanding findings for P1-P5; build and LamiumTests pass for
+changes, package/archive checks for packaging changes. Do not claim a full
+similarity audit or legal clearance from this bounded review.
 
 ### L-191 Hide the hand and HUD in FreeCamera, and what can be operated there
 Kind: Feature (was Design). Maintainer idea 2026-10-14.
