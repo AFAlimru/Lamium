@@ -77,6 +77,17 @@ inline float toWorldYaw(float yaw, Placement const& placement) {
     while (yaw < -180) yaw += 360;
     return yaw;
 }
+// A block face (the game's order: down, up, north, south, west, east) after
+// the same mirror and turns as cells, for a direction kept in block entity
+// data rather than in block states (a shulker box's opening, L-179).
+inline int toWorldFace(int face, Placement const& placement) {
+    if (face < 2 || face > 5) return face;
+    if (placement.mirror == Mirror::X && face >= 4) face = 9 - face;
+    if (placement.mirror == Mirror::Z && face <= 3) face = 5 - face;
+    constexpr int clockwise[6] = {0, 1, 5, 4, 2, 3}; // north -> east -> south -> west
+    for (int i = 0; i < quarterTurns(placement.rotation); ++i) face = clockwise[face];
+    return face;
+}
 // World cell -> structure-local cell, or nullopt outside the placed box.
 inline std::optional<Point> toLocal(Size size, Placement const& placement, Point world) {
     Size placed = placedSize(size, placement.rotation);

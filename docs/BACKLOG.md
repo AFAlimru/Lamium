@@ -400,7 +400,12 @@ separate. [SCHEMATIC.md](SCHEMATIC.md).
 
 ### L-179 Schematic ghost orientation for shulker boxes and similar blocks
 Kind: Bug / Research. User report 2026-10-14; not yet reproduced.
-Status: open. Shulker boxes in a schematic can be rendered without their
+Status: candidate fix built 2026-10-14, not checked in game: the saved
+`facing` in block entity data is now turned with rotated/mirrored placements
+(SCHEMATIC.md). Check in game: all six directions, each rotation and both
+mirrors against a structure block load of the same file; if an unturned
+placement is also wrong, the cause is elsewhere (actor load or renderer).
+Shulker boxes in a schematic can be rendered without their
 recorded orientation. Determine whether the file contains the expected
 BlockState/NBT and where the placement rotation/mirror, block actor or mesh
 draw path loses it. Test all six shulker directions and transformed placements;

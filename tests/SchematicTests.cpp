@@ -294,6 +294,21 @@ void placementTransforms() {
     check(!toLocal(size, turned, {5, 0, 0}) && !toLocal(size, turned, {0, 2, 0}) && !toLocal(size, turned, {-1, 0, 0}),
           "cells outside the placed box have no local cell");
     check(quarterTurns(-1) == 3 && quarterTurns(5) == 1, "turn counts wrap");
+    // L-179: a face stored in block entity data turns like the cell it points to.
+    bool faces = true;
+    constexpr int dx[6] = {0, 0, 0, 0, -1, 1}, dy[6] = {-1, 1, 0, 0, 0, 0}, dz[6] = {0, 0, -1, 1, 0, 0};
+    Size cube{3, 3, 3};
+    for (int rotation = 0; rotation < 4; ++rotation)
+        for (auto mirror : {Mirror::None, Mirror::X, Mirror::Z})
+            for (int face = 0; face < 6; ++face) {
+                Placement p{{10, 0, -4}, rotation, mirror};
+                auto from = toWorld(cube, p, {1, 1, 1});
+                auto to = toWorld(cube, p, {1 + dx[face], 1 + dy[face], 1 + dz[face]});
+                int turned = toWorldFace(face, p);
+                faces = faces && to.x - from.x == dx[turned] && to.y - from.y == dy[turned] && to.z - from.z == dz[turned];
+            }
+    check(faces && toWorldFace(2, {{0, 0, 0}, 1, Mirror::None}) == 5 && toWorldFace(7, {{0, 0, 0}, 1, Mirror::None}) == 7,
+          "a stored face follows the placement's mirror and turns; unknown values stay");
 
     bool centers = true;
     for (int rotation = 0; rotation < 4; ++rotation)

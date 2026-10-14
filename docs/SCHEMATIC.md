@@ -46,7 +46,13 @@ images are not embedded in this repository.
   surface where the mesh does not extend; shulker-box ghosts can ignore their
   saved facing. Treat overlay transforms, mesh texture mapping and saved
   orientation as separate hypotheses. Check original and rotated/mirrored
-  placements.
+  placements. L-179 finding (2026-10-14, from code): a shulker box keeps its
+  opening in block entity data (`facing`, a face byte), not in a block state,
+  so the game's block-state transform never turned it and the ghost loaded
+  the file's value unchanged. Ghosts now turn it with the placement's mirror
+  and quarter turns (`toWorldFace`, tested against the cell transform); the
+  mirror follows block states (X swaps east and west). Not checked in game;
+  whether unturned placements were also wrong is still unknown.
 - **L-182 (crash):** settings opened with the default L key can sometimes
   crash while working with an active schematic check. Reproduce with
   logs/stack before attributing cause to the check or settings screen.

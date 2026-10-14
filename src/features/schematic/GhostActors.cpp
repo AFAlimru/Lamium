@@ -33,14 +33,19 @@ namespace {
 std::atomic<BlockSource const*> ghostActorSource{nullptr};
 
 // Loads the file's block entity data into a ghost's block actor: at its
-// world cell, a skull's rotation turned with the placement (bed parts and
-// standing banners and signs turn through their block states).
+// world cell, a skull's rotation and a shulker box's opening turned with the
+// placement (bed parts and standing banners and signs turn through their
+// block states).
 void loadBlockEntity(BlockActor& actor, nbt::Compound data, BlockPos const& pos, Placement const& placement, BlockSource& region) {
     data.set("x", {std::int32_t{pos.x}});
     data.set("y", {std::int32_t{pos.y}});
     data.set("z", {std::int32_t{pos.z}});
     if (auto* rotation = data.find("Rotation"); rotation && rotation->as<float>())
         data.set("Rotation", {toWorldYaw(*rotation->as<float>(), placement)});
+    auto const* id = data.find("id");
+    if (auto* facing = data.find("facing"); facing && facing->as<std::int8_t>() && id && id->as<std::string>()
+        && *id->as<std::string>() == "ShulkerBox")
+        data.set("facing", {static_cast<std::int8_t>(toWorldFace(*facing->as<std::int8_t>(), placement))});
     nbt::Root root;
     root.compound = std::move(data);
     auto tag = CompoundTag::fromBinaryNbt(nbt::write(root));
