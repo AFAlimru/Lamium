@@ -1,13 +1,14 @@
 #pragma once
 #include "features/information/TargetInfo.h"
-#include "features/schematic/Verification.h"
+#include "features/schematic/Verify.h"
 #include <cstdlib>
 #include <functional>
 #include <string>
 #include <string_view>
 #include <vector>
 
-// The target card's lower schematic section (L-184, 2026-10-15).
+// The target card's schematic rows (BACKLOG L-93, redesigned 2026-10-08):
+// what to do about the block under the crosshair, in the verifier's colors.
 // Pure; the caller supplies translation.
 namespace lamium::information {
 using Translate = std::function<std::string(std::string_view)>;
@@ -24,59 +25,46 @@ inline StateName stateName(std::string const& key, std::string const& raw, std::
     if (!row || row->progress) return {key, raw};
     return {row->label, row->valueIsKey ? translate(row->value) : row->value, true};
 }
-inline std::vector<TargetInfo::DetailRow> schematicStateRows(
-    std::vector<schematic::StateDifference> const& differences, std::string_view identifier,
+// The card's row for a schematic ghost under the crosshair, in the ghost's
+// light blue (L-184). The header already names the block to place.
+inline TargetInfo::DetailRow ghostRow() {
+    TargetInfo::DetailRow row{"target.schematic", "target.schematicMissing", true};
+    row.kind = DetailKind::Schematic;
+    row.tone = Tone::Missing;
+    return row;
+}
+inline std::vector<TargetInfo::DetailRow> schematicRows(schematic::CellState state, std::string const& expectedName,
+    std::string const& icon, std::vector<schematic::StateDifference> const& differences, std::string_view identifier,
     Translate const& translate) {
+    using schematic::CellState;
     std::vector<TargetInfo::DetailRow> rows;
-    for (auto const& d : differences) {
-        auto now = stateName(d.key, d.actual, identifier, translate);
-        auto want = stateName(d.key, d.expected, identifier, translate);
-        auto const& named = now.labelIsKey ? now : want;
-        TargetInfo::DetailRow row{named.label, want.value};
-        row.before = now.value;
-        row.kind = DetailKind::Schematic;
-        row.labelIsKey = named.labelIsKey;
-        row.tone = Tone::State;
-        rows.push_back(std::move(row));
+    auto row = [&](std::string label, std::string value, bool labelIsKey, Tone tone, std::string withIcon = {},
+                   std::string before = {}) {
+        TargetInfo::DetailRow r{std::move(label), std::move(value)};
+        r.before = std::move(before);
+        r.kind = DetailKind::Schematic;
+        r.labelIsKey = labelIsKey;
+        r.tone = tone;
+        r.icon = std::move(withIcon);
+        rows.push_back(std::move(r));
+    };
+    switch (state) {
+    case CellState::Wrong: row("schematic.shouldBe", expectedName, true, Tone::Wrong, icon); break;
+    case CellState::Extra: row("schematic.shouldBe", translate("schematic.air"), true, Tone::Wrong); break;
+    case CellState::Missing: row("schematic.placeHere", expectedName, true, Tone::Missing, icon); break;
+    case CellState::State:
+        // One row per differing state: "<state>: <now> -> <should be>", the
+        // arrow drawn by the card (the fonts lack U+2192).
+        for (auto const& d : differences) {
+            auto now = stateName(d.key, d.actual, identifier, translate);
+            auto want = stateName(d.key, d.expected, identifier, translate);
+            auto const& named = now.labelIsKey ? now : want;
+            row(named.label, want.value, named.labelIsKey, Tone::State, {}, now.value);
+        }
+        if (differences.empty()) row("target.schematic", translate("schematic.kind.state"), true, Tone::State);
+        break;
+    default: break;
     }
     return rows;
-}
-inline TargetInfo makeGhostTarget(TargetInfo target) {
-    TargetInfo::Schematic section;
-    section.name = target.name;
-    section.identifier = target.identifier;
-    section.icon = target.icon;
-    section.status = "schematic.kind.missing";
-    section.tone = Tone::Missing;
-    section.details = target.details;
-    section.states = target.states;
-    section.blockPosition = target.blockPosition;
-    target.schematic = std::move(section);
-    target.ghostOnly = true;
-    return target;
-}
-inline std::optional<TargetInfo::Schematic> schematicTarget(schematic::Mismatch const& mismatch, Translate const& translate) {
-    using schematic::CellState;
-    if (mismatch.entity) return std::nullopt;
-    TargetInfo::Schematic result;
-    result.name = mismatch.expectedName;
-    result.item = mismatch.expected;
-    switch (mismatch.state) {
-    case CellState::Wrong: result.status = "target.schematicWrong"; result.tone = Tone::Wrong; break;
-    case CellState::Extra:
-        result.status = "target.schematicExtra";
-        result.tone = Tone::Wrong;
-        result.name = translate("schematic.air");
-        result.item.clear();
-        break;
-    case CellState::Missing: result.status = "schematic.kind.missing"; result.tone = Tone::Missing; break;
-    case CellState::State:
-        result.status = "target.schematicState";
-        result.tone = Tone::State;
-        result.details = schematicStateRows(mismatch.states, mismatch.identifier, translate);
-        break;
-    default: return std::nullopt;
-    }
-    return result;
 }
 }

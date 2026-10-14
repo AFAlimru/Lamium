@@ -33,6 +33,7 @@
 #include "mc/locale/I18n.h"
 #include "mc/deps/nbt/CompoundTagVariant.h"
 #include <algorithm>
+#include <set>
 #ifdef LAMIUM_RESEARCH_TRACE
 #include <format>
 #endif
@@ -219,13 +220,15 @@ TargetIcon fallingIcon(Actor& entity, LocalPlayer& player) {
 }
 }
 // The block's states as card rows (named where L-112 knows them) and the
-// rest as raw "key: value" lines. The schematic never removes actual states.
-void appendStates(TargetInfo& result, Block const& block) {
+// rest as raw "key: value" lines, leaving out `fixed` (shown by the
+// schematic rows instead).
+void appendStates(TargetInfo& result, Block const& block, std::set<std::string> const& fixedStates) {
     auto const& tags = block.mSerializationId->mTags;
     auto found = tags.find("states");
     if (found != tags.end()) {
         if (auto* states = std::get_if<CompoundTag>(&found->second.mTagStorage)) {
             for (auto const& [key,value] : states->mTags) {
+                if (fixedStates.contains(key)) continue;
                 std::optional<TargetInfo::DetailRow> detail;
                 if (auto* v = std::get_if<ByteTag>(&value.mTagStorage))
                     detail = interpretBlockState(key, StateKind::Integer, v->data, {}, result.identifier);
@@ -246,7 +249,8 @@ void appendStates(TargetInfo& result, Block const& block) {
         }
     }
 }
-// Owned ghost values for the lower section, also usable without a real target.
+// The nearest schematic ghost in front of the aimed block (L-184): its block
+// as the card's target, marked as a block still to place.
 std::optional<TargetInfo> ghostTarget(LocalPlayer& player, BlockSource& source, bool includeStates, std::optional<ViewRay> const& ray) {
     double x, y, z, dx, dy, dz, reach;
     if (ray) { x = ray->x; y = ray->y; z = ray->z; dx = ray->dx; dy = ray->dy; dz = ray->dz; reach = ray->reach; }
@@ -263,10 +267,13 @@ std::optional<TargetInfo> ghostTarget(LocalPlayer& player, BlockSource& source, 
     if (result.name.empty()) result.name = result.identifier;
     result.blockPosition = TargetInfo::BlockPosition{pos.x, pos.y, pos.z};
     result.icon = blockIcon(source, pos, block);
-    if (includeStates) appendStates(result, block);
-    return makeGhostTarget(std::move(result));
+    if (includeStates) appendStates(result, block, {});
+    result.details.push_back(ghostRow());
+    result.ghost = true;
+    return result;
 }
-std::optional<TargetInfo> collectTargetInfo(IClientInstance& client, bool includeStates, std::optional<ViewRay> ray, bool includeSchematic) {
+std::optional<TargetInfo> collectTargetInfo(IClientInstance& client, bool includeStates, std::optional<ViewRay> ray,
+                                            bool includeSchematic) {
     auto* player = client.getLocalPlayer();
     if (!player) return {};
     Pick pick;
@@ -278,8 +285,7 @@ std::optional<TargetInfo> collectTargetInfo(IClientInstance& client, bool includ
         if (latest.mType == HitResultType::Entity) pick.entity = latest.getEntity();
     }
     struct { HitResultType mType; BlockPos mBlock; } hit{pick.type, pick.block};
-    // A nearer ghost is a different cell from the real block behind it. Do
-    // not present those two blocks as a same-cell comparison.
+    // A ghost in front of the aimed block (or in the air) is the target.
     if (includeSchematic && hit.mType != HitResultType::Entity)
         if (auto ghost = ghostTarget(*player, player->getDimensionBlockSource(), includeStates, ray)) return ghost;
     if (hit.mType == HitResultType::Entity) {
@@ -335,7 +341,10 @@ std::optional<TargetInfo> collectTargetInfo(IClientInstance& client, bool includ
     // The pick-block item (seeds for crops, the block item otherwise).
     result.icon = blockIcon(source, hit.mBlock, block);
     if (result.name.empty()) result.name = result.identifier;
-    if (includeStates) appendStates(result, block);
+    // The selected schematic placement's block here, when it differs (L-93):
+    // its rows replace the card's own rows for the same states.
+    std::vector<TargetInfo::DetailRow> schematicDetails;
+    std::set<std::string> fixedStates;
     if (auto& runtime = Runtime::instance(); includeSchematic && runtime.enabled() && runtime.snapshot()->schematic.enabled) {
         auto verification = schematic::ghosts::verification();
         auto snapshot = schematic::session::snapshot();
@@ -350,12 +359,17 @@ std::optional<TargetInfo> collectTargetInfo(IClientInstance& client, bool includ
                 && schematic::layerShown(placement.layers,
                     schematic::placedSize(shown.structure->size, placement.placement.rotation), offset)) {
                 // Read just this cell now; the capped background list may be old or omit it.
-                if (auto mismatch = schematic::ghosts::mismatchAt(source, {hit.mBlock.x, hit.mBlock.y, hit.mBlock.z}))
-                    result.schematic = schematicTarget(*mismatch,
-                        [](std::string_view key) { return ui::translated(key); });
+                if (auto m = schematic::ghosts::mismatchAt(source, {hit.mBlock.x, hit.mBlock.y, hit.mBlock.z});
+                    m && !m->entity) {
+                    schematicDetails = schematicRows(m->state, m->expectedName, m->expected, m->states,
+                        result.identifier, [](std::string_view key) { return ui::translated(key); });
+                    for (auto const& d : m->states) fixedStates.insert(d.key);
+                }
             }
         }
     }
+    if (includeStates) appendStates(result, block, fixedStates);
+    for (auto& row : schematicDetails) result.details.push_back(std::move(row));
     return result;
 }
 void startTargetIcons() {

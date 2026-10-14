@@ -214,7 +214,7 @@ struct Settings {
         float targetDistance = 6; // Blocks from the viewpoint (the body, or a detached camera)
         bool targetStates = false; // Other details
         bool targetCoordinates = false;
-        int targetSchematic = 1; // 0 none, 1 stacked, 2 side by side
+        bool targetSchematic = true; // Ghosts and schematic differences on the card
         bool durabilityHud = false;
         int durabilityLook = 0; // 0 bar and number, 1 number, 2 bar (number below a quarter)
         bool durabilityOffhand = true;
@@ -284,7 +284,6 @@ struct Settings {
             if (static_cast<unsigned>(*mode) >= lamium::interaction::autoModeNames.size()) *mode = lamium::interaction::AutoMode::Periodic;
         information.targetHealth = std::clamp(information.targetHealth, 0, 2);
         information.targetArmor = std::clamp(information.targetArmor, 0, 2);
-        information.targetSchematic = std::clamp(information.targetSchematic, 0, 2);
         information.debugLabels = std::clamp(information.debugLabels, 0, 1);
         schematic.menuBackground = std::clamp(schematic.menuBackground, 0, 2);
         camera.freeCameraHide = std::clamp(camera.freeCameraHide, 0, 3);

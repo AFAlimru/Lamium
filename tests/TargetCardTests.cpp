@@ -3,30 +3,6 @@
 void check(bool, char const*);
 void targetCardTests() {
     using namespace lamium::information;
-    {
-        auto beside = targetCardLayout(2, false, {640, 240}, {180, 110}, {160, 80}, 12, 14);
-        check(beside.beside && beside.width == 352 && beside.height == 124 && beside.ordinaryWidth == 180
-              && beside.schematicWidth == 160 && beside.schematicX == 192 && beside.ordinaryY == 14,
-              "side-by-side sections keep independent widths and reserve the ordinary heading above its content");
-        auto narrow = targetCardLayout(2, false, {320, 240}, {180, 110}, {160, 80}, 12, 14);
-        check(!narrow.beside && narrow.width == 180 && narrow.height == 202 && narrow.schematicY == 122
-              && narrow.ordinaryY == 0, "narrow screens stack instead of squeezing ordinary information");
-        auto shortScreen = targetCardLayout(2, false, {640, 120}, {180, 110}, {160, 80}, 12, 14);
-        check(!shortScreen.beside && shortScreen.ordinaryY == 0,
-              "a short screen does not add a column heading that would push ordinary information off screen");
-        auto stacked = targetCardLayout(1, false, {640, 240}, {180, 110}, {160, 80}, 9, 14);
-        check(!stacked.beside && stacked.width == 180 && stacked.height == 199 && stacked.schematicY == 119,
-              "stacked display retains the upper ordinary section and lower schematic section");
-        for (int mode : {1, 2}) {
-            auto ghost = targetCardLayout(mode, true, {640, 240}, {}, {160, 80}, 12, 14);
-            check(!ghost.beside && ghost.width == 160 && ghost.height == 80 && ghost.schematicX == 0
-                  && ghost.schematicY == 0, "both schematic layouts show a nearer ghost as one standalone section");
-        }
-        auto none = targetCardLayout(0, false, {640, 240}, {180, 110}, {160, 80}, 12, 14);
-        auto hiddenGhost = targetCardLayout(0, true, {640, 240}, {}, {160, 80}, 12, 14);
-        check(none.width == 180 && none.height == 110 && none.schematicWidth == 0 && hiddenGhost.width == 0,
-              "none reserves no schematic area and does not turn a ghost into ordinary block information");
-    }
     TargetInfo mob{"Zombie", "minecraft:zombie"};
     mob.details.push_back({"target.armor", "2"});
     mob.details.push_back({"target.health", "16 / 20", false, .8f, DetailKind::Health, 16, 20});
@@ -135,20 +111,23 @@ void targetCardTests() {
         TargetInfo::DetailRow state{"weirdo_direction", "2 (now 1)"};
         state.kind = DetailKind::Schematic;
         state.labelIsKey = false;
-        TargetInfo::Schematic schematic;
-        schematic.details = {line, state};
-        block.schematic = schematic;
+        block.details = {line, state};
         block.states = {"weirdo_direction: 1"};
         CardOptions plain;
-        auto shown = schematicCardRows(*block.schematic, plain);
+        auto shown = cardRows(block, plain);
         check(shown.size() == 2 && shown[0].icon == "icon" && shown[1].label == "weirdo_direction" && !shown[1].labelIsKey,
-              "the separate schematic rows show without details and keep their icons");
-        check(cardRows(block, plain).empty(), "schematic rows are not part of the ordinary card");
-        plain.details = true;
-        auto actual = cardRows(block, plain, 1);
-        check(actual.size() == 1 && actual[0].value == "1", "a schematic difference does not replace the real state");
-        check(schematicCardRows(schematic, plain, 0).empty()
-              && schematicCardRows(schematic, plain, 1).size() == 1, "schematic capacity is independent, including zero");
+              "schematic rows show without details, the first with the expected block's icon");
+        TargetInfo crop{"Wheat", "minecraft:wheat"};
+        crop.details = {{"target.growth", "3 / 7", false, .4f, DetailKind::Growth}, line};
+        crop.blockPosition = TargetInfo::BlockPosition{1, 2, 3};
+        CardOptions withPosition;
+        withPosition.coordinates = true;
+        auto ordered = cardRows(crop, withPosition, 1);
+        check(ordered.size() == 1 && ordered[0].label == "target.schematic",
+              "schematic rows come first, so a short card keeps them");
+        auto ghost = ghostRow();
+        check(ghost.label == "target.schematic" && ghost.value == "target.schematicMissing" && ghost.valueIsKey
+              && ghost.tone == Tone::Missing, "a ghost reads 'Schematic: Not placed yet' without the placement name");
     }
     {
         // L-112: common states by name.
@@ -167,7 +146,10 @@ void targetCardTests() {
         // L-93: schematic rows say what to do.
         auto translate = [](std::string_view key) { return "<" + std::string(key) + ">"; };
         using lamium::schematic::CellState;
-        auto stairs = schematicStateRows(
+        auto wrong = schematicRows(CellState::Wrong, "Dirt", "icon", {}, "minecraft:stone", translate);
+        check(wrong.size() == 1 && wrong[0].label == "schematic.shouldBe" && wrong[0].value == "Dirt"
+              && wrong[0].icon == "icon" && wrong[0].tone == Tone::Wrong, "a wrong block reads 'Should be' with its icon");
+        auto stairs = schematicRows(CellState::State, "Stairs", "icon",
             {{"weirdo_direction", "0", "3"}, {"minecraft:corner", "none", "inner_left"}}, "minecraft:stone_stairs", translate);
         check(stairs.size() == 2 && stairs[0].label == "target.facing" && stairs[0].labelIsKey
               && stairs[0].before == "<target.dirNorth>" && stairs[0].value == "<target.dirEast>" && stairs[0].tone == Tone::State,
@@ -176,88 +158,12 @@ void targetCardTests() {
               && stairs[1].value == "none",
               "an unknown state keeps its raw name and values");
         TargetInfo card{"Stairs", "minecraft:stone_stairs"};
-        TargetInfo::Schematic section;
-        section.details = stairs;
-        card.schematic = section;
-        auto drawn = schematicCardRows(*card.schematic, CardOptions{});
+        card.details = stairs;
+        auto drawn = cardRows(card, CardOptions{});
         check(drawn.size() == 2 && drawn[0].before == "<target.dirNorth>" && drawn[0].tone == Tone::State,
               "card rows keep the change and its color");
-        lamium::schematic::Mismatch mismatch;
-        mismatch.state = CellState::State;
-        mismatch.expectedName = "Stairs";
-        mismatch.expected = "item";
-        mismatch.identifier = "minecraft:stone_stairs";
-        mismatch.states = {{"weirdo_direction", "0", "3"}};
-        auto compared = schematicTarget(mismatch, translate);
-        check(compared && compared->name == "Stairs" && compared->item == "item"
-              && compared->status == "target.schematicState" && compared->tone == Tone::State
-              && compared->details[0].before == "<target.dirNorth>" && compared->details[0].value == "<target.dirEast>",
-              "the schematic section carries the expected block and named state comparison");
-        mismatch.state = CellState::Extra;
-        compared = schematicTarget(mismatch, translate);
-        check(compared && compared->name == "<schematic.air>" && compared->tone == Tone::Wrong
-              && compared->details.empty() && compared->item.empty(),
-              "extra blocks have air as the expected header and no stale state differences");
-        mismatch.state = CellState::Wrong;
-        compared = schematicTarget(mismatch, translate);
-        check(compared && compared->name == "Stairs" && compared->item == "item"
-              && compared->status == "target.schematicWrong" && compared->tone == Tone::Wrong,
-              "a wrong block retains the expected name and full-size item icon");
-        mismatch.state = CellState::Missing;
-        compared = schematicTarget(mismatch, translate);
-        check(compared && compared->status == "schematic.kind.missing" && compared->tone == Tone::Missing,
-              "missing blocks have an explicit light-blue status");
-        for (auto kind : {CellState::Correct, CellState::Unknown, CellState::Ignored}) {
-            mismatch.state = kind;
-            check(!schematicTarget(mismatch, translate), "non-mistakes do not add a comparison section");
-        }
-    }
-    {
-        TargetInfo expected{"Grass Block", "minecraft:grass_block"};
-        expected.blockPosition = TargetInfo::BlockPosition{12, 65, 80};
-        expected.icon = {IconKind::Item, "minecraft:grass_block"};
-        expected.states = {"snowy: 0"};
-        auto ghost = makeGhostTarget(expected);
-        CardOptions all;
-        all.coordinates = all.details = true;
-        auto shown = schematicCardRows(*ghost.schematic, all);
-        check(ghost.ghostOnly && cardRows(ghost, all).empty() && ghost.schematic->status == "schematic.kind.missing",
-              "a nearer ghost is explicitly missing and has no ordinary real-block section");
-        check(ghost.schematic->blockPosition && ghost.schematic->blockPosition->y == 65
-              && shown.size() == 2 && shown[0].value == "12, 65, 80" && shown[1].value == "0"
-              && ghost.schematic->name == "Grass Block" && ghost.schematic->icon.name == "minecraft:grass_block",
-              "a ghost keeps its own coordinate, expected block, icon and states together");
-        TargetInfo actual{"Grass Block", "minecraft:grass_block"};
-        actual.blockPosition = TargetInfo::BlockPosition{12, 64, 80};
-        auto real = cardRows(actual, all);
-        check(!actual.ghostOnly && !actual.schematic && real.size() == 1 && real[0].value == "12, 64, 80",
-              "looking at a real block still uses its own coordinates even when its name matches a ghost");
-    }
-    {
-        TargetInfo actual{"Wire", "minecraft:redstone_wire"};
-        actual.blockPosition = TargetInfo::BlockPosition{12, 64, 80};
-        actual.details = {{"target.power", "12", false, .8f}};
-        for (int i = 0; i < 12; ++i) actual.states.push_back("state" + std::to_string(i) + ": 1");
-        CardOptions all;
-        all.details = all.coordinates = true;
-        auto before = cardRows(actual, all, 10);
-        TargetInfo::Schematic section;
-        section.details = schematicStateRows({{"redstone_signal", "0", "12"}},
-            actual.identifier, [](std::string_view key) { return std::string(key); });
-        actual.schematic = section;
-        auto after = cardRows(actual, all, 10);
-        bool same = before.size() == after.size();
-        for (size_t i = 0; same && i < before.size(); ++i)
-            same = before[i].label == after[i].label && before[i].value == after[i].value && before[i].progress == after[i].progress;
-        check(same && after.size() == 10 && after[0].label == "target.position" && after[1].label == "target.power",
-              "adding a schematic preserves the full ordinary row budget, coordinates and actual power");
-        section.details.clear();
-        section.blockPosition = TargetInfo::BlockPosition{12, 65, 80};
-        section.details.push_back({"target.growth", "5 / 7", false, 5.f / 7, DetailKind::Growth});
-        section.states = {"custom: 4"};
-        auto ghost = schematicCardRows(section, all);
-        check(ghost.size() == 3 && ghost[0].label == "target.growth" && ghost[1].value == "12, 65, 80"
-              && ghost[2].value == "4", "a ghost's states and position belong to the lower section");
+        auto extra = schematicRows(CellState::Extra, "", "", {}, "minecraft:dirt", translate);
+        check(extra.size() == 1 && extra[0].value == "<schematic.air>" && extra[0].icon.empty(), "an extra block should be air");
     }
     check(cardContentFits(0, 0, 100, 50, 0, 0, 100, 50) && cardContentFits(-10, -5, 120, 60, 0, 0, 100, 50),
           "the card content shows when the background covers its box");

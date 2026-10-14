@@ -561,33 +561,20 @@ to completion totals/HUD/nearest-mistake, and how to unignore/review them.
 Keep the original strict comparison available. [SCHEMATIC.md](SCHEMATIC.md).
 
 ### L-184 Inspect ghost block data and schematic container contents
-Kind: Design / Research for saved data inspection; the agreed target-card
-presentation is Ready (strong model). The corrected stacked presentation was
-accepted by the maintainer on `0b89cd2`; selectable display modes await checks.
-User feedback clarified 2026-10-14. The initial 2026-10-15 implementation
-(chosen for the next release) made the nearest ghost the main target with a
-"Ghost of <placement>" row. The presentation below supersedes that approach.
-Target-card presentation approved 2026-10-15: the maintainer chose an ordinary
-upper section plus a separated schematic lower section, with state differences
-compared horizontally inside the latter (DESIGN "Target and Schematics").
-Preserve ordinary block information and its options, including actual states
-that differ from the file; the extra section gets its own row capacity.
-Correction after the maintainer's `334889a` check: the heading says "Schematic"
-without the placement name. If a ghost is hit first, show its schematic
-section alone; do not pair it with the real block at a different coordinate
-behind it. Real-block comparisons remain at the real target's cell.
-Follow-up approved 2026-10-15: a Target Info child option, "Schematic
-information: None / Stacked / Side by side", default Stacked and saved with
-missing-key compatibility. None leaves ordinary targeting; Stacked is the
-accepted layout; Side by side preserves ordinary information on the left and
-adds the schematic on the right. Ghost-first targets remain one schematic
-section in both enabled modes, with no placement name. Width or height that
-cannot fit both columns uses Stacked without reducing ordinary text/rows. Built,
-awaiting in-game checks: wrong/extra/state differences, air-only ghosts,
-ghosts in front of real blocks, other-details/ID/icon/coordinates switches,
-card/none background, HUD scale, short screens and display-choice persistence.
-Container inspection and
-saved Block Entity data remain Design / Research.
+Kind: Design / Research for saved data inspection; the target-card part is
+built and awaits in-game checks.
+Target-card history 2026-10-15: the ghost-as-target card with a "Ghost of
+<placement>" row was built first, then replaced by an upper/lower section
+(`334889a`, `0b89cd2`) and a None / Stacked / Side by side choice (`771ba02`).
+The maintainer then found those sections hard to read and decided: keep the
+ordinary single-card layout and polish its details; keep the Target Info
+setting (now an on/off "Show schematic information") and the ghost target.
+Built: ghost name in light blue with "Schematic: Not placed yet" (no placement
+name), difference rows first under the header, the cell compared live, the
+setting saved with compatibility for the test builds' numbers (DESIGN "Target
+and Schematics"). Awaiting in-game checks: ghost in the air and in front of a
+real block, wrong/extra/state rows, the setting off, short screens.
+Container inspection and saved Block Entity data remain Design / Research.
 Goal: inspect the ghost under the crosshair: expected block name, facing,
 BlockState and available saved Block Entity data. Provide a way to
 understand inventory contents of barrels/hoppers and other data relevant

@@ -27,31 +27,17 @@ built. Materials include carried shulker-box contents. File entities use named
 dashed frames and are checked by type near their recorded spot, within client
 observation range; pose, equipment and contents are not verified.
 
-Target-card presentation (2026-10-15): the maintainer accepted the corrected
-stacked presentation on `0b89cd2`; individual regression cases were not listed.
-Target Info now offers "Schematic information: None / Stacked / Side by side"
-(new modes built; runtime checks pending). Stacked is the default, including
-for settings without the new key. Ordinary block information stays above a
-divider; Side by side instead puts it on the left with the schematic on the
-right, without reducing the ordinary row budget or text size. Narrow screens
-fall back to Stacked. None disables schematic target picking and leaves the
-ordinary target alone. The selected mode is saved under
-`information.targetSchematic` (0 None, 1 Stacked, 2 Side by side); no settings
-version change. A separate schematic section shows
-"Schematic" (no placement name), the expected block's full-size icon/name and a
-colored mismatch label. State differences use the drawn current-to-expected
-arrow without removing the upper section's actual state rows. The schematic
-section has an independent row budget; limited height trims it before ordinary
-information. The inspected cell is compared live after verifying the selected
-placement's revision, rather than reading a possibly old/capped mismatch list.
-Ghosts use the schematic section alone, including when a real block is behind
-them. Their coordinates (if enabled) belong to the ghost cell. The maintainer's
-check of `334889a` found that pairing the rear block with the ghost's Missing
-label misleadingly compared different cells, even when both were grass blocks.
-The correction was accepted on `0b89cd2`; broader per-case coverage remains
-open. Ordinary and schematic comparisons are
-only for the real target's cell. This supersedes the
-older inline schematic/"Ghost of" rows described in the dated records below.
+Target-card presentation (2026-10-15, revised the same day): the stacked and
+side-by-side sections were removed after the maintainer found them hard to
+read; the card keeps its ordinary single layout (DESIGN "Target and
+Schematics"). Target Info's "Show schematic information" (saved as the bool
+`information.targetSchematic`; a number from the earlier test builds reads
+as on unless 0) turns ghost picking and difference rows on or off. A ghost hit
+first is the target, named in light blue with "Schematic: Not placed yet" and
+no placement name; the real block behind it is not paired with it. A real
+block's differences are read live for that cell after checking the selected
+placement's revision, visibility, dimension and shown layers, rather than from
+the capped background list. Difference rows come first on the card.
 
 Area save reads bounded chunk columns and waits for unloaded ones as the
 player approaches; it can be stopped. Blocks, states, the water layer and

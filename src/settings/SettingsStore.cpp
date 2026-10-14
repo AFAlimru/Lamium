@@ -300,7 +300,10 @@ Settings decodeSettings(std::string_view text) {
         value.information.targetGrowth = info.value("targetGrowth", value.information.targetGrowth);
         value.information.targetDistance = info.value("targetDistance", value.information.targetDistance);
         value.information.targetCoordinates = info.value("targetCoordinates", value.information.targetCoordinates);
-        value.information.targetSchematic = info.value("targetSchematic", value.information.targetSchematic);
+        // Test builds of 2026-10-15 saved a number here (0 meant hidden).
+        if (auto found = info.find("targetSchematic"); found != info.end())
+            value.information.targetSchematic = found->is_number() ? found->get<int>() != 0
+                : found->is_boolean() ? found->get<bool>() : value.information.targetSchematic;
         value.information.durabilityHud = info.value("durabilityHud", value.information.durabilityHud);
         value.information.durabilityLook = info.value("durabilityLook", value.information.durabilityLook);
         value.information.durabilityOffhand = info.value("durabilityOffhand", value.information.durabilityOffhand);

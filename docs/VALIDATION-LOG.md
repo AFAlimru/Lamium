@@ -12,6 +12,14 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Schematic sections on the target card rejected (2026-10-15)
+
+Maintainer feedback on the `771ba02` presentation (no new build or hash
+supplied): the Stacked and Side by side sections are hard to read. Keep the
+Target Info schematic setting and the ghost as a target; return to the
+ordinary single-card layout and polish its details and wording instead. No
+in-game result is recorded here; the replacement build awaits checks.
+
 ## Corrected schematic target presentation accepted (2026-10-15)
 
 Maintainer accepted the corrected stacked presentation after the supplied
