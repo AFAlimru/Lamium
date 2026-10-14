@@ -105,6 +105,10 @@ void fakeOffhandTests() {
         check(primaryPass(traits,false,false,true,std::nullopt,true) && !primaryPass(traits,false,false),
               "an idle air use passes in air");
     }
+    ItemTraits bow{.name = "minecraft:bow", .timed = true};
+    check(primaryPass(bow,true,false,true,std::nullopt,true) && !primaryPass(bow,true,false,false,std::nullopt,true)
+              && !primaryPass(bow,true,false),
+          "a bow without arrows passes on plain blocks too, not on special ones");
     check(!primaryPass(item("custom:stick"),false,false) && !primaryPass(ItemTraits{},false,false),
         "unknown and unreadable primary items remain vanilla");
     check(foodBlocked(false,false,20.f,20.f) && !foodBlocked(false,false,19.f,20.f),

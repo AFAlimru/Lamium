@@ -102,15 +102,15 @@ inline TargetUse targetUseOf(ItemTraits const& item, bool shovelTag, bool hoeTag
 // L-189: `targetUse` is what the game says the item's target-specific use can
 // do on this block (a planter's canUseOn, a fertilizable block, rails, copper
 // state, the tool lists above); none when unread or the item has none, which
-// keeps vanilla priority. `airIdle`: aimed at nothing, the item's air use
-// cannot act now (a bow without arrows, Riptide out of water and rain, a
-// firework while not gliding, an empty bucket or bottle aimed at no liquid).
+// keeps vanilla priority. `idle`: the item's use cannot act now (a bow
+// without arrows or Riptide out of water and rain anywhere; a firework while
+// not gliding or an empty bucket or bottle at no liquid, aimed at nothing).
 inline bool primaryPass(ItemTraits const& item, bool blockTarget, bool cannotEat, bool plainTarget = true,
-                        std::optional<bool> targetUse = std::nullopt, bool airIdle = false) {
+                        std::optional<bool> targetUse = std::nullopt, bool idle = false) {
     if (item.empty) return true;
     auto id = detail::vanillaId(item.name);
     if (id.empty()) return false;
-    if (!blockTarget && airIdle) return true;
+    if (idle && (!blockTarget || plainTarget)) return true;
     // Full hunger only stops eating; a food that plants (carrots) still can
     // where its planter says so.
     if (item.food) {

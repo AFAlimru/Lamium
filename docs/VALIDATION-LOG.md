@@ -12,6 +12,26 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-189 first check (2026-10-15)
+
+Maintainer report on `9c487e5` (DLL `47142c2e...82c1`), local, survival:
+passes as expected: bread at full hunger on wood and dirt; a shovel on wood
+(fake offhand) and on grass (path); wheat seeds in air (fake offhand) and on
+farmland (planted); bone meal on wood (fake offhand) and on grass (grass);
+an axe on a log (stripped), on oxidized copper (scraped) and on plain copper
+(fake offhand); a minecart on grass (fake offhand) and on a rail (placed);
+a bow without arrows aimed at the sky (fake offhand); an empty bucket aimed
+at the sky or grass (fake offhand).
+Not as expected: bread, a shovel and bone meal aimed at leaves did
+nothing (leaves are not solid, so not a plain target); wheat seeds on stone
+or dirt did nothing (no planter component on wheat seeds); a bow without
+arrows aimed at copper or grass did nothing (the no-arrows check was air
+only); an empty bucket aimed at water used the fake offhand instead of
+filling (the hit's liquid flag was unset). Fixes in the next build: plain
+also covers blocks whose collision fills the cell; planters ask the planted
+block's mayPlace; bows, crossbows and Riptide tridents are idle on blocks
+too; a liquid is looked for along the aim.
+
 ## L-182 reporter's doubt and the log timeline (2026-10-15)
 
 The reporter doubted the cause: the crashes were in the world where the

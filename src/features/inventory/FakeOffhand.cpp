@@ -40,6 +40,9 @@
 #include "mc/deps/nbt/CompoundTag.h"
 #include "app/Versions.h"
 #include "mc/world/phys/HitResult.h"
+#include "mc/world/phys/AABB.h"
+#include "mc/world/level/material/Material.h"
+#include <cmath>
 #include <atomic>
 #include <chrono>
 #include <functional>
@@ -110,11 +113,40 @@ ItemTraits traitsOf(ItemStack const& item, std::string const& name) {
     return traits;
 }
 std::string nameOf(ItemStack const& item) { return item.isNull() ? std::string{} : item.getTypeName(); }
-// A solid block without a block entity.
+// A block without a block entity that is solid or fills its cell (leaves
+// are not solid, L-189).
 bool plainBlock(LocalPlayer& player, HitResult const& hit) {
     if (hit.mType != HitResultType::Tile) return false;
-    auto const& type = player.getDimensionBlockSource().getBlock(hit.mBlock).getBlockType();
-    return type.mSolid && type.getBlockEntityType() == BlockActorType::Undefined;
+    auto& region = player.getDimensionBlockSource();
+    Block const& block = region.getBlock(hit.mBlock);
+    auto const& type = block.getBlockType();
+    if (type.getBlockEntityType() != BlockActorType::Undefined) return false;
+    if (type.mSolid) return true;
+    AABB box = type.getCollisionShape(block, region, hit.mBlock, {});
+    auto near = [](float a, float b) { return std::abs(a - b) < 1e-3f; };
+    return near(box.min.x, static_cast<float>(hit.mBlock.x)) && near(box.min.y, static_cast<float>(hit.mBlock.y))
+        && near(box.min.z, static_cast<float>(hit.mBlock.z)) && near(box.max.x, static_cast<float>(hit.mBlock.x + 1))
+        && near(box.max.y, static_cast<float>(hit.mBlock.y + 1)) && near(box.max.z, static_cast<float>(hit.mBlock.z + 1));
+}
+// Water or lava within reach along the aim: the hit's liquid flag stayed
+// unset with an empty bucket aimed at water (L-189).
+bool liquidAlong(LocalPlayer& player, HitResult const& hit) {
+    auto& region = player.getDimensionBlockSource();
+    Vec3 dir = hit.mRayDir;
+    float length = std::sqrt(dir.x * dir.x + dir.y * dir.y + dir.z * dir.z);
+    if (!(length > 0)) return false;
+    float reach = hit.mType == HitResultType::Tile
+        ? std::sqrt((hit.mPos.x - hit.mStartPos.x) * (hit.mPos.x - hit.mStartPos.x) + (hit.mPos.y - hit.mStartPos.y) * (hit.mPos.y - hit.mStartPos.y)
+                    + (hit.mPos.z - hit.mStartPos.z) * (hit.mPos.z - hit.mStartPos.z)) + .1f
+        : 6.f;
+    for (float t = 0; t <= std::min(reach, 8.f); t += .2f) {
+        BlockPos at{static_cast<int>(std::floor(hit.mStartPos.x + dir.x / length * t)),
+                    static_cast<int>(std::floor(hit.mStartPos.y + dir.y / length * t)),
+                    static_cast<int>(std::floor(hit.mStartPos.z + dir.z / length * t))};
+        for (Block const* b : {&region.getBlock(at), &region.getLiquidBlock(at)})
+            if (b->getMaterial().mLiquid) return true;
+    }
+    return false;
 }
 // L-189: what the primary item's target-specific use can do on the aimed
 // block, asked of the game where it has a check (a planter's canUseOn, a
@@ -134,6 +166,15 @@ std::optional<bool> targetUse(ItemStack const& item, ItemTraits const& traits, L
     auto id = detail::vanillaId(name);
     switch (use) {
     case TargetUse::Planter: {
+        // What it plants, asked whether it may stand on that face: seeds
+        // only on farmland (wheat seeds had no planter component, L-189).
+        if (auto const* crop = PlanterItemComponent::getBlockPlacementContext(item).mBlock) {
+            static constexpr int step[6][3] = {{0, -1, 0}, {0, 1, 0}, {0, 0, -1}, {0, 0, 1}, {-1, 0, 0}, {1, 0, 0}};
+            if (hit.mFacing >= 6) return std::nullopt;
+            auto const& d = step[hit.mFacing];
+            BlockPos place{hit.mBlock.x + d[0], hit.mBlock.y + d[1], hit.mBlock.z + d[2]};
+            return region.getBlock(place).isAir() && crop->mayPlace(region, place, hit.mFacing);
+        }
         // The game keys its components by name; "minecraft:block_placer" is
         // the planter's (gated above, like the copper fields).
         auto* component = native.getComponent(HashedString{"minecraft:block_placer"});
@@ -169,11 +210,12 @@ bool holdsAmmo(LocalPlayer& player, bool fireworksToo) {
         if (ammo(player.getInventory().getItem(slot))) return true;
     return ammo(player.getOffhandSlot());
 }
-// L-189: aimed at nothing, the primary item's air use cannot act now.
-bool airIdle(ItemStack const& item, ItemTraits const& traits, LocalPlayer& player, bool liquidAimed) {
+// L-189: the primary item's use cannot act now. Bows, crossbows and Riptide
+// tridents anywhere; fireworks, empty buckets and bottles aimed at nothing.
+bool idleUse(ItemStack const& item, ItemTraits const& traits, LocalPlayer& player, bool liquidAimed, bool air) {
     auto id = detail::vanillaId(traits.name);
-    if (id == "firework_rocket") return !player.isGliding();
-    if (id == "bucket" || id == "glass_bottle") return !liquidAimed;
+    if (air && id == "firework_rocket") return !player.isGliding();
+    if (air && (id == "bucket" || id == "glass_bottle")) return !liquidAimed;
     if (id == "trident") return EnchantUtils::getEnchantLevel(Enchant::Type::Riptide, item) > 0 && !player.isInWaterOrRain();
     if (id == "bow" || id == "crossbow") {
         if (player.isCreative()) return false;
@@ -193,14 +235,11 @@ bool primaryPasses(ItemStack const& item, LocalPlayer& player, HitResult const& 
         cannotEat = foodBlocked(food->canAlwaysEat(), player.isCreative(),
             static_cast<float>(hunger->mCurrentValue), hunger->mCurrentMaxValue);
     }
-    // A liquid along the aim, in this hit or the latest one (the build hook's
-    // hit may skip liquids).
-    auto client = ll::service::getClientInstance();
-    bool liquidAimed = hit.mIsHitLiquid || (client && client->getLatestHitResult().mIsHitLiquid);
     bool blockTarget = hit.mType == HitResultType::Tile;
+    bool liquidAimed = hit.mIsHitLiquid || liquidAlong(player, hit);
     return primaryPass(traits, blockTarget, cannotEat, plainBlock(player, hit),
                        blockTarget ? targetUse(item, traits, player, hit, liquidAimed) : std::nullopt,
-                       !blockTarget && hit.mType != HitResultType::Entity && airIdle(item, traits, player, liquidAimed));
+                       hit.mType != HitResultType::Entity && idleUse(item, traits, player, liquidAimed, !blockTarget));
 }
 bool secondaryUsable(ItemStack const& item, LocalPlayer& player, HitResult const& hit) {
     auto name = nameOf(item);

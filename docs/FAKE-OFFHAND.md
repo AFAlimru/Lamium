@@ -92,11 +92,12 @@ Maintainer 2026-10-15: include as much as possible, and prefer the game's
 own checks to hand-kept lists. Built, not checked in game. On top of the
 table above, a primary item whose use only acts on certain blocks or in
 certain states passes when the game says it cannot act now; anything
-unread keeps vanilla priority. Block targets still have to be plain
-(solid, no block entity); interactive blocks and entities are decided first.
-- Planters (seeds, carrots, potatoes, nether wart, berries, cocoa beans,
-  any item with the `minecraft:block_placer` component): the component's
-  `canUseOn` for the aimed block and face.
+unread keeps vanilla priority. Block targets still have to be plain (no
+block entity, and solid or a collision that fills the cell, such as
+leaves); interactive blocks and entities are decided first.
+- Planters (seeds, carrots, potatoes, nether wart, berries, cocoa beans):
+  the planted block's `mayPlace` on the aimed face, with air there (wheat
+  seeds report no planter component); else the component's `canUseOn`.
 - Fertilizers (bone meal): the block's `canBeFertilized` with the block
   above.
 - Minecarts: the block's `isRailBlock`.
@@ -105,14 +106,14 @@ unread keeps vanilla priority. Block targets still have to be plain
   that is waxed or oxidized.
 - Shovels (tag), hoes (tag) and shears: short vanilla block lists
   (`shovelChanges`, `hoeChanges`, `shearsChange` in FakeOffhandPlan.h).
-- Empty buckets and glass bottles: a liquid along the aim (this hit or the
-  latest one). Food at confirmed full hunger passes on plain blocks unless
+- Empty buckets and glass bottles: water or lava along the aim within
+  reach (the hit's liquid flag stayed unset aimed at water). Food at confirmed full hunger passes on plain blocks unless
   it plants and its planter could be used there. Dyes, ink sacs and books
   pass on plain blocks (their uses need block entities).
-- Aimed at nothing: a firework while not gliding, an empty bucket or bottle
-  with no liquid aimed at, a Riptide trident out of water and rain, a bow
-  without arrows or an uncharged crossbow without arrows or fireworks
-  (survival; inventory and offhand searched).
+- A Riptide trident out of water and rain, a bow without arrows or an
+  uncharged crossbow without arrows or fireworks (survival; inventory and
+  offhand searched), aimed anywhere; aimed at nothing, a firework while not
+  gliding and an empty bucket or bottle with no liquid along the aim.
 The planter component, the copper fields and the block checks are gated
 as "Fake Offhand (item use targets)" (GAME-UPDATES.md); on an unverified
 game the block rules fall back to the table above.
