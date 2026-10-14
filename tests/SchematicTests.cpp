@@ -581,6 +581,10 @@ void ghostFaces() {
           "next to the camera a shared plane keeps only the face the camera sees");
     check(!dropFace(false, false, true, false, false) && dropFace(false, false, true, true, false)
           && !dropFace(false, false, false, true, false), "a see-through ghost's shared plane is paired only next to the camera");
+    using lamium::schematic::faces::facingToward;
+    check(facingToward(2) == 1 && facingToward(3) == 0 && facingToward(0) == 5 && facingToward(1) == 4 && facingToward(4) == 3
+              && facingToward(5) == 2,
+          "the neighbor below shows its top face, the one to the west its east face, and so on");
     using lamium::schematic::faces::dropBlendedFace;
     check(dropBlendedFace(true, false, false, 0) && dropBlendedFace(true, true, true, 1) && !dropBlendedFace(false, false, false, 0),
           "a see-through ghost's face goes against a solid ghost's face and between two of its kind");

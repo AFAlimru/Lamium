@@ -165,7 +165,13 @@ void cullAgainstGhosts(Tessellator& batch, size_t from, BlockSource& region, ses
             BlockPos np{n.x, n.y, n.z};
             Block const& real = region.getBlock(np);
             // Honey and slime count as opaque full blocks but are see-through.
-            bool realOpaque = real.getBlockType().mIsOpaqueFullBlock && !blended(real.getBlockType().getRenderLayer(real, region, np));
+            bool realBlended = blended(real.getBlockType().getRenderLayer(real, region, np));
+            // A real see-through block whose face covers this side (glass,
+            // ice) writes depth in the same plane: the ghost's face fought it
+            // there, darker or lighter by section and camera position
+            // (L-192, L-193). Its own face shows instead, as for an opaque one.
+            bool realOpaque = (real.getBlockType().mIsOpaqueFullBlock && !realBlended)
+                || (realBlended && real.getBlockType().canProvideFullSupport(real, faces::facingToward(side)));
             // This placement's ghost there, else a touching placement's.
             NeighborGhost near = ghostAt(region, shown, blocks, n);
             bool another = !near.block && others;

@@ -13,6 +13,12 @@ namespace lamium::schematic::faces {
 struct Vertex { float x, y, z; };
 // Sides: 0 west (-x), 1 east (+x), 2 down (-y), 3 up (+y), 4 north (-z), 5 south (+z).
 inline constexpr int offsets[6][3] = {{-1,0,0},{1,0,0},{0,-1,0},{0,1,0},{0,0,-1},{0,0,1}};
+// The game's face (down, up, north, south, west, east) of the neighbor on
+// `side` that looks back at this cell.
+inline constexpr unsigned char facingToward(int side) {
+    constexpr unsigned char back[6] = {5, 4, 1, 0, 3, 2};
+    return side >= 0 && side < 6 ? back[side] : 0;
+}
 // Whether a point (the camera) lies beyond a cell's side, on its neighbor's
 // side of the plane. Of two touching faces near the camera, the one whose
 // cell has the camera beyond that side is the one facing it.
