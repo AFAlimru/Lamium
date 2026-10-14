@@ -59,6 +59,7 @@
 #include <cmath>
 #include <format>
 #include <map>
+#include <set>
 #include <optional>
 #include <tuple>
 #include <variant>
@@ -142,12 +143,17 @@ struct Combined {
     std::uint64_t key = 0;
     Vec3 sortedFrom{};
     Clock::time_point sortedAt{};
+    // The sections in the mesh: they skip their own meshes until the next
+    // sort, so one entering the budget meanwhile is not lost (water ghosts
+    // blinked out by section between sorts) and one leaving is not doubled.
+    std::set<SectionKey> members;
 } combined;
 // Meshes cannot be assigned: cleared member by member.
 void forgetCombined() {
     combined.mesh.reset();
     combined.vertices = 0;
     combined.key = 0;
+    combined.members.clear();
 }
 constexpr std::chrono::milliseconds resortEvery{50};
 constexpr float resortDistance = .25f;
@@ -602,33 +608,30 @@ void drawBlended(BaseActorRenderContext& context) {
     Vec3 const camera = context.mImpl->mCameraPosition;
     auto& region = player->getDimensionBlockSource();
     std::variant<std::monostate, mce::TexturePtr, mce::ClientTexture, mce::ServerTexture> texture{moving->mAtlasTexture.get()};
-    std::vector<std::pair<double, Section const*>> blendedSections;
+    struct Blended { double gap; SectionKey key; Section const* section; };
+    std::vector<Blended> blendedSections;
     for (auto const& [sectionKey, section] : sections) {
         if (!section.blend || section.blend->positions.empty()) continue;
         auto gap = [](double v, double low) { return std::max({low - v, 0., v - (low + sectionSize)}); };
         double gx = gap(camera.x, section.origin.x), gy = gap(camera.y, section.origin.y), gz = gap(camera.z, section.origin.z);
-        blendedSections.push_back({gx * gx + gy * gy + gz * gz, &section});
+        blendedSections.push_back({gx * gx + gy * gy + gz * gz, sectionKey, &section});
     }
-    std::stable_sort(blendedSections.begin(), blendedSections.end(), [](auto const& a, auto const& b) { return a.first < b.first; });
+    std::stable_sort(blendedSections.begin(), blendedSections.end(), [](auto const& a, auto const& b) { return a.gap < b.gap; });
     std::vector<BlendQuads const*> parts;
-    std::vector<std::pair<double, Section const*>> far;
+    std::vector<SectionKey> partKeys;
     std::uint64_t key = 1469598103934665603ull;
     size_t sorted = 0;
-    for (auto const& [gap, section] : blendedSections) {
-        size_t quads = section->blend->positions.size() / 4;
-        if ((parts.empty() || sorted + quads <= sortedBlendedQuads) || !section->blendMesh) {
-            parts.push_back(section->blend.get());
+    for (auto const& b : blendedSections) {
+        size_t quads = b.section->blend->positions.size() / 4;
+        if (parts.empty() || sorted + quads <= sortedBlendedQuads || !b.section->blendMesh) {
+            parts.push_back(b.section->blend.get());
+            partKeys.push_back(b.key);
             sorted += quads;
-            key = (key ^ reinterpret_cast<std::uintptr_t>(section->blend.get())) * 1099511628211ull;
-            continue;
+            key = (key ^ reinterpret_cast<std::uintptr_t>(b.section->blend.get())) * 1099511628211ull;
         }
-        double cx = section->origin.x + sectionSize / 2. - camera.x, cy = section->origin.y + sectionSize / 2. - camera.y,
-               cz = section->origin.z + sectionSize / 2. - camera.z;
-        far.push_back({cx * cx + cy * cy + cz * cz, section});
     }
-    std::sort(far.begin(), far.end(), [](auto const& a, auto const& b) { return a.first > b.first; });
     if (parts.empty()) forgetCombined();
-    if (parts.empty() && far.empty()) return;
+    if (blendedSections.empty()) return;
     auto now = Clock::now();
     float moved = std::max({std::abs(camera.x - combined.sortedFrom.x), std::abs(camera.y - combined.sortedFrom.y),
                             std::abs(camera.z - combined.sortedFrom.z)});
@@ -706,6 +709,7 @@ void drawBlended(BaseActorRenderContext& context) {
         combined.vertices = static_cast<std::uint32_t>(quads.size() * 4);
         combined.mesh.emplace(batch.end(Tessellator::UploadMode::Buffered, "Lamium schematic blended ghosts", SupplementaryFieldAutoGenerationMode{}));
         combined.key = key;
+        combined.members = {partKeys.begin(), partKeys.end()};
         combined.sortedFrom = camera;
         combined.sortedAt = now;
 #ifdef LAMIUM_SCHEMATIC_PERF_TRACE
@@ -722,6 +726,15 @@ void drawBlended(BaseActorRenderContext& context) {
     full.block->mValue = 15;
     ActorShaderManager::setupShaderParameters(screen, region, full, glm::vec4{1, 1, 1, 1}, 1.f, true, *lightTexture, Vec2{1, 1},
         Vec4{0, 0, 1, 1});
+    // Sections not in the sorted mesh, far to near by their centers.
+    std::vector<std::pair<double, Section const*>> far;
+    for (auto const& b : blendedSections) {
+        if (combined.members.contains(b.key) || !b.section->blendMesh) continue;
+        double cx = b.section->origin.x + sectionSize / 2. - camera.x, cy = b.section->origin.y + sectionSize / 2. - camera.y,
+               cz = b.section->origin.z + sectionSize / 2. - camera.z;
+        far.push_back({cx * cx + cy * cy + cz * cz, b.section});
+    }
+    std::sort(far.begin(), far.end(), [](auto const& a, auto const& b) { return a.first > b.first; });
     for (auto const& [distance, section] : far) {
         glm::vec3 at{static_cast<float>(section->origin.x - camera.x), static_cast<float>(section->origin.y - camera.y),
                      static_cast<float>(section->origin.z - camera.z)};
@@ -729,7 +742,7 @@ void drawBlended(BaseActorRenderContext& context) {
             section->blendMesh->renderMesh(screen, material, texture, 0, section->blendVertices, OffscreenCaptureDescription{}, nullptr);
         });
     }
-    if (parts.empty() || !combined.mesh || !combined.vertices) return;
+    if (!combined.mesh || !combined.vertices) return;
     glm::vec3 offset{static_cast<float>(combined.anchor.x - camera.x), static_cast<float>(combined.anchor.y - camera.y),
                      static_cast<float>(combined.anchor.z - camera.z)};
     translated(screen, offset, [&] {
