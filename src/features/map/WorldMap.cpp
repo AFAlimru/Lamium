@@ -701,7 +701,8 @@ void drawTiles(MinecraftUIRenderContext& context, glm::vec2 size, double pixelsP
                 double oldest = INFINITY;
                 for (int i = 0; i < slotCount; ++i) {
                     auto const& s = slots[static_cast<size_t>(i)];
-                    if (usedNow[static_cast<size_t>(i)]) continue;
+                    // Shown this frame, or still waiting for its image to land.
+                    if (usedNow[static_cast<size_t>(i)] || (s.uploaded && tileFrame < s.readyAt)) continue;
                     double age = s.tile ? s.used : -INFINITY;
                     if (age < oldest) { oldest = age; index = i; }
                 }
@@ -713,6 +714,9 @@ void drawTiles(MinecraftUIRenderContext& context, glm::vec2 size, double pixelsP
                     bool moved = !slot.tile || slot.tile->first != layer || slot.tile->second != tile;
                     if (upload(client, slotLocation(index), *image->pixels, regionBlocks, slot.uploaded)) {
                         if (moved) slot.readyAt = tileFrame + 3;
+                        // Newest now, so it is not taken again before it shows.
+                        slot.used = time;
+                        usedNow[static_cast<size_t>(index)] = true;
                         slot.uploaded = true;
                         slot.tile = std::pair{layer, tile};
                         slot.version = image->version;
