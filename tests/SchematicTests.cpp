@@ -828,6 +828,9 @@ void liquidChecks() {
           "air with water in the second layer is judged against the water");
     auto row = liquidDifference(true, false);
     check(row.key == "waterlogged" && row.expected == "true" && row.actual == "false", "the waterlogging row names both sides");
+    auto face = faceDifference(2, 5);
+    check(face.key == "facing" && face.expected == "north" && face.actual == "east" && faceDifference(9, 0).expected == "9",
+          "a shulker box's opening row names both faces");
 }
 void schematicTests() {
     otherHalves();

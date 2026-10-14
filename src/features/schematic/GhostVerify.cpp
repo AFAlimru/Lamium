@@ -6,6 +6,10 @@
 #include "mc/world/level/BlockSource.h"
 #include "mc/world/level/block/Block.h"
 #include "mc/world/level/block/BlockType.h"
+#include "mc/world/level/block/actor/BlockActor.h"
+#include "mc/world/level/block/actor/BlockActorType.h"
+#include "mc/world/level/block/actor/ShulkerBoxBlockActor.h"
+#include "app/Versions.h"
 #include "mc/world/level/chunk/ChunkState.h"
 #include "mc/world/level/chunk/LevelChunk.h"
 #include "mc/world/level/material/Material.h"
@@ -38,7 +42,26 @@ struct Cell {
     // The second layer: the file's liquid and the world's extra block (null: none).
     Block const* expectedLiquid = nullptr;
     Block const* actualLiquid = nullptr;
+    // A shulker box's opening, kept in block entity data (L-179): the file's,
+    // turned with the placement, and the world's; -1 when not compared.
+    int expectedFace = -1, actualFace = -1;
 };
+// The file's opening for a shulker box cell, in world terms; -1 for others.
+int expectedShulkerFace(Structure const& structure, std::int32_t cell, Placement const& placement) {
+    auto found = structure.blockEntities.find(cell);
+    if (found == structure.blockEntities.end()) return -1;
+    auto const* id = found->second.find("id");
+    auto const* facing = found->second.find("facing");
+    if (!id || !id->as<std::string>() || *id->as<std::string>() != "ShulkerBox" || !facing || !facing->as<std::int8_t>()) return -1;
+    return toWorldFace(*facing->as<std::int8_t>(), placement);
+}
+// The world's opening; -1 when it cannot be read (no block actor yet).
+int actualShulkerFace(BlockSource& region, BlockPos const& pos) {
+    if (!versionSensitiveAllowed("Schematic check (shulker box facing)")) return -1;
+    auto const* actor = static_cast<BlockSource const&>(region).getBlockEntity(pos);
+    if (!actor || actor->getType() != BlockActorType::ShulkerBox) return -1;
+    return static_cast<ShulkerBoxBlockActor const*>(actor)->mFacing;
+}
 struct Scan {
     std::uint64_t revision = 0;
     std::string key; // drawKey of the placement being checked
@@ -165,11 +188,18 @@ Cell classifyCell(BlockSource& region, session::Shown const& shown, Resolved con
     if (Block const& extra = region.getExtraBlock(pos); !extra.isAir()) c.actualLiquid = &extra;
     // Air with water in the second layer is judged against the water.
     Block const* against = c.air ? c.expectedLiquid : c.expected;
+    bool same = against && actual == against;
+    if (same && !c.air) {
+        c.expectedFace = expectedShulkerFace(structure, static_cast<std::int32_t>(cellIndex), placement.placement);
+        if (c.expectedFace >= 0) c.actualFace = actualShulkerFace(region, pos);
+        // Unreadable is not a mistake: the block alone decides, as before.
+        if (c.actualFace >= 0 && c.actualFace != c.expectedFace) same = false;
+    }
     c.state = classifyReading({.placeholder = actual->getMaterial().mType == SharedTypes::v1_26_20::MaterialType::ClientRequestPlaceholder,
                                .expectsAir = c.air,
                                .expectsLiquid = c.expectedLiquid != nullptr,
                                .known = c.expected != nullptr,
-                               .same = against && actual == against,
+                               .same = same,
                                .sameType = against && &actual->getBlockType() == &against->getBlockType(),
                                .actualAir = actual->isAir(),
                                .liquidsMatch = c.expectedLiquid == c.actualLiquid},
@@ -190,6 +220,8 @@ Mismatch mismatchFor(Cell const& c, Resolved const& blocks) {
         m.actualName = info.name;
         if (c.state == CellState::State && c.expected) {
             m.states = stateDifferences(blockStates(*c.expected), blockStates(*c.actual));
+            if (c.expectedFace >= 0 && c.actualFace >= 0 && c.expectedFace != c.actualFace)
+                m.states.push_back(faceDifference(c.expectedFace, c.actualFace));
             if (m.states.empty() && c.expectedLiquid != c.actualLiquid)
                 m.states.push_back(liquidDifference(c.expectedLiquid, c.actualLiquid));
             m.identifier = c.expected->getTypeName();

@@ -52,6 +52,7 @@ use. A new gate gets its feature there as well.
 | Hide effects (portal screen) | `HideEffects.cpp` `PortalScreenVisibility` | the purple Nether portal screen | the other hide effects |
 | Hide nausea (overlay mesh) | `HideEffects.cpp` nausea hooks | nausea swirl drawn | the effect icon and the rest |
 | Schematic ghost blocks (block tessellation) | `GhostRenderer.cpp` | no ghost blocks or block actors, no in-world mistake outlines (built with the sections) | frames, the Check list, materials, saving, map marks |
+| Schematic check (shulker box facing) | `GhostVerify.cpp` (`ShulkerBoxBlockActor::mFacing`) | a shulker box judged by its block alone | the rest of the check |
 | Schematic entity models (actor renderers) | `GhostMarks.cpp` | missing entities as dashed frames | everything else |
 | Game language (native apply) | `GameLanguage.cpp` | no in-world language list; vanilla title-screen Settings > Language | everything else |
 | Skip server resource packs (pack stack packet) | `ServerPacks.cpp` | server packs applied as vanilla | the setting and key (no effect) |
