@@ -586,7 +586,9 @@ exactly one switch, one mode and one set of keys:
 - Ctrl + wheel moves every stack of the hovered kind, Ctrl + Shift + wheel
   everything, in the plain wheel's direction. Alt + left click and Alt +
   Shift + left click do the same from the clicked slot's side to the other.
-  "Everything" from the player inventory leaves the hotbar.
+  "Everything" from the player inventory moves one section: the hotbar
+  when a hotbar slot is hovered, otherwise the main inventory without the
+  hotbar (maintainer 2026-10-15, after the batched build's check).
 - Shift + right drag moves all but one item from each passed slot.
 - Transfers work in every screen that holds items beside the player
   inventory. Slots with roles get only what they accept; outputs are only

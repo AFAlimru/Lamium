@@ -700,7 +700,10 @@ waited for its answer. A trace of a resource pack's bulk move (VALIDATION-LOG
 frame and answered in one response. Requests now go out together, up to 64
 per tick, and are confirmed once (DESIGN "Inventory transfer"). Check in
 game before releasing 0.2.2: chest everything both ways, matching (coal),
-hotbar kept, Shift + right drag, a furnace and a brewing stand; a server.
+hotbar kept, Shift + right drag, a furnace and a brewing stand: passed
+locally on `7586995` (maintainer); a server is not checked. Follow-up the same
+day: "everything" with a hotbar slot hovered moves the hotbar alone, and
+in the inventory screen the whole hotbar side (not checked yet).
 Kind: Design for the remaining parts. Requested 2026-10-12; extends
 L-41/L-103 (DESIGN "Inventory transfer"). The selected 0.2.2 part is done
 and locally smoke-tested on c8c1f1b (2026-10-15), unreleased; its contract

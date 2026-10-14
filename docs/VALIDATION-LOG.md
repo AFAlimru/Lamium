@@ -12,6 +12,14 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Batched Item Transfer pass (2026-10-15, L-169)
+
+Maintainer report on `7586995` (DLL `d93cfd79...a376`), local, Quick
+Container off: everything both ways in a large chest, matching coal moves
+(wheel and Alt click), hotbar kept, Shift + right drag leaving one, furnace
+and brewing stand routing all behaved as expected. Not checked: a server.
+The maintainer then asked for the same "everything" move on the hotbar.
+
 ## Bulk moves of a resource pack traced (2026-10-15, L-169)
 
 Trace build `917496b` (`transfer_trace=y`), DLL SHA-256

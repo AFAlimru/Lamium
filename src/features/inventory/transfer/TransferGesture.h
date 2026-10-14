@@ -118,11 +118,16 @@ inline std::optional<Side> collectionSide(std::string_view name, int index, int 
 }
 
 struct SweepSource { bool occupied, matches, hotbar; };
+// "Everything" moves one section of the player side: the hotbar when a
+// hotbar slot is hovered, otherwise the main inventory (maintainer
+// 2026-10-15: the hotbar needs the same move, but not together with the rest).
 inline std::vector<int> sweepOrder(std::span<SweepSource const> sources, bool all, int hovered = -1) {
     std::vector<int> order;
+    bool const hotbar = hovered >= 0 && hovered < static_cast<int>(sources.size())
+        && sources[static_cast<size_t>(hovered)].hotbar;
     auto eligible = [&](int i) {
         auto const& source = sources[static_cast<size_t>(i)];
-        return source.occupied && (all ? !source.hotbar : source.matches);
+        return source.occupied && (all ? source.hotbar == hotbar : source.matches);
     };
     for (int i = static_cast<int>(sources.size()) - 1; i >= 0; --i)
         if (i != hovered && eligible(i)) order.push_back(i);

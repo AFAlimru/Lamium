@@ -336,6 +336,8 @@ void enqueueBulk(ContainerScreenController& controller, Request const& request) 
     auto const sourceSide = transfer::wheel(request.gesture)
         ? transfer::otherSide(transfer::wheelDestination(request.wheelDirection)) : request.slot.side;
     auto candidates = sideSlots(controller, sourceSide, request.slot.generation);
+    // In the inventory screen the hotbar is a whole side of its own.
+    bool const sections = sourceSide == Side::Player && !inventoryScreen(manager);
     std::vector<transfer::SweepSource> sources;
     int hovered = -1;
     for (size_t i = 0; i < candidates.size(); ++i) {
@@ -343,7 +345,7 @@ void enqueueBulk(ContainerScreenController& controller, Request const& request) 
         auto const& stack = manager.getItemStack(candidate.collection, candidate.index);
         bool const occupied = !stack.isNull() && stack.mCount > 0;
         sources.push_back({occupied, occupied && !reference.isNull() && stack.matchesItem(reference),
-            sourceSide == Side::Player && transfer::hotbarSlot(candidate.collection, candidate.index, inventorySize(manager))});
+            sections && transfer::hotbarSlot(candidate.collection, candidate.index, inventorySize(manager))});
         if (candidate == request.slot) hovered = static_cast<int>(i);
     }
     auto order = transfer::sweepOrder(sources, all, hovered);

@@ -12,7 +12,10 @@ operations and W/S moves remain out of scope.
 - Ctrl + wheel transfers all matching stacks; Ctrl + Shift + wheel transfers
   everything in the wheel's direction. Alt + left click and Alt + Shift +
   left click do the corresponding operation from the clicked side.
-  Everything-from-player retains the hotbar, including when hovered.
+  Everything-from-player moves the hovered section: the hotbar alone when a
+  hotbar slot is hovered, otherwise the main inventory without the hotbar
+  (changed 2026-10-15 after the batched build; in the inventory screen the
+  hotbar is a whole side).
   Everything can start over an empty real slot; matching needs an item.
 - Shift + right drag leaves one in every passed slot. Each new gesture has
   its own saved child switch, default on; an off gesture passes through to

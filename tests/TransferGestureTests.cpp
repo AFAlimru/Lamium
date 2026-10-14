@@ -47,9 +47,10 @@ void transferGestureTests() {
                                     {true, false, false}, {true, true, false}, {true, true, false}}};
     check(sweepOrder(sweep, false, 5) == std::vector<int>{4, 1, 0, 5},
         "matching sweep includes hotbar, skips other kinds and empties, and leaves hovered source last");
-    check(sweepOrder(sweep, true, 5) == std::vector<int>{4, 3, 1, 5}
-        && sweepOrder(sweep, true, 0) == std::vector<int>{5, 4, 3, 1},
-        "everything sweep retains hotbar even when it is hovered and includes other kinds");
+    check(sweepOrder(sweep, true, 5) == std::vector<int>{4, 3, 1, 5} && sweepOrder(sweep, true) == std::vector<int>{5, 4, 3, 1},
+        "everything from the main inventory leaves the hotbar and includes other kinds");
+    check(sweepOrder(sweep, true, 0) == std::vector<int>{0},
+        "everything with a hotbar slot hovered moves the hotbar only");
     check(hotbarSlot("inventory_items", 8, 36) && !hotbarSlot("inventory_items", 9, 36)
         && !hotbarSlot("inventory_items", 8, 27) && hotbarSlot("combined_hotbar_and_inventory_items", 8, 0)
         && hotbarSlot("hotbar_items", 0, 27), "hotbar detection works for combined and split inventories");
