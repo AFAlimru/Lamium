@@ -513,7 +513,11 @@ chunk, or draw the faces with a material that does not write depth.
 ## Feature work and research
 
 ### L-191 Hide the hand and HUD in FreeCamera, and what can be operated there
-Kind: Design. Maintainer idea 2026-10-14; no implementation or release chosen.
+Kind: Feature (was Design). Maintainer idea 2026-10-14.
+Decided 2026-10-15 (maintainer, as proposed): a FreeCamera child setting
+"Hide in FreeCamera": nothing / hand / hand and hotbar / whole HUD (as F1);
+default hand. What FreeCamera lets the player do stays blocked as today;
+allowing actions is L-25, later.
 In FreeCamera almost nothing can be operated, yet the first-person hand and
 held item and the hotbar are still drawn. Consider hiding them while
 FreeCamera is on (option, default to decide), together with the question of
@@ -706,6 +710,50 @@ hopper; the brewing stand next.
 Open (maintainer): defaults per gesture (agent: on, except "drop every
 matching item" off), hotbar handling in "everything" (agent: hotbar kept),
 and whether "fill existing stacks only" is wanted as well.
+
+Update 2026-10-15 (maintainer): L-154 is folded in here and the work goes to
+another agent; this entry is its brief. In scope for the next release:
+1. Matching moves and all-but-one, as decided on 2026-10-12 (Ctrl + wheel,
+   Ctrl + Shift + wheel, the Alt clicks, Shift + click on an empty slot,
+   Shift + right drag). On 2026-10-15 the maintainer also agreed to "move
+   every item of the hovered kind" and "move the stack but leave one", which
+   the gestures above already cover. The agent's 2026-10-15 alternatives,
+   Shift + double click (every item of the kind) and Ctrl + Shift + click
+   (the stack but one), are **not decided**: ask whether they are wanted as
+   extra bindings before adding them.
+2. More screens and slot roles: furnace, blast furnace, smoker, dispenser,
+   dropper and hopper first, then the brewing stand; check crafter, beacon
+   and shulker box. Route by slot role (fuel, input, output; bottles,
+   ingredient, blaze powder) as proposed above, taking only from outputs.
+3. Drop gestures as decided, each with its own switch ("drop every matching
+   item" default off unless the maintainer says otherwise).
+Still open for the maintainer: the defaults per gesture, the hotbar in
+"everything", "fill existing stacks only", and the two 2026-10-15
+alternatives.
+
+Handoff for the implementing agent (read AGENTS.md first; strong model):
+- Current behaviour and rules: DESIGN.md "Inventory transfer" (the four
+  gestures, one request at a time, stop conditions); L-41 and L-103 in
+  BACKLOG-DONE.md; VALIDATION.md rows for Inventory transfer.
+- Code: `src/features/inventory/transfer/TransferGesture.h` (pure gesture
+  and side rules, tests in `tests/TransferGestureTests.cpp`);
+  `src/features/inventory/game/TransferSession.cpp` (requests and their
+  confirmation); `src/features/inventory/game/ScreenTracker.cpp` (which
+  screen is open; only controllers with `_isContainerScreen()` are kept,
+  which is why furnaces, brewing stands, hoppers and droppers are missing);
+  `InventoryMove.cpp` and `RequestTracker.cpp` for the move requests.
+- Keep pure planning (which slots, in which order, by slot role) in headers
+  with tests; game glue in .cpp. Never touch inventories from the input
+  event (queue to the client thread, AGENTS rule 2); confirm each move from
+  authoritative state, not from the request (rule 9).
+- New settings follow AGENTS rule 4 (Settings, Options, SettingsStore,
+  SettingsRows, three languages); a new hook gets a GAME-UPDATES.md entry.
+- Research before building: whether vanilla's take-all / place-all /
+  auto-place handlers (`_handleTakeAll`, `_handlePlaceAll`,
+  `_handleAutoPlace`) can be called and what they move; whether Alt reaches
+  the game in screens; what the drop key does in screens today.
+- End with a short in-game checklist per screen and gesture (local and a
+  server), as AGENTS.md asks.
 
 ### L-168 Trade finder: reroll a villager until a wanted trade appears
 Kind: Design, then Research (strong model). Requested by the maintainer
@@ -1653,6 +1701,9 @@ Model event sequences in pure logic before touching gameplay input; menus
 and focus changes must not leave stale held inputs. Not implemented.
 
 ### L-154 Additional inventory transfer gestures
+Merged into L-169 on 2026-10-15 (maintainer): the matching and all-but-one
+moves, the drop gestures and more screens are specified there; the work goes
+to another agent. Earlier notes kept below.
 Kind: Design; choose a concrete gesture before implementation. Bulk
 transfer and more screens moved to L-169 (2026-10-12).
 Candidates: matching-item bulk transfer, leaving one item behind, modified
