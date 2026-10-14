@@ -12,6 +12,18 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-193 border log and piston state log (2026-10-14)
+
+Maintainer run on `59ee8da` (1.26.51.01 without LIP), log read here:
+- Piston ghosts: `file 1/1 state 2/2, loaded 0/0 state 2/2` for extended
+  ones: the game's load leaves progress at 0, so the restore in `46ff471`
+  is what draws them extended.
+- L-193: four lines, all "border face kept at -87 84 -60 side 0: neighbor
+  white_stained_glass sides 63 reaches true blended true/true near camera
+  true". The faces were kept by the near-camera pairing, not missed as
+  neighbours. Fix in the next build: same-kind see-through pairs drop both
+  faces even next to the camera.
+
 ## L-182 and L-178 preview fixes pass; border flicker placements (2026-10-14)
 
 Maintainer report on `7ba2d82`, DLL SHA-256

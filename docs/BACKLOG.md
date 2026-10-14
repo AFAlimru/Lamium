@@ -474,10 +474,11 @@ whether walking below and back above the floor flips which sections are dark.
 Kind: Bug. Split from L-178 on 2026-10-14.
 Status: open. `pistons` (8x3x7 at -95 84 -60) and `shulkers` (5x5x5 at -87 84
 -63) touch across x = -87; their white glass ghosts at y 84, z -60 and -59
-face each other and flicker. `17d7201` should drop both faces (touching
-placements count as neighbours) but the flicker remains. The next build
-logs the inputs of each kept face ("border face kept at ..."); no line
-means the other placement's ghost was not found there.
+face each other and flicker. Cause found from the log (VALIDATION-LOG):
+next to the camera the pairing rule keeps one face of a shared plane, and
+the two placements' sections, built with the camera on different sides,
+each kept theirs. Fix built 2026-10-14: same-kind see-through pairs drop
+both faces even next to the camera. Not checked in game.
 
 ## Feature work and research
 
