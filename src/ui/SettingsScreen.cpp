@@ -1480,6 +1480,8 @@ void start() {
         }
         // Let key-up through so keys pressed before opening cannot stick.
         if (!event.isDown()) return;
+        // F11 toggles the window's fullscreen as during play; no Lamium screen uses it.
+        if (event.keyCode() == 0x7a) return;
         // One held Esc must not finish an edit and then close the settings.
         if (repeat && event.keyCode() == 0x1b) { event.cancel(); return; }
         if (language_view::opened()) {
