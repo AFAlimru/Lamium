@@ -12,6 +12,33 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Settings screen follow-ups after the L-197 review (2026-10-15)
+
+Maintainer passed each supplied check on these builds, same local
+environment (Minecraft 1.26.51.01, LeviLamina Client 26.51.7, Windows x64,
+ordinary release build, traces off); deployed DLLs matched the builds.
+- `59e7252` (DLL `435E4F2A921C2E21AB3FB7986FA6A212D1F927357214CCFBD2ABCDBD24E099F0`):
+  a lone left/right click bound to the world map no longer closes it; a side
+  button still does. At a tiny window the warning stayed white only before
+  expanding, and the expanded footer did not scroll with the wheel (both
+  fixed next).
+- `d0924e5` (DLL `BAB997A344DA56CED0C20DD73EFCF4969CF8459D7177B2158F607AC80EDB71D9`):
+  warning color in the one-line footer, wheel scrolling over the footer,
+  numeric rows with help and range in white and controls in the faint hint
+  line, and F11 toggling fullscreen while the settings screen is open.
+- `21220bd` (DLL `2B8E29E285F1E8C60ABBADE22BA8D18E6C659F5E22F89C676FAF6FD22E6AAC71`):
+  a maximized 1080p window and a very small one both draw the sidebar
+  layout shrunk instead of tabs; clicks, wheel and search typing follow the
+  drawn positions; list and footer scrollbars drag; Schematics preview and
+  item icons stay inside their frames when shrunk.
+- `bc078fa` (DLL `6D6D002F753CA94F507987D254A10B69136BAD88C58571E621F9D87FB5C2A9BB`):
+  no Read full description button; two description lines; at a tiny window
+  an overflowing description shows a scrollbar and the wheel hint, scrolls
+  without moving the list, and restarts at the top on another row.
+Not seen: English and Simplified Chinese layouts, docked tool views while
+shrunk, HUD editor/world map unaffected by the shrink, IME caret position
+in shrunk text fields.
+
 ## In-place description expansion (2026-10-15, L-197)
 
 Maintainer checked the in-place footer expansion on `b2885fb` and reported

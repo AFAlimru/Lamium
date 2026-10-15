@@ -34,7 +34,7 @@ at very small layouts, and a fixed footer keeps the list from changing
 height. Numeric descriptions show their own help and range; their controls
 replace the footer hint while the row is selected. Pure tests cover the
 footer geometry, scrollbar reach and UTF-8 wrapping. The scrolling footer
-needs a game check.
+passed locally on `bc078fa`.
 
 The settings foundation is integrated and has been exercised in Minecraft:
 
