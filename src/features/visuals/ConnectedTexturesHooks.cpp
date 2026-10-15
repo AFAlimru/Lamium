@@ -27,7 +27,11 @@ namespace lamium::visuals::connected {
 namespace {
 // Read by chunk-build threads; written once per coordinator tick.
 std::atomic<bool> active{false};
-bool supported = false, installed = false;
+bool installed = false;
+bool drawingEnabled() {
+    return active.load(std::memory_order_relaxed)
+        && capabilities::registry().status(capabilities::Id::ConnectedTextures).available();
+}
 // The connecting block being tessellated on this (chunk-build) thread.
 struct Current {
     Rule rule;
@@ -39,7 +43,8 @@ thread_local Current current;
 
 bool wanted() {
     auto& runtime = Runtime::instance();
-    return supported && runtime.enabled() && runtime.snapshot()->visuals.connectedTextures;
+    return capabilities::registry().status(capabilities::Id::ConnectedTextures).available()
+        && runtime.enabled() && runtime.snapshot()->visuals.connectedTextures;
 }
 bool sameAt(Block const& block, Offset offset) {
     BlockPos at{current.pos.x + offset.x, current.pos.y + offset.y, current.pos.z + offset.z};
@@ -68,7 +73,7 @@ LL_TYPE_INSTANCE_HOOK(ConnectedBlock, ll::memory::HookPriority::Normal, BlockTes
     &BlockTessellator::tessellateBlockInWorld, bool, Tessellator& tessellator, Block const& block, BlockPos const& pos,
     std::bitset<6> const faces, AirAndSimpleBlockBits const* simple) {
     std::optional<Rule> rule;
-    try { if (active.load(std::memory_order_relaxed) && mRegion) rule = ruleFor(block.getTypeName()); } catch (...) {}
+    try { if (drawingEnabled() && mRegion) rule = ruleFor(block.getTypeName()); } catch (...) {}
     if (!rule) return origin(tessellator, block, pos, faces, simple);
     auto saved = current;
     current = {*rule, &block, pos, mRegion};
@@ -178,7 +183,7 @@ LL_TYPE_INSTANCE_HOOK(ConnectedPane, ll::memory::HookPriority::Normal, BlockTess
     &BlockTessellator::tessellateDoubleThinFenceInWorld, bool, Tessellator& tessellator, Block const& block,
     BlockPos const& p, bool singleSide) {
     bool connecting = false;
-    try { connecting = active.load(std::memory_order_relaxed) && mRegion && connectsPane(block.getTypeName()); } catch (...) {}
+    try { connecting = drawingEnabled() && mRegion && connectsPane(block.getTypeName()); } catch (...) {}
     if (!connecting) return origin(tessellator, block, p, singleSide);
     auto saved = pane;
     pane = {&block, p, mRegion};
@@ -212,7 +217,7 @@ LL_TYPE_INSTANCE_HOOK(ConnectedRebuild, ll::memory::HookPriority::Normal, Render
     &RenderChunkCoordinator::tick, void) {
     origin();
     try {
-        if (sprites::refresh()) ++spriteVersion;
+        if (capabilities::registry().status(capabilities::Id::ConnectedTextures).available() && sprites::refresh()) ++spriteVersion;
         bool want = wanted();
         active = want;
         auto [state, first] = built.try_emplace(this, Built{false, spriteVersion});
@@ -222,7 +227,7 @@ LL_TYPE_INSTANCE_HOOK(ConnectedRebuild, ll::memory::HookPriority::Normal, Render
         }
     } catch (...) {}
 }
-struct Hook { int (*install)(bool); bool (*remove)(bool); };
+struct Hook { int (*install)(bool); bool (*remove)(bool); bool installed = false; };
 Hook hooks[] = {{ConnectedBlock::hook, ConnectedBlock::unhook}, {ConnectedDown::hook, ConnectedDown::unhook},
     {ConnectedUp::hook, ConnectedUp::unhook}, {ConnectedNorth::hook, ConnectedNorth::unhook},
     {ConnectedSouth::hook, ConnectedSouth::unhook}, {ConnectedWest::hook, ConnectedWest::unhook},
@@ -233,32 +238,42 @@ bool start() {
     if (installed) return true;
     // Chunk meshes and the terrain atlas are version-sensitive: on an
     // unverified game, stay vanilla.
-    supported = versionSensitiveAllowed("Connected Textures (chunk mesh vertices)");
-    if (!supported) return true;
+    capabilities::begin(capabilities::Id::ConnectedTextures);
+    if (capabilities::registry().status(capabilities::Id::ConnectedTextures).compatibility != capabilities::Reason::None) {
+        versionSensitiveAllowed(capabilities::Id::ConnectedTextures); return true;
+    }
     // Chunks built on joining a world already follow the switch.
     try { active = Runtime::instance().snapshot()->visuals.connectedTextures; } catch (...) {}
     // Sprites are added whenever the game is verified, so the switch only
     // rebuilds chunks; they must be in place before the terrain atlas is built.
     if (!sprites::start()) {
-        supported = false;
+        capabilities::fail(capabilities::Id::ConnectedTextures,capabilities::Reason::OperationFailed,"terrain atlas initialization");
         return false;
     }
-    for (auto& hook : hooks)
+    for (auto& hook : hooks) {
+        if (hook.installed) continue;
         if (hook.install(true) != 0) {
-            for (auto& undo : hooks) undo.remove(true);
-            sprites::stop();
-            supported = false;
+            capabilities::hooks(capabilities::Id::ConnectedTextures,false);
+            stop();
             return false;
         }
+        hook.installed = true;
+    }
     installed = true;
+    capabilities::ready(capabilities::Id::ConnectedTextures);
     return true;
 }
 void stop() {
-    if (!installed) return;
+    capabilities::stop(capabilities::Id::ConnectedTextures);
     active = false;
-    for (auto& hook : hooks) hook.remove(true);
+    bool removed = true;
+    for (auto& hook : hooks) if (hook.installed) {
+        if (hook.remove(true)) hook.installed = false;
+        else removed = false;
+    }
+    if (!removed) capabilities::fail(capabilities::Id::ConnectedTextures,capabilities::Reason::RemovalFailed);
     sprites::stop();
     built.clear();
-    installed = false;
+    installed = !removed;
 }
 }

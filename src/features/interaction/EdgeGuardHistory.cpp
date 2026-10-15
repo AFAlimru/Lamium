@@ -17,12 +17,14 @@
 namespace lamium::interaction::edgeGuard::history {
 namespace {
 std::uintptr_t captureTarget = 0;
-bool installed = false, unavailable = false, reported = false;
+bool installed = false, reported = false;
+constexpr auto capability = capabilities::Id::EdgeGuardReplay;
 
 bool enabled() {
     auto& runtime = Runtime::instance();
     return onClientThread() && runtime.enabled() && runtime.snapshot()->interaction.edgeGuard
-        && versionSensitiveAllowed("Edge Guard (movement request)");
+        && versionSensitiveAllowed(capabilities::Id::EdgeGuardMovement)
+        && capabilities::registry().status(capability).canProbe();
 }
 bool readable(void const* address, size_t length, bool executable, bool game) {
     MEMORY_BASIC_INFORMATION page{};
@@ -48,7 +50,7 @@ LL_TYPE_INSTANCE_HOOK(EdgeGuardCaptureHook, ll::memory::HookPriority::Low, IRepl
     captureTarget, void, MoveInputComponent const& input) {
     std::optional<MoveInputComponent> replacement;
     try {
-        if (!unavailable && enabled()) {
+        if (capabilities::registry().status(capability).available() && enabled()) {
             auto client = ll::service::getClientInstance();
             auto* player = client ? client->getLocalPlayer() : nullptr;
             auto own = player ? player->getEntityContext().tryGetComponent<MoveInputComponent>() : nullptr;
@@ -102,7 +104,7 @@ std::optional<std::array<std::uintptr_t, 3>> inputTargets(IReplayableActorInput&
 }
 void observe() noexcept {
     try {
-        if (unavailable || !enabled()) return;
+        if (!enabled()) return;
         auto client = ll::service::getClientInstance();
         auto* player = client ? client->getLocalPlayer() : nullptr;
         auto replay = player ? player->getEntityContext().tryGetComponent<ReplayStateComponent>() : nullptr;
@@ -110,24 +112,29 @@ void observe() noexcept {
         if (!input) return;
         auto targets = inputTargets(*input);
         if (!targets || (installed && captureTarget != (*targets)[0])) {
-            unavailable = true;
+            capabilities::fail(capability,targets ? capabilities::Reason::TargetChanged : capabilities::Reason::NativeContract,
+                "unverified or changed input target");
             Runtime::instance().self().getLogger().warn("Edge Guard: replay capture left vanilla (unverified or changed input target)");
             return;
         }
         if (installed) return;
         captureTarget = (*targets)[0];
         if (EdgeGuardCaptureHook::hook(true) != 0) {
-            unavailable = true;
+            capabilities::hooks(capability,false);
             Runtime::instance().self().getLogger().warn("Edge Guard: replay capture left vanilla (could not attach)");
             return;
         }
         installed = true;
+        capabilities::ready(capability);
         Runtime::instance().self().getLogger().info("Edge Guard: replay capture hook attached");
-    } catch (...) { unavailable = true; }
+    } catch (...) { capabilities::fail(capability,capabilities::Reason::NativeContract,"replay binding failed"); }
 }
 bool stop() noexcept {
-    if (installed && !EdgeGuardCaptureHook::unhook(true)) return false;
-    installed = unavailable = reported = false;
+    capabilities::stop(capability);
+    if (installed && !EdgeGuardCaptureHook::unhook(true)) {
+        capabilities::fail(capability,capabilities::Reason::RemovalFailed); return false;
+    }
+    installed = reported = false;
     captureTarget = 0;
     return true;
 }

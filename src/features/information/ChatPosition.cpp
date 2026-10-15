@@ -46,7 +46,7 @@ struct RenderScope {
         DWORD foregroundProcess = 0;
         GetWindowThreadProcessId(GetForegroundWindow(), &foregroundProcess);
         if (foregroundProcess != GetCurrentProcessId()) return;
-        if (!versionSensitiveAllowed("Chat position (HUD control positions)")) return;
+        if (!versionSensitiveAllowed(capabilities::Id::ChatPosition)) return;
         glm::vec2 size = *view.mSize;
         frame = Frame{size.x, size.y, settings->hud.chat};
         active = &*frame;
@@ -129,15 +129,18 @@ std::optional<ui::hud_editor::Box> preview(MinecraftUIRenderContext& context, fl
     return box;
 }
 void start() noexcept {
+    capabilities::begin(capabilities::Id::ChatPosition);
     try {
         if (!installed) installed = ChatHudRender::hook(true) == 0;
         if (!installedText) installedText = ChatTextRender::hook(true) == 0;
         if (!installedSprite) installedSprite = ChatBackgroundRender::hook(true) == 0;
+        capabilities::hooks(capabilities::Id::ChatPosition,installed && installedText && installedSprite);
         if (!installed || !installedText || !installedSprite)
             Runtime::instance().self().getLogger().warn("Chat position cannot hook the HUD components; chat stays vanilla");
-    } catch (...) {}
+    } catch (...) { capabilities::hooks(capabilities::Id::ChatPosition,false); }
 }
 void stop() {
+    capabilities::stop(capabilities::Id::ChatPosition);
     if (installed && ChatHudRender::unhook(true)) installed = false;
     if (installedText && ChatTextRender::unhook(true)) installedText = false;
     if (installedSprite && ChatBackgroundRender::unhook(true)) installedSprite = false;

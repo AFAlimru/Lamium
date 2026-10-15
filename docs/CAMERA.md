@@ -194,12 +194,16 @@ No fix or change to the camera contract is selected.
 
 ## Underground terrain visibility (L-37; implemented 2026-10-07)
 
-L-200 follow-up (2026-10-15): the maintainer reported caves missing again.
+L-200/L-202 follow-up (2026-10-15): the maintainer reported caves missing again.
 The ordinary local log identifies LeviLamina 26.51.7 rejected as an
-unsupported loader version. The adapter now admits this installed patch
-alongside .5/.6; executable gating, virtual-entry/ownership checks and the
-native request/retained-field validation remain unchanged. This admits the
-existing guarded path for a game check; cave rendering on .7 is unverified.
+unsupported loader version. The initial .7 allowlist edit was superseded by
+L-202's shared loader-series/minimum policy (26.51, patch 5 or later).
+Executable gating, virtual-entry/ownership checks and the native
+request/retained-field validation remain. The shared registry waits for the
+first unmodified request/retention check before allowing the 3 -> 5 override;
+failure and its reason are visible in settings without disabling camera
+movement. No world/renderer yet is Waiting, not failure. This admits the
+guarded path for a game check; cave rendering on .7 is unverified.
 The runtime coverage below belongs to .6, not .7.
 
 Runtime status: **underground terrain checked in a local world and on BDS**
@@ -238,7 +242,7 @@ byte-sized requests and stable selection across
 repeated activation/exit frames; they do not exercise the game renderer.
 
 The candidate requires Minecraft executable file version 1.26.51.1
-(launcher version 1.26.51.01) and LeviLamina Client 26.51.5, 26.51.6 or 26.51.7. These
+(launcher version 1.26.51.01) and the common LeviLamina policy (26.51, patch 5 or later). These
 have different coverage: cave drawing was checked on 26.51.6; 26.51.5 has not
 been re-tested with this adapter, and 26.51.7 awaits its first check. A pre-render hook
 binds lazily from an actual primary renderer while FreeCamera is active. The

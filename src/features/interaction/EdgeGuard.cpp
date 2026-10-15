@@ -96,7 +96,7 @@ bool traceActive() {
     auto& runtime = Runtime::instance();
     return std::this_thread::get_id() == clientThread.load() && runtime.enabled()
         && runtime.snapshot()->interaction.edgeGuard && traceQuiet <= 100
-        && versionSensitiveAllowed("Edge Guard (movement request)");
+        && versionSensitiveAllowed(capabilities::Id::EdgeGuardMovement);
 }
 void traceCorrectionEnd() {
     if (!traceCorrectionTail || --traceCorrectionTail) return;
@@ -504,7 +504,7 @@ bool refusesMerge(Player& actor, ItemStack const& item, BlockPos const& pos, uch
 }
 bool refuses(Player& actor, ItemStack const& item, BlockPos const& pos, uchar face) {
     try {
-        return versionSensitiveAllowed("Edge Guard (movement request)") && refusesMerge(actor, item, pos, face);
+        return versionSensitiveAllowed(capabilities::Id::EdgeGuardMovement) && refusesMerge(actor, item, pos, face);
     } catch (...) { return false; }
 }
 // Building starts before useItemOn and may already ask the server; refuse
@@ -548,7 +548,7 @@ LL_STATIC_HOOK(EdgeGuardInputHook, ll::memory::HookPriority::Normal, &PlayerMove
     SneakingComponent const* sneakComponent) {
     auto move = origin(inputState, playerIsFlying, playerData, playerIsInWater, sneakComponent);
     try {
-        if (versionSensitiveAllowed("Edge Guard (movement request)")) guardMoveVector(inputState, move);
+        if (versionSensitiveAllowed(capabilities::Id::EdgeGuardMovement)) guardMoveVector(inputState, move);
     } catch (...) {}
     return move;
 }
@@ -558,7 +558,7 @@ LL_TYPE_INSTANCE_HOOK(EdgeGuardSendHook, ll::memory::HookPriority::High, Loopbac
         auto& runtime = Runtime::instance();
         if (history::onClientThread() && runtime.enabled() && runtime.snapshot()->interaction.edgeGuard
             && packet.getId() == MinecraftPacketIds::PlayerAuthInputPacket
-            && versionSensitiveAllowed("Edge Guard (movement request)")) {
+            && versionSensitiveAllowed(capabilities::Id::EdgeGuardMovement)) {
             auto client = ll::service::getClientInstance();
             auto* player = client ? client->getLocalPlayer() : nullptr;
             auto input = player ? player->getEntityContext().tryGetComponent<MoveInputComponent>() : nullptr;
@@ -611,7 +611,7 @@ LL_STATIC_HOOK(EdgeGuardHook, ll::memory::HookPriority::Normal, &MoveCollisionSy
     if (traceReplayDepth && std::this_thread::get_id() != clientThread.load()) ++traceOtherCollision;
 #endif
     try {
-        if (versionSensitiveAllowed("Edge Guard (movement request)")) guard(entity, aabb, request, region, collisionShape);
+        if (versionSensitiveAllowed(capabilities::Id::EdgeGuardMovement)) guard(entity, aabb, request, region, collisionShape);
     } catch (...) {}
 #ifdef LAMIUM_EDGE_TRACE
     try {
@@ -705,6 +705,8 @@ bool walking(LocalPlayer& player) { return edgeGuard::walking(player, true); }
 }
 void start() {
     if (installed) return;
+    capabilities::begin(capabilities::Id::EdgeGuardMovement);
+    capabilities::begin(capabilities::Id::EdgeGuardReplay);
 #ifdef LAMIUM_EDGE_TRACE
     EdgeTraceSend::hook();
     EdgeTraceCorrection::hook();
@@ -717,8 +719,12 @@ void start() {
     Runtime::instance().self().getLogger().warn("Edge Guard diagnostics enabled (L-160/L-162); up to 16 correction windows and 12 falls");
 #endif
     ll::thread::ClientThreadExecutor::getDefault().execute([] { clientThread.store(std::this_thread::get_id()); });
-    if (EdgeGuardHook::hook(true) != 0) throw std::runtime_error("Could not install the edge guard hook");
+    if (EdgeGuardHook::hook(true) != 0) {
+        capabilities::hooks(capabilities::Id::EdgeGuardMovement,false);
+        throw std::runtime_error("Could not install the edge guard hook");
+    }
     if (EdgeGuardInputHook::hook(true) != 0) {
+        capabilities::hooks(capabilities::Id::EdgeGuardMovement,false);
         EdgeGuardHook::unhook(true);
         throw std::runtime_error("Could not install the edge guard input hook");
     }
@@ -733,9 +739,11 @@ void start() {
         EdgeGuardSurvivalStartBuildHook::unhook(true);
         EdgeGuardInputHook::unhook(true);
         EdgeGuardHook::unhook(true);
+        capabilities::hooks(capabilities::Id::EdgeGuardMovement,false);
         throw std::runtime_error("Could not install the edge guard placement hooks");
     }
     if (EdgeGuardSendHook::hook(true) != 0) {
+        capabilities::hooks(capabilities::Id::EdgeGuardMovement,false);
         EdgeGuardPlaceHook::unhook(true); EdgeGuardSurvivalPlaceHook::unhook(true);
         EdgeGuardBuildHook::unhook(true); EdgeGuardSurvivalBuildHook::unhook(true);
         EdgeGuardStartBuildHook::unhook(true); EdgeGuardSurvivalStartBuildHook::unhook(true);
@@ -743,8 +751,10 @@ void start() {
         throw std::runtime_error("Could not install the edge guard packet hook");
     }
     installed = true;
+    capabilities::ready(capabilities::Id::EdgeGuardMovement);
 }
 void stop() {
+    capabilities::stop(capabilities::Id::EdgeGuardMovement);
     if (!installed) return;
 #ifdef LAMIUM_EDGE_TRACE
     EdgeTraceSelectedInput::unhook(true);
@@ -764,5 +774,6 @@ void stop() {
     bool capture = history::stop();
     bool send = EdgeGuardSendHook::unhook(true);
     if (place && survival && input && movement && capture && send) installed = false;
+    else capabilities::fail(capabilities::Id::EdgeGuardMovement,capabilities::Reason::RemovalFailed);
 }
 }

@@ -159,7 +159,7 @@ std::optional<bool> targetUse(ItemStack const& item, ItemTraits const& traits, L
     auto const& native = *item.mItem;
     auto use = targetUseOf(traits, native.hasTag(VanillaItemTags::Shovel()), native.hasTag(VanillaItemTags::Hoe()),
                            native.hasTag(VanillaItemTags::Shears()));
-    if (use == TargetUse::None || !versionSensitiveAllowed("Fake Offhand (item use targets)")) return std::nullopt;
+    if (use == TargetUse::None || !versionSensitiveAllowed(capabilities::Id::FakeOffhandTargets)) return std::nullopt;
     auto& region = player.getDimensionBlockSource();
     Block const& block = region.getBlock(hit.mBlock);
     auto const& type = block.getBlockType();
@@ -625,15 +625,18 @@ void release() {
 }
 void start() {
     if (installed) return;
+    capabilities::begin(capabilities::Id::FakeOffhandTargets);
     try {
         for (auto& hook : hooks) if (!hook.installed) {
             if (hook.install(true) != 0) throw std::runtime_error("Could not install Fake Offhand hook");
             hook.installed = true;
         }
         installed = true;
-    } catch (...) { stop(); throw; }
+        capabilities::ready(capabilities::Id::FakeOffhandTargets);
+    } catch (...) { capabilities::hooks(capabilities::Id::FakeOffhandTargets,false); stop(); throw; }
 }
 void stop() {
+    capabilities::stop(capabilities::Id::FakeOffhandTargets);
     release();
     rightChordHeld.store(false);
     for (auto it = std::rbegin(hooks); it != std::rend(hooks); ++it)

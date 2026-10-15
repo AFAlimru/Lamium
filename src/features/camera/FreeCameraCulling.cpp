@@ -2,7 +2,6 @@
 #include "features/camera/CameraSessions.h"
 #include "app/Runtime.h"
 #include "app/Versions.h"
-#include "ll/api/Versions.h"
 #include "ll/api/memory/Hook.h"
 #include "mc/client/game/IClientInstance.h"
 #include "mc/client/player/LocalPlayer.h"
@@ -16,20 +15,16 @@
 
 namespace lamium::camera {
 namespace {
-std::atomic<bool> enabled{false}, verified{false};
+constexpr auto capability = capabilities::Id::FreeCameraTerrain;
+bool enabled() { return capabilities::registry().status(capability).canProbe(); }
 std::atomic<DWORD> rendererThread{0};
 std::uintptr_t cullerTarget = 0;
 bool renderInstalled = false, cullerInstalled = false;
-std::atomic<bool> warned{false}, appliedLogged{false};
+std::atomic<bool> appliedLogged{false};
 
-void unavailable(char const* reason) noexcept {
-    enabled = false;
-    if (warned.exchange(true)) return;
-    try { Runtime::instance().self().getLogger().warn("FreeCamera terrain: vanilla visibility retained ({})", reason); }
-    catch (...) {}
+void unavailable(char const* reason, capabilities::Reason kind = capabilities::Reason::NativeContract) noexcept {
+    capabilities::fail(capability,kind,reason);
 }
-
-bool supportedGameVersion() { return versionSensitiveAllowed("FreeCamera terrain (native culler request)"); }
 
 bool gameCode(void* address) {
     MEMORY_BASIC_INFORMATION page{};
@@ -45,7 +40,7 @@ LL_TYPE_INSTANCE_HOOK(TerrainCullerRequest, ll::memory::HookPriority::Normal, Le
     cullerTarget, void, LevelCullerType requested) {
     bool own = false, free = false;
     try {
-        if (enabled && GetCurrentThreadId() == rendererThread.load()) {
+        if (enabled() && GetCurrentThreadId() == rendererThread.load()) {
             auto& renderer = static_cast<LevelRenderer&>(mLevelRenderer);
             std::shared_ptr<LevelRendererPlayer> const& primary = renderer.mLevelRendererPlayer;
             own = primary && static_cast<LevelRendererCamera*>(primary.get()) == static_cast<LevelRendererCamera*>(this);
@@ -56,15 +51,15 @@ LL_TYPE_INSTANCE_HOOK(TerrainCullerRequest, ll::memory::HookPriority::Normal, Le
         }
     } catch (...) { unavailable("native request ownership could not be verified"); }
     auto native = static_cast<std::uint8_t>(requested);
-    auto selected = terrainCuller(native, free && enabled.load() && verified.load());
+    auto selected = terrainCuller(native, free && versionSensitiveAllowed(capability));
     origin(static_cast<LevelCullerType>(selected));
-    if (!own || !enabled || native != 3) return;
+    if (!own || !enabled() || native != 3) return;
     // Observe the unmodified call first; never guess an ABI from the slot alone.
     if (static_cast<std::uint8_t>(static_cast<LevelCullerType const&>(mLastCullerType)) != selected) {
         unavailable("native culler update did not retain its requested type");
         return;
     }
-    verified = true;
+    capabilities::ready(capability);
     if (selected != native && !appliedLogged.exchange(true)) {
         try { Runtime::instance().self().getLogger().info("FreeCamera terrain: native request 3 -> 5 retained"); }
         catch (...) {}
@@ -80,14 +75,14 @@ bool bindCuller(LevelRendererPlayer& camera) {
     if (!gameCode(target)) { unavailable("culler entry is outside game executable code"); return false; }
     auto address = reinterpret_cast<std::uintptr_t>(target);
     if (cullerInstalled) {
-        if (address != cullerTarget) { unavailable("renderer culler implementation changed"); return false; }
+        if (address != cullerTarget) { unavailable("renderer culler implementation changed",capabilities::Reason::TargetChanged); return false; }
         return true;
     }
     // Hook the implementation obtained from the SDK virtual method, not a
     // missing exported thunk or a hard-coded slot/address.
-    if (cullerTarget && cullerTarget != address) { unavailable("culler entry changed after restart"); return false; }
+    if (cullerTarget && cullerTarget != address) { unavailable("culler entry changed after restart",capabilities::Reason::TargetChanged); return false; }
     cullerTarget = address;
-    if (TerrainCullerRequest::hook(true) != 0) { unavailable("culler hook unavailable"); return false; }
+    if (TerrainCullerRequest::hook(true) != 0) { unavailable("culler hook unavailable",capabilities::Reason::HookUnavailable); return false; }
     cullerInstalled = true;
     Runtime::instance().self().getLogger().info("FreeCamera terrain: culler hook bound at virtual slot {}", *index);
     return true;
@@ -102,7 +97,7 @@ LL_TYPE_INSTANCE_HOOK(TerrainPreRender, ll::memory::HookPriority::Normal, LevelR
         std::shared_ptr<LevelRendererPlayer> const& camera = mLevelRendererPlayer;
         auto& client = static_cast<IClientInstance&>(mClientInstance);
         auto* player = client.getLocalPlayer();
-        if (enabled && camera && player && player->hasRuntimeID()
+        if (enabled() && camera && player && player->hasRuntimeID()
             && CameraSessions::instance().freeCameraFor(client, player->getRuntimeID().rawID)) {
             rendererThread = GetCurrentThreadId();
             bindCuller(*camera);
@@ -114,38 +109,32 @@ LL_TYPE_INSTANCE_HOOK(TerrainPreRender, ll::memory::HookPriority::Normal, LevelR
 
 void startTerrainCulling() noexcept {
     if (renderInstalled || cullerInstalled) { unavailable("previous terrain hooks could not be removed"); return; }
-    warned = false;
+    capabilities::begin(capability);
     appliedLogged = false;
-    verified = false;
     try {
-        auto loader = ll::getLoaderVersion();
-        Runtime::instance().self().getLogger().info("FreeCamera terrain: detected LeviLamina {}.{}.{}",
-            loader.major, loader.minor, loader.patch);
-        if (!terrainLoaderSupported(loader.major, loader.minor, loader.patch)) {
-            unavailable("unsupported loader version"); return;
+        if (capabilities::registry().status(capability).compatibility != capabilities::Reason::None) {
+            versionSensitiveAllowed(capability); return;
         }
-        if (!supportedGameVersion()) { unavailable("unverified game executable version"); return; }
-        if (TerrainPreRender::hook(true) != 0) { unavailable("pre-render hook unavailable"); return; }
+        if (TerrainPreRender::hook(true) != 0) { unavailable("pre-render hook unavailable",capabilities::Reason::HookUnavailable); return; }
         renderInstalled = true;
-        enabled = true;
         Runtime::instance().self().getLogger().info("FreeCamera terrain: adapter armed; awaiting FreeCamera renderer");
     } catch (...) { unavailable("initialization failed"); }
 }
 
 void stopTerrainCulling() noexcept {
-    enabled = false;
+    capabilities::stop(capability);
     rendererThread = 0;
     try {
         if (renderInstalled) {
             if (TerrainPreRender::unhook(true)) renderInstalled = false;
-            else unavailable("pre-render hook removal failed");
+            else unavailable("pre-render hook removal failed",capabilities::Reason::RemovalFailed);
         }
-    } catch (...) { unavailable("pre-render hook removal failed"); }
+    } catch (...) { unavailable("pre-render hook removal failed",capabilities::Reason::RemovalFailed); }
     try {
         if (cullerInstalled) {
             if (TerrainCullerRequest::unhook(true)) cullerInstalled = false;
-            else unavailable("culler hook removal failed");
+            else unavailable("culler hook removal failed",capabilities::Reason::RemovalFailed);
         }
-    } catch (...) { unavailable("culler hook removal failed"); }
+    } catch (...) { unavailable("culler hook removal failed",capabilities::Reason::RemovalFailed); }
 }
 }

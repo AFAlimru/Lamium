@@ -27,40 +27,79 @@ vtable (the MSVC object layout; checked in game when sorting).
 ## Version-sensitive capabilities (gates)
 
 A path that writes game memory or relies on a meaning a rebuild cannot check
-asks `versionSensitiveAllowed("<capability>")` (`app/Versions.h`) at that
-path. On anything but the verified executable (today 1.26.51.01) it answers
-no, logs the first no per capability, and the path stays vanilla; the rest
-of the feature keeps working. A build configured with
-`xmake f ... --unverified_game=y` answers no everywhere, so the fail-open
-paths can be checked in game on the verified game.
+asks `versionSensitiveAllowed(capabilities::Id::...)` (`app/Versions.h`).
+`app/Capabilities.h` owns the typed definitions, feature/partial-loss mapping,
+compatibility policy, runtime stage and reason. All native adapters use one
+loader policy: series 26.51, minimum patch 5; later patches do not need an
+allowlist edit. This is not a promise that a patch cannot break an ABI: each
+adapter retains its target, ownership and contract checks.
 
-Players see it too (decided 2026-10-11): `app/PausedFeatures.h` maps the
-capabilities to their features, fully or partly paused; toggle toasts and
-the settings rows say "paused", the settings header shows a warning with
-the reason, and joining a world shows a toast naming the paused features in
-use. A new gate gets its feature there as well.
+The shared verified Minecraft executable remains 1.26.51.01. An unverified
+executable or unsupported loader prevents probing and use of sensitive paths.
+The catalog can name a separately reviewed executable build per capability,
+without widening the others. No such exception is currently enabled.
+`--unverified_game=y` forces all game-sensitive capabilities to stay vanilla,
+including reviewed exceptions; version-independent paths remain available.
+
+Settings are intent, not availability. Runtime stages are Waiting (first
+applicable context), Ready, Stopped and Failed, with typed reasons. Hook-based
+adapters publish readiness after attachment; lazy adapters such as FreeCamera
+terrain wait for their native check. Direct SDK paths do not invent an extra
+render prerequisite. Missing world/player/target data merely skips that call;
+it does not create a permanent failure. Failure latches until an explicit
+restart, and failed hook cleanup requires a process restart. The registry
+describes adapter availability, not the outcome of every operation: a failed
+language-change request, an unreadable texture or a failed individual draw
+keeps its existing local result/fallback and does not permanently disable a
+valid adapter. Durable hook/target/contract failures do.
+The registry
+keeps only owned atomic values, no game pointers; successful hot-path checks
+do not log, allocate strings or take a mutex.
+Night Vision, repeated trading, Connected Textures and server-pack skipping
+can roll back a partial start behind their shared gate: a startup failure
+leaves those adapters unavailable while Lamium and its settings UI continue.
+Failures of critical input/render foundations retain the existing full
+startup rollback; this catalog does not make an unsafe partial foundation
+usable.
+
+Execution and UI read this same registry. `PausedFeatures.h` derives its
+feature list and loss level from the catalog; it only projects selected
+settings for notices. Settings suffixes/header, full description help and
+version tooltips reflect real failures even on the verified game. Waiting
+appears as waiting in help, not as a paused warning. World-entry and new
+runtime-failure notices explain requested affected features, without repeating
+unchanged results. Every production capability needs a translated name/reason
+and a row below. `scripts/Check-Capabilities.ps1` checks this inventory and
+the package/SDK loader-policy alignment in CI.
 
 | Capability (log name) | Where | Stays vanilla | Still works |
 |---|---|---|---|
 | FreeCamera terrain (native culler request) | `FreeCameraCulling.cpp` | underground terrain hidden as vanilla culls it | FreeCamera itself |
-| Connected Textures (chunk mesh vertices) | `ConnectedTexturesHooks.cpp` | glass with borders | the setting (no effect) |
+| Connected Textures (chunk mesh vertices) | `ConnectedTexturesHooks.cpp`, `ConnectedSprites.cpp` | glass with borders | the setting (no effect) |
 | Night Vision (light texture data) | `NightVision.cpp` | vanilla light | the key and setting (no effect) |
 | Edge Guard (movement request) | `EdgeGuard.cpp` (movement request and move vector), `EdgeGuardHistory.cpp` (replay input capture) | vanilla movement and history capture | the setting (no effect) |
+| Edge Guard (replay capture) | `EdgeGuardHistory.cpp` | vanilla replay capture | ordinary movement guarding |
 | Repeated trades (trade row handlers) | `RepeatTrades.cpp` | vanilla single trading | the setting and key |
 | Item Transfer (native slot routes) | `TransferRoutes.cpp`, `TransferSession.cpp` | no new gestures or additional screens; no native hover/route filtering | the original four gestures in ordinary storage and inventory screens |
 | Hide effects (fog and camera medium) | `HideEffects.cpp` `MediumFogVisibility` | water/lava/powder snow fog, distance fog | the other hide effects |
 | Hide effects (weather densities) | `HideEffects.cpp` `WeatherVisibility` | rain and snow drawn | the other hide effects |
 | Hide effects (portal screen) | `HideEffects.cpp` `PortalScreenVisibility` | the purple Nether portal screen | the other hide effects |
 | Hide nausea (overlay mesh) | `HideEffects.cpp` nausea hooks | nausea swirl drawn | the effect icon and the rest |
-| Schematic ghost blocks (block tessellation) | `GhostRenderer.cpp` | no ghost blocks or block actors, no in-world mistake outlines (built with the sections) | frames, the Check list, materials, saving, map marks |
+| Schematic ghost blocks (block tessellation) | `GhostRenderer.cpp`, `Preview.cpp` | no ghost blocks, block actors or 3D preview, no in-world mistake outlines (built with the sections) | frames, the Check list, materials, saving, map marks |
 | Schematic piston ghosts (piston actor state) | `GhostActors.cpp` (`PistonBlockActor` progress and state) | piston ghosts as loaded from the file | the rest of the ghosts |
 | Schematic check (shulker box facing) | `GhostVerify.cpp` (`ShulkerBoxBlockActor::mFacing`) | a shulker box judged by its block alone | the rest of the check |
-| Schematic entity models (actor renderers) | `GhostMarks.cpp` | missing entities as dashed frames | everything else |
+| Schematic entity models (actor renderers) | `GhostMarks.cpp`, `Preview.cpp` | missing entities as dashed frames, no preview entity models | everything else |
 | Game language (native apply) | `GameLanguage.cpp` | no in-world language list; vanilla title-screen Settings > Language | everything else |
 | Skip server resource packs (pack stack packet) | `ServerPacks.cpp` | server packs applied as vanilla | the setting and key (no effect) |
 | FreeCamera hide (hotbar control) | `FreeCameraHide.cpp` `FreeCameraHud` (the hotbar control's visibility, restored after the draw) | the hotbar stays drawn in FreeCamera | hiding the hand and the whole HUD |
 | Fake Offhand (item use targets) | `FakeOffhand.cpp` `targetUse` (planter component by name, copper fields, `canBeFertilized`, `isRailBlock`) | the primary item keeps priority on blocks as before L-189 | air checks, the rest of Fake Offhand |
 | Chat position (HUD control positions) | `ChatPosition.cpp` | vanilla chat position | the setting, key and layout preview |
+| FreeCamera hide (hand pass) | `FreeCameraHide.cpp` | hand drawn | FreeCamera and independent HUD paths |
+| FreeCamera hide (HUD pass) | `FreeCameraHide.cpp` | whole HUD drawn | FreeCamera and hand hiding |
+| Hide effects (particle passes) | `HideEffects.cpp` | particles drawn | independent hide selections |
+| Hide effects (boss bar passes) | `HideEffects.cpp` | boss bars drawn | independent hide selections |
+| Schematic ghosts (blended pass) | `GhostRenderer.cpp` | no blended ghost pass | ordinary ghosts and checking |
+| Schematic ghosts (actor lighting) | `GhostActors.cpp` | vanilla ghost actor lighting | ghost rendering and checking |
 
 ## Playbook for a new Minecraft or LeviLamina version
 
@@ -71,7 +110,9 @@ use. A new gate gets its feature there as well.
    `xmake-requires.lock`.
 2. **Build.** `xmake f ... -y`, `xmake build Lamium`, `LamiumTests`,
    `LamiumNativeTests`. Fix compile errors: they are the removed or retyped
-   functions and members. Run `scripts/Check-GameInventory.ps1`.
+   functions and members. Run `scripts/Check-GameInventory.ps1` and
+   `scripts/Check-Capabilities.ps1`. Update the shared loader series/minimum
+   together with the SDK and package, never a feature-local patch list.
 3. **Fail-open first.** Before widening anything, run the new game with the
    normal build: every gated capability must log "stays vanilla" and the
    game must not crash. Smoke-test the features without gates (the inventory
@@ -81,8 +122,8 @@ use. A new gate gets its feature there as well.
    in VALIDATION-LOG.md with the game version.
 5. **Widen the verified version** (`verifiedGame` in `app/Versions.cpp`)
    only after the gated capabilities' checks pass; if one fails, keep the
-   old version, or split that capability's gate so the passing ones can be
-   widened. Until then `scripts/New-ReleaseArchive.ps1` warns on every build
+   old version, or record a separately reviewed `verifiedBuild` for the passing
+   capabilities in the shared catalog. Until then `scripts/New-ReleaseArchive.ps1` warns on every build
    and refuses a tagged release: the SDK's game version (LeviLamina
    `26.51.x` targets Minecraft `1.26.51`) and README's full supported version
    must match it.
@@ -123,7 +164,7 @@ Trace.
 Hooks: `TerrainCullerRequest`, `TerrainPreRender`
 Meaning: the native culler type values (3 requested, 5 retained) and the
 virtual slot of `updateLevelCullerType`. Gated (FreeCamera terrain); also
-checks the loader version and that the slot points into game code.
+uses the common loader policy and checks that the slot points into game code.
 
 ### `src/features/camera/FreeCameraHide.cpp`
 Hooks: `FreeCameraHand`, `FreeCameraHud`

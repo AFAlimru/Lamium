@@ -41,6 +41,8 @@ jobs:
         run: xmake run LamiumNativeTests
       - name: Check the game inventory
         run: ./scripts/Check-GameInventory.ps1
+      - name: Check capability catalog and loader policy
+        run: ./scripts/Check-Capabilities.ps1
       - name: Check package
         run: ./scripts/Check-Package.ps1
       - name: Check versions and release archive

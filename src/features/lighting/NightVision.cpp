@@ -28,28 +28,34 @@ bool netherInstalled = false;
 NightVision& NightVision::instance() { static NightVision instance; return instance; }
 bool NightVision::start() {
     if (running) return true;
+    capabilities::begin(capabilities::Id::NightVision);
     try {
         if (!baseInstalled) baseInstalled = BaseLightHook::hook() == 0;
-        if (!baseInstalled) { stop(); return false; }
+        if (!baseInstalled) { capabilities::hooks(capabilities::Id::NightVision,false); stop(); return false; }
         if (!netherInstalled) netherInstalled = NetherLightHook::hook() == 0;
-        if (!netherInstalled) { stop(); return false; }
+        if (!netherInstalled) { capabilities::hooks(capabilities::Id::NightVision,false); stop(); return false; }
         running = true;
+        capabilities::ready(capabilities::Id::NightVision);
         return true;
     } catch (std::exception const& error) {
+        capabilities::hooks(capabilities::Id::NightVision,false);
         Runtime::instance().self().getLogger().error("Lighting initialization failed: {}", error.what());
         stop();
         return false;
     }
 }
 void NightVision::stop() {
+    capabilities::stop(capabilities::Id::NightVision);
     running = false;
     if (netherInstalled && NetherLightHook::unhook()) netherInstalled = false;
     if (baseInstalled && BaseLightHook::unhook()) baseInstalled = false;
-    if (baseInstalled || netherInstalled)
+    if (baseInstalled || netherInstalled) {
+        capabilities::fail(capabilities::Id::NightVision,capabilities::Reason::RemovalFailed);
         Runtime::instance().self().getLogger().error("Could not remove a lighting hook");
+    }
 }
 void NightVision::apply(BaseLightData* data) const {
-    if (!data || !enabled() || !versionSensitiveAllowed("Night Vision (light texture data)")) return;
+    if (!data || !enabled() || !versionSensitiveAllowed(capabilities::Id::NightVision)) return;
     // Modify newly produced render data so the game's light-texture cache sees
     // the change on both enable and disable. No player effect is added.
     data->mNightvisionActive = true;

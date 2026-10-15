@@ -3,13 +3,6 @@ void check(bool, char const*);
 
 void freeCameraCullingTests() {
     using lamium::camera::terrainCuller;
-    using lamium::camera::terrainLoaderSupported;
-    check(terrainLoaderSupported(26, 51, 5), "SDK baseline loader can reach the guarded terrain adapter");
-    check(terrainLoaderSupported(26, 51, 6), "installed loader patch does not silently disable the terrain candidate");
-    check(terrainLoaderSupported(26, 51, 7), "loader 26.51.7 can reach the guarded terrain adapter");
-    check(!terrainLoaderSupported(26, 51, 4) && !terrainLoaderSupported(26, 51, 8)
-        && !terrainLoaderSupported(26, 52, 6) && !terrainLoaderSupported(27, 51, 6),
-        "unconsidered loader versions retain vanilla visibility");
     for (unsigned type = 0; type < 256; ++type) {
         auto requested = static_cast<std::uint8_t>(type);
         check(terrainCuller(requested, false) == requested, "other cameras and inactive sessions keep every native culler");

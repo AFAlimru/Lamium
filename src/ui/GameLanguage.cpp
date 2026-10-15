@@ -47,7 +47,7 @@ void run(Request& request) noexcept {
         if (!request.expected.permits(context(), request.cancelled.load())) {
             request.result.store(Result::Cancelled); return;
         }
-        if (!versionSensitiveAllowed("Game language (native apply)") || !supported(request.code)) {
+        if (!versionSensitiveAllowed(capabilities::Id::GameLanguage) || !supported(request.code)) {
             request.result.store(Result::Unavailable); return;
         }
         // Resource changes invalidate the save's live block/actor readers.
@@ -63,7 +63,9 @@ void run(Request& request) noexcept {
             // Choosing notifies game, font and pack observers itself (traced
             // in-world); the saved preference follows, as in OreUI.
             getI18n().chooseLanguage(request.code);
-            if (currentCode() != request.code) { request.result.store(Result::Failed); return; }
+            if (currentCode() != request.code) {
+                request.result.store(Result::Failed); return;
+            }
         }
         options.setLanguage(request.code);
         options.saveIfNeeded();
@@ -79,7 +81,7 @@ void run(Request& request) noexcept {
 }
 LanguageSelection choices() {
     LanguageSelection out;
-    if (!versionSensitiveAllowed("Game language (native apply)")) return out;
+    if (!versionSensitiveAllowed(capabilities::Id::GameLanguage)) return out;
     auto const& codes = getI18n().getSupportedLanguageCodes();
     for (size_t i = 0; i < std::min(codes.size(), LanguageSelection::limit); ++i)
         out.add(codes[i], getI18n().getLanguageName(codes[i]));

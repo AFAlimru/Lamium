@@ -8,6 +8,7 @@
 #include "features/schematic/LiquidShape.h"
 #include "features/schematic/SchematicRegion.h"
 #include "app/Runtime.h"
+#include "app/Versions.h"
 #include "mc/client/game/IClientInstance.h"
 #include "mc/client/player/LocalPlayer.h"
 #include "mc/client/gui/GuiData.h"
@@ -521,7 +522,8 @@ void drawActors(MinecraftUIRenderContext& context, BlockSource& region, Structur
             if (auto const* v = turn->as<nbt::List>()->items.front().as<float>()) yaw = *v;
         spots.push_back({{entity.x - center.x, entity.y - center.y, entity.z - center.z}, entity.identifier, yaw});
     }
-    if (!spots.empty()) models::draw(screen, client, Vec3{0, 0, 0}, spots, [](std::function<void()> const& draw) { draw(); }, false);
+    if (!spots.empty() && versionSensitiveAllowed(capabilities::Id::SchematicEntities))
+        models::draw(screen, client, Vec3{0, 0, 0}, spots, [](std::function<void()> const& draw) { draw(); }, false);
 }
 // Uploads the kept quads sorted far to near for `order`, as one mesh drawn
 // blended over real depth: nearer quads cover farther ones, water lets them
@@ -552,6 +554,7 @@ void clear() {
 bool draw(MinecraftUIRenderContext& context, std::shared_ptr<Structure const> const& structure, float x, float y, float width, float height,
           View view, Tint const* tint) {
     if (!structure || width < 8 || height < 8) return false;
+    if (!versionSensitiveAllowed(capabilities::Id::SchematicBlocks)) { clear(); return false; }
     IClientInstance& client = context.mClient;
     auto* region = client.getRegion();
     if (!region) return false;

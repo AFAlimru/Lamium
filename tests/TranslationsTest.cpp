@@ -1,4 +1,5 @@
 #include "ui/Translations.h"
+#include "app/Capabilities.h"
 #include <format>
 #include <stdexcept>
 #include <string>
@@ -9,6 +10,13 @@ void translationTests() {
     auto check = [](bool ok) { if (!ok) throw std::runtime_error("translation catalog invariant"); };
     std::unordered_set<std::string_view> keys;
     check(alignedWithEntries(simplifiedChinese));
+    for (auto const& d : lamium::capabilities::definitions)
+        if (!d.feature.empty()) for (auto locale : locales) check(!find(d.nameKey,locale).empty());
+    for (auto reason : {lamium::capabilities::Reason::UnverifiedGame,lamium::capabilities::Reason::UnsupportedLoader,
+        lamium::capabilities::Reason::HookUnavailable,lamium::capabilities::Reason::NativeContract,
+        lamium::capabilities::Reason::TargetChanged,lamium::capabilities::Reason::OperationFailed,
+        lamium::capabilities::Reason::RemovalFailed,lamium::capabilities::Reason::Stopped})
+        for (auto locale : locales) check(!find(lamium::capabilities::reasonKey(reason),locale).empty());
     for (std::size_t i = 0; i < entries.size(); ++i) {
         auto const& entry = entries[i];
         check(find(entry.key, "zh_CN") == simplifiedChinese[i].text);

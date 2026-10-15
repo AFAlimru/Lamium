@@ -12,7 +12,7 @@
 namespace lamium::inventory::game::transferRoutes {
 namespace {
 bool amountInstalled = false, stackInstalled = false, outputsInstalled = false;
-constexpr char capability[] = "Item Transfer (native slot routes)";
+constexpr auto capability = capabilities::Id::TransferRoutes;
 struct RouteScope;
 thread_local RouteScope* active = nullptr;
 // Borrowed only during one synchronous vanilla call, never across a frame.
@@ -57,7 +57,7 @@ LL_TYPE_INSTANCE_HOOK(TransferAutoPlaceOutputsOrder, ll::memory::HookPriority::N
     return origin(request, item, amount, order, group);
 }
 }
-bool allowed() { return amountInstalled && stackInstalled && outputsInstalled && versionSensitiveAllowed(capability); }
+bool allowed() { return versionSensitiveAllowed(capability); }
 bool supported(ContainerScreenController& controller) {
     if (!allowed()) return false;
     auto manager = controller.mContainerManagerController;
@@ -68,21 +68,28 @@ bool supported(ContainerScreenController& controller) {
     return true;
 }
 void start() {
-    if (!versionSensitiveAllowed(capability)) return;
+    capabilities::begin(capability);
+    if (capabilities::registry().status(capability).compatibility != capabilities::Reason::None) {
+        versionSensitiveAllowed(capability); return;
+    }
     if (!amountInstalled) amountInstalled = TransferAutoPlaceOrder::hook(true) == 0;
     if (!stackInstalled) stackInstalled = TransferAutoPlaceStackOrder::hook(true) == 0;
     if (!outputsInstalled) outputsInstalled = TransferAutoPlaceOutputsOrder::hook(true) == 0;
     if (!amountInstalled || !stackInstalled || !outputsInstalled) {
         stop();
+        capabilities::hooks(capability,false);
         Runtime::instance().self().getLogger().warn("Item Transfer extensions unavailable: native route hook failed");
-    }
+    } else capabilities::ready(capability);
 }
 void stop() {
+    capabilities::stop(capability);
     if (amountInstalled && TransferAutoPlaceOrder::unhook(true)) amountInstalled = false;
     if (stackInstalled && TransferAutoPlaceStackOrder::unhook(true)) stackInstalled = false;
     if (outputsInstalled && TransferAutoPlaceOutputsOrder::unhook(true)) outputsInstalled = false;
-    if (amountInstalled || stackInstalled || outputsInstalled)
+    if (amountInstalled || stackInstalled || outputsInstalled) {
+        capabilities::fail(capability,capabilities::Reason::RemovalFailed);
         Runtime::instance().self().getLogger().error("Could not remove Item Transfer route hooks");
+    }
 }
 std::vector<std::string> collections(ContainerScreenController& controller) {
     std::vector<std::string> result;

@@ -189,7 +189,7 @@ void advance(Trade2ScreenController& controller) {
     if (!job) return;
     if (job->generation != epoch.load() || !enabled() || !focused(controller)
         || job->entity != controller.mEntityUniqueID->rawID
-        || !versionSensitiveAllowed("Repeated trades (trade row handlers)")) { end("context changed"); return; }
+        || !versionSensitiveAllowed(capabilities::Id::RepeatedTrades)) { end("context changed"); return; }
     auto snapshot = read(controller, job->tier, job->row);
     if (!snapshot || snapshot->recipe != job->recipe || snapshot->dimension != job->dimension
         || !handler(controller, selectRow) || !handler(controller, tradeRow)) {
@@ -234,7 +234,7 @@ void advance(Trade2ScreenController& controller) {
         end("trade no longer fits"); return;
     }
     try {
-        if (!versionSensitiveAllowed("Repeated trades (trade row handlers)")) { end("unverified game"); return; }
+        if (!versionSensitiveAllowed(capabilities::Id::RepeatedTrades)) { end("unverified game"); return; }
         invoke(controller, phase == Phase::Prepare ? selectRow : tradeRow, job->tier, job->row);
         if (pending != job || job->generation != epoch.load()) { clear(); return; }
         game::endTransfer(*token);
@@ -251,7 +251,7 @@ LL_TYPE_INSTANCE_HOOK(RepeatTradeInput, ll::memory::HookPriority::Normal, Screen
                 if (shifted && button.id != tradeRow) trace("L-166 repeat shifted press reached another button");
                 if (shifted && button.inputMode == InputMode::Mouse && button.id == tradeRow
                     && button.fromButtonId == rightSource && enabled() && button.properties
-                    && versionSensitiveAllowed("Repeated trades (trade row handlers)")) {
+                    && versionSensitiveAllowed(capabilities::Id::RepeatedTrades)) {
                     auto active = game::ScreenTracker::getInstance().current();
                     auto const& json = button.properties->mJsonValue.get();
                     if (active && static_cast<ScreenController*>(active.get()) == this && focused(*active)
@@ -294,7 +294,7 @@ LL_TYPE_INSTANCE_HOOK(RepeatTradeRow, ll::memory::HookPriority::Normal, InputCom
     try {
         if (id == rightSource && state == ButtonState::Down && tradeRowMapping(*this)) shiftedPress.reset();
         if (id == shiftRightSource && mode == InputMode::Mouse && enabled() && shiftOnly() && tradeRowMapping(*this)
-            && versionSensitiveAllowed("Repeated trades (trade row handlers)")) {
+            && versionSensitiveAllowed(capabilities::Id::RepeatedTrades)) {
             auto result = origin(tree, animation, context, rightSource, state, pointer, mode, tts);
             if (state == ButtonState::Down && result != ButtonHandleResult::NotHandled) {
                 shiftedPress = std::chrono::steady_clock::now();
@@ -328,23 +328,27 @@ ll::event::ListenerPtr exitListener;
 }
 void cancel() { epoch.fetch_add(1); }
 bool start() {
+    capabilities::begin(capabilities::Id::RepeatedTrades);
     try {
         for (auto& hook : hooks) if (!hook.installed) {
-            if (hook.install(true) != 0) { stop(); return false; }
+            if (hook.install(true) != 0) { capabilities::hooks(capabilities::Id::RepeatedTrades,false); stop(); return false; }
             hook.installed = true;
         }
         if (!exitListener) exitListener = ll::event::EventBus::getInstance().emplaceListener<ll::event::ClientExitLevelEvent>(
             [](auto&) { try { cancel(); clear(); } catch (...) {} });
+        capabilities::hooks(capabilities::Id::RepeatedTrades,bool(exitListener));
         return bool(exitListener);
-    } catch (...) { stop(); return false; }
+    } catch (...) { capabilities::hooks(capabilities::Id::RepeatedTrades,false); stop(); return false; }
 }
 void stop() {
+    capabilities::stop(capabilities::Id::RepeatedTrades);
     cancel(); clear();
     if (exitListener) ll::event::EventBus::getInstance().removeListener(exitListener);
     exitListener.reset();
     for (auto it = std::rbegin(hooks); it != std::rend(hooks); ++it)
         if (it->installed && it->remove(true)) it->installed = false;
     for (auto const& hook : hooks) if (hook.installed) {
+        capabilities::fail(capabilities::Id::RepeatedTrades,capabilities::Reason::RemovalFailed);
         Runtime::instance().self().getLogger().error("Could not remove repeated trading hooks"); break;
     }
 }

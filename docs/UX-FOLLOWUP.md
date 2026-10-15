@@ -8,6 +8,17 @@ of truth.
 
 ## Current foundation
 
+L-202 (2026-10-15, awaiting game checks): settings suffixes/header, version
+tooltip, full descriptions and failure notices now read the shared capability
+registry. They include actual hook/contract failures on the verified game,
+with the same typed reason used by execution and logs. Initial native context
+is shown as waiting in help, without a paused warning or repeated toast.
+User settings do not clear failures. Requested affected features notify on
+join or a changed failure; unchanged frames and unrelated readiness changes
+stay quiet. English, Japanese and Simplified Chinese have capability names
+and reasons. Native layouts, normal feature smoke and fail-open presentation
+still need Minecraft validation.
+
 L-197 (2026-10-15, awaiting game checks): truncated table descriptions offer
 "Read full description" / F1. The full-text panel wraps with the current
 font and width, scrolls with wheel/arrows/Page Up/Down/Home/End, and closes

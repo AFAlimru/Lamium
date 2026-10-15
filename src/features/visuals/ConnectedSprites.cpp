@@ -1,6 +1,7 @@
 #include "features/visuals/ConnectedSprites.h"
 #include "features/visuals/PackImage.h"
 #include "app/Runtime.h"
+#include "app/Versions.h"
 #include "ll/api/memory/Hook.h"
 #include "mc/client/renderer/TextureGroup.h"
 #include "mc/client/renderer/block/BlockGraphics.h"
@@ -191,6 +192,8 @@ LL_TYPE_INSTANCE_HOOK(SpriteAtlas, ll::memory::HookPriority::Normal, TextureAtla
     std::function<void()> const finished, std::shared_ptr<mce::TextureGroup> group, cg::MipMapSupport const mip,
     ResourcePackManager& packs, std::shared_ptr<cg::ImageBuffer> outFinal,
     std::shared_ptr<std::unordered_map<ResourceLocation, cg::TextureSetImageContainer>> outSources) {
+    if (!versionSensitiveAllowed(capabilities::Id::ConnectedTextures))
+        return origin(root,std::move(status),finished,std::move(group),mip,packs,std::move(outFinal),std::move(outSources));
     bool terrain = false;
     try { terrain = group && root["texture_name"].asString("") == "atlas.terrain"; } catch (...) {}
     if (!terrain)
@@ -229,6 +232,7 @@ LL_TYPE_INSTANCE_HOOK(SpritePackIndex, ll::memory::HookPriority::Normal, Resourc
     &ResourcePackManager::$getPackStackIndexOfResource, PackIndex, ResourceLocation const& location,
     gsl::span<std::string const> extensions) {
     auto result = origin(location, extensions);
+    if (!versionSensitiveAllowed(capabilities::Id::ConnectedTextures)) return result;
     if (result.first >= 0) return result;
     auto const* png = pngExtension(extensions);
     auto const* set = setExtension(extensions);
@@ -254,6 +258,7 @@ using LoadPair = bool (ResourcePackManager::*)(ResourceLocationPair const&, std:
 LL_TYPE_INSTANCE_HOOK(SpritePackLoad, ll::memory::HookPriority::Normal, ResourcePackManager,
     static_cast<LoadPair>(&ResourcePackManager::$load), bool, ResourceLocationPair const& pair, std::string& stream,
     gsl::span<std::string const> extensions) {
+    if (!versionSensitiveAllowed(capabilities::Id::ConnectedTextures)) return origin(pair,stream,extensions);
     bool png = pngExtension(extensions) != nullptr, set = setExtension(extensions) != nullptr;
     if (png || set) {
         auto path = withoutPng(pathOf(*pair.mResourceLocation));
@@ -277,6 +282,7 @@ LL_TYPE_INSTANCE_HOOK(SpritePackLoad, ll::memory::HookPriority::Normal, Resource
     return origin(pair, stream, extensions);
 }
 bool installed = false;
+bool atlasInstalled = false, indexInstalled = false, loadInstalled = false;
 
 Shift lowCorner(TextureUVCoordinateSet const& set) { return {std::min(set._u0, set._u1), std::min(set._v0, set._v1)}; }
 }
@@ -344,21 +350,23 @@ bool refresh() {
 
 bool start() {
     if (installed) return true;
-    if (SpriteAtlas::hook() != 0 || SpritePackIndex::hook() != 0 || SpritePackLoad::hook() != 0) {
-        SpriteAtlas::unhook();
-        SpritePackIndex::unhook();
-        SpritePackLoad::unhook();
+    if (!atlasInstalled) atlasInstalled = SpriteAtlas::hook() == 0;
+    if (atlasInstalled && !indexInstalled) indexInstalled = SpritePackIndex::hook() == 0;
+    if (indexInstalled && !loadInstalled) loadInstalled = SpritePackLoad::hook() == 0;
+    if (!atlasInstalled || !indexInstalled || !loadInstalled) {
+        capabilities::hooks(capabilities::Id::ConnectedTextures,false);
+        stop();
         return false;
     }
     installed = true;
     return true;
 }
 void stop() {
-    if (!installed) return;
-    SpriteAtlas::unhook();
-    SpritePackIndex::unhook();
-    SpritePackLoad::unhook();
+    if (atlasInstalled && SpriteAtlas::unhook()) atlasInstalled = false;
+    if (indexInstalled && SpritePackIndex::unhook()) indexInstalled = false;
+    if (loadInstalled && SpritePackLoad::unhook()) loadInstalled = false;
     table.store(nullptr);
-    installed = false;
+    installed = atlasInstalled || indexInstalled || loadInstalled;
+    if (installed) capabilities::fail(capabilities::Id::ConnectedTextures,capabilities::Reason::RemovalFailed);
 }
 }

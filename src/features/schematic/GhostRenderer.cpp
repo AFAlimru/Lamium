@@ -381,7 +381,7 @@ void drawPlacements(BaseActorRenderContext& context, IClientInstance& client, Lo
     // frames, the Check list and materials do not, and keep working without
     // them. The in-world mistake outlines are built with the sections, so
     // they stop too.
-    bool tessellate = versionSensitiveAllowed("Schematic ghost blocks (block tessellation)");
+    bool tessellate = versionSensitiveAllowed(capabilities::Id::SchematicBlocks);
     for (auto const& w : wanted) {
         if (!tessellate) break;
         if (!budget || (budget < sectionLimit && std::chrono::steady_clock::now() - buildsStart >= buildTimeBudget)) break;
@@ -764,7 +764,7 @@ LL_TYPE_INSTANCE_HOOK(GhostBlendPass, ll::memory::HookPriority::Normal, LevelRen
 #ifdef LAMIUM_SCHEMATIC_PERF_TRACE
         PerfTimer timer{perf.blendNs};
 #endif
-        drawBlended(context);
+        if (versionSensitiveAllowed(capabilities::Id::SchematicBlend)) drawBlended(context);
     } catch (std::exception const& error) {
         static bool reported = false;
         if (!std::exchange(reported, true)) log(std::string("drawing blended ghosts failed: ") + error.what());
@@ -872,14 +872,28 @@ std::optional<GhostAt> ghostAlong(BlockSource& region, int dimension, double x, 
 }
 void start() {
     if (installed) return;
+    capabilities::begin(capabilities::Id::SchematicBlocks);
+    capabilities::begin(capabilities::Id::SchematicEntities);
+    capabilities::begin(capabilities::Id::SchematicBlend);
+    capabilities::begin(capabilities::Id::SchematicActorLight);
     installed = GhostPass::hook(true) == 0;
-    if (!installed) throw std::runtime_error("Could not install the schematic ghost pass");
-    if (GhostBlendPass::hook(true) != 0) log("could not install the blended ghost pass");
-    if (!startActorLight()) log("could not install the ghost actor light hooks");
+    if (!installed) {
+        capabilities::hooks(capabilities::Id::SchematicBlocks,false);
+        capabilities::hooks(capabilities::Id::SchematicEntities,false);
+        throw std::runtime_error("Could not install the schematic ghost pass");
+    }
+    capabilities::hooks(capabilities::Id::SchematicBlend,GhostBlendPass::hook(true) == 0);
+    capabilities::hooks(capabilities::Id::SchematicActorLight,startActorLight());
     exitListener = ll::event::EventBus::getInstance().emplaceListener<ll::event::ClientExitLevelEvent>(
         [](auto&) { releaseRequested = true; items::forget(); selection::clear(); });
+    capabilities::ready(capabilities::Id::SchematicBlocks);
+    capabilities::ready(capabilities::Id::SchematicEntities);
 }
 void stop() {
+    capabilities::stop(capabilities::Id::SchematicBlocks);
+    capabilities::stop(capabilities::Id::SchematicEntities);
+    capabilities::stop(capabilities::Id::SchematicBlend);
+    capabilities::stop(capabilities::Id::SchematicActorLight);
     if (exitListener) {
         ll::event::EventBus::getInstance().removeListener(exitListener);
         exitListener.reset();

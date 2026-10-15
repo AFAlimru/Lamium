@@ -4,8 +4,6 @@
 #include "ll/api/Versions.h"
 #include <Windows.h>
 #include <cstddef>
-#include <mutex>
-#include <set>
 #include <vector>
 #pragma comment(lib, "version.lib")
 
@@ -30,48 +28,85 @@ namespace {
 // capability was checked on the new game; never as part of an SDK bump.
 // New-ReleaseArchive.ps1 refuses a release whose SDK targets another game.
 constexpr unsigned verifiedGame[4] = {1, 26, 51, 1};
-bool readVerified() {
-#ifdef LAMIUM_UNVERIFIED_GAME
-    return false;
-#else
+std::array<unsigned,4> readExecutableVersion() {
     wchar_t path[32768];
     DWORD length = GetModuleFileNameW(nullptr, path, 32768);
-    if (!length || length == 32768) return false;
+    if (!length || length == 32768) return {};
     DWORD bytes = GetFileVersionInfoSizeW(path, nullptr);
-    if (!bytes || bytes > 1024 * 1024) return false;
+    if (!bytes || bytes > 1024 * 1024) return {};
     std::vector<std::byte> data(bytes);
-    if (!GetFileVersionInfoW(path, 0, bytes, data.data())) return false;
+    if (!GetFileVersionInfoW(path, 0, bytes, data.data())) return {};
     VS_FIXEDFILEINFO* info = nullptr;
     UINT size = 0;
     if (!VerQueryValueW(data.data(), L"\\", reinterpret_cast<void**>(&info), &size)
-        || size < sizeof(*info) || info->dwSignature != 0xfeef04bd) return false;
-    return info->dwFileVersionMS == ((verifiedGame[0] << 16) | verifiedGame[1])
-        && info->dwFileVersionLS == ((verifiedGame[2] << 16) | verifiedGame[3]);
-#endif
+        || size < sizeof(*info) || info->dwSignature != 0xfeef04bd) return {};
+    return {HIWORD(info->dwFileVersionMS),LOWORD(info->dwFileVersionMS),HIWORD(info->dwFileVersionLS),LOWORD(info->dwFileVersionLS)};
+}
+std::array<unsigned,4> executableVersion() {
+    static auto const version = readExecutableVersion();
+    return version;
 }
 }
 bool verifiedGameExecutable() {
-    static bool const verified = readVerified();
-    return verified;
+#ifdef LAMIUM_UNVERIFIED_GAME
+    return false;
+#else
+    return executableVersion() == std::to_array(verifiedGame);
+#endif
 }
 paused::Level pausedLevel(std::string_view feature) {
-    return verifiedGameExecutable() ? paused::Level::No : paused::onUnverified(feature);
+    return static_cast<paused::Level>(capabilities::featureImpact(feature,
+        [](capabilities::Id id) { return capabilities::registry().status(id); }));
 }
-bool versionSensitiveAllowed(std::string_view capability) {
-    if (verifiedGameExecutable()) return true;
-    static std::mutex mutex;
-    static std::set<std::string, std::less<>> logged;
-    std::lock_guard lock(mutex);
-    if (logged.find(capability) == logged.end()) {
-        logged.emplace(capability);
-        try {
+namespace capabilities {
+Registry& registry() {
+    static Registry value{[] {
+        Environment env{verifiedGameExecutable(),-1,-1,-1};
+        env.gameBuild = executableVersion();
 #ifdef LAMIUM_UNVERIFIED_GAME
-            constexpr char const* why = "forced by the unverified_game build option";
-#else
-            constexpr char const* why = "the game executable is not the verified version";
+        env.forceUnverified = true;
 #endif
-            Runtime::instance().self().getLogger().warn("{} stays vanilla: {} (version {})", capability, why, runningGameVersion());
-        } catch (...) {}
+        try { auto version = ll::getLoaderVersion(); env.major = version.major; env.minor = version.minor; env.patch = version.patch; }
+        catch (...) {}
+        return env;
+    }()};
+    return value;
+}
+namespace {
+void logFailure(Id id, Reason reason, char const* detail) noexcept {
+    try {
+        Runtime::instance().self().getLogger().warn("{} stays vanilla: {}{}{}", definition(id).logName,
+            reasonName(reason), detail ? ": " : "", detail ? detail : "");
+    } catch (...) {}
+}
+}
+void begin(Id id) noexcept { registry().begin(id); }
+void ready(Id id) noexcept { registry().ready(id); }
+void fail(Id id, Reason reason, char const* detail) noexcept {
+    if (!registry().fail(id,reason)) return;
+    auto state = registry().status(id);
+    logFailure(id,state.reason(),detail);
+    if (state.reason() != state.runtime.reason)
+        try { Runtime::instance().self().getLogger().warn("{} native result: {}",definition(id).logName,reasonName(state.runtime.reason)); }
+        catch (...) {}
+}
+void stop(Id id) noexcept { registry().stop(id); }
+void hooks(Id id, bool available) noexcept {
+    if (available) ready(id);
+    else fail(id,Reason::HookUnavailable);
+}
+}
+bool versionSensitiveAllowed(capabilities::Id id) {
+    auto state = capabilities::registry().status(id);
+    if (state.available()) return true;
+    // Runtime failures log at the transition. Policy failures log once per id,
+    // without a mutex or string allocation on the successful hot path.
+    if (state.compatibility != capabilities::Reason::None) {
+        static std::array<std::atomic<bool>,capabilities::count> logged{};
+        if (!logged[static_cast<size_t>(id)].exchange(true))
+            try { Runtime::instance().self().getLogger().warn("{} stays vanilla: {} (game {}, loader {})",
+                capabilities::definition(id).logName,capabilities::reasonName(state.compatibility),runningGameVersion(),runningLoaderVersion()); }
+            catch (...) {}
     }
     return false;
 }

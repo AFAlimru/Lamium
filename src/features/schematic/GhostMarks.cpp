@@ -252,7 +252,7 @@ void drawEntities(ScreenContext& screen, IClientInstance& client, session::Snaps
     }
     // Entity models come from the game's actor renderers; without them every
     // missing entity is a dashed frame.
-    auto modelled = versionSensitiveAllowed("Schematic entity models (actor renderers)")
+    auto modelled = versionSensitiveAllowed(capabilities::Id::SchematicEntities)
         ? models::draw(screen, client, camera, spots, [&](std::function<void()> const& draw) { translated(screen, glm::vec3{0}, draw); })
         : std::vector<bool>(spots.size(), false);
     // A model says what the entity is; only the frames get name tags.

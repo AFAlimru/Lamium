@@ -63,6 +63,14 @@ subsystems:
 - Version-sensitive internal renderer/UI paths are capability-gated and fail
   open: when the expected contract cannot be verified, Lamium leaves vanilla
   behavior intact.
+- (Decided 2026-10-15, L-202) A shared typed catalog owns compatibility policy,
+  runtime availability and failure reasons per capability. Features keep their
+  actual native checks and cleanup. Settings, compatibility and runtime state
+  are separate; waiting for context is not failure. Execution, settings/help
+  and notices read the same status. Loader support is a series plus minimum,
+  not a growing patch allowlist; unverified Minecraft builds remain blocked.
+  Failures latch until explicit restart, and capability state owns no game
+  pointers. Adopt the shared mechanism without merging the feature modules.
 - Presentation features keep observed game state separate from display state;
   hiding or augmenting visuals must not silently mutate the underlying
   gameplay state.

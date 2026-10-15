@@ -35,7 +35,7 @@
 
 namespace lamium::visuals::effects {
 namespace {
-std::atomic<unsigned> configured{0}, available{0};
+std::atomic<unsigned> configured{0};
 std::atomic<std::shared_ptr<std::string const>> rainEffectName;
 static_assert(static_cast<int>(WeatherRenderObject::PrecipitationType::Rain) == 0
     && static_cast<int>(WeatherRenderObject::PrecipitationType::Snow) == 1
@@ -71,7 +71,14 @@ struct ScreenScope {
 };
 unsigned active() noexcept {
     if (!Runtime::instance().enabled()) return 0;
-    return configured.load() & available.load();
+    auto available = [](capabilities::Id id) { return capabilities::registry().status(id).available(); };
+    bool fog = available(capabilities::Id::HideFog), nausea = available(capabilities::Id::HideNausea);
+    unsigned mask = (available(capabilities::Id::HideWeather) ? weatherBit : 0)
+        | (available(capabilities::Id::HideParticles) ? particlesBit : 0)
+        | (available(capabilities::Id::HideBossBars) ? bossBarsBit : 0)
+        | (nausea ? nauseaBit : 0) | (fog ? waterBit | lavaBit | distanceFogBit : 0)
+        | (fog && nausea ? powderSnowBit : 0);
+    return configured.load() & mask;
 }
 LL_TYPE_INSTANCE_HOOK(EffectLocalScreen, ll::memory::HookPriority::Normal, InGamePlayScreen,
     &InGamePlayScreen::$render, void, ScreenContext& context, FrameRenderObject const& frame) {
@@ -109,14 +116,14 @@ LL_TYPE_INSTANCE_HOOK(NauseaMeshVisibility, ll::memory::HookPriority::Normal, mc
     static_cast<MeshRender>(&mce::Mesh::renderMesh), void, mce::MeshContext& context,
     mce::MaterialPtr const& material, MeshTexture const& texture, uint startOffset, uint count,
     OffscreenCaptureDescription const& capture, mce::IndexBufferContainer const* indices) {
-    if (overlayMesh(material,texture) && versionSensitiveAllowed("Hide nausea (overlay mesh)")) return;
+    if (overlayMesh(material,texture) && versionSensitiveAllowed(capabilities::Id::HideNausea)) return;
     origin(context,material,texture,startOffset,count,capture,indices);
 }
 LL_TYPE_INSTANCE_HOOK(NauseaMetadataVisibility, ll::memory::HookPriority::Normal, mce::Mesh,
     static_cast<MetadataMeshRender>(&mce::Mesh::renderMesh), void, mce::MeshContext& context,
     dragon::RenderMetadata const& metadata, mce::MaterialPtr const& material, MeshTexture const& texture,
     uint startOffset, uint count, mce::IndexBufferContainer const* indices) {
-    if (overlayMesh(material,texture) && versionSensitiveAllowed("Hide nausea (overlay mesh)")) return;
+    if (overlayMesh(material,texture) && versionSensitiveAllowed(capabilities::Id::HideNausea)) return;
     origin(context,metadata,material,texture,startOffset,count,indices);
 }
 bool bossControl(UIControl& owner) noexcept {
@@ -233,7 +240,7 @@ LL_TYPE_INSTANCE_HOOK(MediumFogVisibility, ll::memory::HookPriority::Normal, Lev
         before = {mCameraUnderWater, mCameraUnderLiquid, mCameraUnderLava, mCameraUnderPowderSnow};
         if (ll::service::getClientInstance() == &mClientInstance) mask = active();
         // Fog values and the camera-medium flags are written in place.
-        if (mask && !versionSensitiveAllowed("Hide effects (fog and camera medium)")) mask = 0;
+        if (mask && !versionSensitiveAllowed(capabilities::Id::HideFog)) mask = 0;
     } catch (...) { mask = 0; }
     auto shown = visibleMedium(before, mask & mediumBits);
     if (!(mask & mediumBits) || shown == before) {
@@ -265,7 +272,7 @@ LL_TYPE_INSTANCE_HOOK(WeatherVisibility, ll::memory::HookPriority::Normal, Level
     try {
         unsigned mask = active();
         if (!mask || ll::service::getClientInstance() != &mClientInstance) return view;
-        if (!versionSensitiveAllowed("Hide effects (weather densities)")) return view;
+        if (!versionSensitiveAllowed(capabilities::Id::HideWeather)) return view;
         auto& weather = *view.mWeatherState;
         float* densities[] = {&weather.mDensityRain, &weather.mDensitySnow, &weather.mDensityPlankton,
             &weather.mDensityRedSpores, &weather.mDensityBlueSpores, &weather.mDensityAsh, &weather.mDensityWhiteAsh};
@@ -289,7 +296,7 @@ LL_TYPE_INSTANCE_HOOK(WeatherVisibility, ll::memory::HookPriority::Normal, Level
 LL_TYPE_INSTANCE_HOOK(PortalScreenVisibility, ll::memory::HookPriority::Normal, LocalPlayer, &LocalPlayer::$normalTick, void) {
     origin();
     if (!portalHidden || (mPortalEffectTime == 0.f && mOPortalEffectTime == 0.f)) return;
-    if (!versionSensitiveAllowed("Hide effects (portal screen)")) return;
+    if (!versionSensitiveAllowed(capabilities::Id::HidePortal)) return;
     mPortalEffectTime = 0.f;
     mOPortalEffectTime = 0.f;
 }
@@ -300,6 +307,8 @@ void configure(Settings const& settings) {
         v.hideNausea, v.hideWater, v.hideLava, v.hidePowderSnow, v.hideDistanceFog});
 }
 void start() noexcept {
+    for (auto id : {capabilities::Id::HideWeather,capabilities::Id::HideParticles,capabilities::Id::HideBossBars,
+                   capabilities::Id::HideNausea,capabilities::Id::HideFog,capabilities::Id::HidePortal}) capabilities::begin(id);
     try {
         if (!weatherInstalled) weatherInstalled = WeatherVisibility::hook(true) == 0;
         if (!legacyInstalled) legacyInstalled = LegacyParticleVisibility::hook(true) == 0;
@@ -316,20 +325,24 @@ void start() noexcept {
         if (!portalInstalled) portalInstalled = PortalScreenVisibility::hook(true) == 0;
         bool weatherReady = weatherInstalled && rainLegacyInstalled && rainMappingInstalled && rainDataInstalled;
         bool nauseaReady = screenInstalled && nauseaMeshInstalled && nauseaMetadataInstalled;
-        available = (weatherReady ? weatherBit : 0)
-            | (weatherInstalled && legacyInstalled && dataInstalled ? particlesBit : 0)
-            | (bossSpriteInstalled && bossTextInstalled ? bossBarsBit : 0)
-            | (nauseaReady ? nauseaBit : 0)
-            | (fogInstalled ? waterBit | lavaBit | distanceFogBit : 0)
-            // Powder snow hides both its fog and its freezing overlay, or neither.
-            | (fogInstalled && nauseaReady ? powderSnowBit : 0);
+        capabilities::hooks(capabilities::Id::HideWeather,weatherReady);
+        capabilities::hooks(capabilities::Id::HideParticles,weatherInstalled && legacyInstalled && dataInstalled);
+        capabilities::hooks(capabilities::Id::HideBossBars,bossSpriteInstalled && bossTextInstalled);
+        capabilities::hooks(capabilities::Id::HideNausea,nauseaReady);
+        capabilities::hooks(capabilities::Id::HideFog,fogInstalled);
+        capabilities::hooks(capabilities::Id::HidePortal,portalInstalled);
         if (!weatherReady || !legacyInstalled || !dataInstalled || !bossSpriteInstalled || !bossTextInstalled || !nauseaReady
             || !fogInstalled)
             Runtime::instance().self().getLogger().warn("Some effect visibility hooks are unavailable; affected effects stay vanilla");
-    } catch (...) { available = 0; }
+    } catch (...) {
+        for (auto id : {capabilities::Id::HideWeather,capabilities::Id::HideParticles,capabilities::Id::HideBossBars,
+                       capabilities::Id::HideNausea,capabilities::Id::HideFog,capabilities::Id::HidePortal})
+            capabilities::hooks(id,false);
+    }
 }
 void stop() {
-    available = 0;
+    for (auto id : {capabilities::Id::HideWeather,capabilities::Id::HideParticles,capabilities::Id::HideBossBars,
+                   capabilities::Id::HideNausea,capabilities::Id::HideFog,capabilities::Id::HidePortal}) capabilities::stop(id);
     rainEffectName.store(nullptr);
     heldFog = {};
     if (portalInstalled && PortalScreenVisibility::unhook(true)) portalInstalled = false;

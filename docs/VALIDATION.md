@@ -21,6 +21,13 @@ game result.
 
 ## Camera and view
 
+L-202 migration (2026-10-15): the capability registry, policy, runtime failure
+reasons and availability UI are implemented and code-tested. Normal and
+forced-unverified compilation, pure state/policy/notice/translation tests and
+SDK data-layout tests do not establish Minecraft behavior. Confirmations in
+the affected feature rows below refer to earlier builds until this migration's
+normal-feature and fail-open smoke checks are reported; existing gaps remain.
+
 | Feature | Last confirmed | Not yet checked |
 |---|---|---|
 | Zoom (L-38, L-45, L-47, L-80, L-99) | 2026-09-26, local; 2026-09-30: wheel level kept across a FreeCamera speed key and new magnification applied on `e5ee44a`; 2x floor for setting and wheel on `1cdb481`; 2026-10-06: wheel down to 0.5x, 1x stop, 160 degree limit, 1x reopens at the setting on `692dfe4`; toggle-mode wheel only with the key held, release-to-off, level kept across dimensions, no press/release ease on `32390cc`; detached FreeCamera/Freelook share its turn sensitivity on `30f0c4a`; 2026-10-11: Wide-angle view off stops at 1x, on goes to 0.5x, off after a wide level reopens at 1x (L-140, `9e675cc`) | Controllers |

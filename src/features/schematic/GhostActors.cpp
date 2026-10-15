@@ -56,7 +56,7 @@ void keepPistonState(PistonBlockActor& piston, nbt::Compound const& data) {
     static std::set<std::string> seen;
     if (seen.size() < 16 && seen.insert(was).second) log("piston ghost: " + was);
     if (!known || state < 0 || state > 3 || next < 0 || next > 3) return;
-    if (!versionSensitiveAllowed("Schematic piston ghosts (piston actor state)")) return;
+    if (!versionSensitiveAllowed(capabilities::Id::SchematicPiston)) return;
     piston.mProgress = progress;
     piston.mLastProgress = last;
     piston.mState = static_cast<PistonState>(state);
@@ -101,7 +101,7 @@ LL_TYPE_STATIC_HOOK(GhostActorShader, ll::memory::HookPriority::Normal, ActorSha
                     void, ScreenContext& screen, BlockSource& source, BlockPos const& pos, float a, bool ignoreLighting,
                     LightTexture& lightTexture, std::weak_ptr<LightPropagation::LightVolumeManager> const& lightVolumes,
                     Vec2 const& uvScale, Vec4 const& uvAnim) {
-    if (&source == ghostActorSource.load(std::memory_order_relaxed)) {
+    if (&source == ghostActorSource.load(std::memory_order_relaxed) && versionSensitiveAllowed(capabilities::Id::SchematicActorLight)) {
         ActorShaderManager::setupShaderParameters(screen, source, fullBrightness(), glm::vec4{1, 1, 1, 1}, 1.f, true, lightTexture, uvScale, uvAnim);
         return;
     }
@@ -111,7 +111,7 @@ LL_TYPE_STATIC_HOOK(GhostActorShader, ll::memory::HookPriority::Normal, ActorSha
 LL_TYPE_STATIC_HOOK(GhostActorLightPair, ll::memory::HookPriority::Normal, ActorShaderManager, &ActorShaderManager::setupShaderParameters,
                     void, ScreenContext& screen, BlockSource& source, BrightnessPair const& light, glm::vec4 const& blockLightColor,
                     float a, bool ignoreLighting, LightTexture& lightTexture, Vec2 const& uvScale, Vec4 const& uvAnim) {
-    if (&source == ghostActorSource.load(std::memory_order_relaxed)) {
+    if (&source == ghostActorSource.load(std::memory_order_relaxed) && versionSensitiveAllowed(capabilities::Id::SchematicActorLight)) {
         origin(screen, source, fullBrightness(), glm::vec4{1, 1, 1, 1}, 1.f, true, lightTexture, uvScale, uvAnim);
         return;
     }

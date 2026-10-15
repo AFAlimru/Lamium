@@ -76,11 +76,15 @@ void emitToggleToast(IClientInstance& client, input::Action action, Settings con
     if (ui::effectsPaused(input::actions[static_cast<size_t>(action)].feature,value))
         name += " (" + ui::translated("effectsPaused") + ")";
     bool on = toggleState(client, value, action);
-    // On an unverified game a gated feature says so when switched on (L-137);
-    // particles and boss bars are not gated.
-    if (on && action != input::Action::HideParticles && action != input::Action::HideBossBars)
-        if (auto level = pausedLevel(input::actions[static_cast<size_t>(action)].feature); level != paused::Level::No)
-            name += " (" + ui::translated(level == paused::Level::Fully ? "paused.full" : "paused.partly") + ")";
+    auto level = pausedLevel(input::actions[static_cast<size_t>(action)].feature);
+    // These two paths are version-independent, but a missing hook can still
+    // stop them. A failure in fog must not label particles as stopped.
+    if (action == input::Action::HideParticles || action == input::Action::HideBossBars) {
+        auto id = action == input::Action::HideParticles ? capabilities::Id::HideParticles : capabilities::Id::HideBossBars;
+        level = capabilities::registry().status(id).paused() ? paused::Level::Partly : paused::Level::No;
+    }
+    if (on && level != paused::Level::No)
+        name += " (" + ui::translated(level == paused::Level::Fully ? "paused.full" : "paused.partly") + ")";
     ui::showToggleToast(name, on);
 }
 }

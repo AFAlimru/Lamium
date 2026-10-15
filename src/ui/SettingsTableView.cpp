@@ -1,4 +1,5 @@
 #include "ui/SettingsTableView.h"
+#include "ui/CapabilityStatus.h"
 #include "ui/LanguageView.h"
 #include "ui/GameLanguage.h"
 #include "ui/ScreenParts.h"
@@ -473,7 +474,7 @@ void handleKey(int key) {
 // ---- Settings table drawing ----
 std::string featureName(FeatureInfo const& feature) { return translated(feature.name); }
 // The note after the header's version while features are paused (L-137).
-std::string pausedHeader() { return verifiedGameExecutable() ? std::string() : "  " + translated("paused.header"); }
+std::string pausedHeader() { return capabilitiesPaused() ? "  " + translated("paused.header") : std::string{}; }
 // " (paused)" after a gated feature on an unverified game (L-137).
 std::string pausedSuffix(std::string_view feature) {
     auto level = pausedLevel(feature);
@@ -610,7 +611,7 @@ std::string sectionCount(std::string_view section, Settings const& preferences) 
     }
     return total ? std::to_string(on) + "/" + std::to_string(total) : std::string{};
 }
-std::string description() {
+std::string baseDescription() {
     if (capturing_) return actionLabel(*capturing_) + " - " + behaviorText(*capturing_);
     if (findingKey) return translated("keyFind.prompt");
     if (!valid(selected) && keyQuery && hotkeysView())
@@ -624,7 +625,6 @@ std::string description() {
     case RowKind::Feature: {
         auto text = translated(entry.feature->description);
         if (auto primary = primaryAction(*entry.feature)) text += " " + behaviorText(*primary);
-        if (pausedLevel(entry.feature->id) != paused::Level::No) text = translated("help.paused") + " " + text;
         return text;
     }
     case RowKind::Option: {
@@ -649,6 +649,14 @@ std::string description() {
     case RowKind::MapCache: return translated("help.mapCache");
     default: return {};
     }
+}
+std::string description() {
+    auto text = baseDescription();
+    if (!capturing_ && !findingKey && valid(selected) && rows[selected].feature) {
+        auto detail = capabilityDetails(rows[selected].feature->id);
+        if (!detail.empty()) text += (text.empty() ? "" : "\n") + detail;
+    }
+    return text;
 }
 // The action whose key cell gets the conflict tooltip: the hovered key cell,
 // else the keyboard-selected row.
@@ -750,14 +758,13 @@ void drawConflictTip(MinecraftUIRenderContext& context, IClientInstance& current
     if (shown < conflicts.size())
         label(context,x+pad,cursor+1,inner,translated("tip.more", std::to_string(conflicts.size() - shown)),palette::faint);
 }
-// The full version line under the header version while it is hovered (L-101),
-// and on an unverified game why some features are paused (L-137).
+// The full version line and shared reasons for unavailable capabilities.
 void drawVersionTip(MinecraftUIRenderContext& context, SettingsTable const& t, SettingsTable::Hit const& hover) {
     if (hover.zone != Zone::Version) return;
     constexpr float pad = 4, lineHeight = 12;
     auto line = runningVersionLine();
     auto hint = translated("version.copyHint");
-    std::string note = verifiedGameExecutable() ? std::string() : translated("paused.tip", runningGameVersion());
+    std::string note = capabilitySummary();
     float width = std::min(t.width - 2*SettingsTable::pad, std::max(textWidth(context, line), textWidth(context, hint)) + 2*pad);
     if (!note.empty()) width = std::min(t.width - 2*SettingsTable::pad, std::max(width, 220.f));
     size_t noteLines = note.empty() ? 0 : paragraphLines(context, width - 2*pad, note, 4);

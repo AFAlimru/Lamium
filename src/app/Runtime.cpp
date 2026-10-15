@@ -1,4 +1,5 @@
 #include "app/Runtime.h"
+#include "app/Versions.h"
 #include "features/information/ChatPosition.h"
 #include "app/ClientTasks.h"
 #ifdef LAMIUM_FEATURE_SKIP
@@ -110,11 +111,13 @@ bool Runtime::load() {
 }
 namespace {
 // Every client feature started by enable(), in start order; they stop in
-// reverse. A feature that fails rolls back itself and the ones before it.
+// reverse. Critical startup failures roll back the foundation; adapters with
+// an optional capability can fail independently behind their gate.
 struct Feature {
     char const* name;
     bool (*start)();
     void (*stop)();
+    capabilities::Id optionalCapability = capabilities::Id::Count;
 };
 template <auto Start>
 bool started() { Start(); return true; }
@@ -124,19 +127,19 @@ Feature const features[] = {
     // Installed before Camera, in the order the shared hook list used.
     {"Camera diagnostics", started<camera::trace::start>, camera::trace::stop},
     {"Camera", [] { return CameraSessions::instance().start(); }, [] { CameraSessions::instance().stop(); }},
-    {"Lighting", [] { return NightVision::instance().start(); }, [] { NightVision::instance().stop(); }},
+    {"Lighting", [] { return NightVision::instance().start(); }, [] { NightVision::instance().stop(); }, capabilities::Id::NightVision},
     {"Inspection", inspection::start, inspection::stop},
     {"Locked trades", inspection::lockedTrades::start, inspection::lockedTrades::stop},
     {"English search", inspection::englishSearch::start, inspection::englishSearch::stop},
     {"Inventory", inventory::start, inventory::stop},
-    {"Repeated trading", inventory::repeatTrades::start, inventory::repeatTrades::stop},
+    {"Repeated trading", inventory::repeatTrades::start, inventory::repeatTrades::stop, capabilities::Id::RepeatedTrades},
     {"Settings screen", started<ui::start>, ui::stop},
     {"Custom input", started<input::startCustomInput>, input::stopCustomInput},
     {"World overlay", started<overlay::start>, overlay::stop},
     {"Offhand visibility", started<visuals::start>, visuals::stop},
     {"FreeCamera hiding", started<camera::freeCameraHide::start>, camera::freeCameraHide::stop},
-    {"Connected Textures", visuals::connected::start, visuals::connected::stop},
-    {"Server resource packs", visuals::serverPacks::start, visuals::serverPacks::stop},
+    {"Connected Textures", visuals::connected::start, visuals::connected::stop, capabilities::Id::ConnectedTextures},
+    {"Server resource packs", visuals::serverPacks::start, visuals::serverPacks::stop, capabilities::Id::SkipServerPacks},
     {"Tool Switch", started<inventory::tools::start>, inventory::tools::stop},
     {"Weapon Switch", started<inventory::weapons::start>, inventory::weapons::stop},
     {"Death layout", started<inventory::death::start>, inventory::death::stop},
@@ -192,6 +195,9 @@ std::set<std::string> skippedFeatures(std::filesystem::path const& file) {
 #endif
 bool Runtime::enable() {
     if (running) return true;
+    capabilities::registry().reset();
+    mod.getLogger().info("Compatibility: Minecraft {}, LeviLamina {}; loader policy {}.{}.*, minimum patch {}",
+        runningGameVersion(),runningLoaderVersion(),capabilities::loaderMajor,capabilities::loaderMinor,capabilities::minimumLoaderPatch);
 #ifdef LAMIUM_FEATURE_SKIP
     auto skipped = skippedFeatures(mod.getModDir() / "skip-features.txt");
     std::string all;
@@ -199,6 +205,9 @@ bool Runtime::enable() {
     mod.getLogger().warn("Feature skip diagnostics: {} skipped; feature names:{}", skipped.size(), all);
 #endif
     for (auto feature = std::begin(features); feature != std::end(features); ++feature) {
+        if (feature->optionalCapability != capabilities::Id::Count
+            && capabilities::registry().status(feature->optionalCapability).runtime.reason == capabilities::Reason::RemovalFailed)
+            continue;
 #ifdef LAMIUM_FEATURE_SKIP
         if (skipped.contains(feature->name)) {
             mod.getLogger().warn("Skipped feature: {}", feature->name);
@@ -210,6 +219,16 @@ bool Runtime::enable() {
         try { ok = feature->start(); }
         catch (std::exception const& error) { reason = error.what(); }
         if (ok) continue;
+        // These adapters block every mutation through the shared gate and
+        // clean up their own partial start. Keep the settings UI available
+        // to explain the failure; critical input/render foundations still
+        // abort startup through the rollback below.
+        if (feature->optionalCapability != capabilities::Id::Count) {
+            capabilities::fail(feature->optionalCapability,capabilities::Reason::HookUnavailable,reason.c_str());
+            try { feature->stop(); }
+            catch (...) { capabilities::fail(feature->optionalCapability,capabilities::Reason::RemovalFailed); }
+            continue;
+        }
         mod.getLogger().error("{} could not start: {}", feature->name, reason);
         // The failed feature may have installed part of itself; stop it too.
         for (;; --feature) {

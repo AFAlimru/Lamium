@@ -143,7 +143,7 @@ Hook hooks[] = {
 };
 }
 void start() {
-    if (!versionSensitiveAllowed("Language diagnostics")) return;
+    if (!versionSensitiveAllowed(capabilities::Id::LanguageDiagnostics)) return;
     try {
         for (auto& hook : hooks) if (!hook.installed) {
             if (hook.install(true) != 0) throw std::runtime_error("Could not install language diagnostics");

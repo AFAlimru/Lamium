@@ -15,7 +15,7 @@ namespace {
 enum class Join { Unknown, Local, Remote };
 std::atomic<Join> join{Join::Unknown};
 std::atomic<int> skipped{0};
-bool hooked = false;
+bool joinInstalled = false, stackInstalled = false;
 }
 LL_TYPE_INSTANCE_HOOK(ServerPacksJoin, ll::memory::HookPriority::Normal, ClientInstance, &ClientInstance::$onStartJoinGame,
     void, bool isLocalServer, std::string const& correlation, std::string const& serverName, std::string const& worldName,
@@ -33,7 +33,7 @@ LL_TYPE_INSTANCE_HOOK(ServerPacksStack, ll::memory::HookPriority::Normal, Client
         auto& payload = const_cast<ResourcePackStackPacketPayload&>(static_cast<ResourcePackStackPacketPayload const&>(packet));
         auto& ids = payload.mTexturePackIdsAndVersions.get();
         if (join.load() == Join::Remote && !ids.empty() && Runtime::instance().snapshot()->visuals.skipServerPacks
-            && versionSensitiveAllowed("Skip server resource packs (pack stack packet)")) {
+            && versionSensitiveAllowed(capabilities::Id::SkipServerPacks)) {
             Runtime::instance().self().getLogger().info("Server resource packs: not applying {}", ids.size());
             skipped.store(static_cast<int>(ids.size()));
             ids.clear();
@@ -42,17 +42,23 @@ LL_TYPE_INSTANCE_HOOK(ServerPacksStack, ll::memory::HookPriority::Normal, Client
     origin(source, packet);
 }
 bool start() {
-    if (hooked) return true;
-    if (ServerPacksJoin::hook(true) != 0) return false;
-    if (ServerPacksStack::hook(true) != 0) { ServerPacksJoin::unhook(true); return false; }
-    hooked = true;
+    if (joinInstalled && stackInstalled) return true;
+    capabilities::begin(capabilities::Id::SkipServerPacks);
+    if (!joinInstalled) joinInstalled = ServerPacksJoin::hook(true) == 0;
+    if (joinInstalled && !stackInstalled) stackInstalled = ServerPacksStack::hook(true) == 0;
+    if (!joinInstalled || !stackInstalled) {
+        capabilities::hooks(capabilities::Id::SkipServerPacks,false);
+        stop();
+        return false;
+    }
+    capabilities::ready(capabilities::Id::SkipServerPacks);
     return true;
 }
 void stop() {
-    if (!hooked) return;
-    ServerPacksStack::unhook(true);
-    ServerPacksJoin::unhook(true);
-    hooked = false;
+    capabilities::stop(capabilities::Id::SkipServerPacks);
+    if (stackInstalled && ServerPacksStack::unhook(true)) stackInstalled = false;
+    if (joinInstalled && ServerPacksJoin::unhook(true)) joinInstalled = false;
+    if (joinInstalled || stackInstalled) capabilities::fail(capabilities::Id::SkipServerPacks,capabilities::Reason::RemovalFailed);
     join.store(Join::Unknown);
     skipped.store(0);
 }

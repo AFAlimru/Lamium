@@ -76,7 +76,7 @@ int expectedShulkerFace(Structure const& structure, std::int32_t cell, Placement
     return toWorldFace(*facing->as<std::int8_t>(), placement);
 }
 int actualShulkerFace(BlockSource& region, Point world) {
-    if (!versionSensitiveAllowed("Schematic check (shulker box facing)")) return -1;
+    if (!versionSensitiveAllowed(capabilities::Id::SchematicShulker)) return -1;
     auto const* actor = static_cast<BlockSource const&>(region).getBlockEntity(BlockPos{world.x, world.y, world.z});
     if (!actor || actor->getType() != BlockActorType::ShulkerBox) return -1;
     return static_cast<ShulkerBoxBlockActor const*>(actor)->mFacing;

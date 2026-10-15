@@ -47,7 +47,7 @@ int64_t now() {
     return std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::steady_clock::now().time_since_epoch()).count();
 }
-bool allowed() { return versionSensitiveAllowed("Inventory transfer diagnostics"); }
+bool allowed() { return versionSensitiveAllowed(capabilities::Id::InventoryDiagnostics); }
 bool recent() { auto at = screenAt.load(); return at != 0 && now() - at < 1000; }
 std::string modifiers() {
     constexpr int down = 0x8000;

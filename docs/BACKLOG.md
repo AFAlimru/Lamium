@@ -73,6 +73,8 @@ L-item wins. Every entry names what the task is, not only its number.
    follows the items below.
 1. **Small and medium features and fixes** (maintainer 2026-10-10: these
    come before large features and L-111 integration for now):
+   - L-202 shared compatibility, availability and failure reasons (chosen
+     2026-10-15): migrate existing guarded paths and their UI together.
    - Bugs: L-198 Fake Offhand primary-use priority, L-199 waypoint distance
      during FreeCamera, L-200 underground terrain on loader 26.51.7,
      L-201 world map mouse-button close, and L-197 full settings descriptions
@@ -160,6 +162,13 @@ gaps. The Release policy above does not require a full regression or closing
 every server gap before a release.
 
 ### Since 0.2.2 (unreleased)
+
+L-202 shared capability migration: verify normal feature behavior, lazy
+FreeCamera/replay waiting before first use, terrain restoration, and actual
+failure reasons/partial-loss UI. In a separately requested forced-unverified
+test build, sensitive subpaths must stay vanilla and show the same reasons
+in settings/notices; version-independent paths should keep working. Pure
+policy/state/notice tests and compile verification do not prove game behavior.
 
 L-197 through L-201: normal-build game checks pending. Fake Offhand must
 keep main-hand blocks and hungry food, and allow secondary fireworks while
@@ -416,6 +425,42 @@ found later are handled as bugs.
 
 ## Bugs
 
+### L-202 Share compatibility, availability and failure reasons
+Kind: Ready (strong model). Chosen by the maintainer 2026-10-15 after the
+L-200 audit. Status: implementation and code review complete; normal and
+forced-unverified DLL builds, pure/SDK tests and catalog/inventory checks
+pass. Minecraft verification remains in Pre-release checks; no release or
+deployment chosen. The typed API and its callers migrate together so no
+commit can silently retain an unregistered string gate.
+Use a typed catalog of risky capabilities (subpaths, not entire features),
+one loader-series/minimum policy and explicit Minecraft verification, with
+separate runtime waiting/ready/stopped/failed states and typed reasons.
+Settings stay separate. Native ownership, field/target checks and restoration
+remain with each feature. A patch update within the supported loader series
+must not need a feature-local allowlist edit. Unknown game builds stay vanilla.
+UI suffixes, detailed help, header and notices consume the same capability
+state as execution. Pending game context is not a permanent failure; failures
+stay latched until an explicit lifecycle restart. Never retain game pointers
+in the registry or add per-frame logging/locking in hot guarded paths.
+Migrate every existing production/diagnostic gate to typed ids, and publish
+the existing hook/contract failures instead of private availability flags.
+Include shared policy/state/aggregation/notice tests, translated names and
+reasons in English/Japanese/Simplified Chinese, catalog coverage checks and
+normal/forced-unverified build validation. Retain settings/action formats.
+Shared consumers are included: schematic 3D previews use the block/model
+capabilities too, so a blocked world-render path cannot be bypassed in UI.
+Optional Night Vision/trading/Connected Textures/server-pack startup failures
+roll back their adapters and keep settings/unrelated features available;
+critical input/render foundation failures still abort startup.
+Files: `app/Capabilities.h`, `Versions.*`, `PausedFeatures.h`, guarded feature
+adapters listed in GAME-UPDATES.md, paused UI/Actions/translations, tests,
+release/catalog checks and documentation. Low-level memory/input/HUD helper
+deduplication is separate work, not bundled into this migration.
+Game checks: normal changed-feature smoke (especially FreeCamera terrain and
+restoration), pending before first native use, partial failures and reasons,
+unverified-game vanilla fallback, enable/disable and world re-entry. Builds
+and pure/native tests alone do not establish these Minecraft outcomes.
+
 ### L-198 Fake Offhand blocks primary use and misses secondary instant use
 Kind: Bug / Research. Maintainer report 2026-10-15.
 Status: fix built with pure regression tests; game verification pending.
@@ -452,6 +497,8 @@ Status: fix built, game verification pending. The local log identifies
 loader 26.51.7 rejected by the explicit 26.51.5/26.51.6 allowlist
 (`unsupported loader version`). This installed patch is now admitted while preserving executable,
 renderer ownership, virtual-entry and native request/retained-field checks.
+The initial .7 allowlist edit is superseded by L-202's common 26.51 series,
+minimum patch 5 policy; the adapter no longer owns a loader version list.
 Do not remove the fail-open gates or change player abilities/game type.
 Files: `FreeCameraCulling.h`, its tests; contract: [CAMERA.md](CAMERA.md).
 Check caves from solid ground, normal view after leaving FreeCamera, local
