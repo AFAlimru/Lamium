@@ -756,6 +756,18 @@ screen) opens it with the held item preselected; anything inside the anvil
 screen comes later.
 Open (maintainer): whether the anvil highlight is wanted later.
 
+### L-204 Placements and shapes in the world map's side panel list
+Kind: Design. Raised by the maintainer 2026-10-15 after the L-146 check:
+the side panel's list could show schematic placements and shapes as well as
+waypoints, so they can be found and opened without spotting them on the
+map. Today the list holds waypoints and the death point; a placement or
+shape is reached by clicking it on the map. Open questions for the
+maintainer before building: one mixed list or a section (or a filter) per
+layer; whether the L-146 layer switches also hide their entries from the
+list; whether marks from other dimensions are listed; what a row's switch
+does (show/hide, as for waypoints) and what clicking a row does (center the
+map and select, as for waypoints).
+
 ### L-169 Item Transfer in more screens, and bulk transfer
 Rework for 0.2.2 (maintainer 2026-10-15, built by Claude; passed locally
 and on BDS on `37c3745`, VALIDATION-LOG): the 0.2.2 gestures moved items visibly one by one because each request
@@ -879,6 +891,13 @@ empty (maintainer 2026-10-15). Research build: `f3501da` with
 `--transfer_trace=y` logs vanilla drops (raw ItemTransferAmount bytes, whose
 fields the SDK does not name) and keys in screens; its log decides how the
 drop gestures call vanilla's drop.
+Trace result (2026-10-15, VALIDATION-LOG): the drop key over a slot drops
+one, Ctrl + drop key the stack, a left click outside the window drops the
+held stack and a right click one item; all go through the same drop with
+bytes `01000000 02000000 00` (one) or `01000000 00000000 00` (stack). Shift
++ click on an empty slot with items held did nothing in vanilla (an
+auto-place that moves nothing). Built on that basis (2026-10-15, not yet
+checked in game): ITEM-TRANSFER.md "Held stack and drops".
 
 Handoff for the implementing agent (read AGENTS.md first; implementation of
 the 0.2.2 contract may go to another agent; product questions come back to
@@ -1148,20 +1167,6 @@ Suggested order: (1) a spike moving one item from a Lamium screen in a
 portal and while walking, locally and on BDS; (2) if it holds, a minimal
 screen (main inventory, hotbar, armor, offhand; click and shift click; no
 crafting); (3) a mockup agreed before the real build.
-
-### L-146 Layer switches on the world map (with the next integration review)
-Status (2026-10-15): built on main, not yet checked in game. Maintainer
-chose the look and behavior on 2026-10-15 (DESIGN "World map layer
-switches"); the in-game check moves the item to BACKLOG-DONE.
-Kind: Design. Raised by the maintainer 2026-10-11 before the 0.2.0 release;
-parked until the links between features are reviewed again (after 0.2.0).
-Today placements and Shapes always show on the world map while their
-feature draws them; a hidden one stays faint there so it can be shown
-again, so the only way to clear them off the map is turning the feature
-off. Agent's proposal: switches for Waypoints, Schematics and Shapes in the
-world map's top bar (remembered across openings), rather than a settings
-option, since the map is where that choice is made. Add when players ask
-for it or when the integration review takes it up.
 
 ### L-132 Move while the inventory screen is open
 Kind: Research, then Feature. Requested by the maintainer 2026-10-10;

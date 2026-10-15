@@ -12,6 +12,26 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-146 layer switches and the L-169 drop trace (2026-10-15)
+
+Build `0ba6e1d` with `--transfer_trace=y` (DLL
+`D153830793A4F479FFDA1E19AE2A72DA90006F79F6F54C1D3B058C97FA155D5C`), local
+single player, Minecraft 1.26.51.01, LeviLamina Client 26.51.7, Windows x64.
+- L-146: the maintainer passed the checklist: three switches with symbols
+  left of "Center on me", the side panel button named "List"; a switch off
+  removes its marks from the world map (death point with waypoints); the
+  choices stay after reopening the map. Servers and narrow two-row layouts
+  were not checked.
+- L-169 vanilla observations (Item Transfer off), from the log: the drop key
+  over a slot calls `_handleDropItem` with ItemTransferAmount bytes
+  `01000000 02000000 00ffffff` and drops one item; Ctrl + drop key
+  `01000000 00000000 00ffffff` drops the stack. A left click outside the
+  window calls `_handleDropSelectedItem` with the stack bytes, a right click
+  with the one-item bytes (the cursor's items). Both reach
+  `ContainerManagerController::handleDrop`, one request each, accepted.
+  Shift + left click on an empty slot with items held called auto-place
+  with amount 2147483647 and moved nothing; the cursor stayed held.
+
 ## Settings screen follow-ups after the L-197 review (2026-10-15)
 
 Maintainer passed each supplied check on these builds, same local

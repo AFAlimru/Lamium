@@ -59,7 +59,7 @@ Names on the world map (maintainer 2026-10-11, after names crowded on
 cursor order picks), for the selected one and for the one with a menu
 open, on a dark plate; the world map option "Always show names" (off by
 default) shows them all. Player names from the radar stay always shown.
-Layer switches (L-146, built 2026-10-15, unchecked in game): the top bar's
+Layer switches (L-146, passed in game 2026-10-15): the top bar's
 Waypoints / Schematics / Shapes switches (`map.worldMapWaypoints`,
 `worldMapSchematics`, `worldMapShapes`, default on) filter the world map's
 marks through `layerShown` (`MapMarks.h`); a footprint whose layer turns
