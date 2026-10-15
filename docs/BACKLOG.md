@@ -73,8 +73,7 @@ L-item wins. Every entry names what the task is, not only its number.
    follows the items below.
 1. **Small and medium features and fixes** (maintainer 2026-10-10: these
    come before large features and L-111 integration for now):
-   - Bugs: L-197 in-place, button-only description expansion (chosen
-     2026-10-15; separate panel/chat-return follow-up passed); L-177, L-181 (player reports, need reproductions or an agreed
+   - Bugs: L-177, L-181 (player reports, need reproductions or an agreed
      rule); L-192, L-193, L-194 schematic drawing (maintainer 2026-10-15:
      schematic drawing work pauses here; far-away cases remain); L-123 elytra stretched on the inventory model after FreeCamera and
      L-91 shield glint in Lamium's icons (both parked); L-132 moving with
@@ -162,8 +161,9 @@ every server gap before a release.
 L-198 through L-202: the maintainer completed the local normal-build checklist
 1-14 on `d5978e2` (2026-10-15), except server checks, and found two issues:
 L-197 help presentation and L-203 chat-return placement timing. Both follow-up
-checks passed locally on `f8c714b`. The new L-197 in-place footer expansion
-still needs focused retesting. Existing broader feature gaps remain in VALIDATION.
+checks passed locally on `f8c714b`. The replacing L-197 in-place footer
+expansion passed its focused check on `c4b8f01`; other sizes, languages and
+editing states while expanded remain unchecked. Existing broader feature gaps remain in VALIDATION.
 Server/server-pack checks remain open. A separately requested forced-unverified
 test build must verify sensitive paths stay vanilla with matching UI/notices
 while independent paths work. Injected hook/cleanup failures and their partial-
@@ -413,58 +413,6 @@ found later are handled as bugs.
 
 ## Bugs
 
-
-### L-197 Make long settings descriptions fully readable
-Kind: Bug / Ready (strong model).
-Imported at the maintainer's request on 2026-10-15 from the
-[Notion idea inbox](https://app.notion.com/p/3f7c12ab5b2d8121b2a0db32608f6b7a).
-Status: the compact translucent panel and chat-return follow-up passed on
-`f8c714b` (2026-10-15). The maintainer then chose to replace the help surface
-with in-place footer expansion and remove F1. The new implementation awaits
-a focused game check. No release chosen.
-The maintainer reported the truncation again with L-198 through L-201.
-
-Problem confirmed in the current code: `SettingsTableView.cpp` draws the
-footer description with a two-line `paragraph`, or a one-line `label` when
-`SettingsTable.h` selects `shortFooter` below 230 GUI units of panel height.
-`TextFit.h` truncates overflow with `...`; there is no route to the rest of
-the text. The missing content depends on font measurement, language and
-available space, rather than a limit on the stored description. This is a
-settings-comprehension bug; the affected runtime layouts have not been
-reproduced in this task.
-
-Latest decision 2026-10-15 (supersedes separate-panel/F1 interaction): keep
-the existing settings screen visible and use only the "Read full description"
-button to expand its own footer. Change that button to "Collapse" while
-expanded. Height follows measured wrapped text, limited to keep several
-settings rows and readable categories (up to about 60% of the settings area).
-Overflow scrolls under the pointer in the footer; the list keeps independent
-wheel scrolling. Header, categories, settings, editing and Esc retain their
-ordinary behavior. Preserve selection; reveal it minimally when reflow needs
-room. No dedicated help input mode, separate surface or F1 shortcut.
-
-Requirements for the chosen design:
-
-- Detect overflow using the current font, available width, line limit and
-  explicit newlines; account for language, GUI scale and resizing. Do not
-  use a fixed character/byte limit or break UTF-8 boundaries. Short text
-  must not gain an unnecessary expansion control.
-- Make all description content reachable. Numeric options currently return
-  range/operation text before looking up `help.<option>` in `description()`;
-  include the option's own help as well as its range and controls.
-- Preserve key capture, numeric/text editing, conflict tooltips, footer
-  errors and operation hints. Expanding/collapsing the footer cannot commit
-  an edit or change a setting; all ordinary settings interactions stay active.
-
-Files to inspect: `src/ui/SettingsTableView.cpp`, `SettingsTable.h`,
-`TextFit.h`, shared widgets and screen input, translations in all three
-languages, and their pure layout/text tests. Foundation: [UX-FOLLOWUP.md](UX-FOLLOWUP.md).
-Acceptance: pure tests for measured overflow, wrapping and UTF-8; in-game
-checks at wide, narrow and short sizes in English, Japanese and Simplified
-Chinese, including long Schematics and Item Transfer descriptions and
-numeric help. Exercise button expansion/collapse, independent footer/list
-scrolling, selection retention and editing/capture/error states. F1 must not
-open help; the full text must remain readable without leaving the settings.
 
 ### L-177 Schematic mismatch highlight appears at the wrong position
 Kind: Bug / Research. User report 2026-10-14.

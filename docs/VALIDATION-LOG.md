@@ -12,6 +12,26 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## In-place description expansion (2026-10-15, L-197)
+
+Maintainer checked the in-place footer expansion on `b2885fb` and reported
+it mostly fine, with two issues: the operation hint, the button and their
+bottom margin shifted when expanding, and the expanded state persisted after
+the selection moved to another row. `c4b8f01` anchors the hint and button at
+the same bottom position and collapses/rewinds the description when the
+selected row changes; the wheel-scroll hint returns only when the expanded
+text overflows. The maintainer passed the supplied three-item check on
+`c4b8f01`, DLL SHA-256
+`4A49927A467C94C08AEBD15155718B6FA0599D296F72E19D016BE26B24F575EC`.
+Environment: Minecraft 1.26.51.01, LeviLamina Client 26.51.7, Windows x64,
+local world, ordinary release build with traces off. Deployed DLL matched.
+- Expanding keeps the operation hint and the Collapse button at the same height.
+- Selecting another row while expanded returns to the collapsed footer and
+  "Read full description".
+- Overflowing expanded text shows the wheel hint and scrolls with the wheel.
+Not seen in this check: every window size/GUI scale and language combination,
+numeric-row help, and editing/capture/error states while expanded.
+
 ## Help presentation and chat-return follow-up (2026-10-15, L-197/L-203)
 
 Maintainer passed both supplied checks on `f8c714b`, DLL SHA-256
