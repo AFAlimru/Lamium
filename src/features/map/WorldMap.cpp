@@ -911,8 +911,14 @@ void drawBars(MinecraftUIRenderContext& context, glm::vec2 size, MapLayer layer,
         switchesW += 12 + widthOf(switchTexts[i]) - 1;
     }
     float brandW = ui::textWidth(context, "Lamium") + 6;
-    // The Nether layer and the switches move to a second row on a screen too narrow for them.
-    bool oneRow = 4 + brandW + dimsW + layerW + switchesW + 8 + rightW + 4 <= size.x;
+    // Too narrow for the named switches: their symbols alone, named in the
+    // bottom bar on hover; narrower still, the Nether layer and the named
+    // switches move to a second row.
+    constexpr float iconW = 15;
+    auto fits = [&](float width) { return 4 + brandW + dimsW + layerW + width + 8 + rightW + 4 <= size.x; };
+    bool const compact = !fits(switchesW) && fits(1 + 3 * (iconW - 1));
+    if (compact) switchesW = 1 + 3 * (iconW - 1);
+    bool oneRow = fits(switchesW);
     state.top = oneRow ? rowHeight : 2 * rowHeight;
     ui::fill(context, 0, 0, size.x, state.top, ui::palette::panel, .85f);
     ui::fill(context, 0, state.top - 1, size.x, 1, ui::palette::white, .14f);
@@ -973,27 +979,31 @@ void drawBars(MinecraftUIRenderContext& context, glm::vec2 size, MapLayer layer,
     std::array<float, 3> switchX{};
     for (size_t i = 0; i < 3; ++i) {
         switchX[i] = x;
-        x += 12 + widthOf(switchTexts[i]) - 1;
+        x += (compact ? iconW : 12 + widthOf(switchTexts[i])) - 1;
     }
+    std::optional<size_t> overSwitch;
     // Neighbours share a border column: switches that are on are drawn last, keeping their accent frames whole.
     for (int pass = 0; pass < 2; ++pass)
         for (size_t i = 0; i < 3; ++i) {
             bool on = switchOn[i];
             if (on != (pass == 1)) continue;
-            float bx = switchX[i], bw = 12 + widthOf(switchTexts[i]);
+            float bx = switchX[i], bw = compact ? iconW : 12 + widthOf(switchTexts[i]);
             bool over = hovering(bx, y, bw, buttonHeight);
+            if (over) overSwitch = i;
             ui::fill(context, bx, y, bw, buttonHeight, on ? ui::palette::accentDeep : over ? Rgb{.23f, .23f, .24f} : ui::palette::keyFill, .9f);
             ui::frame(context, bx, y, bw, buttonHeight, on ? ui::palette::accent : ui::palette::keyEdge);
             float alpha = on ? 1.f : .4f, iy = y + buttonHeight / 2;
-            if (i == 0) diamond(context, bx + 8, iy, 7, rgb(waypointColors[0]), alpha);
+            float ix = bx + 4;
+            if (i == 0) diamond(context, ix + 4, iy, 7, rgb(waypointColors[0]), alpha);
             else {
                 // A footprint as the map draws it: a faint fill in its frame.
                 auto color = rgb(i == 1 ? placementColor : packColor(242, 204, 61));
-                ui::fill(context, bx + 4, iy - 3, 7, 6, color, .16f * alpha);
-                ui::frame(context, bx + 4, iy - 3, 7, 6, color, alpha);
+                ui::fill(context, ix, iy - 3, 7, 6, color, .16f * alpha);
+                ui::frame(context, ix, iy - 3, 7, 6, color, alpha);
             }
-            ui::label(context, bx + 12, y + inset, bw - 12, switchTexts[i], on || over ? ui::palette::text : ui::palette::faint,
-                      ui::Align::Center);
+            if (!compact)
+                ui::label(context, bx + 12, y + inset, bw - 12, switchTexts[i], on || over ? ui::palette::text : ui::palette::faint,
+                          ui::Align::Center);
             state.hits.push_back({bx, y, bw, buttonHeight, switches[i].first});
         }
 
@@ -1017,7 +1027,8 @@ void drawBars(MinecraftUIRenderContext& context, glm::vec2 size, MapLayer layer,
             }
         if (!biome.empty()) where += "  " + biome;
         else if (!column) where += "  " + ui::translated("worldMap.unrecorded");
-    }
+    } else if (overSwitch)
+        where = ui::translated("worldMap.layerShown", switchTexts[*overSwitch], ui::translated(switchOn[*overSwitch] ? "on" : "off"));
     float whereW = where.empty() ? 0 : ui::textWidth(context, where);
     ui::label(context, 4, textY, whereW + 2, where, ui::palette::dim);
     int blocks = scaleBarBlocks(state.view.scale(), 30);

@@ -579,8 +579,11 @@ exactly one switch, one mode and one set of keys:
   footprint) before the name, left of "Center on me". On: the accent fill
   and frame of a selected button; off: dark with faint text and symbol.
   They are remembered across openings in the map settings, not a settings
-  screen option. On a screen too narrow for one row they go to the second
-  row with the Nether layer.
+  screen option. On a screen too narrow for the names they show their
+  symbols alone, and the bottom bar names the one under the pointer
+  ("Show Schematics on the map: On"); only when even that does not fit do
+  they go to the second row with the Nether layer (maintainer 2026-10-15,
+  after two rows appeared at UI Profile 100% in the Nether).
 - A switch that is off removes its marks from the world map entirely (no
   faint ghost, no click or menu); the death point goes with Waypoints. The
   side panel's list and editor work as before; the minimap and the world

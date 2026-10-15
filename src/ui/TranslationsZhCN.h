@@ -763,6 +763,7 @@ inline constexpr auto simplifiedChinese = std::to_array<Text>({
     {"nav.worldMap", "世界地图"},
     {"worldMap.center", "以我为中心"},
     {"worldMap.list", "列表"},
+    {"worldMap.layerShown", "在地图上显示{}: {}"},
     {"worldMap.hint", "点击: 选择  拖动: 移动  滚轮: 缩放  右键: 菜单"},
     {"worldMap.loading", "正在加载 {}"},
     {"worldMap.blocks", "{} 格"},
