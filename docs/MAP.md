@@ -64,7 +64,7 @@ Waypoints / Schematics / Shapes switches (`map.worldMapWaypoints`,
 `worldMapSchematics`, `worldMapShapes`, default on) filter the world map's
 marks through `layerShown` (`MapMarks.h`); a footprint whose layer turns
 off is no longer drawn but stays selectable from the side panel list.
-Side panel lists (L-204, built 2026-10-15): `map.worldMapList` picks the
+Side panel lists (L-204, passed in game 2026-10-15): `map.worldMapList` picks the
 listed layer (`listKind`, `MapMarks.h`); `State::allAreas` keeps the
 placements and shapes before the layer switches for the list and details.
 

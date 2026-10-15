@@ -12,6 +12,19 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## World map: compact layer switches and L-204 side panel lists (2026-10-15)
+
+Build `34d71ca`, normal build (DLL
+`1FACED1BF8C5D7BF481E115DF1D313F7760A83451E59110F1F3202166A9A674E`), local
+single player, Minecraft 1.26.51.01, LeviLamina Client 26.51.7, Windows x64.
+The maintainer passed the checklist: at UI Profile 100% in the Nether the
+top bar stays one row with symbol-only switches named in the bottom bar on
+hover; the panel header menu lists the three layers with counts;
+placement and shape rows select, center and show/hide; the chosen list
+survives reopening; a layer switched off on the map keeps its list with the
+"Hidden on the map" line. That line touched the first row's highlight; it
+got its own line in the next commit. Servers were not checked.
+
 ## L-169 held stack and drop gestures (2026-10-15)
 
 Build `9da5d9d`, normal build, traces off (DLL

@@ -1150,8 +1150,9 @@ void drawPanel(MinecraftUIRenderContext& context, glm::vec2 size) {
     y += 1;
     // A layer switched off on the map keeps its list, where it is found.
     if (!layerShown(layers(), kind == 0 ? MarkLayer::Waypoint : kind == 1 ? MarkLayer::Placement : MarkLayer::Shape)) {
-        ui::labelScaled(context, x, y + 2, inner, ui::translated("worldMap.hiddenOnMap"), .75f, ui::palette::faint);
-        y += 9;
+        // Its own line, clear of the first row's highlight.
+        ui::labelScaled(context, x, y + 3, inner, ui::translated("worldMap.hiddenOnMap"), .75f, ui::palette::faint);
+        y += 13;
     }
 
     int maxRows = std::max(3, static_cast<int>((bottom - y) * .4f / rowH));
