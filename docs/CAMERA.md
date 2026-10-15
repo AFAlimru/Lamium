@@ -194,6 +194,14 @@ No fix or change to the camera contract is selected.
 
 ## Underground terrain visibility (L-37; implemented 2026-10-07)
 
+L-200 follow-up (2026-10-15): the maintainer reported caves missing again.
+The ordinary local log identifies LeviLamina 26.51.7 rejected as an
+unsupported loader version. The adapter now admits this installed patch
+alongside .5/.6; executable gating, virtual-entry/ownership checks and the
+native request/retained-field validation remain unchanged. This admits the
+existing guarded path for a game check; cave rendering on .7 is unverified.
+The runtime coverage below belongs to .6, not .7.
+
 Runtime status: **underground terrain checked in a local world and on BDS**
 by the maintainer on `d56b81e`, 2026-10-07, Minecraft 1.26.51.01 / LeviLamina
 Client 26.51.6 (DLL `822285b2...5f8bfe7c`, trace options off). The runtime log
@@ -230,9 +238,9 @@ byte-sized requests and stable selection across
 repeated activation/exit frames; they do not exercise the game renderer.
 
 The candidate requires Minecraft executable file version 1.26.51.1
-(launcher version 1.26.51.01) and LeviLamina Client 26.51.5 or 26.51.6. These
+(launcher version 1.26.51.01) and LeviLamina Client 26.51.5, 26.51.6 or 26.51.7. These
 have different coverage: cave drawing was checked on 26.51.6; 26.51.5 has not
-been re-tested with this adapter. A pre-render hook
+been re-tested with this adapter, and 26.51.7 awaits its first check. A pre-render hook
 binds lazily from an actual primary renderer while FreeCamera is active. The
 SDK virtual-call thunk provides the slot; the implementation must be executable
 code in the game module. There is no hard-coded vtable slot or game address.
