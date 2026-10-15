@@ -7,6 +7,9 @@
 // welcome (docs/TRANSLATING.md).
 namespace lamium::ui::translations {
 inline constexpr auto simplifiedChinese = std::to_array<Text>({
+    {"description.read", "阅读完整说明"},
+    {"description.title", "说明"},
+    {"description.hint", "滚轮 / Page Up、Down: 滚动 | Esc: 返回"},
     {"feature.hideEffects", "隐藏视觉效果"},
     {"hideEffects", "隐藏视觉效果"},
     {"feature.connectedTextures", "连接纹理"},

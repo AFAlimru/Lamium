@@ -1,10 +1,44 @@
 #pragma once
+#include <algorithm>
 #include <cmath>
 #include <string>
 #include <string_view>
 #include <vector>
 
 namespace lamium::ui {
+// Complete measured wrapping for scrollable help. A glyph wider than the
+// area still consumes one whole codepoint, so no text is silently discarded.
+template<class Measure>
+std::vector<std::string> wrapFullText(std::string_view source, float width, Measure measure) {
+    std::vector<std::string> lines;
+    if (!std::isfinite(width) || width <= 0) return lines;
+    while (!source.empty()) {
+        size_t end = 0, space = std::string_view::npos;
+        while (end < source.size() && source[end] != '\n') {
+            size_t next = end + 1;
+            while (next < source.size() && (static_cast<unsigned char>(source[next]) & 0xc0) == 0x80) ++next;
+            if (measure(source.substr(0, next)) > width) {
+                if (!end) end = next;
+                break;
+            }
+            if (source[end] == ' ') space = end;
+            end = next;
+        }
+        if (end < source.size() && source[end] != '\n' && source[end] != ' '
+            && space != std::string_view::npos && space > 0) end = space;
+        lines.emplace_back(source.substr(0, end));
+        source.remove_prefix(end);
+        if (!source.empty() && source.front() == '\n') source.remove_prefix(1);
+        while (!source.empty() && source.front() == ' ') source.remove_prefix(1);
+    }
+    return lines;
+}
+template<class Measure>
+bool textOverflows(std::string_view source, float width, size_t maxLines, Measure measure) {
+    auto lines = wrapFullText(source, width, measure);
+    return (!source.empty() && lines.empty()) || lines.size() > maxLines
+        || std::any_of(lines.begin(), lines.end(), [&](auto const& line) { return measure(line) > width; });
+}
 // Native font measurement is supplied by the caller. Remove whole UTF-8
 // codepoints, so truncation never feeds a partial Japanese character to Font.
 template<class Measure>

@@ -172,6 +172,7 @@ void enterCalculator(bool fromSettings);
 // (L-172), in the order text events are routed.
 struct FocusedText { TextEdit* field = nullptr; void (*changed)() = nullptr; };
 FocusedText focusedText() {
+    if (table_view::helpOpen()) return {};
     if (language_view::opened()) return {};
     if (table_view::capturing()) return {};
     if (calculatorOpen) return {&calculator_view::field(), calculator_view::edited};
@@ -268,7 +269,7 @@ void releaseTextKeyboard() {
     }
 }
 void syncTextKeyboard(float x, float y) {
-    bool wanted = !closing && !table_view::capturing() && (calculatorOpen || table_view::searchFocused() || numericEditing() || shapes_view::editingName() || waypoints_view::editingName() || prompt
+    bool wanted = !closing && !table_view::helpOpen() && !table_view::capturing() && (calculatorOpen || table_view::searchFocused() || numericEditing() || shapes_view::editingName() || waypoints_view::editingName() || prompt
         || savePrompt
         || (worldMapOpen && map::world::editingName()));
     bool number = numericEditing();
@@ -352,6 +353,7 @@ LL_TYPE_INSTANCE_HOOK(SettingsSearchText, ll::memory::HookPriority::Normal, UISc
     &UIScene::$handleTextChar, void, std::string const& text, FocusImpact impact) {
     std::lock_guard lock(mutex);
     if (scene.get() == this && ownsTop()) {
+        if (table_view::helpOpen()) return;
         // Coalesce native text events before persisting the whole workspace.
         // Never flush the world sidecar from inside a text callback.
         logControlText(text);
@@ -1000,6 +1002,18 @@ void render(ll::event::UIRenderEvent& event) {
     applyNumber();
     shapes_view::applyName();
     table_view::applyBinding();
+    if (table_view::helpOpen()) {
+        releaseTextKeyboard();
+        pendingSearch = false;
+        pendingClose = false;
+        if (auto click = std::exchange(pendingClick, std::nullopt)) table_view::click(click->x,click->y,click->right);
+        for (auto wheel : std::exchange(pendingWheels, {})) if (table_view::helpOpen()) table_view::wheel(wheel.direction);
+        for (int key : std::exchange(pendingKeys, {})) if (table_view::helpOpen()) table_view::key(key);
+        if (std::exchange(pendingRelease, false)) table_view::release();
+        displayedInverseScale = current.getGuiData()->mInvGuiScale;
+        table_view::render(context,current,size,view.mPointerLocationPrevious);
+        return;
+    }
     // A click inside the field being edited moves its caret (L-172).
     if (auto target = focusedText(); target.field) {
         if (pendingClick && !pendingClick->right && placeCaret(context, *target.field, pendingClick->x, pendingClick->y))
@@ -1146,7 +1160,9 @@ void render(ll::event::UIRenderEvent& event) {
             if (auto click = std::exchange(pendingClick, std::nullopt)) table_view::click(click->x, click->y, click->right);
             for (int key : std::exchange(pendingKeys, {})) {
                 if (language_view::opened()) break;
+                bool help = table_view::helpOpen();
                 table_view::key(key);
+                if (help && !table_view::helpOpen()) break;
             }
         }
     }
@@ -1479,6 +1495,18 @@ void start() {
         }
         // Let key-up through so keys pressed before opening cannot stick.
         if (!event.isDown()) return;
+        // One held Esc must not dismiss help and then the settings behind it.
+        if (repeat && event.keyCode() == 0x1b) { event.cancel(); return; }
+        if (table_view::helpOpen()) {
+            event.cancel(); pendingKeys.push_back(event.keyCode()); return;
+        }
+        if (event.keyCode() == 0x70 && !worldMapOpen && !prompt && !savePrompt
+            && !calculatorOpen && !schematicMenu && !hudEditorView() && !shapesView()
+            && !waypointsView() && !schematicsView() && !language_view::opened()) {
+            event.cancel();
+            if (!repeat) pendingKeys.push_back(event.keyCode());
+            return;
+        }
         if (language_view::opened()) {
             event.cancel(); pendingKeys.push_back(event.keyCode()); return;
         }

@@ -1,5 +1,7 @@
 #include "ui/TextFit.h"
+#include "ui/DescriptionPanel.h"
 #include <limits>
+#include <utility>
 void check(bool, char const*);
 void textFitTests() {
     using lamium::ui::fitLabel;
@@ -30,4 +32,24 @@ void textFitTests() {
           "explicit line breaks cannot escape the final line budget");
     check(wrapLabel("日本",1,3,measure).empty() && wrapLabel("abc",4,0,measure).empty(),
           "unrenderable paragraphs terminate without partial characters");
+    using lamium::ui::wrapFullText;
+    using lamium::ui::textOverflows;
+    check(!textOverflows("one two",7,1,measure) && textOverflows("one two three",7,1,measure)
+        && textOverflows("one\ntwo\nthree",40,2,measure),
+        "description expansion follows measured width, line count and explicit breaks");
+    check(wrapFullText("日本語設定",4,measure) == std::vector<std::string>{"日本", "語設", "定"}
+        && wrapFullText("a\n\nb",4,measure) == std::vector<std::string>{"a", "", "b"}
+        && wrapFullText("🌿日本",1,measure) == std::vector<std::string>{"🌿", "日", "本"},
+        "full help preserves blank lines and every complete UTF-8 codepoint without ellipsis");
+    check(textOverflows("日本",1,3,measure) && !textOverflows("日本",4,1,measure)
+        && textOverflows("x",0,2,measure), "oversized glyphs and invalid widths count as overflow");
+    for (auto size : {std::pair{800.f,600.f}, std::pair{240.f,150.f}, std::pair{380.f,240.f}}) {
+        auto table = lamium::ui::SettingsTable::fit(size.first,size.second,20,0);
+        auto panel = lamium::ui::DescriptionPanel::fit(table);
+        check(panel.visible > 0 && panel.textWidth > 0
+            && panel.textTop + panel.visible * panel.lineHeight <= panel.top + panel.height - panel.pad,
+            "full help keeps complete lines inside wide, narrow and short panels");
+        check(panel.scroll(1000,100) + panel.visible >= 100 && panel.scroll(-1,100) == 0
+            && panel.scroll(8,1) == 0, "help scrolling reaches the end and clamps after a resize");
+    }
 }

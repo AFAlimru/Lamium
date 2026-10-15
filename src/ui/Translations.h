@@ -9,6 +9,9 @@ namespace lamium::ui::translations {
 // keyed table in its own file with one row per entry here, in the same order.
 struct Entry { std::string_view key, english, japanese; };
 inline constexpr auto entries = std::to_array<Entry>({
+    {"description.read", "Read full description", "全文を読む"},
+    {"description.title", "Description", "説明"},
+    {"description.hint", "Wheel / Page Up, Down: scroll | Esc: back", "ホイール / Page Up・Down: スクロール | Esc: 戻る"},
     {"feature.hideEffects", "Hide effects", "視覚効果を隠す"},
     {"hideEffects", "Hide effects", "視覚効果を隠す"},
     {"feature.connectedTextures", "Connected Textures", "つながるテクスチャ"},

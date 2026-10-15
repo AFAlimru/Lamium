@@ -125,6 +125,14 @@ at most 640×380 and centered. New screens reuse these numbers.
 
 ### Text and languages (Decided)
 
+- (Decided 2026-10-15, L-197) A settings description that exceeds the compact
+  footer offers "Read full description" there and F1. A panel shows the full
+  measured, wrapped text, with wheel/arrow/Page Up/Down scrolling when needed;
+  Esc, its Close button or an outside click returns to the same list selection,
+  scroll and editing focus. Help owns input while open. Short descriptions
+  have no expansion control. Numeric descriptions include their own help,
+  range and controls. All three languages use the same behavior.
+
 - English is the default; Japanese and Simplified Chinese (`zh_CN`, L-90)
   follow the game language, and other languages show English. Every
   user-facing key has all three. Settings labels keep an ASCII ": " between

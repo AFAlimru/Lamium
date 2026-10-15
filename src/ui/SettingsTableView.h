@@ -25,6 +25,7 @@ void enterCategory();
 void rebuild(bool keepSelection);
 
 bool searchFocused();
+bool helpOpen();
 // Ctrl+F: the search field takes the typing, its text selected.
 void focusSearch();
 // Text from the native keyboard for the search field.

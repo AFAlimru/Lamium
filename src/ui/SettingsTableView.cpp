@@ -7,6 +7,8 @@
 #include "ui/SettingsRows.h"
 #include "ui/SettingsNavigation.h"
 #include "ui/SettingsTable.h"
+#include "ui/DescriptionPanel.h"
+#include "ui/TextFit.h"
 #include "ui/ShapeEditor.h"
 #include "ui/ShapesLayout.h"
 #include "ui/ShapesView.h"
@@ -104,6 +106,23 @@ bool keyboardTip = false;
 glm::vec2 tipPointer{};
 SettingsTable displayed;
 float displayedTabWidth = 0;
+bool helpShown = false, helpAvailable = false;
+std::string helpText;
+int helpFirst = 0, helpLineCount = 0;
+DescriptionPanel helpPanel;
+float helpButtonX = 0, helpButtonY = 0, helpButtonWidth = 0;
+std::string description();
+void openHelp() {
+    if (!helpAvailable) return;
+    helpText = description();
+    helpFirst = 0;
+    helpShown = true;
+    sliderDrag = nullptr;
+}
+bool onHelpButton(float x, float y) {
+    return helpAvailable && x >= helpButtonX && x < helpButtonX + helpButtonWidth
+        && y >= helpButtonY && y < helpButtonY + SettingsTable::footerButtonHeight;
+}
 SearchQuery query;
 bool searchFocusedValue = false;
 bool& searchFocused_() { return searchFocusedValue; }
@@ -308,6 +327,11 @@ void pressReset(ResetScope scope) {
     rebuild_(false);
 }
 void handleClick(SettingsTable::Hit const& hit, bool right) {
+    if (helpShown) {
+        if (!right && (!helpPanel.contains(hit.x, hit.y) || helpPanel.close(hit.x, hit.y))) helpShown = false;
+        return;
+    }
+    if (!right && onHelpButton(hit.x, hit.y)) { openHelp(); return; }
     if (!(hit.zone == Zone::Row && valid(hit.index) && rows[hit.index].kind == RowKind::MapCache && !right
           && onMapCacheButton(hit.x)))
         mapCacheArmed = false;
@@ -390,6 +414,19 @@ void handleClick(SettingsTable::Hit const& hit, bool right) {
     }
 }
 void handleKey(int key) {
+    if (helpShown) {
+        int step = std::max(1, helpPanel.visible - 1);
+        if (key == 0x1b) helpShown = false;
+        else if (key == 0x26) --helpFirst;
+        else if (key == 0x28) ++helpFirst;
+        else if (key == 0x21) helpFirst -= step;
+        else if (key == 0x22) helpFirst += step;
+        else if (key == 0x24) helpFirst = 0;
+        else if (key == 0x23) helpFirst = helpLineCount;
+        helpFirst = helpPanel.scroll(helpFirst, helpLineCount);
+        return;
+    }
+    if (key == 0x70) { openHelp(); return; }
     if (searchFocused_()) {
         // A found key is one unit in the field (L-159).
         if (keyQuery && (key == 0x08 || key == 0x1b)) { clearKeyQuery(); return; }
@@ -592,13 +629,14 @@ std::string description() {
     }
     case RowKind::Option: {
         if (auto warning = optionWarning(entry.option->id,Runtime::instance().preferences())) return translated(*warning);
-        if (entry.option->numeric) {
-            auto const& range = *entry.option->numeric;
-            return translated(editingNumber_ ? "numberRange" : "numberControl", range.minimum, range.maximum);
-        }
         auto helpKey = "help." + std::string(entry.option->id);
         auto help = translated(helpKey);
-        return help != helpKey ? help : translated(entry.feature->description);
+        auto text = help != helpKey ? help : translated(entry.feature->description);
+        if (entry.option->numeric) {
+            auto const& range = *entry.option->numeric;
+            text += "\n" + translated(editingNumber_ ? "numberRange" : "numberControl", range.minimum, range.maximum);
+        }
+        return text;
     }
     case RowKind::Action: {
         // An action may explain itself ("help.key.<id>"); the press/hold/toggle note follows.
@@ -736,16 +774,44 @@ void drawVersionTip(MinecraftUIRenderContext& context, SettingsTable const& t, S
 void copyVersion_() {
     showMessageToast(translated(copyText(runningVersionLine()) ? "version.copied" : "version.copyFailed"));
 }
+void drawHelp(MinecraftUIRenderContext& context, SettingsTable const& table, glm::vec2 pointer) {
+    helpPanel = DescriptionPanel::fit(table);
+    auto const& p = helpPanel;
+    auto lines = wrapFullText(helpText, p.textWidth, [&](std::string_view text) { return textWidth(context, text); });
+    helpLineCount = static_cast<int>(lines.size());
+    helpFirst = p.scroll(helpFirst, helpLineCount);
+    panel(context,p.left,p.top,p.width,p.height,1);
+    frame(context,p.left,p.top,p.width,p.height,palette::keyEdge);
+    label(context,p.left+p.pad,p.top+6,p.closeX-p.left-2*p.pad,translated("description.title"));
+    if (p.close(pointer.x,pointer.y)) fill(context,p.closeX,p.top+4,SettingsTable::closeWidth,12,palette::white,.07f);
+    frame(context,p.closeX,p.top+4,SettingsTable::closeWidth,12,palette::keyEdge);
+    label(context,p.closeX,p.top+5+boxTextInset(),SettingsTable::closeWidth,translated("close"),palette::text,Align::Center);
+    for (int i = 0; i < p.visible && helpFirst + i < helpLineCount; ++i)
+        label(context,p.left+p.pad,p.textTop+i*p.lineHeight,p.textWidth,lines[helpFirst+i]);
+    if (helpLineCount > p.visible) {
+        float track = p.visible * p.lineHeight, thumb = track * p.visible / helpLineCount;
+        float y = p.textTop + (track-thumb) * helpFirst / (helpLineCount-p.visible);
+        fill(context,p.left+p.width-p.pad,p.textTop,2,track,palette::white,.08f);
+        fill(context,p.left+p.width-p.pad,y,2,thumb,palette::keyEdge);
+    }
+    label(context,p.left+p.pad,p.top+p.height-p.pad-p.lineHeight,p.width-2*p.pad,translated("description.hint"),palette::faint);
+}
 void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, glm::vec2 size, glm::vec2 pointer) {
     auto t = SettingsTable::fit(size.x, size.y, static_cast<int>(rows.size()), first, nav::count);
     t.placeVersion(textWidth(context, "Lamium"), textWidth(context, lamiumVersion() + pausedHeader()));
     displayed = t;
-    if (sliderDrag && sliderDrag->numeric) setSlider(*sliderDrag, std::max(0.f, t.sliderFraction(std::min(pointer.x, t.sliderValueX() - 1))));
+    if (!helpShown && sliderDrag && sliderDrag->numeric) setSlider(*sliderDrag, std::max(0.f, t.sliderFraction(std::min(pointer.x, t.sliderValueX() - 1))));
     first = t.first;
     fill(context,0,0,size.x,size.y,Rgb{0,0,0},.2f);
     if (!t.usable()) {
+        helpAvailable = false;
         label(context, 4, 4, std::max(1.0f, size.x - 8), translated("smallWindow"));
         context.flushText(0, std::nullopt);
+        return;
+    }
+    if (helpShown) {
+        drawHelp(context,t,pointer);
+        context.flushText(0,std::nullopt);
         return;
     }
     auto const preferences = Runtime::instance().preferences();
@@ -985,6 +1051,13 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
     // Footer: description and hints, or the binding editor's buttons.
     fill(context,t.left,t.footerTop,t.width,1,palette::white,.14f);
     float textLeft = t.left + SettingsTable::pad, textWidthAvailable = t.width - 2*SettingsTable::pad;
+    helpAvailable = !capturing_ && !findingKey && screen::message().empty()
+        && textOverflows(description(), textWidthAvailable, t.shortFooter ? 1 : 2,
+            [&](std::string_view text) { return textWidth(context,text); });
+    auto helpLabel = translated("description.read") + "  F1";
+    helpButtonWidth = std::min(textWidthAvailable - 30, textWidth(context,helpLabel) + 2*SettingsTable::pad);
+    helpButtonX = t.left + t.width - SettingsTable::pad - helpButtonWidth;
+    helpButtonY = t.footerTop + (t.shortFooter ? 2 : 28);
     if (findingKey) {
         float x = t.footerButtonX(0), y = t.footerButtonY();
         bool over = hover.zone == Zone::Footer && t.footerButton(hover.x, hover.y) == 0;
@@ -999,7 +1072,7 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
             screen::message().empty() ? description() : screen::message(),screen::message().empty() ? palette::dim : palette::warning);
         if (!t.shortFooter) label(context,textLeft,t.footerTop+30,textWidthAvailable,translated("captureInline"),palette::faint);
     } else if (t.shortFooter) {
-        label(context,textLeft,t.footerTop+3,textWidthAvailable,screen::message().empty() ? description() : screen::message(),
+        label(context,textLeft,t.footerTop+3,textWidthAvailable-(helpAvailable ? helpButtonWidth+SettingsTable::gap : 0),screen::message().empty() ? description() : screen::message(),
             screen::message().empty() ? palette::text : palette::warning);
     } else {
         bool warns = valid(selected) && rows[selected].option
@@ -1007,7 +1080,12 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
         paragraph(context,textLeft,t.footerTop+3,textWidthAvailable,description(),2,warns ? palette::warning : palette::text);
         std::string hint = !screen::message().empty() ? screen::message()
             : translated(keyQuery && hotkeysView() ? "keyFind.hint" : searchFocused_() ? "searchHint" : editingNumber_ ? "numberHint" : "tableHint");
-        label(context,textLeft,t.footerTop+30,textWidthAvailable,std::move(hint),screen::message().empty() ? palette::faint : palette::warning);
+        label(context,textLeft,t.footerTop+30,textWidthAvailable-(helpAvailable ? helpButtonWidth+SettingsTable::gap : 0),std::move(hint),screen::message().empty() ? palette::faint : palette::warning);
+    }
+    if (helpAvailable) {
+        if (onHelpButton(pointer.x,pointer.y)) fill(context,helpButtonX,helpButtonY,helpButtonWidth,SettingsTable::footerButtonHeight,palette::white,.07f);
+        frame(context,helpButtonX,helpButtonY,helpButtonWidth,SettingsTable::footerButtonHeight,palette::keyEdge);
+        label(context,helpButtonX,helpButtonY+boxTextInset(),helpButtonWidth,helpLabel,palette::accent,Align::Center);
     }
     if (!capturing_ && !findingKey)
         if (auto target = tipTarget(t, hover)) drawConflictTip(context,current,t,target->first,target->second);
@@ -1018,11 +1096,13 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
 }
 
 void open() {
+    helpShown = false; helpAvailable = false;
     endEditing();
     query.clear(); searchCollapsed.clear(); searchFocused_() = false; capturing_.reset(); bindingEdit.reset();
     findingKey = false; foundKey.reset(); keyQuery.reset();
 }
 void reset() {
+    helpShown = false; helpAvailable = false; helpText.clear();
     sliderDrag = nullptr;
     endEditing();
     capturing_.reset(); bindingEdit.reset(); capture.clear();
@@ -1041,6 +1121,7 @@ void enterCategory() {
 }
 void rebuild(bool keepSelection) { rebuild_(keepSelection); }
 bool searchFocused() { return searchFocused_(); }
+bool helpOpen() { return helpShown; }
 void focusSearch() { searchFocused_() = true; query.selectAll(); }
 void unfocusSearch() { searchFocused_() = false; }
 void typeSearch(std::string const& text) {
@@ -1091,7 +1172,10 @@ bool onCaptureButton(float x, float y) {
 }
 void click(float x, float y, bool right) { handleClick(displayed.hit(x, y, nav::count, displayedTabWidth), right); }
 void key(int key) { handleKey(key); }
-void wheel(int step) { first = SettingsTable::clampFirst(first + step, static_cast<int>(rows.size()), displayed.visible); }
+void wheel(int step) {
+    if (helpShown) helpFirst = helpPanel.scroll(helpFirst + step, helpLineCount);
+    else first = SettingsTable::clampFirst(first + step, static_cast<int>(rows.size()), displayed.visible);
+}
 void release() { sliderDrag = nullptr; }
 void disarm() { resetArmed = false; }
 glm::vec2 caret() {
