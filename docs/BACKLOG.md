@@ -158,6 +158,11 @@ every server gap before a release.
 
 ### Since 0.2.2 (unreleased)
 
+L-169 held stack and drop gestures (`9da5d9d`, chest checklist passed): try
+the inventory screen, a furnace or another screen with slot roles, and a
+server; the drop key rebound away from Q. L-146 layer switches (passed
+locally): the two-row top bar on a narrow window.
+
 L-198 through L-202: the maintainer completed the local normal-build checklist
 1-14 on `d5978e2` (2026-10-15), except server checks, and found two issues:
 L-197 help presentation and L-203 chat-return placement timing. Both follow-up
