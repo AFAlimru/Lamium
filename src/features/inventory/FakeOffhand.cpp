@@ -278,12 +278,15 @@ std::optional<int> chooseSlot(IClientInstance& client, HitResult const& solid, i
     bool hitBlock = solid.mType == HitResultType::Tile;
     bool interactive = hitBlock && player->getDimensionBlockSource().getBlock(solid.mBlock)
         .getBlockType().isInteractiveBlock();
-    if (blockItem) return placementSlot(true, true, selected, target, true, hitBlock, interactive, player->isSneaking());
+    bool primaryUsing = !player->mItemInUse->mItem->isNull();
+    bool primaryIdle = primaryPasses(player->getInventory().getItem(selected), *player, solid);
+    if (blockItem) return placementSlot(true, true, selected, target, true, hitBlock, interactive,
+        player->isSneaking(), primaryIdle, primaryUsing);
     // Timed use stops on a selection change (L-95 baseline). Never start it
     // from a per-call borrow or preempt an existing primary use.
-    if (!player->mItemInUse->mItem->isNull()) return {};
+    if (primaryUsing) return {};
     auto slot = instantUseSlot(true, true, selected, target,
-        primaryPasses(player->getInventory().getItem(selected), *player, solid), targetInstant,
+        primaryIdle, targetInstant,
         solid.mType == HitResultType::Entity, interactive, player->isSneaking());
     instant = slot.has_value();
     return slot;

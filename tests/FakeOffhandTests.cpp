@@ -192,4 +192,15 @@ void fakeOffhandTests() {
     }
     check(!instantUseSlot(true,true,8,8,true,true,false,false,false),
         "manually selecting the target leaves its ordinary use alone");
+    using lamium::inventory::fakeOffhand::placementSlot;
+    check(!placementSlot(true,true,0,8,true,true,false,false,primaryPass(dirt,true,false))
+        && !placementSlot(true,true,0,8,true,true,false,false,primaryPass(bread,true,false)),
+        "secondary blocks cannot preempt primary placement or hungry food");
+    check(!placementSlot(true,true,0,8,true,true,false,false,true,true),
+        "secondary placement never selects away from an active primary use");
+    auto durationBlock = dirt;
+    durationBlock.timed = true;
+    check(primaryPass(durationBlock,false,false) && !primaryPass(durationBlock,true,false)
+        && instantUseSlot(true,true,0,8,primaryPass(durationBlock,false,false),secondaryInstant(rocket,true,false),false,false,false) == 8,
+        "a block with native duration passes to gliding fireworks only with air aim");
 }

@@ -134,6 +134,8 @@ inline bool primaryPass(ItemTraits const& item, bool blockTarget, bool cannotEat
         return plainTarget && (!plants(item) || targetUse == false);
     }
     if (item.wearable || detail::airUse(id)) return false;
+    // A block has no air use, even when its native item reports a duration.
+    if (item.block) return !blockTarget && !item.liquidClip;
     if (item.idleTool) return true;
     if (blockTarget && plainTarget && targetUse == false) return true;
     if (item.timed || detail::throwable(item, id) || detail::bucket(item, id) || item.liquidClip) return false;
@@ -178,9 +180,11 @@ inline std::optional<int> instantUseSlot(bool enabled, bool triggered, int selec
     return target;
 }
 inline std::optional<int> placementSlot(bool enabled, bool triggered, int selected, int target,
-    bool hasBlockItem, bool hitBlock, bool interactive, bool sneaking) {
+    bool hasBlockItem, bool hitBlock, bool interactive, bool sneaking,
+    bool primaryIdle = true, bool primaryUsing = false) {
     if (!enabled || !triggered || selected < 0 || selected >= 9 || target < 0 || target >= 9
-        || selected == target || !hasBlockItem || !hitBlock || (interactive && !sneaking)) return {};
+        || selected == target || !hasBlockItem || !hitBlock || !primaryIdle || primaryUsing
+        || (interactive && !sneaking)) return {};
     return target;
 }
 }

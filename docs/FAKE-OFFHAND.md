@@ -6,6 +6,20 @@ Timed secondary use was excluded on 2026-10-07; the broader extension scope
 below is the earlier research record, not a promise of support. Confirmed
 runtime coverage and remaining checks are in [VALIDATION.md](VALIDATION.md).
 
+## Primary-use regressions (L-198, 2026-10-15)
+
+The maintainer reported three cases: a primary block prevented fireworks
+while gliding and aiming into air; with blocks in both slots the secondary
+placed instead of the primary; secondary blocks prevented primary eating.
+The current fix applies the primary-pass check to placement as well as
+instant use, and rejects placement while a primary timed use is active.
+A normal primary block passes in air even if its native item reports a use
+duration; liquid-placed and wearable/known air-use items keep their checks.
+Block aim keeps the primary placement. Pure regression tests cover these
+decisions. Native item traits, actual fireworks/eating and server outcomes
+still need the maintainer's game check; the duration is a defensive classifier
+fix, not an observed trace of the reported primary block.
+
 ## Extension scope (chosen 2026-10-06)
 
 The maintainer chose broad secondary-hand capability, rather than one item
