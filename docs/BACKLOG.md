@@ -873,6 +873,12 @@ every matching item" (the maintainer's choice over the agent's proposal of
 off). Not this round: the Shift + double click and Ctrl + Shift + click
 alternatives and "fill existing stacks only". Research what the drop key
 does in screens today before building the drop gestures.
+For (1) the cursor stack goes into the clicked empty slot first, then every
+matching item from the other side follows to that side; the hand ends
+empty (maintainer 2026-10-15). Research build: `f3501da` with
+`--transfer_trace=y` logs vanilla drops (raw ItemTransferAmount bytes, whose
+fields the SDK does not name) and keys in screens; its log decides how the
+drop gestures call vanilla's drop.
 
 Handoff for the implementing agent (read AGENTS.md first; implementation of
 the 0.2.2 contract may go to another agent; product questions come back to
