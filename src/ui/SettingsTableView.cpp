@@ -620,7 +620,7 @@ std::string baseDescription() {
         auto text = help != helpKey ? help : translated(entry.feature->description);
         if (entry.option->numeric) {
             auto const& range = *entry.option->numeric;
-            text += "\n" + translated(editingNumber_ ? "numberRange" : "numberControl", range.minimum, range.maximum);
+            text += "\n" + translated("numberRangeLine", range.minimum, range.maximum);
         }
         return text;
     }
@@ -1055,7 +1055,8 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
     helpButtonX = t.left + t.width - SettingsTable::pad - helpButtonWidth;
     helpButtonY = t.descriptionButtonY();
     std::string hint = !screen::message().empty() ? screen::message()
-        : translated(keyQuery && hotkeysView() ? "keyFind.hint" : searchFocused_() ? "searchHint" : editingNumber_ ? "numberHint" : "tableHint");
+        : translated(keyQuery && hotkeysView() ? "keyFind.hint" : searchFocused_() ? "searchHint" : editingNumber_ ? "numberHint"
+            : valid(selected) && rows[selected].option && rows[selected].option->numeric ? "numberControl" : "tableHint");
     if (findingKey) {
         float x = t.footerButtonX(0), y = t.footerButtonY();
         bool over = hover.zone == Zone::Footer && t.footerButton(hover.x, hover.y) == 0;
@@ -1085,7 +1086,7 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
         label(context,textLeft,t.descriptionHintY(),textWidthAvailable-helpButtonWidth-SettingsTable::gap,std::move(hint),screen::message().empty() ? palette::faint : palette::warning);
     } else if (t.shortFooter) {
         label(context,textLeft,t.footerTop+3,textWidthAvailable-(helpAvailable ? helpButtonWidth+SettingsTable::gap : 0),screen::message().empty() ? fullDescription : screen::message(),
-            screen::message().empty() ? palette::text : palette::warning);
+            screen::message().empty() ? (warns ? palette::warning : palette::text) : palette::warning);
     } else {
         paragraph(context,textLeft,t.footerTop+3,textWidthAvailable,fullDescription,2,warns ? palette::warning : palette::text);
         label(context,textLeft,t.descriptionHintY(),textWidthAvailable-(helpAvailable ? helpButtonWidth+SettingsTable::gap : 0),std::move(hint),screen::message().empty() ? palette::faint : palette::warning);

@@ -33,7 +33,8 @@ help surface, modal input routing and F1 shortcut are removed. Footer height
 fits wrapped text within a budget that leaves at least three setting rows
 and readable category navigation, up to 60% of the settings area. Wheel
 input over the footer scrolls overflow; over the list it scrolls rows.
-Numeric descriptions retain their own help/range/controls. All three
+Numeric descriptions show their own help and range; their controls
+replace the footer hint while the row is selected. All three
 languages share the behavior; pure tests cover bounds, row/category
 separation, overflow reachability and UTF-8 wrapping. The hint and button
 stay anchored at the footer bottom; changing the selected row collapses and

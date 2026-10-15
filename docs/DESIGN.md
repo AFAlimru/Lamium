@@ -144,7 +144,10 @@ at most 640×380 and centered. New screens reuse these numbers.
   input over the list still scrolls the list. Selection is retained and
   minimally revealed when expansion or a changed description needs room.
   Short descriptions have no expansion button. Numeric descriptions include
-  their own help, range and controls. All three languages use the same behavior.
+  their own help and range (white); their controls replace the faint footer
+  hint while the row is selected (decided 2026-10-15: white says what a
+  setting is, faint says how to operate it). All three languages use the
+  same behavior.
   This replaces the earlier separate-panel/F1 contract on the same date.
 
 - English is the default; Japanese and Simplified Chinese (`zh_CN`, L-90)
