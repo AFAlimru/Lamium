@@ -226,7 +226,8 @@ void settingsRowsTests() {
     for (auto id : {"inventory.transferWheelOne", "inventory.transferWheelStack",
                     "inventory.transferDragStack", "inventory.transferDragOne", "inventory.transferWheelMatching",
                     "inventory.transferWheelAll", "inventory.transferClickMatching", "inventory.transferClickAll",
-                    "inventory.transferDragKeepOne"})
+                    "inventory.transferDragKeepOne", "inventory.transferCursorMatching", "inventory.transferDropOne",
+                    "inventory.transferDropKeepOne", "inventory.transferDropAll", "inventory.transferDropMatching"})
         check(options.contains(id), "transfer gesture switches appear under Inventory Transfer");
     {
         Settings changed;

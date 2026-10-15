@@ -2,10 +2,33 @@
 
 ## Current status
 
-L-169's 0.2.2 part is complete, unreleased. The maintainer confirmed the
+L-169's 0.2.2 part is complete. The held-stack gesture and the drop
+gestures (next section) are built and unchecked in game. The maintainer confirmed the
 normal-build smoke checklist on c8c1f1b on 2026-10-15: all behaved as expected.
 Detailed coverage beyond that report remains below. Drops, cursor-item
 operations and W/S moves remain out of scope.
+
+## Held stack and drops (2026-10-15, built after `0ba6e1d`, unchecked in game)
+
+- Hovering keeps tracking slots while items are on the cursor (`Slot::cursor`);
+  every other gesture still waits for an empty cursor. Shift + left on an
+  empty slot then runs `placeHeld`: vanilla `_handlePlaceAll` puts the held
+  stack there and the matching items of the other side follow as
+  `CursorMatchingClick` moves in the same tracked batch; the placed slot is
+  confirmed with them.
+- Drop drags are chosen with the drop key held (`key.drop` from the game's
+  keyboard layout, read once a second on the client thread; Q before the
+  first read). One item and whole stacks use `_handleDropItem`; all but one
+  takes the amount onto the empty cursor (`_handleTakeAmount`) and drops it
+  with `_handleDropSelectedItem`. The prediction must only shrink the source
+  (`droppedMove`) and leave the cursor empty, or the operation stops.
+- `TransferDropSelected` (TransferRoutes.cpp) reads the cursor's items before
+  vanilla drops them; a Shift + left press outside every slot with items
+  held within the last second turns that into `DropMatching` for each
+  matching player slot (both sides in the inventory screen).
+- ItemTransferAmount is passed as its traced bytes (`dropAmountBytes`); see
+  GAME-UPDATES.md for the re-trace after a game update. All of this is
+  behind the `TransferRoutes` capability.
 
 ## Current implementation (2026-10-15)
 

@@ -8,6 +8,9 @@
 #include "ll/api/service/TargetedBedrock.h"
 #include "mc/client/game/ClientInstance.h"
 #include "mc/client/player/LocalPlayer.h"
+#include "mc/client/input/KeyboardRemappingLayout.h"
+#include "mc/client/input/Keymapping.h"
+#include "mc/client/options/IOptionRegistry.h"
 #ifdef LAMIUM_TRANSFER_TRACE
 #include "app/TraceLog.h"
 #endif
@@ -20,6 +23,7 @@
 #include "mc/world/item/Item.h"
 #include "mc/world/item/VanillaItemTags.h"
 
+#include <chrono>
 #include <deque>
 #include <compare>
 #include <atomic>
@@ -50,6 +54,7 @@ struct Slot {
     unsigned generation = 0;
     bool vanillaShift = false; // Shift + left stays vanilla here (worn items, inventory screen).
     bool occupied = true, extensions = false;
+    bool cursor = false; // Items were on the cursor.
     bool operator==(Slot const& other) const {
         return std::tie(collection, index, side, generation) == std::tie(other.collection, other.index, other.side, other.generation);
     }
@@ -86,6 +91,15 @@ std::deque<QueuedRequest> queued;
 // Guarded by inputLock: cancel() must release it even when no container
 // screen is left to tick, or the shared request barrier stays busy.
 std::optional<TransferToken> waiting;
+// Guarded by inputLock. The game's drop key, read on the client thread for
+// the input callbacks; whether items are on the cursor, likewise.
+std::vector<int> dropKeys{'Q'};
+std::chrono::steady_clock::time_point dropKeysRead{};
+bool cursorHeld = false;
+// A Shift + left press outside every slot with items on the cursor: if
+// vanilla drops them soon after, the matching items follow (L-169).
+std::optional<std::chrono::steady_clock::time_point> outsideShift;
+std::optional<ItemStack> pendingDrop;
 
 void releaseWaiting() {
     std::optional<TransferToken> token;
@@ -105,7 +119,9 @@ transfer::GestureOptions gestureOptions() {
     auto const& value = Runtime::instance().preferences().inventory;
     return {value.transferWheelOne, value.transferWheelStack,
             value.transferDragStack, value.transferDragOne, value.transferWheelMatching,
-            value.transferWheelAll, value.transferClickMatching, value.transferClickAll, value.transferDragKeepOne};
+            value.transferWheelAll, value.transferClickMatching, value.transferClickAll, value.transferDragKeepOne,
+            value.transferCursorMatching, value.transferDropOne, value.transferDropKeepOne, value.transferDropAll,
+            value.transferDropMatching};
 }
 
 // The inventory screen moves between the main inventory and the hotbar in
@@ -199,7 +215,9 @@ std::optional<Slot> matchingSource(ContainerScreenController& controller, Slot c
     return candidates[static_cast<size_t>(index)];
 }
 
-bool available(ContainerScreenController& controller) {
+// Items on the cursor pause transfers; hovering still tracks the slot for the
+// held stack's own gesture.
+bool available(ContainerScreenController& controller, bool cursor = false) {
     auto& runtime = Runtime::instance();
     auto manager = controller.mContainerManagerController;
     return runtime.enabled() && runtime.preferences().inventory.transfer
@@ -207,12 +225,12 @@ bool available(ContainerScreenController& controller) {
         && manager && !manager->mContainersClosed
         && (ordinary(manager->getContainerType()) || inventoryScreen(*manager)
             || !transferRoutes::collections(controller).empty())
-        && !controller._isCursorSelectedActive()
+        && (cursor || !controller._isCursorSelectedActive())
         && !TextInputTracker::getInstance().isEditing(ScreenTracker::getInstance().currentView());
 }
 
 std::optional<Slot> slotAt(ContainerScreenController& controller, std::string const& name, int index) {
-    if (!available(controller)) return {};
+    if (!available(controller, true)) return {};
     auto manager = controller.mContainerManagerController;
     auto side = sideOf(controller, name, index);
     if (!side || !manager->hasContainerController(name)
@@ -224,7 +242,8 @@ std::optional<Slot> slotAt(ContainerScreenController& controller, std::string co
     bool worn = inventoryScreen(*manager) && stack.mItem
         && transfer::wornItem(stack.getTypeName(),
                               stack.mItem->isHumanoidArmor() || stack.mItem->hasTag(VanillaItemTags::Armor()));
-    Slot result{name, index, *side, generation.load(), worn, occupied, transferRoutes::supported(controller)};
+    Slot result{name, index, *side, generation.load(), worn, occupied, transferRoutes::supported(controller),
+                controller._isCursorSelectedActive()};
     int const size = inventorySize(*manager);
     if (size == 0 && manager->hasContainerController("combined_hotbar_and_inventory_items")) {
         if (name == "hotbar_items") result.collection = "combined_hotbar_and_inventory_items";
@@ -310,6 +329,21 @@ bool predictedMove(std::span<SlotState const> before, std::span<SlotState const>
     }
     return transfer::conservedMove(changes, requested);
 }
+bool predictedDrop(std::span<SlotState const> before, std::span<SlotState const> after,
+                   Slot const& source, ItemStack const& reference, int requested) {
+    if (before.size() != after.size()) return false;
+    std::vector<transfer::CountChange> changes;
+    for (size_t i = 0; i < before.size(); ++i) {
+        auto const& old = before[i]; auto const& next = after[i];
+        if (old.slot != next.slot) return false;
+        bool const nextEmpty = next.item.isNull() || next.item.mCount == 0;
+        bool const isSource = old.slot == source;
+        bool const sameKind = sameStack(old.item, next.item) || (isSource && (nextEmpty || next.item.matchesItem(reference)));
+        bool const empty = old.item.isNull() || old.item.mCount == 0;
+        changes.push_back({isSource, empty ? 0 : int(old.item.mCount), nextEmpty ? 0 : int(next.item.mCount), sameKind});
+    }
+    return transfer::droppedMove(changes, requested);
+}
 
 void enqueue(ContainerScreenController& controller, Request request) {
     if (queued.size() >= 128) return;
@@ -352,7 +386,57 @@ void enqueueBulk(ContainerScreenController& controller, Request const& request) 
     if (queued.size() + order.size() > 128) return;
     for (int index : order) enqueue(controller, {candidates[static_cast<size_t>(index)], request.gesture});
 }
+// Every stack of the reference's kind on one side, high slots first.
+void enqueueMatching(ContainerScreenController& controller, Side side, ItemStack const& reference, Gesture gesture,
+                     unsigned revision) {
+    auto& manager = *controller.mContainerManagerController;
+    auto candidates = sideSlots(controller, side, revision);
+    std::vector<transfer::SweepSource> sources;
+    for (auto const& candidate : candidates) {
+        auto const& stack = manager.getItemStack(candidate.collection, candidate.index);
+        bool const occupied = !stack.isNull() && stack.mCount > 0;
+        sources.push_back({occupied, occupied && stack.matchesItem(reference), false});
+    }
+    auto order = transfer::sweepOrder(sources, false);
+    if (queued.size() + order.size() > 128) return;
+    for (int index : order) enqueue(controller, {candidates[static_cast<size_t>(index)], gesture});
+}
 enum class Move { Sent, Skipped, Stop };
+// A drop of one item, all but one or the stack, through vanilla's drop
+// request; confirmed with the batch like a move.
+Move sendDrop(ContainerScreenController& controller, QueuedRequest const& entry, unsigned revision) {
+    auto const& slot = entry.request.slot;
+    auto manager = controller.mContainerManagerController;
+    auto const& stack = manager->getItemStack(slot.collection, slot.index);
+    ItemStack const reference = stack;
+    int const count = stack.mCount;
+    int const requested = transfer::amount(entry.request.gesture, count);
+    if (requested <= 0) return Move::Skipped;
+    auto before = snapshot(controller, revision);
+    if (generation.load() != revision) return Move::Skipped;
+    TRANSFER_TRACE(sendBudget, "Transfer trace: drop {}:{} amount={} count={} gesture={}", slot.collection, slot.index,
+        requested, count, static_cast<int>(entry.request.gesture));
+    bool submitted = false;
+    try {
+        submitted = requested == count || requested == 1
+            ? transferRoutes::drop(controller, slot.collection, slot.index, requested < count)
+            : transferRoutes::dropAmount(controller, slot.collection, slot.index, requested);
+    } catch (...) {
+        stopOperation("vanilla drop failed");
+        return Move::Stop;
+    }
+    if (controller._isCursorSelectedActive()) {
+        stopOperation("a drop left items on the cursor");
+        return Move::Stop;
+    }
+    auto after = snapshot(controller, revision);
+    if (unchanged(before, after)) return Move::Skipped;
+    if (!submitted || !predictedDrop(before, after, slot, reference, requested)) {
+        stopOperation("vanilla did not predict the drop");
+        return Move::Stop;
+    }
+    return Move::Sent;
+}
 // One move of a batch: vanilla predicts it and adds its request; the batch
 // tracks the requests and confirms them all at once.
 Move sendMove(ContainerScreenController& controller, QueuedRequest entry, unsigned revision,
@@ -373,6 +457,7 @@ Move sendMove(ContainerScreenController& controller, QueuedRequest entry, unsign
         stopOperation("source slot changed");
         return Move::Stop;
     }
+    if (transfer::dropping(request.gesture)) return sendDrop(controller, entry, revision);
     std::optional<Slot> source;
     std::optional<Slot> destination;
     if (wheel) {
@@ -470,9 +555,90 @@ Move sendMove(ContainerScreenController& controller, QueuedRequest entry, unsign
     }
     return Move::Sent;
 }
+// Sends what is queued, up to the tick's budget, under `token`; `already`
+// names gestures whose requests the token tracks before these moves.
+void sendBatch(ContainerScreenController& controller, TransferToken token, std::vector<SlotState> before, unsigned revision,
+               std::vector<Gesture> already) {
+    std::vector<Gesture> gestures = std::move(already);
+    std::deque<QueuedRequest> later;
+    size_t sent = 0;
+    for (size_t budget = transfer::batchPerTick; budget > 0 && !queued.empty(); --budget) {
+        auto entry = std::move(queued.front());
+        queued.pop_front();
+        auto const gesture = entry.request.gesture;
+        auto outcome = sendMove(controller, std::move(entry), revision, later);
+        captureTransfer(token);
+        if (outcome == Move::Stop || generation.load() != revision) {
+            cancelTransfer(token);
+            if (outcome != Move::Stop) stopPending();
+            return;
+        }
+        if (outcome == Move::Sent) {
+            ++sent;
+            if (std::ranges::find(gestures, gesture) == gestures.end()) gestures.push_back(gesture);
+        }
+    }
+    for (auto& rest : later) queued.push_back(std::move(rest));
+    endTransfer(token);
+    auto after = snapshot(controller, revision);
+    std::vector<SlotState> touched;
+    if (before.size() == after.size())
+        for (size_t i = 0; i < after.size(); ++i)
+            if (!sameStack(before[i].item, after[i].item)) touched.push_back(std::move(after[i]));
+    TRANSFER_TRACE(sendBudget, "Transfer trace: batch sent={} touched={} queued={}", sent, touched.size(), queued.size());
+    if (!sent && gestures.empty()) { cancelTransfer(token); return; }
+    if (touched.empty() && transferResult(token) == ResponseBarrier::Result::Untracked) {
+        cancelTransfer(token);
+        return;
+    }
+    confirmation = Confirmation{std::move(gestures), std::move(touched)};
+    bool stale;
+    {
+        std::scoped_lock lock(inputLock);
+        stale = generation.load() != revision;
+        if (!stale) waiting = token;
+    }
+    // Cancelled while vanilla ran (it may close the screen synchronously).
+    if (stale) cancelTransfer(token);
+}
+// The held stack goes into the clicked empty slot, then the matching items
+// from the other side follow, all in one batch (L-169, maintainer 2026-10-15).
+void placeHeld(ContainerScreenController& controller, Slot const& slot, unsigned revision) {
+    bool busy;
+    {
+        std::scoped_lock lock(inputLock);
+        busy = waiting.has_value();
+    }
+    auto manager = controller.mContainerManagerController;
+    if (busy || confirmation || !queued.empty() || !manager || manager->mContainersClosed
+        || !transferRoutes::supported(controller) || !manager->hasContainerController("cursor_items")) return;
+    ItemStack const held = manager->getItemStack("cursor_items", 0);
+    auto const& target = manager->getItemStack(slot.collection, slot.index);
+    if (held.isNull() || held.mCount <= 0 || (!target.isNull() && target.mCount > 0)) return;
+    auto token = beginTransfer(*manager);
+    if (!token) return;
+    auto before = snapshot(controller, revision);
+    try {
+        controller._handlePlaceAll(slot.collection, slot.index);
+    } catch (...) {
+        cancelTransfer(*token);
+        stopOperation("vanilla place failed");
+        return;
+    }
+    captureTransfer(*token);
+    auto const& placed = manager->getItemStack(slot.collection, slot.index);
+    // Part or none placed (a slot with a role): vanilla keeps its own click.
+    if (controller._isCursorSelectedActive() || placed.isNull() || placed.mCount != held.mCount || !placed.matchesItem(held)) {
+        cancelTransfer(*token);
+        stopOperation("held stack not placed");
+        return;
+    }
+    enqueueMatching(controller, transfer::otherSide(slot.side), held, Gesture::CursorMatchingClick, revision);
+    sendBatch(controller, *token, std::move(before), revision, {Gesture::CursorMatchingClick});
+}
 }
 
-bool TransferSession::mouseButton(int button, bool down, bool shift, bool control, bool alt, bool cancelled) {
+bool TransferSession::mouseButton(int button, bool down, bool shift, bool control, bool alt, bool drop, bool cancelled) {
     std::scoped_lock lock(inputLock);
     if (!down) {
         TRANSFER_TRACE(inputBudget, "Transfer trace: release button={} consumed={} drag={}", button, consumedButtons.consumed(button),
@@ -491,9 +657,18 @@ bool TransferSession::mouseButton(int button, bool down, bool shift, bool contro
     TRANSFER_TRACE(inputBudget, "Transfer trace: press button={} shift={} control={} cancelled={} hover={}:{} drag={} stroke={}",
         button, shift, control, cancelled, hover ? hover->collection : std::string("-"), hover ? hover->index : -1,
         static_cast<int>(drag), stroke);
+    if (!cancelled && !hover && button == 1 && shift && !control && !alt && cursorHeld)
+        outsideShift = std::chrono::steady_clock::now();
+    else outsideShift.reset();
     if (cancelled || !hover) return false;
-    auto mode = transfer::mouseGesture(button, shift, control, alt);
+    auto mode = transfer::mouseGesture(button, shift, control, alt, drop, hover->cursor);
     if (!transfer::enabled(mode, gestureOptions())) return false;
+    if (hover->cursor) {
+        if (mode != Gesture::CursorMatchingClick || hover->occupied || !hover->extensions) return false;
+        consumedButtons.consume(button);
+        if (pulses.size() < 128) pulses.push_back({*hover, mode});
+        return true;
+    }
     if ((!hover->occupied && !transfer::everything(mode)) || (transfer::extended(mode) && !hover->extensions)) return false;
     drag = transfer::dragging(mode) ? mode : Gesture::None;
     dragButton = transfer::dragging(mode) ? button : -1;
@@ -512,12 +687,27 @@ bool TransferSession::wheel(int direction, bool shift, bool control, bool cancel
     std::scoped_lock lock(inputLock);
     TRANSFER_TRACE(inputBudget, "Transfer trace: wheel direction={} shift={} cancelled={} hover={}:{}",
         direction, shift, cancelled, hover ? hover->collection : std::string("-"), hover ? hover->index : -1);
-    if (cancelled || !hover) return false;
+    if (cancelled || !hover || hover->cursor) return false;
     auto mode = transfer::wheelGesture(shift, control);
     if (!transfer::enabled(mode, gestureOptions())) return false;
     if ((!hover->occupied && !transfer::everything(mode)) || (transfer::extended(mode) && !hover->extensions)) return false;
     if (pulses.size() < 128) pulses.push_back({*hover, mode, direction});
     return true;
+}
+
+void TransferSession::cursorDropped(ContainerScreenController&, ItemStack const& held) noexcept {
+    try {
+        std::scoped_lock lock(inputLock);
+        auto at = std::exchange(outsideShift, std::nullopt);
+        if (!at || std::chrono::steady_clock::now() - *at > std::chrono::seconds(1)
+            || !transfer::enabled(Gesture::DropMatching, gestureOptions())) return;
+        pendingDrop = held;
+    } catch (...) {}
+}
+
+bool TransferSession::dropKey(int key) {
+    std::scoped_lock lock(inputLock);
+    return std::ranges::find(dropKeys, key) != dropKeys.end();
 }
 
 void TransferSession::modifierReleased() {
@@ -536,6 +726,8 @@ void TransferSession::cancel() {
         vanillaFirst.reset();
         hover.reset();
         pulses.clear();
+        outsideShift.reset();
+        pendingDrop.reset();
         ++generation;
         ++stroke;
     }
@@ -569,6 +761,15 @@ void TransferSession::tick(ContainerScreenController& controller) {
         return;
     }
     observedDimension = dimension;
+    auto const now = std::chrono::steady_clock::now();
+    std::optional<std::vector<int>> keys;
+    if (now - dropKeysRead > std::chrono::seconds(1)) {
+        dropKeysRead = now;
+        if (auto layout = client->getOptions().getCurrentKeyboardRemapping()) {
+            auto const& mapped = layout->getKeymappingByAction("key.drop").mKeys.get();
+            if (!mapped.empty() && mapped.size() <= 4) keys = mapped;
+        }
+    }
     auto slot = currentSlot(controller);
     std::deque<Request> incoming;
     std::optional<Slot> first;
@@ -579,6 +780,8 @@ void TransferSession::tick(ContainerScreenController& controller) {
         std::scoped_lock lock(inputLock);
         if (slot && slot->generation != generation.load()) slot.reset();
         hover = slot;
+        if (keys) dropKeys = std::move(*keys);
+        cursorHeld = controller._isCursorSelectedActive();
         incoming.swap(pulses);
         first = std::exchange(vanillaFirst, std::nullopt);
         mode = drag;
@@ -593,6 +796,13 @@ void TransferSession::tick(ContainerScreenController& controller) {
     }
     if (observedStroke != currentStroke) { lastDrag.reset(); observedStroke = currentStroke; }
     if (first) lastDrag = first;
+    if (controller._isCursorSelectedActive() && slot && available(controller, true))
+        for (auto const& request : incoming)
+            if (request.gesture == Gesture::CursorMatchingClick && request.slot == *slot
+                && transfer::enabled(request.gesture, gestureOptions())) {
+                placeHeld(controller, *slot, revision);
+                return;
+            }
     if (!available(controller)) {
         if (!queued.empty() || !incoming.empty())
             TRANSFER_TRACE(queueBudget, "Transfer trace: unavailable drops queued={}", queued.size());
@@ -609,6 +819,18 @@ void TransferSession::tick(ContainerScreenController& controller) {
         return;
     }
     if (mode != Gesture::None && !transfer::enabled(mode, options)) { modifierReleased(); mode = Gesture::None; }
+    std::optional<ItemStack> dropped;
+    {
+        std::scoped_lock lock(inputLock);
+        dropped = std::exchange(pendingDrop, std::nullopt);
+    }
+    // The held stack is gone: every matching item in the player's inventory
+    // follows it (in the inventory screen both sides are the player's).
+    if (dropped && transfer::enabled(Gesture::DropMatching, options) && transferRoutes::supported(controller)) {
+        enqueueMatching(controller, Side::Player, *dropped, Gesture::DropMatching, revision);
+        if (inventoryScreen(*controller.mContainerManagerController))
+            enqueueMatching(controller, Side::Storage, *dropped, Gesture::DropMatching, revision);
+    }
     for (auto const& request : incoming) {
         if (request.slot.index < 0) { lastDrag.reset(); continue; } // The pointer left a slot.
         if (request.slot.generation != revision) continue;
@@ -654,47 +876,6 @@ void TransferSession::tick(ContainerScreenController& controller) {
         TRANSFER_TRACE(sendBudget, "Transfer trace: barrier busy, queued={}", queued.size());
         return;
     }
-    auto before = snapshot(controller, revision);
-    std::vector<Gesture> gestures;
-    std::deque<QueuedRequest> later;
-    size_t sent = 0;
-    for (size_t budget = transfer::batchPerTick; budget > 0 && !queued.empty(); --budget) {
-        auto entry = std::move(queued.front());
-        queued.pop_front();
-        auto const gesture = entry.request.gesture;
-        auto outcome = sendMove(controller, std::move(entry), revision, later);
-        captureTransfer(*token);
-        if (outcome == Move::Stop || generation.load() != revision) {
-            cancelTransfer(*token);
-            if (outcome != Move::Stop) stopPending();
-            return;
-        }
-        if (outcome == Move::Sent) {
-            ++sent;
-            if (std::ranges::find(gestures, gesture) == gestures.end()) gestures.push_back(gesture);
-        }
-    }
-    for (auto& rest : later) queued.push_back(std::move(rest));
-    endTransfer(*token);
-    auto after = snapshot(controller, revision);
-    std::vector<SlotState> touched;
-    if (before.size() == after.size())
-        for (size_t i = 0; i < after.size(); ++i)
-            if (!sameStack(before[i].item, after[i].item)) touched.push_back(std::move(after[i]));
-    TRANSFER_TRACE(sendBudget, "Transfer trace: batch sent={} touched={} queued={}", sent, touched.size(), queued.size());
-    if (!sent) { cancelTransfer(*token); return; }
-    if (touched.empty() && transferResult(*token) == ResponseBarrier::Result::Untracked) {
-        cancelTransfer(*token);
-        return;
-    }
-    confirmation = Confirmation{std::move(gestures), std::move(touched)};
-    bool stale;
-    {
-        std::scoped_lock lock(inputLock);
-        stale = generation.load() != revision;
-        if (!stale) waiting = token;
-    }
-    // Cancelled while vanilla ran (it may close the screen synchronously).
-    if (stale) cancelTransfer(*token);
+    sendBatch(controller, *token, snapshot(controller, revision), revision, {});
 }
 }

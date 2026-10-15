@@ -80,7 +80,7 @@ the package/SDK loader-policy alignment in CI.
 | Edge Guard (movement request) | `EdgeGuard.cpp` (movement request and move vector), `EdgeGuardHistory.cpp` (replay input capture) | vanilla movement and history capture | the setting (no effect) |
 | Edge Guard (replay capture) | `EdgeGuardHistory.cpp` | vanilla replay capture | ordinary movement guarding |
 | Repeated trades (trade row handlers) | `RepeatTrades.cpp` | vanilla single trading | the setting and key |
-| Item Transfer (native slot routes) | `TransferRoutes.cpp`, `TransferSession.cpp` | no new gestures or additional screens; no native hover/route filtering | the original four gestures in ordinary storage and inventory screens |
+| Item Transfer (native slot routes) | `TransferRoutes.cpp`, `TransferSession.cpp` | no new gestures, drops or additional screens; no native hover/route filtering | the original four gestures in ordinary storage and inventory screens |
 | Hide effects (fog and camera medium) | `HideEffects.cpp` `MediumFogVisibility` | water/lava/powder snow fog, distance fog | the other hide effects |
 | Hide effects (weather densities) | `HideEffects.cpp` `WeatherVisibility` | rain and snow drawn | the other hide effects |
 | Hide effects (portal screen) | `HideEffects.cpp` `PortalScreenVisibility` | the purple Nether portal screen | the other hide effects |
@@ -368,7 +368,7 @@ Hooks: `ContainerScreenLeaveHook`
 Rebuild.
 
 ### `src/features/inventory/game/TransferRoutes.cpp`
-Hooks: `TransferAutoPlaceOrder`, `TransferAutoPlaceStackOrder`, `TransferAutoPlaceOutputsOrder`
+Hooks: `TransferAutoPlaceOrder`, `TransferAutoPlaceStackOrder`, `TransferAutoPlaceOutputsOrder`, `TransferDropSelected`
 Meaning: the screen's registered collection/slot-role order and native hover
 slot. Native orders were observed in the L-169 e3f9276 diagnostic checkpoint;
 the additional-screen hover-field mapping awaits the new-gesture smoke test.
@@ -377,9 +377,17 @@ call inside Lamium's synchronous auto-place invocation gets a filtered
 order; vanilla input is unchanged. Gated at discovery/invocation; SDK
 layouts and method signatures rebuild. Verify amount, role restrictions,
 request IDs and authoritative slot counts after a game update.
+Drops (L-169): `_handleDropItem` and `_handleDropSelectedItem` take
+ItemTransferAmount, whose fields the SDK does not name; Lamium passes the
+bytes traced on 1.26.51.01 (`dropAmountBytes`: take type 1, then 2 for one
+item or 0 for the stack) by address, as the 12-byte argument is passed.
+`TransferDropSelected` observes the drop of the cursor's items (a click
+outside the window) and only reads the cursor first. Re-trace with
+`transfer_trace` after a game update: the drop key and Ctrl + drop key
+over a slot, left and right click outside with items held.
 
 ### `src/features/inventory/game/TransferTrace.cpp`
-Hooks: `TransferTakeAllTrace`, `TransferPlaceAllTrace`, `TransferAutoPlaceTrace`, `TransferAddAllTrace`, `TransferTakeAmountTrace`, `TransferTakePlaceTrace`, `TransferPlaceOneTrace`, `TransferTakeHalfTrace`, `TransferButtonTrace`, `TransferResponseTrace`
+Hooks: `TransferTakeAllTrace`, `TransferPlaceAllTrace`, `TransferAutoPlaceTrace`, `TransferAddAllTrace`, `TransferTakeAmountTrace`, `TransferTakePlaceTrace`, `TransferPlaceOneTrace`, `TransferTakeHalfTrace`, `TransferButtonTrace`, `TransferDropItemTrace`, `TransferDropSelectedTrace`, `TransferManagerDropTrace`, `TransferResponseTrace`
 Trace (`transfer_trace`): read-only L-169 input, cursor, collection and native
 auto-place order observations; screen button ids, cursor handlers, the
 open request and unsent batch size, and item stack responses with times. Protected by the game-version gate. The

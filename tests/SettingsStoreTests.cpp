@@ -618,6 +618,7 @@ void settingsStoreTests() {
     old.inventory.transferClickMatching = false;
     old.inventory.transferClickAll = false;
     old.inventory.transferDragKeepOne = false;
+    old.inventory.transferDropMatching = false;
     old.ui.automationStatus = false;
     old.interaction.attackTicks = 12;
     old.camera.freelookToggle = true;
@@ -642,12 +643,15 @@ void settingsStoreTests() {
           "transfer gesture switches survive saves");
     check(!loaded.inventory.transferWheelMatching && !loaded.inventory.transferWheelAll
           && !loaded.inventory.transferClickMatching && !loaded.inventory.transferClickAll
-          && !loaded.inventory.transferDragKeepOne, "new transfer switches survive saves");
+          && !loaded.inventory.transferDragKeepOne && !loaded.inventory.transferDropMatching
+          && loaded.inventory.transferDropOne, "new transfer switches survive saves");
     auto legacyTransfer = decodeSettings(R"({"inventory":{"transfer":false,"transferDragOne":false}})");
     check(!legacyTransfer.inventory.transfer && !legacyTransfer.inventory.transferDragOne
           && legacyTransfer.inventory.transferWheelMatching && legacyTransfer.inventory.transferWheelAll
           && legacyTransfer.inventory.transferClickMatching && legacyTransfer.inventory.transferClickAll
-          && legacyTransfer.inventory.transferDragKeepOne, "older settings retain old choices and default new gestures on");
+          && legacyTransfer.inventory.transferDragKeepOne && legacyTransfer.inventory.transferCursorMatching
+          && legacyTransfer.inventory.transferDropOne && legacyTransfer.inventory.transferDropKeepOne
+          && legacyTransfer.inventory.transferDropAll && legacyTransfer.inventory.transferDropMatching, "older settings retain old choices and default new gestures on");
     check(!loaded.ui.automationStatus, "hidden automation status survives restart");
     auto contents = [&]() {
         std::ifstream file(path);

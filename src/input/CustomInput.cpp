@@ -184,7 +184,9 @@ void startCustomInput() {
             ? inventory::game::TransferSession::wheel(event.buttonData() > 0 ? 1 : -1, shift, control,
                                                        event.isCancelled() || consumed)
             : inventory::game::TransferSession::mouseButton(button, down, shift, control, alt,
-                                                             event.isCancelled() || consumed);
+                std::ranges::any_of(keys, [](Token key) {
+                    return key.device == Device::Key && inventory::game::TransferSession::dropKey(key.code);
+                }), event.isCancelled() || consumed);
         if ((consumed && down) || transfer) event.cancel();
     });
     listeners[2] = bus.emplaceListener<ll::event::BeforeUIRenderEvent>([](auto& event) { sync(event.uiRenderContext().mClient); });

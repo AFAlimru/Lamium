@@ -1,4 +1,5 @@
 #include "features/inventory/game/TransferRoutes.h"
+#include "features/inventory/game/TransferSession.h"
 #include "app/Runtime.h"
 #include "app/Versions.h"
 #include "ll/api/memory/Hook.h"
@@ -6,12 +7,13 @@
 #include "mc/world/containers/SlotData.h"
 #include "mc/world/containers/controllers/AutoPlaceItem.h"
 #include "mc/world/containers/managers/controllers/ContainerManagerController.h"
+#include "mc/world/item/ItemStack.h"
 #include <algorithm>
 #include <utility>
 
 namespace lamium::inventory::game::transferRoutes {
 namespace {
-bool amountInstalled = false, stackInstalled = false, outputsInstalled = false;
+bool amountInstalled = false, stackInstalled = false, outputsInstalled = false, dropInstalled = false;
 constexpr auto capability = capabilities::Id::TransferRoutes;
 struct RouteScope;
 thread_local RouteScope* active = nullptr;
@@ -56,6 +58,31 @@ LL_TYPE_INSTANCE_HOOK(TransferAutoPlaceOutputsOrder, ll::memory::HookPriority::N
     }
     return origin(request, item, amount, order, group);
 }
+// The drop calls take ItemTransferAmount by value; a 12-byte argument is
+// passed by address, so they are called and hooked with its traced bytes
+// (TransferGesture.h dropAmountBytes).
+using DropItem = void (*)(ContainerScreenController*, std::string const&, int, void const*);
+using DropSelected = void (*)(ContainerScreenController*, void const*);
+uintptr_t dropSelectedTarget() {
+    return reinterpret_cast<uintptr_t>(ll::memory::toFuncPtr(&ContainerScreenController::_handleDropSelectedItem));
+}
+// Lamium's own cursor drop (all but one) is not a player's click outside.
+thread_local bool ownDrop = false;
+// A click outside the window drops the held stack here; with Shift, the
+// matching items follow (L-169).
+LL_TYPE_INSTANCE_HOOK(TransferDropSelected, ll::memory::HookPriority::Normal, ContainerScreenController,
+    dropSelectedTarget(), void, void const* amount) {
+    std::optional<ItemStack> held;
+    try {
+        auto manager = mContainerManagerController;
+        if (!ownDrop && manager && !manager->mContainersClosed && manager->hasContainerController("cursor_items")) {
+            auto const& item = manager->getItemStack("cursor_items", 0);
+            if (!item.isNull() && item.mCount > 0) held = item;
+        }
+    } catch (...) { held.reset(); }
+    origin(amount);
+    if (held) TransferSession::cursorDropped(*this, *held);
+}
 }
 bool allowed() { return versionSensitiveAllowed(capability); }
 bool supported(ContainerScreenController& controller) {
@@ -75,7 +102,8 @@ void start() {
     if (!amountInstalled) amountInstalled = TransferAutoPlaceOrder::hook(true) == 0;
     if (!stackInstalled) stackInstalled = TransferAutoPlaceStackOrder::hook(true) == 0;
     if (!outputsInstalled) outputsInstalled = TransferAutoPlaceOutputsOrder::hook(true) == 0;
-    if (!amountInstalled || !stackInstalled || !outputsInstalled) {
+    if (!dropInstalled) dropInstalled = TransferDropSelected::hook(true) == 0;
+    if (!amountInstalled || !stackInstalled || !outputsInstalled || !dropInstalled) {
         stop();
         capabilities::hooks(capability,false);
         Runtime::instance().self().getLogger().warn("Item Transfer extensions unavailable: native route hook failed");
@@ -86,7 +114,8 @@ void stop() {
     if (amountInstalled && TransferAutoPlaceOrder::unhook(true)) amountInstalled = false;
     if (stackInstalled && TransferAutoPlaceStackOrder::unhook(true)) stackInstalled = false;
     if (outputsInstalled && TransferAutoPlaceOutputsOrder::unhook(true)) outputsInstalled = false;
-    if (amountInstalled || stackInstalled || outputsInstalled) {
+    if (dropInstalled && TransferDropSelected::unhook(true)) dropInstalled = false;
+    if (amountInstalled || stackInstalled || outputsInstalled || dropInstalled) {
         capabilities::fail(capability,capabilities::Reason::RemovalFailed);
         Runtime::instance().self().getLogger().error("Could not remove Item Transfer route hooks");
     }
@@ -135,5 +164,25 @@ bool autoPlace(ContainerScreenController& controller, std::string const& collect
     controller._handleAutoPlace(amount, collection, index);
     if (!scope.applied) Runtime::instance().self().getLogger().warn("Item Transfer stopped: native route filtering was not reached");
     return scope.applied;
+}
+bool drop(ContainerScreenController& controller, std::string const& collection, int index, bool one) {
+    if (!supported(controller)) return false;
+    auto bytes = transfer::dropAmountBytes(one);
+    reinterpret_cast<DropItem>(ll::memory::toFuncPtr(&ContainerScreenController::_handleDropItem))(
+        &controller, collection, index, bytes.data());
+    return true;
+}
+bool dropAmount(ContainerScreenController& controller, std::string const& collection, int index, int amount) {
+    if (!supported(controller) || amount <= 0 || controller._isCursorSelectedActive()) return false;
+    controller._handleTakeAmount(amount, collection, index);
+    // Not taken onto the cursor: nothing to drop.
+    if (!controller._isCursorSelectedActive()) return false;
+    auto bytes = transfer::dropAmountBytes(false);
+    ownDrop = true;
+    try {
+        reinterpret_cast<DropSelected>(dropSelectedTarget())(&controller, bytes.data());
+    } catch (...) { ownDrop = false; throw; }
+    ownDrop = false;
+    return true;
 }
 }

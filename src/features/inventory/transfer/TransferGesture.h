@@ -8,7 +8,10 @@
 
 namespace lamium::inventory::transfer {
 enum class Gesture { None, StackDrag, OneDrag, OneWheel, StackWheel,
-                     MatchingWheel, AllWheel, MatchingClick, AllClick, KeepOneDrag };
+                     MatchingWheel, AllWheel, MatchingClick, AllClick, KeepOneDrag,
+                     // L-169, 2026-10-15: a held stack into an empty slot with its
+                     // matching items; drops with the drop key held; matching drops.
+                     CursorMatchingClick, DropOneDrag, DropKeepOneDrag, DropAllDrag, DropMatching };
 // Storage is the upper grid and Player the lower one. The inventory screen
 // has no storage: there the main inventory is the upper side and the hotbar
 // the lower, so the wheel keeps its direction (2026-10-07).
@@ -16,6 +19,7 @@ enum class Side { Player, Storage };
 struct GestureOptions {
     bool wheelOne, wheelStack, dragStack, dragOne;
     bool wheelMatching = true, wheelAll = true, clickMatching = true, clickAll = true, dragKeepOne = true;
+    bool cursorMatching = true, dropOne = true, dropKeepOne = true, dropAll = true, dropMatching = true;
 };
 // Left and right gestures can overlap; each cancelled press owns its release.
 class ConsumedButtons {
@@ -39,11 +43,23 @@ inline bool enabled(Gesture gesture, GestureOptions options) {
     case Gesture::MatchingClick: return options.clickMatching;
     case Gesture::AllClick: return options.clickAll;
     case Gesture::KeepOneDrag: return options.dragKeepOne;
+    case Gesture::CursorMatchingClick: return options.cursorMatching;
+    case Gesture::DropOneDrag: return options.dropOne;
+    case Gesture::DropKeepOneDrag: return options.dropKeepOne;
+    case Gesture::DropAllDrag: return options.dropAll;
+    case Gesture::DropMatching: return options.dropMatching;
     default: return false;
     }
 }
 
-inline Gesture dragGesture(int button, bool shift, bool control) {
+// With the game's drop key held, the drags drop instead of moving.
+inline Gesture dragGesture(int button, bool shift, bool control, bool drop = false) {
+    if (drop) {
+        if (control && button == 1) return Gesture::DropOneDrag;
+        if (shift && button == 1) return Gesture::DropAllDrag;
+        if (shift && button == 2) return Gesture::DropKeepOneDrag;
+        return Gesture::None;
+    }
     if (control && button == 1) return Gesture::OneDrag;
     if (shift && button == 1) return Gesture::StackDrag;
     if (shift && !control && button == 2) return Gesture::KeepOneDrag;
@@ -54,9 +70,11 @@ inline Gesture wheelGesture(bool shift, bool control = false) {
     if (control) return shift ? Gesture::AllWheel : Gesture::MatchingWheel;
     return shift ? Gesture::StackWheel : Gesture::OneWheel;
 }
-inline Gesture mouseGesture(int button, bool shift, bool control, bool alt) {
-    if (alt) return button == 1 ? (shift ? Gesture::AllClick : Gesture::MatchingClick) : Gesture::None;
-    return dragGesture(button, shift, control);
+// With items on the cursor only Shift + left click (on an empty slot) is Lamium's.
+inline Gesture mouseGesture(int button, bool shift, bool control, bool alt, bool drop = false, bool cursor = false) {
+    if (cursor) return shift && !control && !alt && !drop && button == 1 ? Gesture::CursorMatchingClick : Gesture::None;
+    if (alt) return button == 1 && !drop ? (shift ? Gesture::AllClick : Gesture::MatchingClick) : Gesture::None;
+    return dragGesture(button, shift, control, drop);
 }
 inline bool bulk(Gesture gesture) {
     return gesture == Gesture::MatchingWheel || gesture == Gesture::AllWheel
@@ -67,10 +85,17 @@ inline bool wheel(Gesture gesture) {
     return gesture == Gesture::OneWheel || gesture == Gesture::StackWheel
         || gesture == Gesture::MatchingWheel || gesture == Gesture::AllWheel;
 }
-inline bool dragging(Gesture gesture) {
-    return gesture == Gesture::StackDrag || gesture == Gesture::OneDrag || gesture == Gesture::KeepOneDrag;
+inline bool dropping(Gesture gesture) {
+    return gesture == Gesture::DropOneDrag || gesture == Gesture::DropKeepOneDrag || gesture == Gesture::DropAllDrag
+        || gesture == Gesture::DropMatching;
 }
-inline bool extended(Gesture gesture) { return bulk(gesture) || gesture == Gesture::KeepOneDrag; }
+inline bool dragging(Gesture gesture) {
+    return gesture == Gesture::StackDrag || gesture == Gesture::OneDrag || gesture == Gesture::KeepOneDrag
+        || gesture == Gesture::DropOneDrag || gesture == Gesture::DropKeepOneDrag || gesture == Gesture::DropAllDrag;
+}
+inline bool extended(Gesture gesture) {
+    return bulk(gesture) || gesture == Gesture::KeepOneDrag || gesture == Gesture::CursorMatchingClick || dropping(gesture);
+}
 
 inline Side wheelDestination(int direction) { return direction > 0 ? Side::Storage : Side::Player; }
 inline Side otherSide(Side side) { return side == Side::Player ? Side::Storage : Side::Player; }
@@ -157,6 +182,28 @@ inline bool conservedMove(std::span<CountChange const> changes, int requested) {
     }
     return sources == 1 && taken > 0 && taken <= requested && taken == placed;
 }
+// A drop's prediction: only its source shrinks, by at most the request.
+inline bool droppedMove(std::span<CountChange const> changes, int requested) {
+    int taken = 0, sources = 0;
+    for (auto const& change : changes) {
+        if (change.before < 0 || change.after < 0 || !change.sameKind) return false;
+        int delta = change.after - change.before;
+        if (!change.source) {
+            if (delta != 0) return false;
+            continue;
+        }
+        ++sources;
+        if (delta >= 0) return false;
+        taken -= delta;
+    }
+    return sources == 1 && taken > 0 && taken <= requested;
+}
+// The game's ItemTransferAmount as its drop calls pass it (fields unnamed in
+// the SDK; traced 2026-10-15 on 1.26.51.01): take type 1, then 2 for one
+// item or 0 for the whole stack, then a flag left zero.
+inline std::array<unsigned char, 12> dropAmountBytes(bool one) {
+    return {1, 0, 0, 0, static_cast<unsigned char>(one ? 2 : 0), 0, 0, 0, 0, 0, 0, 0};
+}
 
 // Where an inventory-screen move lands: the first matching stack with room,
 // else the first empty slot. Vanilla auto-place there would equip armor.
@@ -187,7 +234,7 @@ inline bool wornItem(std::string_view name, bool armor) {
 }
 
 inline int amount(Gesture gesture, int count) {
-    if (gesture == Gesture::KeepOneDrag) return std::max(0, count - 1);
-    return gesture == Gesture::OneDrag || gesture == Gesture::OneWheel ? 1 : count;
+    if (gesture == Gesture::KeepOneDrag || gesture == Gesture::DropKeepOneDrag) return std::max(0, count - 1);
+    return gesture == Gesture::OneDrag || gesture == Gesture::OneWheel || gesture == Gesture::DropOneDrag ? 1 : count;
 }
 }

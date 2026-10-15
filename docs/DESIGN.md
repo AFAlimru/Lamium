@@ -643,6 +643,24 @@ exactly one switch, one mode and one set of keys:
   click on an empty slot with a cursor item, a wheel "all but one", drop
   gestures, W/S moves.
 
+### Held stack and drops (Decided 2026-10-15, L-169; built, unchecked in game)
+
+- Items on the cursor + Shift + left click on an empty slot: the held stack
+  goes into that slot, then every matching item from the other side moves
+  to that side; the hand ends empty. A slot that does not take the whole
+  stack stops after vanilla's own placement.
+- With the game's drop key held: Ctrl + left drag drops one item from each
+  passed slot, Shift + right drag all but one, Shift + left drag the whole
+  stack. The press of the drop key itself stays vanilla (one item, or the
+  stack with Ctrl, from the slot under the pointer).
+- Items on the cursor + Shift + left click outside the window: vanilla
+  drops the held stack, then every matching item in the player inventory,
+  hotbar included, is dropped too.
+- Each has its own switch, all on by default (maintainer's choice; the
+  agent had proposed matching drops off). Drops use vanilla's drop request
+  and are confirmed with the batch like moves. Not chosen for now: Shift +
+  double click, Ctrl + Shift + click, "fill existing stacks only".
+
 Vanilla baseline reported 2026-10-15: chest inputs behave as before;
 Shift + left click routes items by role in furnace, brewing stand and
 beacon screens. A furnace fuel slot also accepted an item that cannot
