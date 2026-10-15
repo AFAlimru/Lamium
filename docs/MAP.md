@@ -63,7 +63,10 @@ Layer switches (L-146, passed in game 2026-10-15): the top bar's
 Waypoints / Schematics / Shapes switches (`map.worldMapWaypoints`,
 `worldMapSchematics`, `worldMapShapes`, default on) filter the world map's
 marks through `layerShown` (`MapMarks.h`); a footprint whose layer turns
-off drops its selection and menu like one whose feature turns off.
+off is no longer drawn but stays selectable from the side panel list.
+Side panel lists (L-204, built 2026-10-15): `map.worldMapList` picks the
+listed layer (`listKind`, `MapMarks.h`); `State::allAreas` keeps the
+placements and shapes before the layer switches for the list and details.
 
 ## World map zoom-out (L-187, 2026-10-14)
 

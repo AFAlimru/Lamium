@@ -29,6 +29,10 @@ struct LayerSwitches {
 inline constexpr bool layerShown(LayerSwitches on, MarkLayer layer) {
     return pointLayer(layer) ? on.waypoints : layer == MarkLayer::Placement ? on.schematics : on.shapes;
 }
+// The world map's side panel lists one layer at a time (L-204): 0 waypoints
+// and the death point, 1 schematic placements, 2 shapes.
+inline constexpr int listKind(MarkLayer layer) { return pointLayer(layer) ? 0 : layer == MarkLayer::Placement ? 1 : 2; }
+inline constexpr int clampListKind(int kind) { return kind < 0 || kind > 2 ? 0 : kind; }
 
 // A mark as last drawn on the world map, in screen units: a point (its
 // center twice) or a footprint (its rectangle as drawn).

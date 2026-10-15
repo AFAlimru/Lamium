@@ -31,6 +31,9 @@ void mapMarks() {
     check(layerShown(on, MarkLayer::Waypoint) && layerShown(on, MarkLayer::Death) && !layerShown(on, MarkLayer::Placement)
               && layerShown(on, MarkLayer::Shape) && !layerShown({false, true, true}, MarkLayer::Death),
           "each layer switch hides its own marks; the death point goes with waypoints (L-146)");
+    check(listKind(MarkLayer::Death) == 0 && listKind(MarkLayer::Waypoint) == 0 && listKind(MarkLayer::Placement) == 1
+              && listKind(MarkLayer::Shape) == 2 && clampListKind(5) == 0 && clampListKind(2) == 2,
+          "the side panel's list follows a mark's layer; an unknown saved choice lists waypoints (L-204)");
 }
 void regions() {
     check(regionOfChunk({15, -1}) == RegionKey{0, -1} && regionOfChunk({16, -16}) == RegionKey{1, -1}

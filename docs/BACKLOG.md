@@ -762,6 +762,10 @@ screen comes later.
 Open (maintainer): whether the anvil highlight is wanted later.
 
 ### L-204 Placements and shapes in the world map's side panel list
+Status (2026-10-15): the maintainer chose a menu in the panel header
+instead of the tabs below and accepted the rest of the proposal (DESIGN
+"World map side panel lists"); built, not yet checked in game. Rows sort
+nearest first like waypoints, not in the feature screens' order.
 Kind: Design. Raised by the maintainer 2026-10-15 after the L-146 check:
 the side panel's list could show schematic placements and shapes as well as
 waypoints, so they can be found and opened without spotting them on the

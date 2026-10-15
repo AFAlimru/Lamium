@@ -164,6 +164,7 @@ struct Settings {
         bool worldMapPanel = true; // The world map's waypoint side panel is open; changed on the map.
         // The world map's layer switches (L-146), changed on the map.
         bool worldMapWaypoints = true, worldMapSchematics = true, worldMapShapes = true;
+        int worldMapList = 0; // The side panel's list (L-204): 0 waypoints, 1 schematics, 2 shapes.
     } map;
     struct Schematic {
         bool enabled = false; // Ghosts and outlines of the placements (L-93, experimental).

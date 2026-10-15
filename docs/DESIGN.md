@@ -591,6 +591,22 @@ exactly one switch, one mode and one set of keys:
 - The side panel's button is named "List" so it does not repeat
   "Waypoints".
 
+## World map side panel lists (Decided 2026-10-15, L-204)
+
+- The side panel lists one layer at a time: waypoints (with the death
+  point), placed schematics or shapes. Its header names the layer with its
+  count and a small down arrow; clicking it opens a menu of the three
+  layers, each with its symbol and count (maintainer: a menu, since tabs
+  side by side do not fit the panel). The choice is remembered. Selecting a
+  mark on the map shows its layer's list; "+" shows only for waypoints.
+- Placement and shape rows match waypoint rows: symbol in the mark's
+  color, name, distance when the player is in that dimension, nearest
+  first, and the show/hide switch; a click centers the map and selects it
+  (a placement also becomes the schematic's selected one), with the
+  existing details and "Open" below.
+- Only the dimension the map shows. A layer switched off in the top bar
+  keeps its list, with a faint "Hidden on the map" line on top.
+
 ## Inventory transfer (Decided 2026-09-27, BACKLOG L-41)
 
 - The feature has one saved switch, on by default, and an unbound toggle
