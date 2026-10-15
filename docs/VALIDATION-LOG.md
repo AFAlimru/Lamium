@@ -12,6 +12,16 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## 0.2.3 release build check (2026-10-15)
+
+Maintainer checked the release build from `b80fa83` (version 0.2.3), DLL
+SHA-256 `DD3A7B861D8FF5566524B37AE3497B7A841D461A400718A3597BD5760392EAFD`,
+the same DLL as in `Lamium-0.2.3-client-windows-x64.zip`. Minecraft
+1.26.51.01, LeviLamina Client 26.51.7, Windows x64, local world. The title
+screen showed Lamium 0.2.3, `L` opened the settings, and the world map's
+layer switches and the new Item Transfer gestures in a chest worked. No
+issue reported. Not a full regression.
+
 ## World map: compact layer switches and L-204 side panel lists (2026-10-15)
 
 Build `34d71ca`, normal build (DLL
