@@ -181,6 +181,19 @@ inline bool closesSettings(Chord const& chord, int key) {
         if (key == used) return false;
     return true;
 }
+// UI openers close on the same completing press, including mouse chords.
+// The caller excludes editing and repeated presses before asking.
+inline bool completesMenuBinding(Chord const& chord, Chord const& held, Token press) {
+    if (chord.empty() || chord.back() != press) return false;
+    std::ptrdiff_t last = -1;
+    for (auto token : chord) {
+        if (token.device == Device::Wheel) continue;
+        auto at = std::find(held.begin(), held.end(), token);
+        if (at == held.end() || at - held.begin() <= last) return false;
+        last = at - held.begin();
+    }
+    return true;
+}
 
 // Order is the press order and is significant: the last input completes the
 // chord. A wheel impulse is always last.

@@ -163,7 +163,7 @@ std::optional<SchematicMenu> schematicMenu;
 int schematicMenuClosedAt = -1; // the level shown when it last closed
 // World map (L-60): replaces the whole panel; the add prompt opened from it
 // returns to it.
-bool worldMapOpen = false, promptOnMap = false;
+bool worldMapOpen = false, promptOnMap = false, pendingMapClose = false;
 // The calculator panel (L-171): replaces everything else while open. Opened
 // from the settings sidebar, Esc returns there; from its key, Esc closes.
 bool calculatorOpen = false, calculatorFromSettings = false;
@@ -871,13 +871,23 @@ void enterWorldMap(bool fromSettings, bool resume) {
     if (!client) return;
     finishNumber();
     worldMapOpen = true;
+    pendingMapClose = false;
+    if (!fromSettings) {
+        auto opener = input::effectiveChord(Runtime::instance().preferences().bindings, input::Action::OpenWorldMap);
+        for (auto token : opener) {
+            int key = token.device == input::Device::Key ? token.code
+                : token.device == input::Device::Mouse && token.code >= 1 && token.code <= 5
+                    ? (token.code <= 2 ? token.code : token.code + 1) : 0;
+            if (keyDown(key) && std::find(uiHeld.begin(),uiHeld.end(),token) == uiHeld.end()) uiHeld.push_back(token);
+        }
+    }
     mapFromSettings = fromSettings;
     waypoints_view::setFromMap(false);
     map::world::open(*client, resume);
 }
-bool isWorldMapKey(int key) {
+bool isWorldMapPress(input::Token token) {
     auto chord = input::effectiveChord(Runtime::instance().preferences().bindings, input::Action::OpenWorldMap);
-    return chord.size() == 1 && chord[0].device == input::Device::Key && chord[0].code == key;
+    return input::completesMenuBinding(chord, uiHeld, token);
 }
 void handleMapRequest(map::world::Request const& request) {
     using Kind = map::world::Request::Kind;
@@ -1035,6 +1045,8 @@ void render(ll::event::UIRenderEvent& event) {
         return;
     }
     if (worldMapOpen && !prompt) {
+        if (std::exchange(pendingMapClose, false)) handleMapRequest(map::world::key(0, true));
+        if (!scene || !worldMapOpen || closing) return;
         // Press before release: a quick click delivers both between two
         // frames and must not leave a drag running.
         bool released = std::exchange(pendingRelease, false);
@@ -1043,7 +1055,7 @@ void render(ll::event::UIRenderEvent& event) {
                 handleMapRequest(map::world::press(click->x, click->y, click->right));
             for (auto wheel : std::exchange(pendingWheels, {})) map::world::wheel(wheel.direction);
             for (int key : std::exchange(pendingKeys, {}))
-                if (worldMapOpen && !prompt && !closing) handleMapRequest(map::world::key(key, isWorldMapKey(key)));
+                if (worldMapOpen && !prompt && !closing) handleMapRequest(map::world::key(key, false));
         }
         if (released) map::world::release();
         if (!scene || !worldMapOpen) return;
@@ -1392,6 +1404,7 @@ void start() {
         // using this event's pixel coordinates and the scale used to draw it.
         float x = event.x() * displayedInverseScale, y = event.y() * displayedInverseScale;
         bool scaled = std::isfinite(displayedInverseScale) && displayedInverseScale > 0;
+        bool repeat = down && std::find(uiHeld.begin(), uiHeld.end(), token) != uiHeld.end();
         observeHeld(token, down);
         if (table_view::capturing() && !shapesView() && !waypointsView() && !schematicsView()) {
             if (down) event.cancel();
@@ -1406,6 +1419,10 @@ void start() {
             return;
         }
         event.cancel();
+        if (worldMapOpen && !prompt && !map::world::editingName() && !repeat && isWorldMapPress(token)) {
+            pendingMapClose = true;
+            return;
+        }
         if (language_view::opened() && wheel) {
             pendingWheels.push_back({x, y, event.buttonData() > 0 ? -3 : 3});
             return;
@@ -1522,6 +1539,11 @@ void start() {
             if (key == 0x08) map::world::backspace();
             else if (selectAll) map::world::selectAllName();
             else pendingKeys.push_back(key);
+            return;
+        }
+        if (worldMapOpen && !repeat && isWorldMapPress(token)) {
+            event.cancel();
+            pendingMapClose = true;
             return;
         }
         // Keep search reachable from anywhere in the table. Capture handles

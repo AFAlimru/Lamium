@@ -13,6 +13,12 @@ range filtering and near/far ordering follow the rendered FreeCamera eye;
 outside FreeCamera they retain the player's horizontal feet distance.
 The change still needs game checks.
 
+World-map binding fix (L-201, 2026-10-15): the opener closes the map for
+mouse buttons and ordered chords as well as a single key. Only a fresh
+completing press can close it; waypoint name/coordinate editing and prompts
+retain input. Tests cover chord completion, but the native input behavior
+still needs game checks.
+
 Experimental, default off. The minimap, cave view, radar, waypoints and world
 map are built. The map uses received chunks and recorded map data; seed-based
 terrain, biomes and structures remain a non-goal. FreeCamera moves the minimap

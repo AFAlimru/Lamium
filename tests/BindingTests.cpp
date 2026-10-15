@@ -74,6 +74,15 @@ void bindingTests() {
     check(!canClear(Action::Settings) && canClear(Action::Zoom) && canClear(Action::ChunkBorders),
         "only the settings action refuses Clear");
     Chord const lKey{Token{Device::Key, 0x4c}};
+    check(completesMenuBinding(Chord{Token{Device::Mouse, 5}}, Chord{Token{Device::Mouse, 5}}, Token{Device::Mouse, 5})
+        && completesMenuBinding(lKey, lKey, Token{Device::Key, 0x4c}),
+        "menu close matches keyboard and side-button completing presses");
+    Chord mouseChord{Token{Device::Key, 0x11}, Token{Device::Mouse, 5}};
+    check(completesMenuBinding(mouseChord, mouseChord, mouseChord.back())
+        && !completesMenuBinding(mouseChord, Chord{mouseChord.back()}, mouseChord.back())
+        && !completesMenuBinding(mouseChord, Chord{mouseChord.back(), mouseChord.front()}, mouseChord.back())
+        && !completesMenuBinding({}, mouseChord, mouseChord.back()),
+        "menu close requires all chord inputs in order and its completing token");
     check(closesSettings(lKey, 0x4c) && !closesSettings(lKey, 0x4d)
               && !closesSettings(Chord{Token{Device::Key, 0x11}, Token{Device::Key, 0x4c}}, 0x4c)
               && !closesSettings(Chord{Token{Device::Mouse, 3}}, 3) && !closesSettings(Chord{Token{Device::Key, 0x0d}}, 0x0d)
