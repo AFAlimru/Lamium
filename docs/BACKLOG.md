@@ -69,7 +69,7 @@ Keep this section short. It is only the ordering layer; task details and status
 live in the L-items below. If this summary ever disagrees with an L-item, the
 L-item wins. Every entry names what the task is, not only its number.
 
-0. **0.2.2 released** on 2026-10-15 (`v0.2.2`, from `e62985f`). Next work
+0. **0.2.3 released** on 2026-10-15 (`v0.2.3`, from `88462d5`). Next work
    follows the items below.
 1. **Small and medium features and fixes** (maintainer 2026-10-10: these
    come before large features and L-111 integration for now):
@@ -126,8 +126,8 @@ L-item wins. Every entry names what the task is, not only its number.
    breeding timers, L-105 performance profiling (measure before any
    optimization).
 6. **Before a release:** the pre-release checks below. 0.2.1 was released
-   on 2026-10-14 (0.2.0 on 2026-10-11), 0.2.2 on 2026-10-15. No date for
-   the next one.
+   on 2026-10-14 (0.2.0 on 2026-10-11), 0.2.2 and 0.2.3 on 2026-10-15. No
+   date for the next one.
    Server checks stay listed below as known gaps (the Release
    policy does not require a full regression).
 
@@ -156,7 +156,11 @@ include trace-only and local-only results; VALIDATION.md owns the per-feature
 gaps. The Release policy above does not require a full regression or closing
 every server gap before a release.
 
-### Since 0.2.2 (unreleased)
+### Since 0.2.3 (unreleased)
+
+Nothing yet.
+
+### Shipped in 0.2.3 (smoke-tested; remaining gaps in VALIDATION.md)
 
 L-169 held stack and drop gestures (`9da5d9d`, chest checklist passed): try
 the inventory screen, a furnace or another screen with slot roles, and a
