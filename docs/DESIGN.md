@@ -140,6 +140,10 @@ at most 640×380 and centered. New screens reuse these numbers.
   scroll and editing focus. Help owns input while open. Short descriptions
   have no expansion control. Numeric descriptions include their own help,
   range and controls. All three languages use the same behavior.
+  Follow-up agreed 2026-10-15: use the standard translucent panel and frame.
+  Center the help surface within the settings area; its height follows the
+  wrapped content, capped at about 60% of the settings height. Longer text
+  scrolls inside that limit rather than expanding to fill the screen.
 
 - English is the default; Japanese and Simplified Chinese (`zh_CN`, L-90)
   follow the game language, and other languages show English. Every

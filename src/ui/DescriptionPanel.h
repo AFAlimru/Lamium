@@ -6,16 +6,19 @@ struct DescriptionPanel {
     float left{}, top{}, width{}, height{}, textTop{}, textWidth{}, closeX{};
     int visible{};
     static constexpr float lineHeight = 12, pad = SettingsTable::pad;
-    static DescriptionPanel fit(SettingsTable const& table) {
+    static DescriptionPanel fit(SettingsTable const& table, int lines) {
         DescriptionPanel p;
         p.left = table.left + pad;
-        p.top = table.top + pad;
         p.width = table.width - 2 * pad;
-        p.height = table.height - 2 * pad;
+        float chrome = SettingsTable::headerHeight + 3 * pad + lineHeight;
+        float limit = std::min(table.height - 2 * pad, table.height * .6f);
+        int capacity = std::max(1, static_cast<int>((limit - chrome) / lineHeight));
+        p.visible = std::clamp(lines, 1, capacity);
+        p.height = chrome + p.visible * lineHeight;
+        p.top = std::round(table.top + (table.height - p.height) * .5f);
         p.textTop = p.top + SettingsTable::headerHeight + pad;
         p.textWidth = p.width - 2 * pad - SettingsTable::gap;
         p.closeX = p.left + p.width - pad - SettingsTable::closeWidth;
-        p.visible = std::max(1, static_cast<int>((p.top + p.height - 2 * pad - lineHeight - p.textTop) / lineHeight));
         return p;
     }
     bool contains(float x, float y) const {

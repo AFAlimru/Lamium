@@ -45,10 +45,15 @@ void textFitTests() {
         && textOverflows("x",0,2,measure), "oversized glyphs and invalid widths count as overflow");
     for (auto size : {std::pair{800.f,600.f}, std::pair{240.f,150.f}, std::pair{380.f,240.f}}) {
         auto table = lamium::ui::SettingsTable::fit(size.first,size.second,20,0);
-        auto panel = lamium::ui::DescriptionPanel::fit(table);
+        auto panel = lamium::ui::DescriptionPanel::fit(table,100);
         check(panel.visible > 0 && panel.textWidth > 0
             && panel.textTop + panel.visible * panel.lineHeight <= panel.top + panel.height - panel.pad,
             "full help keeps complete lines inside wide, narrow and short panels");
+        auto shortPanel = lamium::ui::DescriptionPanel::fit(table,1);
+        check(panel.height <= table.height * .6f && shortPanel.height < panel.height
+            && shortPanel.visible == 1 && panel.visible < 100
+            && panel.top >= table.top && panel.top + panel.height <= table.top + table.height,
+            "help fits its content, caps long text at sixty percent and keeps overflow scrollable");
         check(panel.scroll(1000,100) + panel.visible >= 100 && panel.scroll(-1,100) == 0
             && panel.scroll(8,1) == 0, "help scrolling reaches the end and clamps after a resize");
     }

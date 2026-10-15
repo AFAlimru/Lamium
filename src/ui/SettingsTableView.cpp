@@ -782,13 +782,14 @@ void copyVersion_() {
     showMessageToast(translated(copyText(runningVersionLine()) ? "version.copied" : "version.copyFailed"));
 }
 void drawHelp(MinecraftUIRenderContext& context, SettingsTable const& table, glm::vec2 pointer) {
-    helpPanel = DescriptionPanel::fit(table);
-    auto const& p = helpPanel;
-    auto lines = wrapFullText(helpText, p.textWidth, [&](std::string_view text) { return textWidth(context, text); });
+    auto width = DescriptionPanel::fit(table,1).textWidth;
+    auto lines = wrapFullText(helpText, width, [&](std::string_view text) { return textWidth(context, text); });
     helpLineCount = static_cast<int>(lines.size());
+    helpPanel = DescriptionPanel::fit(table,helpLineCount);
+    auto const& p = helpPanel;
     helpFirst = p.scroll(helpFirst, helpLineCount);
-    panel(context,p.left,p.top,p.width,p.height,1);
-    frame(context,p.left,p.top,p.width,p.height,palette::keyEdge);
+    panel(context,p.left,p.top,p.width,p.height);
+    frame(context,p.left,p.top,p.width,p.height,palette::white,.14f);
     label(context,p.left+p.pad,p.top+6,p.closeX-p.left-2*p.pad,translated("description.title"));
     if (p.close(pointer.x,pointer.y)) fill(context,p.closeX,p.top+4,SettingsTable::closeWidth,12,palette::white,.07f);
     frame(context,p.closeX,p.top+4,SettingsTable::closeWidth,12,palette::keyEdge);

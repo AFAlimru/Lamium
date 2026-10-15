@@ -8,7 +8,14 @@ of truth.
 
 ## Current foundation
 
-L-202 (2026-10-15, awaiting game checks): settings suffixes/header, version
+Local smoke on `d5978e2` (2026-10-15) passed the full-help interaction but
+rejected its opaque, near-full-height presentation (L-197). The follow-up
+uses the standard translucent surface/frame and a centered, content-sized
+height capped at 60% of the settings area, with overflow scrolling. The
+presentation change still needs an in-game check.
+
+L-202 (2026-10-15, local normal-build smoke passed on `d5978e2`): settings
+suffixes/header, version
 tooltip, full descriptions and failure notices now read the shared capability
 registry. They include actual hook/contract failures on the verified game,
 with the same typed reason used by execution and logs. Initial native context
@@ -16,18 +23,19 @@ is shown as waiting in help, without a paused warning or repeated toast.
 User settings do not clear failures. Requested affected features notify on
 join or a changed failure; unchanged frames and unrelated readiness changes
 stay quiet. English, Japanese and Simplified Chinese have capability names
-and reasons. Native layouts, normal feature smoke and fail-open presentation
-still need Minecraft validation.
+and reasons. Local normal-feature smoke passed with the L-197/L-203 follow-ups.
+Server, forced-unverified and injected-failure presentation checks remain open.
 
-L-197 (2026-10-15, awaiting game checks): truncated table descriptions offer
+L-197 (2026-10-15, interaction passed on `d5978e2`, presentation follow-up
+pending): truncated table descriptions offer
 "Read full description" / F1. The full-text panel wraps with the current
 font and width, scrolls with wheel/arrows/Page Up/Down/Home/End, and closes
 with Esc, Close or an outside click. It retains the list's selection,
 scroll and editing state; help consumes input until closed. Numeric rows
 include their own help before range/operation text. All three languages
 are present; pure tests cover measured overflow, UTF-8, explicit newlines
-and short/narrow panel scrolling. Native font/layout and focus recovery
-need verification in Minecraft.
+and short/narrow panel scrolling. The changed translucent/content-sized
+presentation needs verification in Minecraft.
 
 The settings foundation is integrated and has been exercised in Minecraft:
 
