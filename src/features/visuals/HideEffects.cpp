@@ -2,6 +2,7 @@
 #include "features/visuals/EffectVisibility.h"
 #include "app/Runtime.h"
 #include "app/Versions.h"
+#include "app/CapabilityHooks.h"
 #include "ll/api/memory/Hook.h"
 #include "ll/api/service/TargetedBedrock.h"
 #include "mc/client/game/ClientInstance.h"
@@ -310,19 +311,19 @@ void start() noexcept {
     for (auto id : {capabilities::Id::HideWeather,capabilities::Id::HideParticles,capabilities::Id::HideBossBars,
                    capabilities::Id::HideNausea,capabilities::Id::HideFog,capabilities::Id::HidePortal}) capabilities::begin(id);
     try {
-        if (!weatherInstalled) weatherInstalled = WeatherVisibility::hook(true) == 0;
-        if (!legacyInstalled) legacyInstalled = LegacyParticleVisibility::hook(true) == 0;
-        if (!dataInstalled) dataInstalled = DataParticleVisibility::hook(true) == 0;
-        if (!rainLegacyInstalled) rainLegacyInstalled = RainParticleVisibility::hook(true) == 0;
-        if (!rainMappingInstalled) rainMappingInstalled = RainEffectMapping::hook(true) == 0;
-        if (!rainDataInstalled) rainDataInstalled = RainEmitterVisibility::hook(true) == 0;
-        if (!bossSpriteInstalled) bossSpriteInstalled = BossBarSpriteVisibility::hook(true) == 0;
-        if (!bossTextInstalled) bossTextInstalled = BossBarTextVisibility::hook(true) == 0;
-        if (!screenInstalled) screenInstalled = EffectLocalScreen::hook(true) == 0;
-        if (!nauseaMeshInstalled) nauseaMeshInstalled = NauseaMeshVisibility::hook(true) == 0;
-        if (!nauseaMetadataInstalled) nauseaMetadataInstalled = NauseaMetadataVisibility::hook(true) == 0;
-        if (!fogInstalled) fogInstalled = MediumFogVisibility::hook(true) == 0;
-        if (!portalInstalled) portalInstalled = PortalScreenVisibility::hook(true) == 0;
+        capabilities::attachHook<WeatherVisibility>(weatherInstalled,{capabilities::Id::HideWeather,capabilities::Id::HideParticles});
+        capabilities::attachHook<LegacyParticleVisibility>(legacyInstalled,{capabilities::Id::HideParticles});
+        capabilities::attachHook<DataParticleVisibility>(dataInstalled,{capabilities::Id::HideParticles});
+        capabilities::attachHook<RainParticleVisibility>(rainLegacyInstalled,{capabilities::Id::HideWeather});
+        capabilities::attachHook<RainEffectMapping>(rainMappingInstalled,{capabilities::Id::HideWeather});
+        capabilities::attachHook<RainEmitterVisibility>(rainDataInstalled,{capabilities::Id::HideWeather});
+        capabilities::attachHook<BossBarSpriteVisibility>(bossSpriteInstalled,{capabilities::Id::HideBossBars});
+        capabilities::attachHook<BossBarTextVisibility>(bossTextInstalled,{capabilities::Id::HideBossBars});
+        capabilities::attachHook<EffectLocalScreen>(screenInstalled,{capabilities::Id::HideNausea});
+        capabilities::attachHook<NauseaMeshVisibility>(nauseaMeshInstalled,{capabilities::Id::HideNausea});
+        capabilities::attachHook<NauseaMetadataVisibility>(nauseaMetadataInstalled,{capabilities::Id::HideNausea});
+        capabilities::attachHook<MediumFogVisibility>(fogInstalled,{capabilities::Id::HideFog});
+        capabilities::attachHook<PortalScreenVisibility>(portalInstalled,{capabilities::Id::HidePortal});
         bool weatherReady = weatherInstalled && rainLegacyInstalled && rainMappingInstalled && rainDataInstalled;
         bool nauseaReady = screenInstalled && nauseaMeshInstalled && nauseaMetadataInstalled;
         capabilities::hooks(capabilities::Id::HideWeather,weatherReady);
@@ -345,18 +346,18 @@ void stop() {
                    capabilities::Id::HideNausea,capabilities::Id::HideFog,capabilities::Id::HidePortal}) capabilities::stop(id);
     rainEffectName.store(nullptr);
     heldFog = {};
-    if (portalInstalled && PortalScreenVisibility::unhook(true)) portalInstalled = false;
-    if (fogInstalled && MediumFogVisibility::unhook(true)) fogInstalled = false;
-    if (nauseaMetadataInstalled && NauseaMetadataVisibility::unhook(true)) nauseaMetadataInstalled = false;
-    if (nauseaMeshInstalled && NauseaMeshVisibility::unhook(true)) nauseaMeshInstalled = false;
-    if (screenInstalled && EffectLocalScreen::unhook(true)) screenInstalled = false;
-    if (bossTextInstalled && BossBarTextVisibility::unhook(true)) bossTextInstalled = false;
-    if (bossSpriteInstalled && BossBarSpriteVisibility::unhook(true)) bossSpriteInstalled = false;
-    if (rainDataInstalled && RainEmitterVisibility::unhook(true)) rainDataInstalled = false;
-    if (rainMappingInstalled && RainEffectMapping::unhook(true)) rainMappingInstalled = false;
-    if (rainLegacyInstalled && RainParticleVisibility::unhook(true)) rainLegacyInstalled = false;
-    if (dataInstalled && DataParticleVisibility::unhook(true)) dataInstalled = false;
-    if (legacyInstalled && LegacyParticleVisibility::unhook(true)) legacyInstalled = false;
-    if (weatherInstalled && WeatherVisibility::unhook(true)) weatherInstalled = false;
+    capabilities::detachHook<PortalScreenVisibility>(portalInstalled,{capabilities::Id::HidePortal});
+    capabilities::detachHook<MediumFogVisibility>(fogInstalled,{capabilities::Id::HideFog});
+    capabilities::detachHook<NauseaMetadataVisibility>(nauseaMetadataInstalled,{capabilities::Id::HideNausea});
+    capabilities::detachHook<NauseaMeshVisibility>(nauseaMeshInstalled,{capabilities::Id::HideNausea});
+    capabilities::detachHook<EffectLocalScreen>(screenInstalled,{capabilities::Id::HideNausea});
+    capabilities::detachHook<BossBarTextVisibility>(bossTextInstalled,{capabilities::Id::HideBossBars});
+    capabilities::detachHook<BossBarSpriteVisibility>(bossSpriteInstalled,{capabilities::Id::HideBossBars});
+    capabilities::detachHook<RainEmitterVisibility>(rainDataInstalled,{capabilities::Id::HideWeather});
+    capabilities::detachHook<RainEffectMapping>(rainMappingInstalled,{capabilities::Id::HideWeather});
+    capabilities::detachHook<RainParticleVisibility>(rainLegacyInstalled,{capabilities::Id::HideWeather});
+    capabilities::detachHook<DataParticleVisibility>(dataInstalled,{capabilities::Id::HideParticles});
+    capabilities::detachHook<LegacyParticleVisibility>(legacyInstalled,{capabilities::Id::HideParticles});
+    capabilities::detachHook<WeatherVisibility>(weatherInstalled,{capabilities::Id::HideWeather,capabilities::Id::HideParticles});
 }
 }

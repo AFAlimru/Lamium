@@ -2,6 +2,7 @@
 #include "features/camera/CameraSessions.h"
 #include "app/Runtime.h"
 #include "app/Versions.h"
+#include "app/CapabilityHooks.h"
 #include "ll/api/memory/Hook.h"
 #include "mc/client/gui/VisibilityFlag.h"
 #include "mc/client/gui/controls/UIControl.h"
@@ -60,8 +61,8 @@ bool hudHidden() noexcept {
 }
 void start() {
     for (auto id : {capabilities::Id::FreeCameraHand,capabilities::Id::FreeCameraHud,capabilities::Id::FreeCameraHotbar}) capabilities::begin(id);
-    if (!handInstalled) handInstalled = FreeCameraHand::hook(true) == 0;
-    if (!hudInstalled) hudInstalled = FreeCameraHud::hook(true) == 0;
+    capabilities::attachHook<FreeCameraHand>(handInstalled,{capabilities::Id::FreeCameraHand});
+    capabilities::attachHook<FreeCameraHud>(hudInstalled,{capabilities::Id::FreeCameraHud,capabilities::Id::FreeCameraHotbar});
     capabilities::hooks(capabilities::Id::FreeCameraHand,handInstalled);
     capabilities::hooks(capabilities::Id::FreeCameraHud,hudInstalled);
     capabilities::hooks(capabilities::Id::FreeCameraHotbar,hudInstalled);
@@ -70,7 +71,7 @@ void start() {
 }
 void stop() {
     for (auto id : {capabilities::Id::FreeCameraHand,capabilities::Id::FreeCameraHud,capabilities::Id::FreeCameraHotbar}) capabilities::stop(id);
-    if (hudInstalled && FreeCameraHud::unhook(true)) hudInstalled = false;
-    if (handInstalled && FreeCameraHand::unhook(true)) handInstalled = false;
+    capabilities::detachHook<FreeCameraHud>(hudInstalled,{capabilities::Id::FreeCameraHud,capabilities::Id::FreeCameraHotbar});
+    capabilities::detachHook<FreeCameraHand>(handInstalled,{capabilities::Id::FreeCameraHand});
 }
 }

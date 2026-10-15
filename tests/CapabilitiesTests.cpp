@@ -1,5 +1,6 @@
 #include "app/Capabilities.h"
 #include "app/CapabilityNotice.h"
+#include "app/CapabilityHooks.h"
 #include "app/PausedFeatures.h"
 #include <thread>
 void check(bool, char const*);
@@ -11,6 +12,51 @@ void capabilitiesTests() {
     check(!loaderSupported(26,51,4) && !loaderSupported(26,52,5) && !loaderSupported(27,51,5)
         && !loaderSupported(-1,-1,-1), "older, unknown and other loader series remain outside the policy");
     Registry r{{true,26,51,7}};
+    {
+        Registry cleanup{{true,26,51,7}};
+        bool installed = false;
+        int removals = 0, failures = 0;
+        auto failed = [&] {
+            ++failures;
+            cleanup.fail(Id::FreeCameraHud,Reason::RemovalFailed);
+            cleanup.fail(Id::FreeCameraHotbar,Reason::RemovalFailed);
+        };
+        removeHook(installed,[&] { ++removals; return false; },failed);
+        check(removals == 0 && failures == 0, "never remove an unattached hook or report a false cleanup failure");
+        installed = true;
+        cleanup.ready(Id::FreeCameraHud); cleanup.ready(Id::FreeCameraHotbar);
+        cleanup.stop(Id::FreeCameraHud); cleanup.stop(Id::FreeCameraHotbar);
+        removeHook(installed,[&] { ++removals; return false; },failed);
+        cleanup.reset();
+        check(installed && removals == 1 && failures == 1
+            && !cleanup.ready(Id::FreeCameraHud) && !cleanup.ready(Id::FreeCameraHotbar)
+            && cleanup.status(Id::FreeCameraHud).reason() == Reason::RemovalFailed
+            && cleanup.status(Id::FreeCameraHotbar).reason() == Reason::RemovalFailed,
+            "a failed shared hook removal blocks all dependent capabilities across restarts");
+        removeHook(installed,[]() -> bool { throw 1; },failed);
+        bool otherInstalled = true;
+        removeHook(otherInstalled,[] { return true; },failed);
+        check(installed && !otherInstalled && failures == 2,
+            "a throwing removal retains the hook and permits subsequent hooks to clean up");
+        removeHook(installed,[] { return true; },failed);
+        cleanup.reset();
+        check(!installed && cleanup.status(Id::FreeCameraHud).reason() == Reason::RemovalFailed,
+            "later cleanup success cannot clear the process-restart requirement");
+        int attachments = 0;
+        auto attach = [&] { ++attachments; return 0; };
+        auto readCleanup = [&](Id id) { return cleanup.status(id); };
+        check(!attachHook(installed,{Id::FreeCameraHud,Id::FreeCameraHotbar},attach,readCleanup)
+            && !installed && attachments == 0,
+            "a cleaned-up hook still cannot be reattached after a latched removal failure");
+        installed = true;
+        check(!attachHook(installed,{Id::FreeCameraHud,Id::FreeCameraHotbar},attach,readCleanup) && attachments == 0,
+            "a retained installed flag cannot make a failed hook reusable");
+        installed = false;
+        cleanup.fail(Id::HideParticles,Reason::RemovalFailed);
+        check(attachHook(installed,{Id::HideWeather,Id::HideParticles},attach,readCleanup)
+            && installed && attachments == 1 && !cleanup.status(Id::HideParticles).available(),
+            "a shared hook can serve its unaffected consumer without reviving the failed capability");
+    }
     auto read = [&](Id id) { return r.status(id); };
     auto terrain = Id::FreeCameraTerrain;
     check(r.status(terrain).waiting() && r.status(terrain).canProbe() && !r.status(terrain).available()

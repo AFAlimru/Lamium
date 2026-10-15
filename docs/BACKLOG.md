@@ -452,6 +452,11 @@ capabilities too, so a blocked world-render path cannot be bypassed in UI.
 Optional Night Vision/trading/Connected Textures/server-pack startup failures
 roll back their adapters and keep settings/unrelated features available;
 critical input/render foundation failures still abort startup.
+Review follow-up: effect hiding, FreeCamera hiding, chat placement and schematic
+rendering now report failed or throwing hook removals as `RemovalFailed` for
+every dependent capability. Shared cleanup continues through the other hooks,
+and restart cannot reattach hooks belonging to a latched cleanup failure.
+Schematic blend and actor-light hooks track partial installation individually.
 Files: `app/Capabilities.h`, `Versions.*`, `PausedFeatures.h`, guarded feature
 adapters listed in GAME-UPDATES.md, paused UI/Actions/translations, tests,
 release/catalog checks and documentation. Low-level memory/input/HUD helper

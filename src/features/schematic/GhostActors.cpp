@@ -25,12 +25,14 @@
 #include "mc/world/level/block/actor/PistonBlockActor.h"
 #include "mc/world/level/block/actor/BlockActorType.h"
 #include "app/Versions.h"
+#include "app/CapabilityHooks.h"
 #include <format>
 #include <set>
 #include <atomic>
 
 namespace lamium::schematic::ghosts {
 namespace {
+bool shaderInstalled = false, lightPairInstalled = false;
 // The block source ghost block actors draw against, while they draw: their
 // renderers light themselves from it (GhostActorShader turns that into full
 // brightness), so a ghost chest or bed reads the same at night and
@@ -136,9 +138,13 @@ void renderBlockActor(BaseActorRenderContext& context, SchematicRegion& view, Bl
     struct Restore { ~Restore() { ghostActorSource.store(nullptr, std::memory_order_relaxed); } } restore;
     dispatcher.render(context, view, *component, block, renderPos, worldPos, false, none, nullptr, 0, std::nullopt);
 }
-bool startActorLight() { return GhostActorShader::hook(true) == 0 && GhostActorLightPair::hook(true) == 0; }
+bool startActorLight() {
+    bool shader = capabilities::attachHook<GhostActorShader>(shaderInstalled,{capabilities::Id::SchematicActorLight});
+    bool pair = capabilities::attachHook<GhostActorLightPair>(lightPairInstalled,{capabilities::Id::SchematicActorLight});
+    return shader && pair;
+}
 void stopActorLight() {
-    GhostActorShader::unhook(true);
-    GhostActorLightPair::unhook(true);
+    capabilities::detachHook<GhostActorShader>(shaderInstalled,{capabilities::Id::SchematicActorLight});
+    capabilities::detachHook<GhostActorLightPair>(lightPairInstalled,{capabilities::Id::SchematicActorLight});
 }
 }

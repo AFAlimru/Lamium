@@ -1,6 +1,7 @@
 #include "features/information/ChatPosition.h"
 #include "app/Runtime.h"
 #include "app/Versions.h"
+#include "app/CapabilityHooks.h"
 #include "ui/Localization.h"
 #include "ui/Widgets.h"
 #include "input/Actions.h"
@@ -131,9 +132,9 @@ std::optional<ui::hud_editor::Box> preview(MinecraftUIRenderContext& context, fl
 void start() noexcept {
     capabilities::begin(capabilities::Id::ChatPosition);
     try {
-        if (!installed) installed = ChatHudRender::hook(true) == 0;
-        if (!installedText) installedText = ChatTextRender::hook(true) == 0;
-        if (!installedSprite) installedSprite = ChatBackgroundRender::hook(true) == 0;
+        capabilities::attachHook<ChatHudRender>(installed,{capabilities::Id::ChatPosition});
+        capabilities::attachHook<ChatTextRender>(installedText,{capabilities::Id::ChatPosition});
+        capabilities::attachHook<ChatBackgroundRender>(installedSprite,{capabilities::Id::ChatPosition});
         capabilities::hooks(capabilities::Id::ChatPosition,installed && installedText && installedSprite);
         if (!installed || !installedText || !installedSprite)
             Runtime::instance().self().getLogger().warn("Chat position cannot hook the HUD components; chat stays vanilla");
@@ -141,9 +142,9 @@ void start() noexcept {
 }
 void stop() {
     capabilities::stop(capabilities::Id::ChatPosition);
-    if (installed && ChatHudRender::unhook(true)) installed = false;
-    if (installedText && ChatTextRender::unhook(true)) installedText = false;
-    if (installedSprite && ChatBackgroundRender::unhook(true)) installedSprite = false;
+    capabilities::detachHook<ChatHudRender>(installed,{capabilities::Id::ChatPosition});
+    capabilities::detachHook<ChatTextRender>(installedText,{capabilities::Id::ChatPosition});
+    capabilities::detachHook<ChatBackgroundRender>(installedSprite,{capabilities::Id::ChatPosition});
     std::lock_guard lock(seenMutex);
     seen.reset();
 }

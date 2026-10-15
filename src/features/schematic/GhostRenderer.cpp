@@ -16,6 +16,7 @@
 #include "overlay/FaceMaterial.h"
 #include "app/Runtime.h"
 #include "app/Versions.h"
+#include "app/CapabilityHooks.h"
 #include "ll/api/event/EventBus.h"
 #include "ll/api/event/client/ClientExitLevelEvent.h"
 #include "ll/api/memory/Hook.h"
@@ -132,7 +133,7 @@ int lastGraphicsMode = -1;
 int builtDimension = -1;
 std::atomic<bool> releaseRequested{false};
 ll::event::ListenerPtr exitListener;
-bool installed = false;
+bool installed = false, blendInstalled = false;
 
 // Every section's blended quads in one mesh, sorted far to near from where
 // the camera was (L-192, L-193). Sorted again when the camera has moved or
@@ -871,6 +872,8 @@ std::optional<GhostAt> ghostAlong(BlockSource& region, int dimension, double x, 
     return std::nullopt;
 }
 void start() {
+    if (capabilities::registry().status(capabilities::Id::SchematicBlocks).runtime.reason == capabilities::Reason::RemovalFailed
+        || capabilities::registry().status(capabilities::Id::SchematicEntities).runtime.reason == capabilities::Reason::RemovalFailed) return;
     if (installed) return;
     capabilities::begin(capabilities::Id::SchematicBlocks);
     capabilities::begin(capabilities::Id::SchematicEntities);
@@ -882,7 +885,8 @@ void start() {
         capabilities::hooks(capabilities::Id::SchematicEntities,false);
         throw std::runtime_error("Could not install the schematic ghost pass");
     }
-    capabilities::hooks(capabilities::Id::SchematicBlend,GhostBlendPass::hook(true) == 0);
+    capabilities::hooks(capabilities::Id::SchematicBlend,
+        capabilities::attachHook<GhostBlendPass>(blendInstalled,{capabilities::Id::SchematicBlend}));
     capabilities::hooks(capabilities::Id::SchematicActorLight,startActorLight());
     exitListener = ll::event::EventBus::getInstance().emplaceListener<ll::event::ClientExitLevelEvent>(
         [](auto&) { releaseRequested = true; items::forget(); selection::clear(); });
@@ -898,9 +902,9 @@ void stop() {
         ll::event::EventBus::getInstance().removeListener(exitListener);
         exitListener.reset();
     }
-    GhostBlendPass::unhook(true);
+    capabilities::detachHook<GhostBlendPass>(blendInstalled,{capabilities::Id::SchematicBlend});
     stopActorLight();
-    if (installed && GhostPass::unhook(true)) installed = false;
+    capabilities::detachHook<GhostPass>(installed,{capabilities::Id::SchematicBlocks,capabilities::Id::SchematicEntities});
     releaseRequested = true;
 }
 void invalidateResources() { releaseRequested = true; }
