@@ -572,6 +572,22 @@ exactly one switch, one mode and one set of keys:
   until the edit ends. The footer keeps the action's description and the
   "press, then release to assign | Esc: cancel" line.
 
+## World map layer switches (Decided 2026-10-15, L-146)
+
+- The world map's top bar has three joined switches, Waypoints, Schematics
+  and Shapes, each with its mark's symbol (diamond, cyan footprint, yellow
+  footprint) before the name, left of "Center on me". On: the accent fill
+  and frame of a selected button; off: dark with faint text and symbol.
+  They are remembered across openings in the map settings, not a settings
+  screen option. On a screen too narrow for one row they go to the second
+  row with the Nether layer.
+- A switch that is off removes its marks from the world map entirely (no
+  faint ghost, no click or menu); the death point goes with Waypoints. The
+  side panel's list and editor work as before; the minimap and the world
+  view are not affected.
+- The side panel's button is named "List" so it does not repeat
+  "Waypoints".
+
 ## Inventory transfer (Decided 2026-09-27, BACKLOG L-41)
 
 - The feature has one saved switch, on by default, and an unbound toggle

@@ -227,7 +227,8 @@ Json encode(Settings const& settings) {
                  {"waypointsCrossScale", settings.map.waypointsCrossScale}, {"worldMap", settings.map.worldMap},
                  {"worldMapNetherAuto", settings.map.worldMapNetherAuto}, {"worldMapPanel", settings.map.worldMapPanel},
                  {"seedLink", settings.map.seedLink}, {"worldMapNames", settings.map.worldMapNames},
-                 {"radarFaces", settings.map.radarFaces}}},
+                 {"radarFaces", settings.map.radarFaces}, {"worldMapWaypoints", settings.map.worldMapWaypoints},
+                 {"worldMapSchematics", settings.map.worldMapSchematics}, {"worldMapShapes", settings.map.worldMapShapes}}},
         {"schematic", {{"enabled", settings.schematic.enabled}, {"hud", settings.schematic.hud},
                        {"hudVerify", settings.schematic.hudVerify}, {"hudMaterials", settings.schematic.hudMaterials},
                        {"menuBackground", settings.schematic.menuBackground}, {"menuSmall", settings.schematic.menuSmall},
@@ -479,6 +480,9 @@ Settings decodeSettings(std::string_view text) {
         value.map.seedLink = map.value("seedLink", value.map.seedLink);
         value.map.worldMapNames = map.value("worldMapNames", value.map.worldMapNames);
         value.map.radarFaces = map.value("radarFaces", value.map.radarFaces);
+        value.map.worldMapWaypoints = map.value("worldMapWaypoints", value.map.worldMapWaypoints);
+        value.map.worldMapSchematics = map.value("worldMapSchematics", value.map.worldMapSchematics);
+        value.map.worldMapShapes = map.value("worldMapShapes", value.map.worldMapShapes);
     }
     if (data.contains("schematic") && data.at("schematic").is_object()) {
         auto const& schematic = data.at("schematic");

@@ -113,6 +113,7 @@ void unload(IClientInstance& client, ResourceLocation const& location) {
 
 enum class Target {
     None, Overworld, Nether, End, BandDown, BandUp, Center, Waypoints, Close, Menu,
+    LayerWaypoints, LayerSchematics, LayerShapes, // The layer switches (L-146).
     // The side panel: its background, header buttons, list and editor.
     Panel, PanelAdd, PanelClose, Row, RowVisible, Name, Step, Coordinate, MoveHere, Swatch, Keep, Delete, OpenScreen
 };
@@ -252,6 +253,17 @@ void act(Target target) {
         break;
     default: break;
     }
+}
+LayerSwitches layers() {
+    auto const& map = Runtime::instance().preferences().map;
+    return {map.worldMapWaypoints, map.worldMapSchematics, map.worldMapShapes};
+}
+void toggleLayer(Target target) {
+    auto value = Runtime::instance().preferences();
+    bool& on = target == Target::LayerWaypoints ? value.map.worldMapWaypoints
+        : target == Target::LayerSchematics ? value.map.worldMapSchematics : value.map.worldMapShapes;
+    on = !on;
+    if (!Runtime::instance().save(value)) log("could not save the layer switches");
 }
 bool panelOpen() { return Runtime::instance().preferences().map.worldMapPanel; }
 void setPanelOpen(bool open) {
@@ -755,9 +767,12 @@ struct MarkName {
 // stay faint, like hidden waypoints; the selected one is framed white.
 void drawAreas(MinecraftUIRenderContext& context, std::vector<MarkName>& names) {
     auto& view = state.view;
-    state.areas = shapeMarks(state.dimension);
-    auto placements = placementMarks(state.dimension);
-    state.areas.insert(state.areas.end(), placements.begin(), placements.end());
+    auto on = layers();
+    state.areas = on.shapes ? shapeMarks(state.dimension) : std::vector<AreaMark>{};
+    if (on.schematics) {
+        auto placements = placementMarks(state.dimension);
+        state.areas.insert(state.areas.end(), placements.begin(), placements.end());
+    }
     for (auto const& mark : state.areas) {
         auto const& a = mark.area;
         float x0 = std::round(static_cast<float>(view.screenX(a.x0))), y0 = std::round(static_cast<float>(view.screenY(a.z0)));
@@ -796,8 +811,8 @@ void drawMarkers(MinecraftUIRenderContext& context, Settings::Map const& setting
     state.markers.clear();
     std::vector<MarkName> names;
     drawAreas(context, names);
-    // A footprint whose provider turned off, or whose entry is gone, takes
-    // its selection and menu with it.
+    // A footprint whose provider or layer switch turned off, or whose entry
+    // is gone, takes its selection and menu with it.
     if (state.selected && !pointLayer(state.selected->layer) && !areaOf(*state.selected)) state.selected.reset();
     if (state.menu && (state.menu->kind == MenuKind::Placement || state.menu->kind == MenuKind::Shape) && !areaOf(state.menu->mark))
         state.menu.reset();
@@ -819,7 +834,7 @@ void drawMarkers(MinecraftUIRenderContext& context, Settings::Map const& setting
                 smallLabel(context, x, y + (head ? 6 : 3), dot.name, dot.distant ? ui::palette::dim : Rgb{.59f, .88f, 1.f});
         }
     }
-    if (settings.waypoints) {
+    if (settings.waypoints && layers().waypoints) {
         auto set = waypoints::current();
         for (size_t i = 0; i < set.waypoints.size(); ++i) {
             auto const& w = set.waypoints[i];
@@ -880,13 +895,25 @@ void drawBars(MinecraftUIRenderContext& context, glm::vec2 size, MapLayer layer,
         dimTexts[static_cast<size_t>(d)] = (spot && spot->dimension == d ? "* " : "") + ui::translated(dims[static_cast<size_t>(d)].second);
         dimsW += widthOf(dimTexts[static_cast<size_t>(d)]) - 1;
     }
-    auto centerText = ui::translated("worldMap.center"), waypointsText = ui::translated("nav.waypoints");
+    auto centerText = ui::translated("worldMap.center"), waypointsText = ui::translated("worldMap.list");
     float closeW = 13, rightW = widthOf(centerText) + 3 + widthOf(waypointsText) + 3 + closeW + 3;
     auto layerText = ui::translated("worldMap.layer", layer.band * bandHeight, layer.band * bandHeight + bandHeight - 1);
     float layerW = state.dimension == 1 ? 10 + ui::textWidth(context, layerText) + 10 + 10 + 8 : 0;
+    // Layer switches (L-146): the mark's own symbol and the layer's name.
+    constexpr std::array<std::pair<Target, std::string_view>, 3> switches{{
+        {Target::LayerWaypoints, "nav.waypoints"}, {Target::LayerSchematics, "nav.schematics"}, {Target::LayerShapes, "nav.shapes"}}};
+    auto shownLayers = layers();
+    std::array<bool, 3> switchOn{shownLayers.waypoints, shownLayers.schematics, shownLayers.shapes};
+    std::array<std::string, 3> switchTexts;
+    float switchesW = 1;
+    for (size_t i = 0; i < 3; ++i) {
+        switchTexts[i] = ui::translated(switches[i].second);
+        switchesW += 12 + widthOf(switchTexts[i]) - 1;
+    }
     float brandW = ui::textWidth(context, "Lamium") + 6;
-    bool oneRow = 4 + brandW + dimsW + layerW + rightW + 4 <= size.x;
-    state.top = oneRow || state.dimension != 1 ? rowHeight : 2 * rowHeight;
+    // The Nether layer and the switches move to a second row on a screen too narrow for them.
+    bool oneRow = 4 + brandW + dimsW + layerW + switchesW + 8 + rightW + 4 <= size.x;
+    state.top = oneRow ? rowHeight : 2 * rowHeight;
     ui::fill(context, 0, 0, size.x, state.top, ui::palette::panel, .85f);
     ui::fill(context, 0, state.top - 1, size.x, 1, ui::palette::white, .14f);
     float x = 4, y = 2;
@@ -907,8 +934,8 @@ void drawBars(MinecraftUIRenderContext& context, glm::vec2 size, MapLayer layer,
                 hovering(bx, y, widthOf(text), buttonHeight));
         }
     x += 8;
+    if (!oneRow) { x = 4; y = rowHeight + 2; }
     if (state.dimension == 1) {
-        if (!oneRow) { x = 4; y = rowHeight + 2; }
         float w = 10;
         ui::fill(context, x, y, w, buttonHeight, ui::palette::keyFill);
         ui::frame(context, x, y, w, buttonHeight, ui::palette::keyEdge);
@@ -925,6 +952,7 @@ void drawBars(MinecraftUIRenderContext& context, glm::vec2 size, MapLayer layer,
         ui::frame(context, x, y, w, buttonHeight, ui::palette::keyEdge);
         ui::arrow(context, x + 3, y + 2.5f, false, hovering(x, y, w, buttonHeight) ? ui::palette::text : ui::palette::dim);
         state.hits.push_back({x, y, w, buttonHeight, Target::BandUp});
+        x += w + 8;
     }
     float right = size.x - 4 - closeW;
     {
@@ -941,6 +969,33 @@ void drawBars(MinecraftUIRenderContext& context, glm::vec2 size, MapLayer layer,
     button(context, right, 2, waypointsText, Target::Waypoints, panelOpen(), hovering(right, 2, widthOf(waypointsText), buttonHeight));
     right -= 3 + widthOf(centerText);
     button(context, right, 2, centerText, Target::Center, false, hovering(right, 2, widthOf(centerText), buttonHeight));
+    if (oneRow) { x = right - 8 - switchesW; y = 2; }
+    std::array<float, 3> switchX{};
+    for (size_t i = 0; i < 3; ++i) {
+        switchX[i] = x;
+        x += 12 + widthOf(switchTexts[i]) - 1;
+    }
+    // Neighbours share a border column: switches that are on are drawn last, keeping their accent frames whole.
+    for (int pass = 0; pass < 2; ++pass)
+        for (size_t i = 0; i < 3; ++i) {
+            bool on = switchOn[i];
+            if (on != (pass == 1)) continue;
+            float bx = switchX[i], bw = 12 + widthOf(switchTexts[i]);
+            bool over = hovering(bx, y, bw, buttonHeight);
+            ui::fill(context, bx, y, bw, buttonHeight, on ? ui::palette::accentDeep : over ? Rgb{.23f, .23f, .24f} : ui::palette::keyFill, .9f);
+            ui::frame(context, bx, y, bw, buttonHeight, on ? ui::palette::accent : ui::palette::keyEdge);
+            float alpha = on ? 1.f : .4f, iy = y + buttonHeight / 2;
+            if (i == 0) diamond(context, bx + 8, iy, 7, rgb(waypointColors[0]), alpha);
+            else {
+                // A footprint as the map draws it: a faint fill in its frame.
+                auto color = rgb(i == 1 ? placementColor : packColor(242, 204, 61));
+                ui::fill(context, bx + 4, iy - 3, 7, 6, color, .16f * alpha);
+                ui::frame(context, bx + 4, iy - 3, 7, 6, color, alpha);
+            }
+            ui::label(context, bx + 12, y + inset, bw - 12, switchTexts[i], on || over ? ui::palette::text : ui::palette::faint,
+                      ui::Align::Center);
+            state.hits.push_back({bx, y, bw, buttonHeight, switches[i].first});
+        }
 
     // Bottom bar: the place under the cursor on the left; the scale bar on
     // the right with the hints before it, dropped when they would meet.
@@ -1272,6 +1327,9 @@ Request press(float x, float y, bool right) {
         switch (hit->target) {
         case Target::Close: request.kind = Request::Kind::Close; return request;
         case Target::Waypoints: setPanelOpen(!panelOpen()); return request;
+        case Target::LayerWaypoints:
+        case Target::LayerSchematics:
+        case Target::LayerShapes: toggleLayer(hit->target); return request;
         default: act(hit->target); return request;
         }
     }

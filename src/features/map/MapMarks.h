@@ -21,6 +21,14 @@ inline constexpr MarkKey waypointKey(std::uint64_t id) { return {MarkLayer::Wayp
 inline constexpr MarkKey placementKey(std::uint64_t id) { return {MarkLayer::Placement, id}; }
 inline constexpr MarkKey shapeKey(std::uint64_t id) { return {MarkLayer::Shape, id}; }
 inline constexpr bool pointLayer(MarkLayer layer) { return layer == MarkLayer::Waypoint || layer == MarkLayer::Death; }
+// The world map's layer switches (L-146): which marks it draws. The death
+// point goes with waypoints.
+struct LayerSwitches {
+    bool waypoints = true, schematics = true, shapes = true;
+};
+inline constexpr bool layerShown(LayerSwitches on, MarkLayer layer) {
+    return pointLayer(layer) ? on.waypoints : layer == MarkLayer::Placement ? on.schematics : on.shapes;
+}
 
 // A mark as last drawn on the world map, in screen units: a point (its
 // center twice) or a footprint (its rectangle as drawn).

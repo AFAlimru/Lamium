@@ -862,6 +862,18 @@ The maintainer will settle it with the implementing agent, comparing it with
 reference mods (listed in PROVENANCE.md, reference only) and with how it
 plays. Treat the gestures above as the starting proposal, not a contract.
 
+Update 2026-10-15 (maintainer, answering the implementing agent): this
+round builds (1) Shift + click on an empty slot with items on the cursor:
+every matching item into that slot's side, and (2) the drop gestures
+listed above (drop key + Ctrl drag: one from each slot; drop key + Shift +
+right drag: all but one; drop key + Shift + left drag: everything; Shift +
+click outside the window with items on the cursor: drop every matching
+item). Each gets its own switch and **all default on**, including "drop
+every matching item" (the maintainer's choice over the agent's proposal of
+off). Not this round: the Shift + double click and Ctrl + Shift + click
+alternatives and "fill existing stacks only". Research what the drop key
+does in screens today before building the drop gestures.
+
 Handoff for the implementing agent (read AGENTS.md first; implementation of
 the 0.2.2 contract may go to another agent; product questions come back to
 the maintainer):
@@ -1132,6 +1144,9 @@ screen (main inventory, hotbar, armor, offhand; click and shift click; no
 crafting); (3) a mockup agreed before the real build.
 
 ### L-146 Layer switches on the world map (with the next integration review)
+Status (2026-10-15): built on main, not yet checked in game. Maintainer
+chose the look and behavior on 2026-10-15 (DESIGN "World map layer
+switches"); the in-game check moves the item to BACKLOG-DONE.
 Kind: Design. Raised by the maintainer 2026-10-11 before the 0.2.0 release;
 parked until the links between features are reviewed again (after 0.2.0).
 Today placements and Shapes always show on the world map while their

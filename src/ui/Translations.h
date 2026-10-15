@@ -770,6 +770,7 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"worldMap.back", "< Map", "< 地図"},
     {"nav.worldMap", "World map", "ワールドマップ"},
     {"worldMap.center", "Center on me", "自分に戻る"},
+    {"worldMap.list", "List", "一覧"},
     {"worldMap.hint", "Click: select  Drag: move  Wheel: zoom  Right-click: menu", "クリック：選択　ドラッグ：移動　ホイール：拡大縮小　右クリック：メニュー"},
     {"worldMap.loading", "Loading {}", "読み込み中 {}"},
     {"worldMap.blocks", "{} blocks", "{} ブロック"},

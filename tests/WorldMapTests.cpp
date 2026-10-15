@@ -27,6 +27,10 @@ void mapMarks() {
     check(markAt(twins, 10, 10) == waypointKey(1), "two waypoints in one place stay apart by id; the first drawn wins");
     check(present(marks, placementKey(4)) && !present(marks, placementKey(5)) && !present(marks, shapeKey(3)),
           "a selection on a mark that is gone is dropped");
+    LayerSwitches on{true, false, true};
+    check(layerShown(on, MarkLayer::Waypoint) && layerShown(on, MarkLayer::Death) && !layerShown(on, MarkLayer::Placement)
+              && layerShown(on, MarkLayer::Shape) && !layerShown({false, true, true}, MarkLayer::Death),
+          "each layer switch hides its own marks; the death point goes with waypoints (L-146)");
 }
 void regions() {
     check(regionOfChunk({15, -1}) == RegionKey{0, -1} && regionOfChunk({16, -16}) == RegionKey{1, -1}

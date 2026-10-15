@@ -157,6 +157,8 @@ struct Settings {
         bool seedLink = true; // World map menu: open an external seed map here, copy the seed.
         bool worldMapNames = false; // Every mark's name; off: under the pointer, selected or with a menu.
         bool worldMapPanel = true; // The world map's waypoint side panel is open; changed on the map.
+        // The world map's layer switches (L-146), changed on the map.
+        bool worldMapWaypoints = true, worldMapSchematics = true, worldMapShapes = true;
     } map;
     struct Schematic {
         bool enabled = false; // Ghosts and outlines of the placements (L-93, experimental).

@@ -357,6 +357,10 @@ void settingsStoreTests() {
     check(decodeSettings(R"({"map":{"minimapShapes":true}})").map.minimapShapes, "shapes on the minimap load when saved on");
     check(!old.map.worldMapNames && decodeSettings(R"({"map":{"worldMapNames":true}})").map.worldMapNames,
           "world map names show on hover until Always is saved on");
+    check(old.map.worldMapWaypoints && old.map.worldMapSchematics && old.map.worldMapShapes
+              && !decodeSettings(R"({"map":{"worldMapShapes":false}})").map.worldMapShapes
+              && decodeSettings(R"({"map":{"worldMapShapes":false}})").map.worldMapSchematics,
+          "the world map's layer switches start on and load one by one (L-146)");
     check(!old.camera.zoomWideAngle && decodeSettings(R"({"camera":{"zoomWideAngle":true}})").camera.zoomWideAngle,
           "Wide-angle view stays off until saved on (L-140)");
     check(!old.visuals.skipServerPacks && decodeSettings(R"({"visuals":{"skipServerPacks":true}})").visuals.skipServerPacks,
