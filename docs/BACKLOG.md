@@ -772,6 +772,24 @@ layer; whether the L-146 layer switches also hide their entries from the
 list; whether marks from other dimensions are listed; what a row's switch
 does (show/hide, as for waypoints) and what clicking a row does (center the
 map and select, as for waypoints).
+Maintainer 2026-10-15: separate the layers, with a switch-like control,
+since the lists can grow long; asked for the agent's proposal first.
+Agent's proposal (not decided):
+- A three-part tab row at the top of the side panel, Waypoints /
+  Schematics / Shapes, each with its count; the panel shows one layer's
+  list. The choice is remembered like the panel itself. Selecting a mark
+  on the map switches to its tab. "+" (add a waypoint here) shows only on
+  the Waypoints tab.
+- Rows as for waypoints: the layer's symbol, the name, the distance when
+  the player is in that dimension, and the show/hide switch; a click
+  centers the map on it and selects it, with the existing details and
+  "Open" button below the list.
+- Only the dimension the map shows, as the map marks do; the tab count
+  counts those.
+- A layer switched off in the top bar keeps its tab and list (the list is
+  where it is found); a faint line at the top says it is hidden on the map.
+- Order: the order of the feature's own screen (Placed tab, Shapes view);
+  a search field when lists grow, later and only if asked.
 
 ### L-169 Item Transfer in more screens, and bulk transfer
 Rework for 0.2.2 (maintainer 2026-10-15, built by Claude; passed locally
