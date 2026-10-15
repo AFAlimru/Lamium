@@ -33,7 +33,7 @@ inline void skipBreak(std::string_view& source) {
     while (!source.empty() && source.front() == ' ') source.remove_prefix(1);
 }
 }
-// Complete measured wrapping for scrollable help. A glyph wider than the
+// Complete measured wrapping for the scrolling description. A glyph wider than the
 // area still consumes one whole codepoint, so no text is silently discarded.
 template<class Measure>
 std::vector<std::string> wrapFullText(std::string_view source, float width, Measure measure) {
@@ -46,12 +46,6 @@ std::vector<std::string> wrapFullText(std::string_view source, float width, Meas
         detail::skipBreak(source);
     }
     return lines;
-}
-template<class Measure>
-bool textOverflows(std::string_view source, float width, size_t maxLines, Measure measure) {
-    auto lines = wrapFullText(source, width, measure);
-    return (!source.empty() && lines.empty()) || lines.size() > maxLines
-        || std::any_of(lines.begin(), lines.end(), [&](auto const& line) { return measure(line) > width; });
 }
 // Native font measurement is supplied by the caller. Remove whole UTF-8
 // codepoints, so truncation never feeds a partial Japanese character to Font.

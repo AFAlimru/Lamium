@@ -47,8 +47,6 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"capability.notice", "Paused: {}", "停止中: {}"},
     {"capability.more", "{} more", "ほか{}件"},
     {"capability.details", "See the feature's settings for details.", "詳しくは各機能の設定を確認してください。"},
-    {"description.read", "Read full description", "全文を読む"},
-    {"description.collapse", "Collapse", "折りたたむ"},
     {"description.hint", "Wheel: scroll description", "ホイール: 説明をスクロール"},
     {"feature.hideEffects", "Hide effects", "視覚効果を隠す"},
     {"hideEffects", "Hide effects", "視覚効果を隠す"},

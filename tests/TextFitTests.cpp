@@ -32,14 +32,7 @@ void textFitTests() {
     check(wrapLabel("日本",1,3,measure).empty() && wrapLabel("abc",4,0,measure).empty(),
           "unrenderable paragraphs terminate without partial characters");
     using lamium::ui::wrapFullText;
-    using lamium::ui::textOverflows;
-    check(!textOverflows("one two",7,1,measure) && textOverflows("one two three",7,1,measure)
-        && textOverflows("one\ntwo\nthree",40,2,measure),
-        "description expansion follows measured width, line count and explicit breaks");
     check(wrapFullText("日本語設定",4,measure) == std::vector<std::string>{"日本", "語設", "定"}
         && wrapFullText("a\n\nb",4,measure) == std::vector<std::string>{"a", "", "b"}
         && wrapFullText("🌿日本",1,measure) == std::vector<std::string>{"🌿", "日", "本"},
-        "full help preserves blank lines and every complete UTF-8 codepoint without ellipsis");
-    check(textOverflows("日本",1,3,measure) && !textOverflows("日本",4,1,measure)
-        && textOverflows("x",0,2,measure), "oversized glyphs and invalid widths count as overflow");
-}
+        "full help preserves blank lines and every complete UTF-8 codepoint without ellipsis");}

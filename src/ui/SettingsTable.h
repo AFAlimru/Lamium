@@ -13,6 +13,7 @@ struct SettingsTable {
     static constexpr float navItemHeight = 14, sidebarWidth = 112, pad = 6, gap = 6;
     static constexpr float stateWidth = 24, closeWidth = 58;
     static constexpr float descriptionLineHeight = 12;
+    static constexpr int descriptionLines = 2; // the footer's; longer text scrolls
     enum class Zone { None, Search, Close, Nav, Row, Footer, Version };
     enum class Column { Name, State, Key };
     struct Hit { Zone zone = Zone::None; int index = -1; Column column = Column::Name; float x = 0, y = 0; };
@@ -27,15 +28,12 @@ struct SettingsTable {
     float versionX{}, versionWidth{};
     int first{}, visible{};
     int count{};
-    int descriptionLines{};
 
     // `navItems` counts the sidebar's items; each keeps at least this height.
     static constexpr float minNavStep = 11, minWidth = 440, margin = 16, marginY = 12;
     static float minHeight(int navItems) {
-        // Top items, the pinned ones and the rule between them, beside a
-        // footer that can still expand to three description lines.
-        float footer = pad + 3 + footerButtonHeight + 3 * descriptionLineHeight;
-        return std::max(230.0f, footer + headerHeight + 12 + std::max(navItems, 0) * minNavStep);
+        // Top items, the pinned ones and the rule between them.
+        return std::max(230.0f, footerHeight + headerHeight + 12 + std::max(navItems, 0) * minNavStep);
     }
     // The draw scale that keeps this layout whole on a screen of this size:
     // 1 when it fits, below 1 to shrink it. Never enlarges.
@@ -78,20 +76,6 @@ struct SettingsTable {
         t.first = clampFirst(first, t.count, t.visible);
         return t;
     }
-    void expandDescription(int lines, int navItems = 0) {
-        float bottom = top + height;
-        float chrome = pad + 3 + footerButtonHeight;
-        float limit = std::min(height * .6f, bottom - rowsTop - 3 * rowHeight - 2);
-        if (navItems > 0)
-            limit = std::min(limit,height - headerHeight - 12 - navItems * minNavStep);
-        int capacity = std::max(1,static_cast<int>((limit - chrome) / descriptionLineHeight));
-        descriptionLines = std::clamp(lines,1,capacity);
-        footerTop = bottom - std::max(bottom - footerTop,chrome + descriptionLines * descriptionLineHeight);
-        navBottom = footerTop;
-        if (navItems > 0) navStep = std::min(navItemHeight,std::floor((navBottom - navTop - 12) / navItems));
-        visible = std::max(0,static_cast<int>((footerTop - rowsTop - 2) / rowHeight));
-        first = clampFirst(first,count,visible);
-    }
     static int clampFirst(int first, int count, int visible) {
         return std::clamp(first, 0, std::max(0, count - visible));
     }
@@ -103,7 +87,7 @@ struct SettingsTable {
         return first;
     }
     bool usable() const { return visible > 0; }
-    // Scrollbars in the right padding of the list and of an expanded footer:
+    // Scrollbars in the right padding of the list and of the footer:
     // a press there or a drag puts the first line where the pointer is.
     static int firstAt(float y, float top, float track, int count, int shown) {
         if (count <= shown || !(track > 0)) return 0;
@@ -116,7 +100,7 @@ struct SettingsTable {
     int listFirstAt(float y) const { return firstAt(y, rowsTop, visible * rowHeight, count, visible); }
     bool onDescriptionScrollbar(float x, float y, int lines) const {
         float right = left + width;
-        return descriptionLines > 0 && lines > descriptionLines && x >= right - pad - 2 && x < right
+        return lines > descriptionLines && x >= right - pad - 2 && x < right
             && y >= footerTop + 3 && y < footerTop + 3 + descriptionLines * descriptionLineHeight;
     }
     int descriptionFirstAt(float y, int lines) const {
@@ -163,8 +147,7 @@ struct SettingsTable {
     }
     // Find by key's Cancel on the footer's first line.
     static constexpr float footerButtonWidth = 50, footerButtonHeight = 11;
-    float descriptionButtonY() const { return top + height - footerButtonHeight - 5; }
-    float descriptionHintY() const { return descriptionButtonY() + 2; }
+    float descriptionHintY() const { return footerTop + 30; }
     float footerButtonX(int index) const { return left + pad + index * (footerButtonWidth + 4); }
     float footerButtonY() const { return footerTop + 3; }
     int footerButton(float x, float y) const {

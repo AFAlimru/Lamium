@@ -11,7 +11,8 @@ of truth.
 Local follow-up on `f8c714b` (2026-10-15) passed the compact translucent
 description panel and chat-return checks. The maintainer then replaced the
 description interaction with in-place footer expansion (L-197), which
-passed its focused local check on `c4b8f01`.
+passed its focused local check on `c4b8f01`; it was then simplified to a
+fixed two-line footer that scrolls.
 
 L-202 (2026-10-15, local normal-build smoke passed on `d5978e2`): settings
 suffixes/header, version
@@ -25,21 +26,15 @@ stay quiet. English, Japanese and Simplified Chinese have capability names
 and reasons. Local normal-feature smoke passed with the L-197/L-203 follow-ups.
 Server, forced-unverified and injected-failure presentation checks remain open.
 
-L-197 (latest decision 2026-10-15): truncated descriptions offer only the
-"Read full description" button. It expands the existing footer and becomes
-"Collapse". The settings header, categories and list remain visible and
-interactive; their normal focus/editing/Esc handling continues. The old
-help surface, modal input routing and F1 shortcut are removed. Footer height
-fits wrapped text within a budget that leaves at least three setting rows
-and readable category navigation, up to 60% of the settings area. Wheel
-input over the footer scrolls overflow; over the list it scrolls rows.
-Numeric descriptions show their own help and range; their controls
-replace the footer hint while the row is selected. All three
-languages share the behavior; pure tests cover bounds, row/category
-separation, overflow reachability and UTF-8 wrapping. The hint and button
-stay anchored at the footer bottom; changing the selected row collapses and
-rewinds the description. Passed locally on `c4b8f01`; other sizes, languages
-and editing states while expanded remain unchecked.
+L-197 (latest decision 2026-10-15): the footer keeps two description lines
+and scrolls longer text with the wheel over it or its scrollbar, shown only
+while the text overflows. The expansion button and its in-place growth
+(passed locally on `c4b8f01`) were removed afterwards: overflow occurs only
+at very small layouts, and a fixed footer keeps the list from changing
+height. Numeric descriptions show their own help and range; their controls
+replace the footer hint while the row is selected. Pure tests cover the
+footer geometry, scrollbar reach and UTF-8 wrapping. The scrolling footer
+needs a game check.
 
 The settings foundation is integrated and has been exercised in Minecraft:
 

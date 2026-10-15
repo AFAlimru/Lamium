@@ -45,8 +45,6 @@ inline constexpr auto simplifiedChinese = std::to_array<Text>({
     {"capability.notice", "已暂停: {}"},
     {"capability.more", "另有{}项"},
     {"capability.details", "详情请查看该功能的设置。"},
-    {"description.read", "阅读完整说明"},
-    {"description.collapse", "收起"},
     {"description.hint", "滚轮: 滚动说明"},
     {"feature.hideEffects", "隐藏视觉效果"},
     {"hideEffects", "隐藏视觉效果"},

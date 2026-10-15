@@ -107,27 +107,15 @@ int first = 0;
 bool keyboardTip = false;
 glm::vec2 tipPointer{};
 SettingsTable displayed;
-bool descriptionExpanded = false, helpAvailable = false, revealDescriptionRow = false;
+// The footer keeps two description lines; longer text scrolls there with the
+// wheel or its scrollbar, back to the top when another row is selected.
 std::optional<SettingsRow> descriptionRow;
 std::string helpText;
 // Wrapping measures every prefix with the native font; redo it only when the
 // text or the width changes, not every frame.
 struct { float width = -1; std::vector<std::string> lines; } wrapped;
-struct { float width = -1; size_t lines = 0; bool overflows = false; } overflowCheck;
 int helpFirst = 0, helpLineCount = 0;
-float helpButtonX = 0, helpButtonY = 0, helpButtonWidth = 0;
 std::string description();
-void openHelp() {
-    if (!helpAvailable) return;
-    helpFirst = 0;
-    descriptionExpanded = !descriptionExpanded;
-    revealDescriptionRow = descriptionExpanded;
-    sliderDrag = nullptr;
-}
-bool onHelpButton(float x, float y) {
-    return helpAvailable && x >= helpButtonX && x < helpButtonX + helpButtonWidth
-        && y >= helpButtonY && y < helpButtonY + SettingsTable::footerButtonHeight;
-}
 SearchQuery query;
 bool searchFocusedValue = false;
 bool& searchFocused_() { return searchFocusedValue; }
@@ -332,7 +320,6 @@ void pressReset(ResetScope scope) {
     rebuild_(false);
 }
 void handleClick(SettingsTable::Hit const& hit, bool right) {
-    if (!right && onHelpButton(hit.x, hit.y)) { openHelp(); return; }
     if (!right && displayed.onListScrollbar(hit.x, hit.y)) {
         scrollDrag = ScrollDrag::List; first = displayed.listFirstAt(hit.y); return;
     }
@@ -779,38 +766,28 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
     auto row = valid(selected) ? std::optional{rows[selected]} : std::nullopt;
     if (row != descriptionRow) {
         descriptionRow = row;
-        descriptionExpanded = false;
-        revealDescriptionRow = false;
         helpFirst = 0;
     }
     // The same row's text can change (editing swaps its range line); keep
-    // the reader's place, clamped below once the new text is wrapped.
+    // the reader's place, clamped once the new text is wrapped.
     auto fullDescription = description();
-    auto measure = [&](std::string_view text) { return textWidth(context,text); };
     if (fullDescription != helpText) {
         helpText = fullDescription;
-        wrapped.width = overflowCheck.width = -1;
+        wrapped.width = -1;
     }
-    std::vector<std::string> const* descriptionText = nullptr;
-    if (descriptionExpanded && t.usable() && !capturing_ && !findingKey && screen::message().empty()) {
-        float width = t.width - 2 * SettingsTable::pad - SettingsTable::gap;
-        if (wrapped.width != width) wrapped = {width, wrapFullText(helpText,width,measure)};
-        descriptionText = &wrapped.lines;
-        helpLineCount = static_cast<int>(wrapped.lines.size());
-        t.expandDescription(helpLineCount,nav::count);
-        if (scrollDrag == ScrollDrag::Description) helpFirst = t.descriptionFirstAt(pointer.y,helpLineCount);
-        helpFirst = SettingsTable::clampFirst(helpFirst,helpLineCount,t.descriptionLines);
-    }
+    float descriptionWidth = t.width - 2 * SettingsTable::pad - SettingsTable::gap;
+    if (wrapped.width != descriptionWidth)
+        wrapped = {descriptionWidth, wrapFullText(helpText,descriptionWidth,[&](std::string_view text) { return textWidth(context,text); })};
+    helpLineCount = static_cast<int>(wrapped.lines.size());
+    if (scrollDrag == ScrollDrag::Description) helpFirst = t.descriptionFirstAt(pointer.y,helpLineCount);
+    helpFirst = SettingsTable::clampFirst(helpFirst,helpLineCount,SettingsTable::descriptionLines);
     if (scrollDrag == ScrollDrag::List) t.first = t.listFirstAt(pointer.y);
-    if (std::exchange(revealDescriptionRow,false) && valid(selected))
-        t.first = SettingsTable::clampFirst(SettingsTable::reveal(t.first,selected,t.visible),t.count,t.visible);
     t.placeVersion(textWidth(context, "Lamium"), textWidth(context, lamiumVersion() + pausedHeader()));
     displayed = t;
     if (sliderDrag && sliderDrag->numeric) setSlider(*sliderDrag, std::max(0.f, t.sliderFraction(std::min(pointer.x, t.sliderValueX() - 1))));
     first = t.first;
     fill(context,0,0,size.x,size.y,Rgb{0,0,0},.2f);
     if (!t.usable()) {
-        helpAvailable = false;
         label(context, 4, 4, std::max(1.0f, size.x - 8), translated("smallWindow"));
         context.flushText(0, std::nullopt);
         return;
@@ -1039,17 +1016,8 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
     // Footer: description and hints, or the binding editor's buttons.
     fill(context,t.left,t.footerTop,t.width,1,palette::white,.14f);
     float textLeft = t.left + SettingsTable::pad, textWidthAvailable = t.width - 2*SettingsTable::pad;
-    size_t footerLines = 2;
-    if (overflowCheck.width != textWidthAvailable || overflowCheck.lines != footerLines)
-        overflowCheck = {textWidthAvailable, footerLines, textOverflows(helpText, textWidthAvailable, footerLines, measure)};
-    helpAvailable = !capturing_ && !findingKey && screen::message().empty()
-        && (descriptionExpanded || overflowCheck.overflows);
     bool warns = valid(selected) && rows[selected].option
         && optionWarning(rows[selected].option->id,preferences).has_value();
-    auto helpLabel = translated(descriptionExpanded ? "description.collapse" : "description.read");
-    helpButtonWidth = std::min(textWidthAvailable - 30, textWidth(context,helpLabel) + 2*SettingsTable::pad);
-    helpButtonX = t.left + t.width - SettingsTable::pad - helpButtonWidth;
-    helpButtonY = t.descriptionButtonY();
     std::string hint = !screen::message().empty() ? screen::message()
         : translated(keyQuery && hotkeysView() ? "keyFind.hint" : searchFocused_() ? "searchHint" : editingNumber_ ? "numberHint"
             : valid(selected) && rows[selected].option && rows[selected].option->numeric ? "numberControl" : "tableHint");
@@ -1066,28 +1034,20 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
         label(context,textLeft,t.footerTop+3,textWidthAvailable,
             screen::message().empty() ? fullDescription : screen::message(),screen::message().empty() ? palette::dim : palette::warning);
         label(context,textLeft,t.footerTop+30,textWidthAvailable,translated("captureInline"),palette::faint);
-    } else if (t.descriptionLines) {
-        for (int i = 0; i < t.descriptionLines && helpFirst + i < helpLineCount; ++i)
+    } else {
+        for (int i = 0; i < SettingsTable::descriptionLines && helpFirst + i < helpLineCount; ++i)
             label(context,textLeft,t.footerTop+3+i*SettingsTable::descriptionLineHeight,
-                textWidthAvailable-SettingsTable::gap,(*descriptionText)[helpFirst+i],warns ? palette::warning : palette::text);
-        bool overflow = helpLineCount > t.descriptionLines;
+                descriptionWidth,wrapped.lines[helpFirst+i],warns ? palette::warning : palette::text);
+        bool overflow = helpLineCount > SettingsTable::descriptionLines;
         if (overflow) {
-            float track = t.descriptionLines * SettingsTable::descriptionLineHeight;
-            float thumb = track * t.descriptionLines / helpLineCount;
-            float y = t.footerTop + 3 + (track-thumb) * helpFirst / (helpLineCount-t.descriptionLines);
+            float track = SettingsTable::descriptionLines * SettingsTable::descriptionLineHeight;
+            float thumb = std::max(4.0f, track * SettingsTable::descriptionLines / helpLineCount);
+            float y = t.footerTop + 3 + (track-thumb) * helpFirst / (helpLineCount-SettingsTable::descriptionLines);
             fill(context,t.left+t.width-SettingsTable::pad,t.footerTop+3,2,track,palette::white,.08f);
             fill(context,t.left+t.width-SettingsTable::pad,y,2,thumb,palette::keyEdge);
+            if (screen::message().empty()) hint = translated("description.hint") + " | " + hint;
         }
-        if (overflow && screen::message().empty()) hint = translated("description.hint");
-        label(context,textLeft,t.descriptionHintY(),textWidthAvailable-helpButtonWidth-SettingsTable::gap,std::move(hint),screen::message().empty() ? palette::faint : palette::warning);
-    } else {
-        paragraph(context,textLeft,t.footerTop+3,textWidthAvailable,fullDescription,2,warns ? palette::warning : palette::text);
-        label(context,textLeft,t.descriptionHintY(),textWidthAvailable-(helpAvailable ? helpButtonWidth+SettingsTable::gap : 0),std::move(hint),screen::message().empty() ? palette::faint : palette::warning);
-    }
-    if (helpAvailable) {
-        if (onHelpButton(pointer.x,pointer.y)) fill(context,helpButtonX,helpButtonY,helpButtonWidth,SettingsTable::footerButtonHeight,palette::white,.07f);
-        frame(context,helpButtonX,helpButtonY,helpButtonWidth,SettingsTable::footerButtonHeight,palette::keyEdge);
-        label(context,helpButtonX,helpButtonY+boxTextInset(),helpButtonWidth,helpLabel,palette::accent,Align::Center);
+        label(context,textLeft,t.descriptionHintY(),textWidthAvailable,std::move(hint),screen::message().empty() ? palette::faint : palette::warning);
     }
     if (!capturing_ && !findingKey)
         if (auto target = tipTarget(t, hover)) drawConflictTip(context,current,t,target->first,target->second);
@@ -1098,15 +1058,13 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
 }
 
 void open() {
-    descriptionExpanded = false; helpAvailable = false; revealDescriptionRow = false;
     descriptionRow.reset();
     endEditing();
     query.clear(); searchCollapsed.clear(); searchFocused_() = false; capturing_.reset(); bindingEdit.reset();
     findingKey = false; foundKey.reset(); keyQuery.reset();
 }
 void reset() {
-    descriptionExpanded = false; helpAvailable = false; revealDescriptionRow = false; helpText.clear();
-    wrapped = {}; overflowCheck = {};
+    helpText.clear(); wrapped = {};
     descriptionRow.reset();
     sliderDrag = nullptr; scrollDrag = ScrollDrag::None;
     endEditing();
@@ -1177,8 +1135,8 @@ bool onCaptureButton(float x, float y) {
 void click(float x, float y, bool right) { handleClick(displayed.hit(x, y, nav::count), right); }
 void key(int key) { handleKey(key); }
 void wheel(int step, float x, float y) {
-    if (displayed.descriptionLines && displayed.hit(x,y,nav::count).zone == Zone::Footer)
-        helpFirst = SettingsTable::clampFirst(helpFirst + step,helpLineCount,displayed.descriptionLines);
+    if (helpLineCount > SettingsTable::descriptionLines && displayed.hit(x,y,nav::count).zone == Zone::Footer)
+        helpFirst = SettingsTable::clampFirst(helpFirst + step,helpLineCount,SettingsTable::descriptionLines);
     else first = SettingsTable::clampFirst(first + step, static_cast<int>(rows.size()), displayed.visible);
 }
 void release() { sliderDrag = nullptr; scrollDrag = ScrollDrag::None; }

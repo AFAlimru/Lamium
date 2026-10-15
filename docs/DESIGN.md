@@ -108,8 +108,8 @@ Sizes (GUI units, `SettingsTable`): header 20, row 14, nav item 14, sidebar
 112, padding 6, gap 6, key cap height 11, switch 18×9. The settings panel is
 at most 640×380 and centered. New screens reuse these numbers.
 (Decided 2026-10-15) There is one settings layout. A GUI smaller than it
-needs (440 wide, and tall enough for every sidebar item and a footer that
-can expand three lines) draws the settings screens (table, language list,
+needs (440 wide, and tall enough for every sidebar item beside the
+footer) draws the settings screens (table, language list,
 Shapes, Waypoints, Schematics) shrunk to fit, rather than a second layout
 with tabs or a one-line footer. The world map, calculator, prompts, radial
 menu and HUD editor keep GUI units.
@@ -125,7 +125,7 @@ menu and HUD editor keep GUI units.
   moving the selection.
 - **Sidebar** with categories; Hotkeys and Shapes are pinned at the bottom.
   Below 380 units the key column narrows. Search spans all categories.
-- **Scrollbars** (decided 2026-10-15): the settings list and an expanded
+- **Scrollbars** (decided 2026-10-15): the settings list and the footer
   description show a scrollbar while they overflow; pressing or dragging it
   puts the first line under the pointer, as in the tool lists.
 - **Header** (decided 2026-10-06, L-101): `Lamium` and the faint Lamium
@@ -141,22 +141,19 @@ menu and HUD editor keep GUI units.
 
 ### Text and languages (Decided)
 
-- (Decided 2026-10-15, L-197) A settings description that exceeds the compact
-  footer offers a "Read full description" button. The button expands the
-  existing footer in place and becomes "Collapse"; there is no F1 shortcut
-  or separate help surface. Header, categories and settings remain visible
-  and interactive, with their usual editing and Esc behavior. Footer height
-  follows the measured wrapped text, bounded to retain several setting rows
-  and readable category navigation (at most about 60% of the settings area).
-  Overflow scrolls only while the pointer is over the expanded footer; wheel
-  input over the list still scrolls the list. Selection is retained and
-  minimally revealed when expansion or a changed description needs room.
-  Short descriptions have no expansion button. Numeric descriptions include
-  their own help and range (white); their controls replace the faint footer
-  hint while the row is selected (decided 2026-10-15: white says what a
-  setting is, faint says how to operate it). All three languages use the
-  same behavior.
-  This replaces the earlier separate-panel/F1 contract on the same date.
+- (Decided 2026-10-15, L-197; revised the same day) The settings footer
+  always shows two description lines. Longer text scrolls there: the wheel
+  over the footer or its scrollbar, which appears only while the text
+  overflows (the hint line then starts with the wheel hint). There is no
+  "Read full description" button, expansion, F1 shortcut or separate help
+  surface, so the list keeps its height while the selection moves. A
+  newly selected row starts at the top of its description; a change in the
+  same row's text keeps the place. Wheel input over the list scrolls the
+  list. Numeric descriptions include their own help and range (white);
+  their controls replace the faint footer hint while the row is selected
+  (white says what a setting is, faint says how to operate it). All three
+  languages use the same behavior. This replaces the in-place expansion
+  and the earlier separate-panel contracts of the same date.
 
 - English is the default; Japanese and Simplified Chinese (`zh_CN`, L-90)
   follow the game language, and other languages show English. Every

@@ -16,32 +16,10 @@ void settingsTableTests() {
             && normal.navStep >= SettingsTable::minNavStep
             && (normal.left + normal.width) * scale <= w + .01f && (normal.top + normal.height) * scale <= h + .01f,
             "a small screen shrinks the full layout to fit instead of switching to another one");
-        auto expanded = normal;
-        expanded.expandDescription(100,20);
-        auto shortText = normal;
-        shortText.expandDescription(1,20);
-        check(expanded.descriptionButtonY() == normal.descriptionButtonY()
-            && expanded.descriptionHintY() == normal.descriptionHintY()
-            && normal.descriptionButtonY() == normal.footerTop + 28
-            && expanded.footerTop + 3 + expanded.descriptionLines * SettingsTable::descriptionLineHeight <= expanded.descriptionButtonY(),
-            "description reflow keeps the button and operation hints anchored above the same bottom margin");
-        check(expanded.left == normal.left && expanded.top == normal.top && expanded.height == normal.height
-            && expanded.rowsTop == normal.rowsTop
-            && expanded.footerTop < normal.footerTop && expanded.visible >= 3,
-            "description expansion keeps the settings surface, header, categories and several rows visible");
-        check(expanded.descriptionLines > 0 && expanded.descriptionLines < 100
-            && expanded.top + expanded.height - expanded.footerTop <= expanded.height * .6f
-            && expanded.footerTop < shortText.footerTop
-            && expanded.footerTop + 3 + expanded.descriptionLines * SettingsTable::descriptionLineHeight
-                <= expanded.top + expanded.height - SettingsTable::footerButtonHeight - 3,
-            "the footer fits measured text and bounds long descriptions above its controls");
-        check(expanded.navStep >= SettingsTable::minNavStep
-            && expanded.navItemY(20 - SettingsTable::pinnedItems - 1) + expanded.navStep + 4 <= expanded.pinnedItemY(0),
-            "expanded descriptions cannot overlap sidebar categories and pinned tools");
-        check(expanded.hit(expanded.left + 8,expanded.footerTop + 4,20).zone == Zone::Footer
-            && expanded.hit(expanded.nameX + 2,expanded.rowsTop + 3,20).zone == Zone::Row
-            && SettingsTable::clampFirst(1000,100,expanded.descriptionLines) + expanded.descriptionLines == 100,
-            "description and list hit regions stay separate and every description line remains reachable");
+        check(normal.descriptionHintY() == normal.footerTop + 30
+            && normal.footerTop + 3 + SettingsTable::descriptionLines * SettingsTable::descriptionLineHeight <= normal.descriptionHintY()
+            && normal.hit(normal.left + 8,normal.footerTop + 4,20).zone == Zone::Footer,
+            "two description lines sit above the operation hint in the footer");
     }
 
     // Typical 16:9 GUI sizes keep the sidebar and full columns.
@@ -151,18 +129,18 @@ void settingsTableTests() {
     check(t.footerButton(t.footerButtonX(1) + 3, t.footerButtonY() + 3) == 1, "footer button index");
     check(t.hit(t.left - 1, y, navItems).zone == Zone::None, "outside the panel");
     check(t.hit(std::numeric_limits<float>::quiet_NaN(), y, navItems).zone == Zone::None, "invalid pointer");
-    // Scrollbars: the list's in its right padding, an expanded footer's beside its text.
+    // Scrollbars: the list's in its right padding, the footer's beside its text.
     check(t.onListScrollbar(t.rowsRight() - 2, t.rowsTop + 5) && !t.onListScrollbar(t.keyX + t.keyWidth - 2, t.rowsTop + 5)
         && !SettingsTable::fit(640, 360, 5, 0).onListScrollbar(t.rowsRight() - 2, t.rowsTop + 5)
         && t.listFirstAt(t.rowsTop - 10) == 0 && t.listFirstAt(t.rowsTop + t.visible * SettingsTable::rowHeight) == 60 - t.visible,
         "the list scrollbar is pressed in the right padding and maps the track to every row");
     auto footer = SettingsTable::fit(640, 360, 60, 0, 20);
-    footer.expandDescription(100, 20);
     float barX = footer.left + footer.width - SettingsTable::pad + 1;
     check(footer.onDescriptionScrollbar(barX, footer.footerTop + 5, 100) && !footer.onDescriptionScrollbar(barX, footer.footerTop + 5, 1)
         && !footer.onDescriptionScrollbar(footer.left + 20, footer.footerTop + 5, 100)
         && footer.descriptionFirstAt(footer.footerTop, 100) == 0
-        && footer.descriptionFirstAt(footer.top + footer.height, 100) == 100 - footer.descriptionLines,
+        && footer.descriptionFirstAt(footer.top + footer.height, 100) == 100 - SettingsTable::descriptionLines
+        && !footer.onDescriptionScrollbar(barX, footer.footerTop + 5, SettingsTable::descriptionLines),
         "an overflowing description's scrollbar reaches its first and last lines");
 
     // Stepper parts are right-aligned in the value columns.
