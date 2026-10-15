@@ -1,5 +1,6 @@
 #include "features/map/WaypointMarkers.h"
 #include "features/camera/FreeCameraHide.h"
+#include "features/camera/CameraSessions.h"
 #include "features/map/WaypointSession.h"
 #include "features/map/Waypoints.h"
 #include "app/Runtime.h"
@@ -123,12 +124,14 @@ void draw(MinecraftUIRenderContext& context, float width, float height, Settings
     auto view = lastCamera();
     if (!view) return;
     auto feet = player->getFeetPos();
+    bool free = CameraSessions::instance().blocksPerspective();
+    double distanceX = free ? view->x : feet.x, distanceZ = free ? view->z : feet.z;
     int dimension = static_cast<int>(player->getDimensionId());
     auto set = waypoints::current();
     struct Marker { double sx, sy, distance; std::string name; int color; };
     std::vector<Marker> shownMarkers;
     auto consider = [&](double x, double y, double z, std::string name, int color) {
-        double distance = std::hypot(x - feet.x, z - feet.z);
+        double distance = std::hypot(x - distanceX, z - distanceZ);
         if (settings.waypointDistance > 0 && distance > settings.waypointDistance) return;
         // Aim at the middle of the block above the marked one, at eye level.
         if (auto p = project(*view, x, y + 1.5, z, width, height, 12))
