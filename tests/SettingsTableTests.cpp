@@ -7,6 +7,30 @@ void settingsTableTests() {
     using Zone = SettingsTable::Zone;
     using Column = SettingsTable::Column;
     constexpr int navItems = 13;
+    for (auto [w,h] : {std::pair{800.f,600.f}, std::pair{240.f,150.f}, std::pair{380.f,240.f}, std::pair{640.f,360.f}}) {
+        auto normal = SettingsTable::fit(w,h,60,5,20);
+        auto expanded = normal;
+        expanded.expandDescription(100,20);
+        auto shortText = normal;
+        shortText.expandDescription(1,20);
+        check(expanded.left == normal.left && expanded.top == normal.top && expanded.height == normal.height
+            && expanded.rowsTop == normal.rowsTop && expanded.compact == normal.compact
+            && expanded.footerTop < normal.footerTop && expanded.visible >= 3,
+            "description expansion keeps the settings surface, header, categories and several rows visible");
+        check(expanded.descriptionLines > 0 && expanded.descriptionLines < 100
+            && expanded.top + expanded.height - expanded.footerTop <= expanded.height * .6f
+            && expanded.footerTop < shortText.footerTop
+            && expanded.footerTop + 3 + expanded.descriptionLines * SettingsTable::descriptionLineHeight
+                <= expanded.top + expanded.height - SettingsTable::footerButtonHeight - 3,
+            "the footer fits measured text and bounds long descriptions above its controls");
+        check(expanded.compact || (expanded.navStep >= SettingsTable::minNavStep
+            && expanded.navItemY(20 - SettingsTable::pinnedItems - 1) + expanded.navStep + 4 <= expanded.pinnedItemY(0)),
+            "expanded descriptions cannot overlap sidebar categories and pinned tools");
+        check(expanded.hit(expanded.left + 8,expanded.footerTop + 4,20).zone == Zone::Footer
+            && expanded.hit(expanded.nameX + 2,expanded.rowsTop + 3,20).zone == Zone::Row
+            && SettingsTable::clampFirst(1000,100,expanded.descriptionLines) + expanded.descriptionLines == 100,
+            "description and list hit regions stay separate and every description line remains reachable");
+    }
 
     // Typical 16:9 GUI sizes keep the sidebar and full columns.
     for (auto [w, h] : {std::pair{640.f, 360.f}, std::pair{480.f, 270.f}, std::pair{960.f, 540.f}}) {

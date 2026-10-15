@@ -25,7 +25,6 @@ void enterCategory();
 void rebuild(bool keepSelection);
 
 bool searchFocused();
-bool helpOpen();
 // Ctrl+F: the search field takes the typing, its text selected.
 void focusSearch();
 // Text from the native keyboard for the search field.
@@ -55,7 +54,7 @@ bool onCaptureButton(float x, float y);
 
 void click(float x, float y, bool right);
 void key(int key);
-void wheel(int step);
+void wheel(int step, float x, float y);
 // The left button let go: a slider drag ends.
 void release();
 // The armed reset ends when the screen closes.

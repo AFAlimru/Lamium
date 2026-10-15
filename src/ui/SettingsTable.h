@@ -11,6 +11,7 @@ struct SettingsTable {
     static constexpr float headerHeight = 20, tabsHeight = 14, theadHeight = 12, rowHeight = 14;
     static constexpr float navItemHeight = 14, sidebarWidth = 112, pad = 6, gap = 6;
     static constexpr float stateWidth = 24, closeWidth = 58;
+    static constexpr float descriptionLineHeight = 12;
     enum class Zone { None, Search, Close, Nav, Row, Footer, Version };
     enum class Column { Name, State, Key };
     struct Hit { Zone zone = Zone::None; int index = -1; Column column = Column::Name; float x = 0, y = 0; };
@@ -26,6 +27,7 @@ struct SettingsTable {
     float versionX{}, versionWidth{};
     int first{}, visible{};
     int count{};
+    int descriptionLines{};
 
     // `navItems` counts the sidebar's items. A sidebar that cannot fit them
     // at a readable height gives way to the tabs, as on a narrow window.
@@ -72,6 +74,22 @@ struct SettingsTable {
         t.visible = std::max(0, static_cast<int>((t.footerTop - t.rowsTop - 2) / rowHeight));
         t.first = clampFirst(first, t.count, t.visible);
         return t;
+    }
+    void expandDescription(int lines, int navItems = 0) {
+        float bottom = top + height;
+        float chrome = pad + 3 + footerButtonHeight;
+        float limit = std::min(height * .6f, bottom - rowsTop - 3 * rowHeight - 2);
+        if (!compact && navItems > 0)
+            limit = std::min(limit,height - headerHeight - 12 - navItems * minNavStep);
+        int capacity = std::max(1,static_cast<int>((limit - chrome) / descriptionLineHeight));
+        descriptionLines = std::clamp(lines,1,capacity);
+        footerTop = bottom - std::max(bottom - footerTop,chrome + descriptionLines * descriptionLineHeight);
+        if (!compact) {
+            navBottom = footerTop;
+            if (navItems > 0) navStep = std::min(navItemHeight,std::floor((navBottom - navTop - 12) / navItems));
+        }
+        visible = std::max(0,static_cast<int>((footerTop - rowsTop - 2) / rowHeight));
+        first = clampFirst(first,count,visible);
     }
     static int clampFirst(int first, int count, int visible) {
         return std::clamp(first, 0, std::max(0, count - visible));

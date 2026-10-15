@@ -134,16 +134,18 @@ at most 640×380 and centered. New screens reuse these numbers.
 ### Text and languages (Decided)
 
 - (Decided 2026-10-15, L-197) A settings description that exceeds the compact
-  footer offers "Read full description" there and F1. A panel shows the full
-  measured, wrapped text, with wheel/arrow/Page Up/Down scrolling when needed;
-  Esc, its Close button or an outside click returns to the same list selection,
-  scroll and editing focus. Help owns input while open. Short descriptions
-  have no expansion control. Numeric descriptions include their own help,
-  range and controls. All three languages use the same behavior.
-  Follow-up agreed 2026-10-15: use the standard translucent panel and frame.
-  Center the help surface within the settings area; its height follows the
-  wrapped content, capped at about 60% of the settings height. Longer text
-  scrolls inside that limit rather than expanding to fill the screen.
+  footer offers a "Read full description" button. The button expands the
+  existing footer in place and becomes "Collapse"; there is no F1 shortcut
+  or separate help surface. Header, categories and settings remain visible
+  and interactive, with their usual editing and Esc behavior. Footer height
+  follows the measured wrapped text, bounded to retain several setting rows
+  and readable category navigation (at most about 60% of the settings area).
+  Overflow scrolls only while the pointer is over the expanded footer; wheel
+  input over the list still scrolls the list. Selection is retained and
+  minimally revealed when expansion or a changed description needs room.
+  Short descriptions have no expansion button. Numeric descriptions include
+  their own help, range and controls. All three languages use the same behavior.
+  This replaces the earlier separate-panel/F1 contract on the same date.
 
 - English is the default; Japanese and Simplified Chinese (`zh_CN`, L-90)
   follow the game language, and other languages show English. Every

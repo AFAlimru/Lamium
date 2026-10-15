@@ -8,11 +8,10 @@ of truth.
 
 ## Current foundation
 
-Local smoke on `d5978e2` (2026-10-15) passed the full-help interaction but
-rejected its opaque, near-full-height presentation (L-197). The follow-up
-uses the standard translucent surface/frame and a centered, content-sized
-height capped at 60% of the settings area, with overflow scrolling. The
-presentation change still needs an in-game check.
+Local follow-up on `f8c714b` (2026-10-15) passed the compact translucent
+description panel and chat-return checks. The maintainer then replaced the
+description interaction with in-place footer expansion (L-197); that new
+implementation still needs a game check.
 
 L-202 (2026-10-15, local normal-build smoke passed on `d5978e2`): settings
 suffixes/header, version
@@ -26,16 +25,17 @@ stay quiet. English, Japanese and Simplified Chinese have capability names
 and reasons. Local normal-feature smoke passed with the L-197/L-203 follow-ups.
 Server, forced-unverified and injected-failure presentation checks remain open.
 
-L-197 (2026-10-15, interaction passed on `d5978e2`, presentation follow-up
-pending): truncated table descriptions offer
-"Read full description" / F1. The full-text panel wraps with the current
-font and width, scrolls with wheel/arrows/Page Up/Down/Home/End, and closes
-with Esc, Close or an outside click. It retains the list's selection,
-scroll and editing state; help consumes input until closed. Numeric rows
-include their own help before range/operation text. All three languages
-are present; pure tests cover measured overflow, UTF-8, explicit newlines
-and short/narrow panel scrolling. The changed translucent/content-sized
-presentation needs verification in Minecraft.
+L-197 (latest decision 2026-10-15): truncated descriptions offer only the
+"Read full description" button. It expands the existing footer and becomes
+"Collapse". The settings header, categories and list remain visible and
+interactive; their normal focus/editing/Esc handling continues. The old
+help surface, modal input routing and F1 shortcut are removed. Footer height
+fits wrapped text within a budget that leaves at least three setting rows
+and readable category navigation, up to 60% of the settings area. Wheel
+input over the footer scrolls overflow; over the list it scrolls rows.
+Numeric descriptions retain their own help/range/controls. All three
+languages share the behavior; pure tests cover bounds, row/category
+separation, overflow reachability and UTF-8 wrapping. Runtime checks pending.
 
 The settings foundation is integrated and has been exercised in Minecraft:
 
