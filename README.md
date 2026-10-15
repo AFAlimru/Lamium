@@ -11,7 +11,7 @@
 
 ## Status
 
-Lamium 0.2.2 is an early (0.x) release. The main settings, hotkey, HUD,
+Lamium 0.2.3 is an early (0.x) release. The main settings, hotkey, HUD,
 target card, camera and overlay flows have been exercised in Minecraft on a
 local single-player setup. Map features also have external BDS checks;
 server coverage for other features, controllers and broad resource-pack/graphics
@@ -73,7 +73,8 @@ made of one world's data, such as waypoints, open only in a world); `L`
 closes it again. The screen uses a dense
 Bedrock-fitting sidebar/table layout with search, English, Japanese and
 Simplified Chinese text (following the game language), immediate persistence and no Save/Cancel step. Hotkeys, Shapes and HUD layout
-are first-class views in the same UI. Every feature has one switch that its
+are first-class views in the same UI. On a small window the whole screen
+shrinks to fit; long descriptions scroll in the footer. Every feature has one switch that its
 key also toggles; "All", each category and Hotkeys can reset their settings
 to the defaults.
 
@@ -128,7 +129,11 @@ to the defaults.
   stack, Ctrl + wheel or Alt + click moves every item of a kind, Ctrl +
   Shift + wheel or Alt + Shift + click moves everything (the hotbar only when
   you start over it), and Shift + right drag leaves one in each slot; furnace,
-  brewing and beacon slots get only what they accept. Tool Switch and
+  brewing and beacon slots get only what they accept. With a stack on the
+  cursor, Shift + click on an empty slot gathers the matching items there,
+  and Shift + click outside the window drops them all; holding the drop key,
+  Ctrl + left, Shift + right and Shift + left drags drop one item, all but
+  one, or whole stacks from each slot you pass. Tool Switch and
   Weapon Switch (optionally fetching a tool or weapon from the inventory, into
   the selected slot or a fixed one), an offhand swap key (`F`, as in Java),
   experimental Fake Offhand (uses a hotbar block or item as if it were in the
@@ -157,10 +162,12 @@ to the defaults.
   heads; waypoints with the last death point, shown on the minimap and in
   the world, edited in a Waypoints screen; and a world map (`M`) of the
   areas you have visited, recorded per world (zooming out until everything
-  explored fits on the screen), with a waypoint side panel and
-  a link that opens the same place in ChunkBase's seed map. Schematic
-  placements and shapes show on the world map, where a click selects one and
-  its menu shows or hides it or opens it in its own screen; shapes can also
+  explored fits on the screen), with a side panel listing waypoints, placed
+  schematics or shapes and a link that opens the same place in ChunkBase's
+  seed map. Schematic placements and shapes show on the world map, where a
+  click selects one and its menu shows or hides it or opens it in its own
+  screen; switches in the map's top bar hide waypoints, schematics or shapes
+  on the map; shapes can also
   show on the minimap (an option, off by default). Names on the world map
   show when the pointer is over a mark (an option shows them all).
 - **Schematics (experimental, off by default):** place `.mcstructure` files
@@ -223,6 +230,8 @@ Minecraft's "copy coordinates" while Lamium is installed unless you rebind it.
 - Item Transfer's bulk and leave-one moves are checked in chest, furnace,
   brewing stand and beacon screens, locally and on a test BDS. Other screen
   families, other servers and rejected moves on laggy servers are untested.
+  The held-stack Shift + click and drop gestures are checked in a chest
+  screen in a local world only.
 - The breaking restriction modes will be redesigned.
 - Auto Attack/Use: whether several clicks per tick land on servers is not
   verified.
