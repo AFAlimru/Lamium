@@ -73,12 +73,8 @@ L-item wins. Every entry names what the task is, not only its number.
    follows the items below.
 1. **Small and medium features and fixes** (maintainer 2026-10-10: these
    come before large features and L-111 integration for now):
-   - L-202 shared compatibility, availability and failure reasons (chosen
-     2026-10-15): migrate existing guarded paths and their UI together.
-   - Bugs: L-198 Fake Offhand primary-use priority, L-199 waypoint distance
-     during FreeCamera, L-200 underground terrain on loader 26.51.7,
-     L-201 world map mouse-button close, and L-197 full settings descriptions
-     (interaction agreed 2026-10-15); L-177, L-181 (player reports, need reproductions or an agreed
+   - Bugs: L-197 full-description presentation and L-203 chat position flicker
+     after returning from chat (local smoke 2026-10-15); L-177, L-181 (player reports, need reproductions or an agreed
      rule); L-192, L-193, L-194 schematic drawing (maintainer 2026-10-15:
      schematic drawing work pauses here; far-away cases remain); L-123 elytra stretched on the inventory model after FreeCamera and
      L-91 shield glint in Lamium's icons (both parked); L-132 moving with
@@ -163,23 +159,14 @@ every server gap before a release.
 
 ### Since 0.2.2 (unreleased)
 
-L-202 shared capability migration: verify normal feature behavior, lazy
-FreeCamera/replay waiting before first use, terrain restoration, and actual
-failure reasons/partial-loss UI. In a separately requested forced-unverified
-test build, sensitive subpaths must stay vanilla and show the same reasons
-in settings/notices; version-independent paths should keep working. Pure
-policy/state/notice tests and compile verification do not prove game behavior.
-
-L-197 through L-201: normal-build game checks pending. Fake Offhand must
-keep main-hand blocks and hungry food, and allow secondary fireworks while
-gliding with a primary block and air aim. FreeCamera marker distance/range
-must follow flight and return to the body after exit; underground terrain
-must work with loader 26.51.7 and restore normally. The world-map binding
-must close with Mouse 5 and chords, without closing during editing or from
-the opening hold. Long settings help must open, scroll and return correctly
-at wide/narrow/short sizes in all three languages, including numeric help,
-text editing, capture/conflict/error states and held Esc. Code tests do not
-establish these native outcomes. Details stay in the L-items and feature docs.
+L-198 through L-202: the maintainer completed the local normal-build checklist
+1-14 on `d5978e2` (2026-10-15), except server checks, and found two issues:
+L-197 help presentation and L-203 chat-return placement timing. Those fixes
+need focused retests. Existing broader feature gaps remain in VALIDATION.
+Server/server-pack checks remain open. A separately requested forced-unverified
+test build must verify sensitive paths stay vanilla with matching UI/notices
+while independent paths work. Injected hook/cleanup failures and their partial-
+loss/restart UI remain unverified in game; pure tests are not runtime evidence.
 
 ### Shipped in 0.2.2 (smoke-tested; remaining gaps in VALIDATION.md)
 
@@ -425,107 +412,30 @@ found later are handled as bugs.
 
 ## Bugs
 
-### L-202 Share compatibility, availability and failure reasons
-Kind: Ready (strong model). Chosen by the maintainer 2026-10-15 after the
-L-200 audit. Status: implementation and code review complete; normal and
-forced-unverified DLL builds, pure/SDK tests and catalog/inventory checks
-pass. Minecraft verification remains in Pre-release checks; no release or
-deployment chosen. The typed API and its callers migrate together so no
-commit can silently retain an unregistered string gate.
-Use a typed catalog of risky capabilities (subpaths, not entire features),
-one loader-series/minimum policy and explicit Minecraft verification, with
-separate runtime waiting/ready/stopped/failed states and typed reasons.
-Settings stay separate. Native ownership, field/target checks and restoration
-remain with each feature. A patch update within the supported loader series
-must not need a feature-local allowlist edit. Unknown game builds stay vanilla.
-UI suffixes, detailed help, header and notices consume the same capability
-state as execution. Pending game context is not a permanent failure; failures
-stay latched until an explicit lifecycle restart. Never retain game pointers
-in the registry or add per-frame logging/locking in hot guarded paths.
-Migrate every existing production/diagnostic gate to typed ids, and publish
-the existing hook/contract failures instead of private availability flags.
-Include shared policy/state/aggregation/notice tests, translated names and
-reasons in English/Japanese/Simplified Chinese, catalog coverage checks and
-normal/forced-unverified build validation. Retain settings/action formats.
-Shared consumers are included: schematic 3D previews use the block/model
-capabilities too, so a blocked world-render path cannot be bypassed in UI.
-Optional Night Vision/trading/Connected Textures/server-pack startup failures
-roll back their adapters and keep settings/unrelated features available;
-critical input/render foundation failures still abort startup.
-Review follow-up: effect hiding, FreeCamera hiding, chat placement and schematic
-rendering now report failed or throwing hook removals as `RemovalFailed` for
-every dependent capability. Shared cleanup continues through the other hooks,
-and restart cannot reattach hooks belonging to a latched cleanup failure.
-Schematic blend and actor-light hooks track partial installation individually.
-Files: `app/Capabilities.h`, `Versions.*`, `PausedFeatures.h`, guarded feature
-adapters listed in GAME-UPDATES.md, paused UI/Actions/translations, tests,
-release/catalog checks and documentation. Low-level memory/input/HUD helper
-deduplication is separate work, not bundled into this migration.
-Game checks: normal changed-feature smoke (especially FreeCamera terrain and
-restoration), pending before first native use, partial failures and reasons,
-unverified-game vanilla fallback, enable/disable and world re-entry. Builds
-and pure/native tests alone do not establish these Minecraft outcomes.
-
-### L-198 Fake Offhand blocks primary use and misses secondary instant use
-Kind: Bug / Research. Maintainer report 2026-10-15.
-Status: fix built with pure regression tests; game verification pending.
-Reported: a block in the main hand prevents fireworks and similar secondary
-uses; when both hands have blocks the secondary can take priority
-over the main hand; a secondary block prevents eating primary food.
-Clarified by the maintainer: fireworks while gliding and aiming into air;
-the priority case has blocks in both slots. The placement branch now asks
-whether primary use passes and refuses an active primary timed use. Normal
-blocks pass in air before considering a reported native duration; the
-reported block's native traits have not been traced.
-Preserve ordinary target interaction and meaningful primary use before
-secondary placement or instant use. Never select away from an active timed
-use. Investigate air versus block aim and gliding for the fireworks case;
-do not turn a valid primary placement into a secondary use.
-Files: `FakeOffhand.cpp`, `FakeOffhandPlan.h`, `tests/FakeOffhandTests.cpp`;
-contract: [FAKE-OFFHAND.md](FAKE-OFFHAND.md). Check food while hungry,
-both hands holding blocks/instant items, fireworks while gliding with air
-and block aim, containers, repeated input and selection restoration.
-
-### L-199 Waypoint distance stays at the body during FreeCamera
-Kind: Bug / Ready. Maintainer report 2026-10-15.
-Status: fix built; game verification pending. The previous code used player
-feet even during FreeCamera.
-Use the viewing position for world-marker distance, its range filter and
-near/far ordering while FreeCamera is active. Keep the existing horizontal
-distance convention and ordinary-view behavior. Check flight toward/away
-from a waypoint and the death point, range filtering and restoration.
-Files: `WaypointMarkers.cpp`; contract: [MAP.md](MAP.md).
-
-### L-200 FreeCamera underground visibility regressed after loader update
-Kind: Bug / Research. Maintainer report 2026-10-15.
-Status: fix built, game verification pending. The local log identifies
-loader 26.51.7 rejected by the explicit 26.51.5/26.51.6 allowlist
-(`unsupported loader version`). This installed patch is now admitted while preserving executable,
-renderer ownership, virtual-entry and native request/retained-field checks.
-The initial .7 allowlist edit is superseded by L-202's common 26.51 series,
-minimum patch 5 policy; the adapter no longer owns a loader version list.
-Do not remove the fail-open gates or change player abilities/game type.
-Files: `FreeCameraCulling.h`, its tests; contract: [CAMERA.md](CAMERA.md).
-Check caves from solid ground, normal view after leaving FreeCamera, local
-and server worlds, and the ordinary log's retained 3 -> 5 request.
-
-### L-201 World map opens but cannot close with Mouse 5 binding
-Kind: Bug / Ready. Maintainer report 2026-10-15.
-Status: fix built with chord-completion tests; game verification pending.
-The report was M closes, Mouse 5 opens only.
-The assigned opener must also close the map for keyboard and mouse chords,
-once per new press. Preserve editing, waypoint prompts, key capture and
-native input releases; never close immediately from the opening press.
-Files: `SettingsScreen.cpp`, input binding helpers and tests;
-contract: [MAP.md](MAP.md). Check M, Mouse 5, a modified mouse chord,
-held/released input, waypoint name/coordinate editing and prompts.
+### L-203 Keep chat position stable when returning from chat input
+Kind: Bug / Ready (strong model). Maintainer report 2026-10-15 on `d5978e2`.
+Status: render-scope follow-up built and pure tests pass; runtime verification pending.
+HUD chat can briefly draw at vanilla's upper left after sending/closing chat
+before returning to the configured position. Keep text/background placement
+consistent on the first returning HUD draw, without moving input/history or
+other menus. The actual rendered HUD identity must not be vetoed by a delayed
+global screen-stack name. Retain measured geometry, bounded hierarchy checks,
+foreground/player/capability guards and immediate cache restoration.
+Files: `features/information/ChatPosition.cpp`, its pure tests if applicable;
+contract and timing hypothesis: [CHAT-POSITION.md](CHAT-POSITION.md).
+Check send/close and Esc-close repeatedly, several and wrapped messages,
+expiry, OFF restoration, alt-tab and world re-entry. No native timing result
+is established by compilation or pure geometry tests.
 
 ### L-197 Make long settings descriptions fully readable
 Kind: Bug / Ready (strong model).
 Imported at the maintainer's request on 2026-10-15 from the
 [Notion idea inbox](https://app.notion.com/p/3f7c12ab5b2d8121b2a0db32608f6b7a).
-Status: interaction agreed and implementation built 2026-10-15; pure tests
-pass, game verification pending. No release chosen.
+Status: full-help interaction passed local smoke on `d5978e2` (2026-10-15).
+The maintainer rejected its opaque, near-full-height presentation. Follow-up
+agreed: standard translucent panel/frame, centered and sized to wrapped
+content, with height capped at about 60% of the settings area and scrolling
+for overflow. That presentation fix awaits game checks. No release chosen.
 The maintainer reported the truncation again with L-198 through L-201.
 
 Problem confirmed in the current code: `SettingsTableView.cpp` draws the

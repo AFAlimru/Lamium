@@ -8,16 +8,17 @@ runtime coverage is in [VALIDATION.md](VALIDATION.md), with evidence in
 
 ## Current implementation
 
-Bug fix under validation (2026-10-15, L-199): world-marker distance,
+Bug fix checked locally (2026-10-15, L-199, `d5978e2`): world-marker distance,
 range filtering and near/far ordering follow the rendered FreeCamera eye;
 outside FreeCamera they retain the player's horizontal feet distance.
-The change still needs game checks.
+The maintainer's local distance/range/restoration checklist passed; server
+coverage remains open.
 
 World-map binding fix (L-201, 2026-10-15): the opener closes the map for
 mouse buttons and ordered chords as well as a single key. Only a fresh
 completing press can close it; waypoint name/coordinate editing and prompts
-retain input. Tests cover chord completion, but the native input behavior
-still needs game checks.
+retain input. The maintainer's local M/Mouse 5/chord and editing checklist
+passed on `d5978e2`; server coverage remains open.
 
 Experimental, default off. The minimap, cave view, radar, waypoints and world
 map are built. The map uses received chunks and recorded map data; seed-based

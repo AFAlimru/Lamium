@@ -16,9 +16,9 @@ instant use, and rejects placement while a primary timed use is active.
 A normal primary block passes in air even if its native item reports a use
 duration; liquid-placed and wearable/known air-use items keep their checks.
 Block aim keeps the primary placement. Pure regression tests cover these
-decisions. Native item traits, actual fireworks/eating and server outcomes
-still need the maintainer's game check; the duration is a defensive classifier
-fix, not an observed trace of the reported primary block.
+decisions. The maintainer's local checklist on `d5978e2` passed all three
+reported cases. Server outcomes remain unchecked. Native duration is still
+a defensive classifier fix, not an observed trace of the reported block.
 
 ## Extension scope (chosen 2026-10-06)
 

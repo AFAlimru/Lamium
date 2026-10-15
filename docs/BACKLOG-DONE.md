@@ -10,6 +10,106 @@ Runtime status is in [VALIDATION.md](VALIDATION.md), the evidence in
 
 ## Bugs
 
+### L-202 Share compatibility, availability and failure reasons
+Done 2026-10-15: implementation/build/code checks and the maintainer's local normal-build smoke on `d5978e2` are complete. L-197 help presentation and L-203 chat-return timing remain separate fixes. Server, forced-unverified and injected-failure coverage stays in Pre-release checks.
+Kind: Ready (strong model). Chosen by the maintainer 2026-10-15 after the
+L-200 audit. Status: implementation and code review complete; normal and
+forced-unverified DLL builds, pure/SDK tests and catalog/inventory checks
+pass. Minecraft verification remains in Pre-release checks; no release or
+deployment chosen. The typed API and its callers migrate together so no
+commit can silently retain an unregistered string gate.
+Use a typed catalog of risky capabilities (subpaths, not entire features),
+one loader-series/minimum policy and explicit Minecraft verification, with
+separate runtime waiting/ready/stopped/failed states and typed reasons.
+Settings stay separate. Native ownership, field/target checks and restoration
+remain with each feature. A patch update within the supported loader series
+must not need a feature-local allowlist edit. Unknown game builds stay vanilla.
+UI suffixes, detailed help, header and notices consume the same capability
+state as execution. Pending game context is not a permanent failure; failures
+stay latched until an explicit lifecycle restart. Never retain game pointers
+in the registry or add per-frame logging/locking in hot guarded paths.
+Migrate every existing production/diagnostic gate to typed ids, and publish
+the existing hook/contract failures instead of private availability flags.
+Include shared policy/state/aggregation/notice tests, translated names and
+reasons in English/Japanese/Simplified Chinese, catalog coverage checks and
+normal/forced-unverified build validation. Retain settings/action formats.
+Shared consumers are included: schematic 3D previews use the block/model
+capabilities too, so a blocked world-render path cannot be bypassed in UI.
+Optional Night Vision/trading/Connected Textures/server-pack startup failures
+roll back their adapters and keep settings/unrelated features available;
+critical input/render foundation failures still abort startup.
+Review follow-up: effect hiding, FreeCamera hiding, chat placement and schematic
+rendering now report failed or throwing hook removals as `RemovalFailed` for
+every dependent capability. Shared cleanup continues through the other hooks,
+and restart cannot reattach hooks belonging to a latched cleanup failure.
+Schematic blend and actor-light hooks track partial installation individually.
+Files: `app/Capabilities.h`, `Versions.*`, `PausedFeatures.h`, guarded feature
+adapters listed in GAME-UPDATES.md, paused UI/Actions/translations, tests,
+release/catalog checks and documentation. Low-level memory/input/HUD helper
+deduplication is separate work, not bundled into this migration.
+Game checks: normal changed-feature smoke (especially FreeCamera terrain and
+restoration), pending before first native use, partial failures and reasons,
+unverified-game vanilla fallback, enable/disable and world re-entry. Builds
+and pure/native tests alone do not establish these Minecraft outcomes.
+
+### L-198 Fake Offhand blocks primary use and misses secondary instant use
+Done 2026-10-15: the three reported priority/firework/eating cases passed the maintainer's local normal-build checklist on `d5978e2`. Broader and server coverage remains in VALIDATION.
+Kind: Bug / Research. Maintainer report 2026-10-15.
+Status: fix built with pure regression tests; game verification pending.
+Reported: a block in the main hand prevents fireworks and similar secondary
+uses; when both hands have blocks the secondary can take priority
+over the main hand; a secondary block prevents eating primary food.
+Clarified by the maintainer: fireworks while gliding and aiming into air;
+the priority case has blocks in both slots. The placement branch now asks
+whether primary use passes and refuses an active primary timed use. Normal
+blocks pass in air before considering a reported native duration; the
+reported block's native traits have not been traced.
+Preserve ordinary target interaction and meaningful primary use before
+secondary placement or instant use. Never select away from an active timed
+use. Investigate air versus block aim and gliding for the fireworks case;
+do not turn a valid primary placement into a secondary use.
+Files: `FakeOffhand.cpp`, `FakeOffhandPlan.h`, `tests/FakeOffhandTests.cpp`;
+contract: [FAKE-OFFHAND.md](FAKE-OFFHAND.md). Check food while hungry,
+both hands holding blocks/instant items, fireworks while gliding with air
+and block aim, containers, repeated input and selection restoration.
+
+### L-199 Waypoint distance stays at the body during FreeCamera
+Done 2026-10-15: the maintainer's local checklist on `d5978e2` covered FreeCamera marker distance/range and restoration; no issue reported. Server coverage remains open.
+Kind: Bug / Ready. Maintainer report 2026-10-15.
+Status: fix built; game verification pending. The previous code used player
+feet even during FreeCamera.
+Use the viewing position for world-marker distance, its range filter and
+near/far ordering while FreeCamera is active. Keep the existing horizontal
+distance convention and ordinary-view behavior. Check flight toward/away
+from a waypoint and the death point, range filtering and restoration.
+Files: `WaypointMarkers.cpp`; contract: [MAP.md](MAP.md).
+
+### L-200 FreeCamera underground visibility regressed after loader update
+Done 2026-10-15: underground visibility and restoration passed the local normal-build checklist on `d5978e2`, loader 26.51.7; ordinary log records native `3 -> 5` retention. Server coverage remains open.
+Kind: Bug / Research. Maintainer report 2026-10-15.
+Status: fix built, game verification pending. The local log identifies
+loader 26.51.7 rejected by the explicit 26.51.5/26.51.6 allowlist
+(`unsupported loader version`). This installed patch is now admitted while preserving executable,
+renderer ownership, virtual-entry and native request/retained-field checks.
+The initial .7 allowlist edit is superseded by L-202's common 26.51 series,
+minimum patch 5 policy; the adapter no longer owns a loader version list.
+Do not remove the fail-open gates or change player abilities/game type.
+Files: `FreeCameraCulling.h`, its tests; contract: [CAMERA.md](CAMERA.md).
+Check caves from solid ground, normal view after leaving FreeCamera, local
+and server worlds, and the ordinary log's retained 3 -> 5 request.
+
+### L-201 World map opens but cannot close with Mouse 5 binding
+Done 2026-10-15: the maintainer's local M/Mouse 5/chord open-close and editing checklist on `d5978e2` reported no issue.
+Kind: Bug / Ready. Maintainer report 2026-10-15.
+Status: fix built with chord-completion tests; game verification pending.
+The report was M closes, Mouse 5 opens only.
+The assigned opener must also close the map for keyboard and mouse chords,
+once per new press. Preserve editing, waypoint prompts, key capture and
+native input releases; never close immediately from the opening press.
+Files: `SettingsScreen.cpp`, input binding helpers and tests;
+contract: [MAP.md](MAP.md). Check M, Mouse 5, a modified mouse chord,
+held/released input, waypoint name/coordinate editing and prompts.
+
 ### L-195 Separate the Done and Shown headers in the Placed list
 Done 2026-10-15: measured headers (`bd28452`) passed in English, Japanese and docked.
 Kind: Bug / Ready. Maintainer screenshot/report 2026-10-15.

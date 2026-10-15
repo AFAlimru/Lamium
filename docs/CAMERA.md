@@ -202,9 +202,11 @@ Executable gating, virtual-entry/ownership checks and the native
 request/retained-field validation remain. The shared registry waits for the
 first unmodified request/retention check before allowing the 3 -> 5 override;
 failure and its reason are visible in settings without disabling camera
-movement. No world/renderer yet is Waiting, not failure. This admits the
-guarded path for a game check; cave rendering on .7 is unverified.
-The runtime coverage below belongs to .6, not .7.
+movement. No world/renderer yet is Waiting, not failure. The maintainer's
+local normal-build checklist on `d5978e2` passed underground visibility,
+restoration and hiding on .7; the ordinary log records native `3 -> 5`
+retention. Server coverage for this migration remains open. The older
+runtime coverage below belongs to .6.
 
 Runtime status: **underground terrain checked in a local world and on BDS**
 by the maintainer on `d56b81e`, 2026-10-07, Minecraft 1.26.51.01 / LeviLamina

@@ -12,6 +12,37 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Post-0.2.2 normal-build local smoke (2026-10-15, L-197 through L-203)
+
+Maintainer checked items 1-14 from the deployment checklist on `d5978e2`,
+DLL SHA-256 `5ABB2DCC6B3EA3EB6AB8AE2D689E323D22BFECC4D96BE5DCF7B3EA88CBF71B2E`.
+Environment: Minecraft 1.26.51.01, LeviLamina Client 26.51.7, Windows x64,
+local world, ordinary release build with traces/probes and the forced-
+unverified option off. The deployed DLL/PDB/manifest matched the build.
+
+The maintainer performed the checklist except server checks and reported
+it was mostly fine, with two exceptions:
+- L-197: full descriptions open/read/scroll/return, but the help panel is
+  opaque instead of matching Lamium's translucent surfaces and takes up
+  nearly the whole settings area. Presentation needs a follow-up.
+- L-203: returning from chat input can briefly draw HUD messages at the
+  vanilla upper-left position before the chosen chat placement returns.
+
+The checklist covered the three Fake Offhand regressions (L-198),
+FreeCamera waypoint/death-point distance and range/restoration (L-199),
+underground terrain and restoration (L-200), M/Mouse 5/chord map closing
+and editing (L-201), full-description interaction, load/settings and quiet
+waiting state, FreeCamera hand/hotbar/HUD hiding, visual adapters and
+resource reload, Edge Guard/trading/transfer, schematic world/3D preview,
+in-world language, feature toggles and world/dimension re-entry. This is a
+local smoke report, not an itemized exhaustive regression of every adapter.
+The ordinary log identifies loader 26.51.7 and records the terrain culler
+binding and native `3 -> 5` retention during this run.
+
+Server behavior/server-pack skipping, forced-unverified fallback and
+injected hook/cleanup failures were not established by this run. No result
+for the subsequent help presentation/chat-return fixes is claimed here.
+
 ## Maintainer regression reports (2026-10-15, L-197 through L-201)
 
 Reported build/commit and DLL hash were not supplied. The local ordinary
