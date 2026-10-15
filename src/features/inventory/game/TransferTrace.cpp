@@ -25,6 +25,7 @@
 #include "mc/world/containers/controllers/AutoPlaceItem.h"
 #include "mc/world/containers/managers/controllers/ContainerManagerController.h"
 #include "mc/world/item/ItemStack.h"
+#include "mc/world/containers/SlotData.h"
 #include <Windows.h>
 #include <algorithm>
 #include <atomic>
@@ -153,6 +154,46 @@ LL_TYPE_INSTANCE_HOOK(TransferTakeHalfTrace, ll::memory::HookPriority::Normal, C
     origin(collection, index);
     observe(*this, "take-half", "predicted-after", collection, index, -2);
 }
+// The drop key and clicks outside the window in screens (L-169 drop gestures).
+// ItemTransferAmount's fields are not named in the SDK; a 12-byte argument is
+// passed by address, so the hooks read its raw bytes to learn the layout.
+std::string amountBytes(void const* amount) {
+    if (!amount) return "null";
+    auto const* bytes = static_cast<unsigned char const*>(amount);
+    std::string text;
+    for (int i = 0; i < 12; ++i) text += std::format("{:02x}{}", bytes[i], i % 4 == 3 && i < 11 ? " " : "");
+    return text;
+}
+std::string labelled(char const* operation, void const* amount) noexcept {
+    try { return std::string(operation) + " " + amountBytes(amount); } catch (...) { return {}; }
+}
+uintptr_t dropItemTarget() { return reinterpret_cast<uintptr_t>(ll::memory::toFuncPtr(&ContainerScreenController::_handleDropItem)); }
+uintptr_t dropSelectedTarget() {
+    return reinterpret_cast<uintptr_t>(ll::memory::toFuncPtr(&ContainerScreenController::_handleDropSelectedItem));
+}
+uintptr_t managerDropTarget() { return reinterpret_cast<uintptr_t>(ll::memory::toFuncPtr(&ContainerManagerController::$handleDrop)); }
+LL_TYPE_INSTANCE_HOOK(TransferDropItemTrace, ll::memory::HookPriority::Normal, ContainerScreenController,
+    dropItemTarget(), void, std::string const& collection, int index, void const* amount) {
+    observe(*this, labelled("drop-item", amount).c_str(), "before", collection, index, -1);
+    origin(collection, index, amount);
+    observe(*this, "drop-item", "predicted-after", collection, index, -1);
+}
+LL_TYPE_INSTANCE_HOOK(TransferDropSelectedTrace, ll::memory::HookPriority::Normal, ContainerScreenController,
+    dropSelectedTarget(), void, void const* amount) {
+    observe(*this, labelled("drop-selected", amount).c_str(), "before", "-", -1, -1);
+    origin(amount);
+    observe(*this, "drop-selected", "predicted-after", "-", -1, -1);
+}
+LL_TYPE_INSTANCE_HOOK(TransferManagerDropTrace, ll::memory::HookPriority::Normal, ContainerManagerController,
+    managerDropTarget(), bool, SlotData const& slot, void const* amount) {
+    bool result = origin(slot, amount);
+    try {
+        if (recent() && allowed())
+            traceLog(callBudget, 600, "L-169 vanilla t={} manager-drop {}:{} amount={} result={} {}", now(),
+                slot.mCollectionName.get(), int(slot.mCollectionIndex), amountBytes(amount), result, modifiers());
+    } catch (...) {}
+    return result;
+}
 // Which button a pack's control sends. Ids are matched to names by pressing
 // known vanilla controls (Shift + click is container_auto_place) in the same run.
 LL_TYPE_INSTANCE_HOOK(TransferButtonTrace, ll::memory::HookPriority::Normal, ScreenController,
@@ -193,6 +234,9 @@ Hook hooks[]{
     {TransferPlaceOneTrace::hook, TransferPlaceOneTrace::unhook},
     {TransferTakeHalfTrace::hook, TransferTakeHalfTrace::unhook},
     {TransferButtonTrace::hook, TransferButtonTrace::unhook},
+    {TransferDropItemTrace::hook, TransferDropItemTrace::unhook},
+    {TransferDropSelectedTrace::hook, TransferDropSelectedTrace::unhook},
+    {TransferManagerDropTrace::hook, TransferManagerDropTrace::unhook},
     {TransferResponseTrace::hook, TransferResponseTrace::unhook}
 };
 }
@@ -244,10 +288,10 @@ void start() {
                 int(event.actionButtonId()), int(event.buttonData()), event.isCancelled(), modifiers()); } catch (...) {}
         });
         keyListener = bus.emplaceListener<ll::event::input::KeyInputEvent>([](auto& event) {
-            if (event.keyCode() != VK_MENU && event.keyCode() != VK_LMENU && event.keyCode() != VK_RMENU) return;
-            altEvent = event.isDown();
-            if (recent()) traceLog(inputBudget, 240, "L-169 Alt key code={} down={} cancelled={}",
-                event.keyCode(), event.isDown(), event.isCancelled());
+            bool alt = event.keyCode() == VK_MENU || event.keyCode() == VK_LMENU || event.keyCode() == VK_RMENU;
+            if (alt) altEvent = event.isDown();
+            if (recent()) traceLog(inputBudget, 240, "L-169 key code={} down={} cancelled={} {}",
+                event.keyCode(), event.isDown(), event.isCancelled(), modifiers());
         });
         if (!mouseListener || !keyListener) throw std::runtime_error("Could not subscribe transfer diagnostics");
         Runtime::instance().self().getLogger().warn("L-169 read-only transfer diagnostics enabled; disable Item Transfer to observe vanilla");
