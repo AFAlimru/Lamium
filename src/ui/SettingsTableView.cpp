@@ -95,6 +95,8 @@ bool shapesView() { return screen::currentNav() == nav::shapes; }
 bool waypointsView() { return screen::currentNav() == nav::waypoints; }
 bool schematicsView() { return screen::currentNav() == nav::schematics; }
 settings::Option const* sliderDrag = nullptr; // Slider being dragged with the left button.
+// A scrollbar held with the left button follows the pointer until release.
+enum class ScrollDrag { None, List, Description } scrollDrag = ScrollDrag::None;
 std::set<std::string_view> expanded;
 std::set<std::string_view> searchCollapsed;
 std::vector<SettingsRow> rows;
@@ -331,6 +333,12 @@ void pressReset(ResetScope scope) {
 }
 void handleClick(SettingsTable::Hit const& hit, bool right) {
     if (!right && onHelpButton(hit.x, hit.y)) { openHelp(); return; }
+    if (!right && displayed.onListScrollbar(hit.x, hit.y)) {
+        scrollDrag = ScrollDrag::List; first = displayed.listFirstAt(hit.y); return;
+    }
+    if (!right && displayed.onDescriptionScrollbar(hit.x, hit.y, helpLineCount)) {
+        scrollDrag = ScrollDrag::Description; helpFirst = displayed.descriptionFirstAt(hit.y, helpLineCount); return;
+    }
     if (!(hit.zone == Zone::Row && valid(hit.index) && rows[hit.index].kind == RowKind::MapCache && !right
           && onMapCacheButton(hit.x)))
         mapCacheArmed = false;
@@ -790,8 +798,10 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
         descriptionText = &wrapped.lines;
         helpLineCount = static_cast<int>(wrapped.lines.size());
         t.expandDescription(helpLineCount,nav::count);
+        if (scrollDrag == ScrollDrag::Description) helpFirst = t.descriptionFirstAt(pointer.y,helpLineCount);
         helpFirst = SettingsTable::clampFirst(helpFirst,helpLineCount,t.descriptionLines);
     }
+    if (scrollDrag == ScrollDrag::List) t.first = t.listFirstAt(pointer.y);
     if (std::exchange(revealDescriptionRow,false) && valid(selected))
         t.first = SettingsTable::clampFirst(SettingsTable::reveal(t.first,selected,t.visible),t.count,t.visible);
     t.placeVersion(textWidth(context, "Lamium"), textWidth(context, lamiumVersion() + pausedHeader()));
@@ -1098,7 +1108,7 @@ void reset() {
     descriptionExpanded = false; helpAvailable = false; revealDescriptionRow = false; helpText.clear();
     wrapped = {}; overflowCheck = {};
     descriptionRow.reset();
-    sliderDrag = nullptr;
+    sliderDrag = nullptr; scrollDrag = ScrollDrag::None;
     endEditing();
     capturing_.reset(); bindingEdit.reset(); capture.clear();
     findingKey = false; foundKey.reset(); keyQuery.reset();
@@ -1171,7 +1181,7 @@ void wheel(int step, float x, float y) {
         helpFirst = SettingsTable::clampFirst(helpFirst + step,helpLineCount,displayed.descriptionLines);
     else first = SettingsTable::clampFirst(first + step, static_cast<int>(rows.size()), displayed.visible);
 }
-void release() { sliderDrag = nullptr; }
+void release() { sliderDrag = nullptr; scrollDrag = ScrollDrag::None; }
 void disarm() { resetArmed = false; }
 glm::vec2 caret() {
     float caretY = editingNumber_ && valid(selected) ? displayed.rowY(selected) : displayed.top + 4;

@@ -103,6 +103,25 @@ struct SettingsTable {
         return first;
     }
     bool usable() const { return visible > 0; }
+    // Scrollbars in the right padding of the list and of an expanded footer:
+    // a press there or a drag puts the first line where the pointer is.
+    static int firstAt(float y, float top, float track, int count, int shown) {
+        if (count <= shown || !(track > 0)) return 0;
+        float t = std::clamp((y - top) / track, 0.0f, 1.0f);
+        return static_cast<int>(std::lround(t * static_cast<float>(count - shown)));
+    }
+    bool onListScrollbar(float x, float y) const {
+        return count > visible && x >= rowsRight() - pad && x < rowsRight() && y >= rowsTop && y < rowsTop + visible * rowHeight;
+    }
+    int listFirstAt(float y) const { return firstAt(y, rowsTop, visible * rowHeight, count, visible); }
+    bool onDescriptionScrollbar(float x, float y, int lines) const {
+        float right = left + width;
+        return descriptionLines > 0 && lines > descriptionLines && x >= right - pad - 2 && x < right
+            && y >= footerTop + 3 && y < footerTop + 3 + descriptionLines * descriptionLineHeight;
+    }
+    int descriptionFirstAt(float y, int lines) const {
+        return firstAt(y, footerTop + 3, descriptionLines * descriptionLineHeight, lines, descriptionLines);
+    }
     // Puts the version after the title; hidden when it would reach the search field.
     void placeVersion(float titleWidth, float textWidth) {
         versionX = left + pad + titleWidth + 4;

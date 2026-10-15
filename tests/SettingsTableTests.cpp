@@ -151,6 +151,19 @@ void settingsTableTests() {
     check(t.footerButton(t.footerButtonX(1) + 3, t.footerButtonY() + 3) == 1, "footer button index");
     check(t.hit(t.left - 1, y, navItems).zone == Zone::None, "outside the panel");
     check(t.hit(std::numeric_limits<float>::quiet_NaN(), y, navItems).zone == Zone::None, "invalid pointer");
+    // Scrollbars: the list's in its right padding, an expanded footer's beside its text.
+    check(t.onListScrollbar(t.rowsRight() - 2, t.rowsTop + 5) && !t.onListScrollbar(t.keyX + t.keyWidth - 2, t.rowsTop + 5)
+        && !SettingsTable::fit(640, 360, 5, 0).onListScrollbar(t.rowsRight() - 2, t.rowsTop + 5)
+        && t.listFirstAt(t.rowsTop - 10) == 0 && t.listFirstAt(t.rowsTop + t.visible * SettingsTable::rowHeight) == 60 - t.visible,
+        "the list scrollbar is pressed in the right padding and maps the track to every row");
+    auto footer = SettingsTable::fit(640, 360, 60, 0, 20);
+    footer.expandDescription(100, 20);
+    float barX = footer.left + footer.width - SettingsTable::pad + 1;
+    check(footer.onDescriptionScrollbar(barX, footer.footerTop + 5, 100) && !footer.onDescriptionScrollbar(barX, footer.footerTop + 5, 1)
+        && !footer.onDescriptionScrollbar(footer.left + 20, footer.footerTop + 5, 100)
+        && footer.descriptionFirstAt(footer.footerTop, 100) == 0
+        && footer.descriptionFirstAt(footer.top + footer.height, 100) == 100 - footer.descriptionLines,
+        "an overflowing description's scrollbar reaches its first and last lines");
 
     // Stepper parts are right-aligned in the value columns.
     check(t.stepperPart(t.stepperX() + 2) == -1 && t.stepperPart(t.stepperX() + t.stepperWidth() - 2) == 1

@@ -125,6 +125,9 @@ menu and HUD editor keep GUI units.
   moving the selection.
 - **Sidebar** with categories; Hotkeys and Shapes are pinned at the bottom.
   Below 380 units the key column narrows. Search spans all categories.
+- **Scrollbars** (decided 2026-10-15): the settings list and an expanded
+  description show a scrollbar while they overflow; pressing or dragging it
+  puts the first line under the pointer, as in the tool lists.
 - **Header** (decided 2026-10-06, L-101): `Lamium` and the faint Lamium
   version, then search and Close. The sidebar shows where you are, so
   the header never repeats the page name; only a panel without a sidebar
