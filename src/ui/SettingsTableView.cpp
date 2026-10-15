@@ -109,6 +109,10 @@ float displayedTabWidth = 0;
 bool descriptionExpanded = false, helpAvailable = false, revealDescriptionRow = false;
 std::optional<SettingsRow> descriptionRow;
 std::string helpText;
+// Wrapping measures every prefix with the native font; redo it only when the
+// text or the width changes, not every frame.
+struct { float width = -1; std::vector<std::string> lines; } wrapped;
+struct { float width = -1; size_t lines = 0; bool overflows = false; } overflowCheck;
 int helpFirst = 0, helpLineCount = 0;
 float helpButtonX = 0, helpButtonY = 0, helpButtonWidth = 0;
 std::string description();
@@ -772,17 +776,20 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
         revealDescriptionRow = false;
         helpFirst = 0;
     }
+    // The same row's text can change (editing swaps its range line); keep
+    // the reader's place, clamped below once the new text is wrapped.
     auto fullDescription = description();
+    auto measure = [&](std::string_view text) { return textWidth(context,text); };
     if (fullDescription != helpText) {
         helpText = fullDescription;
-        helpFirst = 0;
-        revealDescriptionRow = descriptionExpanded;
+        wrapped.width = overflowCheck.width = -1;
     }
-    std::vector<std::string> descriptionText;
+    std::vector<std::string> const* descriptionText = nullptr;
     if (descriptionExpanded && t.usable() && !capturing_ && !findingKey && screen::message().empty()) {
-        descriptionText = wrapFullText(helpText,t.width - 2 * SettingsTable::pad - SettingsTable::gap,
-            [&](std::string_view text) { return textWidth(context,text); });
-        helpLineCount = static_cast<int>(descriptionText.size());
+        float width = t.width - 2 * SettingsTable::pad - SettingsTable::gap;
+        if (wrapped.width != width) wrapped = {width, wrapFullText(helpText,width,measure)};
+        descriptionText = &wrapped.lines;
+        helpLineCount = static_cast<int>(wrapped.lines.size());
         t.expandDescription(helpLineCount,nav::count);
         helpFirst = SettingsTable::clampFirst(helpFirst,helpLineCount,t.descriptionLines);
     }
@@ -1036,9 +1043,13 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
     // Footer: description and hints, or the binding editor's buttons.
     fill(context,t.left,t.footerTop,t.width,1,palette::white,.14f);
     float textLeft = t.left + SettingsTable::pad, textWidthAvailable = t.width - 2*SettingsTable::pad;
+    size_t footerLines = t.shortFooter ? 1 : 2;
+    if (overflowCheck.width != textWidthAvailable || overflowCheck.lines != footerLines)
+        overflowCheck = {textWidthAvailable, footerLines, textOverflows(helpText, textWidthAvailable, footerLines, measure)};
     helpAvailable = !capturing_ && !findingKey && screen::message().empty()
-        && (descriptionExpanded || textOverflows(fullDescription, textWidthAvailable, t.shortFooter ? 1 : 2,
-            [&](std::string_view text) { return textWidth(context,text); }));
+        && (descriptionExpanded || overflowCheck.overflows);
+    bool warns = valid(selected) && rows[selected].option
+        && optionWarning(rows[selected].option->id,preferences).has_value();
     auto helpLabel = translated(descriptionExpanded ? "description.collapse" : "description.read");
     helpButtonWidth = std::min(textWidthAvailable - 30, textWidth(context,helpLabel) + 2*SettingsTable::pad);
     helpButtonX = t.left + t.width - SettingsTable::pad - helpButtonWidth;
@@ -1053,15 +1064,15 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
         label(context,x,y+boxTextInset(),SettingsTable::footerButtonWidth,translated("cancelShort"),palette::text,Align::Center);
         float after = t.footerButtonX(1);
         label(context,after,t.footerButtonY()+1,t.left+t.width-SettingsTable::pad-after,
-            screen::message().empty() ? description() : screen::message(),screen::message().empty() ? palette::dim : palette::warning);
+            screen::message().empty() ? fullDescription : screen::message(),screen::message().empty() ? palette::dim : palette::warning);
     } else if (capturing_) {
         label(context,textLeft,t.footerTop+3,textWidthAvailable,
-            screen::message().empty() ? description() : screen::message(),screen::message().empty() ? palette::dim : palette::warning);
+            screen::message().empty() ? fullDescription : screen::message(),screen::message().empty() ? palette::dim : palette::warning);
         if (!t.shortFooter) label(context,textLeft,t.footerTop+30,textWidthAvailable,translated("captureInline"),palette::faint);
     } else if (t.descriptionLines) {
         for (int i = 0; i < t.descriptionLines && helpFirst + i < helpLineCount; ++i)
             label(context,textLeft,t.footerTop+3+i*SettingsTable::descriptionLineHeight,
-                textWidthAvailable-SettingsTable::gap,descriptionText[helpFirst+i]);
+                textWidthAvailable-SettingsTable::gap,(*descriptionText)[helpFirst+i],warns ? palette::warning : palette::text);
         bool overflow = helpLineCount > t.descriptionLines;
         if (overflow) {
             float track = t.descriptionLines * SettingsTable::descriptionLineHeight;
@@ -1073,12 +1084,10 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
         if (overflow && screen::message().empty()) hint = translated("description.hint");
         label(context,textLeft,t.descriptionHintY(),textWidthAvailable-helpButtonWidth-SettingsTable::gap,std::move(hint),screen::message().empty() ? palette::faint : palette::warning);
     } else if (t.shortFooter) {
-        label(context,textLeft,t.footerTop+3,textWidthAvailable-(helpAvailable ? helpButtonWidth+SettingsTable::gap : 0),screen::message().empty() ? description() : screen::message(),
+        label(context,textLeft,t.footerTop+3,textWidthAvailable-(helpAvailable ? helpButtonWidth+SettingsTable::gap : 0),screen::message().empty() ? fullDescription : screen::message(),
             screen::message().empty() ? palette::text : palette::warning);
     } else {
-        bool warns = valid(selected) && rows[selected].option
-            && optionWarning(rows[selected].option->id,preferences).has_value();
-        paragraph(context,textLeft,t.footerTop+3,textWidthAvailable,description(),2,warns ? palette::warning : palette::text);
+        paragraph(context,textLeft,t.footerTop+3,textWidthAvailable,fullDescription,2,warns ? palette::warning : palette::text);
         label(context,textLeft,t.descriptionHintY(),textWidthAvailable-(helpAvailable ? helpButtonWidth+SettingsTable::gap : 0),std::move(hint),screen::message().empty() ? palette::faint : palette::warning);
     }
     if (helpAvailable) {
@@ -1103,6 +1112,7 @@ void open() {
 }
 void reset() {
     descriptionExpanded = false; helpAvailable = false; revealDescriptionRow = false; helpText.clear();
+    wrapped = {}; overflowCheck = {};
     descriptionRow.reset();
     sliderDrag = nullptr;
     endEditing();

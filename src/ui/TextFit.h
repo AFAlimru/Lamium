@@ -6,6 +6,33 @@
 #include <vector>
 
 namespace lamium::ui {
+namespace detail {
+// The end of the next line: the last fitting UTF-8 codepoint, moved back to a
+// word boundary when the line ran out of width (CJK and long unbroken words
+// keep the codepoint boundary). With `whole`, a glyph wider than the area
+// still takes one codepoint; otherwise such a line ends at 0.
+template<class Measure>
+size_t lineEnd(std::string_view source, float width, Measure& measure, bool whole) {
+    size_t end = 0, space = std::string_view::npos;
+    while (end < source.size() && source[end] != '\n') {
+        size_t next = end + 1;
+        while (next < source.size() && (static_cast<unsigned char>(source[next]) & 0xc0) == 0x80) ++next;
+        if (measure(source.substr(0, next)) > width) {
+            if (!end && whole) end = next;
+            break;
+        }
+        if (source[end] == ' ') space = end;
+        end = next;
+    }
+    if (end < source.size() && source[end] != '\n' && source[end] != ' '
+        && space != std::string_view::npos && space > 0) end = space;
+    return end;
+}
+inline void skipBreak(std::string_view& source) {
+    if (!source.empty() && source.front() == '\n') source.remove_prefix(1);
+    while (!source.empty() && source.front() == ' ') source.remove_prefix(1);
+}
+}
 // Complete measured wrapping for scrollable help. A glyph wider than the
 // area still consumes one whole codepoint, so no text is silently discarded.
 template<class Measure>
@@ -13,23 +40,10 @@ std::vector<std::string> wrapFullText(std::string_view source, float width, Meas
     std::vector<std::string> lines;
     if (!std::isfinite(width) || width <= 0) return lines;
     while (!source.empty()) {
-        size_t end = 0, space = std::string_view::npos;
-        while (end < source.size() && source[end] != '\n') {
-            size_t next = end + 1;
-            while (next < source.size() && (static_cast<unsigned char>(source[next]) & 0xc0) == 0x80) ++next;
-            if (measure(source.substr(0, next)) > width) {
-                if (!end) end = next;
-                break;
-            }
-            if (source[end] == ' ') space = end;
-            end = next;
-        }
-        if (end < source.size() && source[end] != '\n' && source[end] != ' '
-            && space != std::string_view::npos && space > 0) end = space;
+        size_t end = detail::lineEnd(source, width, measure, true);
         lines.emplace_back(source.substr(0, end));
         source.remove_prefix(end);
-        if (!source.empty() && source.front() == '\n') source.remove_prefix(1);
-        while (!source.empty() && source.front() == ' ') source.remove_prefix(1);
+        detail::skipBreak(source);
     }
     return lines;
 }
@@ -69,23 +83,11 @@ std::vector<std::string> wrapLabel(std::string_view source, float width, size_t 
             lines.push_back(fitLabel(remainder, width, measure));
             break;
         }
-        size_t end = 0, space = std::string_view::npos;
-        while (end < source.size() && source[end] != '\n') {
-            size_t next = end + 1;
-            while (next < source.size() && (static_cast<unsigned char>(source[next]) & 0xc0) == 0x80) ++next;
-            if (measure(source.substr(0, next)) > width) break;
-            if (source[end] == ' ') space = end;
-            end = next;
-        }
-        // Prefer a word boundary when the line ran out of width. CJK and long
-        // unbroken words fall back to a complete UTF-8 codepoint boundary.
-        if (end < source.size() && source[end] != '\n' && source[end] != ' '
-            && space != std::string_view::npos && space > 0) end = space;
+        size_t end = detail::lineEnd(source, width, measure, false);
         if (!end && source.front() != '\n') break; // A glyph cannot fit.
         lines.emplace_back(source.substr(0, end));
         source.remove_prefix(end);
-        if (!source.empty() && source.front() == '\n') source.remove_prefix(1);
-        while (!source.empty() && source.front() == ' ') source.remove_prefix(1);
+        detail::skipBreak(source);
     }
     return lines;
 }
