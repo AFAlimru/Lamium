@@ -896,8 +896,9 @@ one, Ctrl + drop key the stack, a left click outside the window drops the
 held stack and a right click one item; all go through the same drop with
 bytes `01000000 02000000 00` (one) or `01000000 00000000 00` (stack). Shift
 + click on an empty slot with items held did nothing in vanilla (an
-auto-place that moves nothing). Built on that basis (2026-10-15, not yet
-checked in game): ITEM-TRANSFER.md "Held stack and drops".
+auto-place that moves nothing). Built on that basis in `9da5d9d`; the
+maintainer's chest checklist passed the same day (ITEM-TRANSFER.md "Held
+stack and drops"). Other screens and servers go to Pre-release checks.
 
 Handoff for the implementing agent (read AGENTS.md first; implementation of
 the 0.2.2 contract may go to another agent; product questions come back to

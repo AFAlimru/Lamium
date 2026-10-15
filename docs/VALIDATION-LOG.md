@@ -12,6 +12,19 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-169 held stack and drop gestures (2026-10-15)
+
+Build `9da5d9d`, normal build, traces off (DLL
+`D8D799B0B2E650F85A39DA44E8E98DA909F6D5DA564CE6965A53C8A1AFE2D627`), local
+single player, Minecraft 1.26.51.01, LeviLamina Client 26.51.7, Windows x64.
+The maintainer passed the checklist in a chest: Shift + click on an empty
+slot with items held placed them and pulled the matching items from the
+inventory; drop key + Ctrl + left / Shift + right / Shift + left drags
+dropped one, all but one and the stack; Shift + click outside the window
+dropped the held stack and the matching items, hotbar included; each of the
+five new switches turned its gesture back to vanilla. Not checked: other
+screens, the inventory screen, servers, failure cases.
+
 ## L-146 layer switches and the L-169 drop trace (2026-10-15)
 
 Build `0ba6e1d` with `--transfer_trace=y` (DLL

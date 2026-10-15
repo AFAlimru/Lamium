@@ -643,7 +643,7 @@ exactly one switch, one mode and one set of keys:
   click on an empty slot with a cursor item, a wheel "all but one", drop
   gestures, W/S moves.
 
-### Held stack and drops (Decided 2026-10-15, L-169; built, unchecked in game)
+### Held stack and drops (Decided 2026-10-15, L-169; passed in a chest on `9da5d9d`)
 
 - Items on the cursor + Shift + left click on an empty slot: the held stack
   goes into that slot, then every matching item from the other side moves
