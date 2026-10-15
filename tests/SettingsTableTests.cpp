@@ -13,6 +13,11 @@ void settingsTableTests() {
         expanded.expandDescription(100,20);
         auto shortText = normal;
         shortText.expandDescription(1,20);
+        check(expanded.descriptionButtonY() == normal.descriptionButtonY()
+            && expanded.descriptionHintY() == normal.descriptionHintY()
+            && normal.descriptionButtonY() == normal.footerTop + (normal.shortFooter ? 2 : 28)
+            && expanded.footerTop + 3 + expanded.descriptionLines * SettingsTable::descriptionLineHeight <= expanded.descriptionButtonY(),
+            "description reflow keeps the button and operation hints anchored above the same bottom margin");
         check(expanded.left == normal.left && expanded.top == normal.top && expanded.height == normal.height
             && expanded.rowsTop == normal.rowsTop && expanded.compact == normal.compact
             && expanded.footerTop < normal.footerTop && expanded.visible >= 3,

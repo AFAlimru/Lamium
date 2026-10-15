@@ -107,6 +107,7 @@ glm::vec2 tipPointer{};
 SettingsTable displayed;
 float displayedTabWidth = 0;
 bool descriptionExpanded = false, helpAvailable = false, revealDescriptionRow = false;
+std::optional<SettingsRow> descriptionRow;
 std::string helpText;
 int helpFirst = 0, helpLineCount = 0;
 float helpButtonX = 0, helpButtonY = 0, helpButtonWidth = 0;
@@ -764,6 +765,13 @@ void copyVersion_() {
 }
 void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, glm::vec2 size, glm::vec2 pointer) {
     auto t = SettingsTable::fit(size.x, size.y, static_cast<int>(rows.size()), first, nav::count);
+    auto row = valid(selected) ? std::optional{rows[selected]} : std::nullopt;
+    if (row != descriptionRow) {
+        descriptionRow = row;
+        descriptionExpanded = false;
+        revealDescriptionRow = false;
+        helpFirst = 0;
+    }
     auto fullDescription = description();
     if (fullDescription != helpText) {
         helpText = fullDescription;
@@ -1034,8 +1042,9 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
     auto helpLabel = translated(descriptionExpanded ? "description.collapse" : "description.read");
     helpButtonWidth = std::min(textWidthAvailable - 30, textWidth(context,helpLabel) + 2*SettingsTable::pad);
     helpButtonX = t.left + t.width - SettingsTable::pad - helpButtonWidth;
-    helpButtonY = t.descriptionLines ? t.top + t.height - SettingsTable::footerButtonHeight - 3
-        : t.footerTop + (t.shortFooter ? 2 : 28);
+    helpButtonY = t.descriptionButtonY();
+    std::string hint = !screen::message().empty() ? screen::message()
+        : translated(keyQuery && hotkeysView() ? "keyFind.hint" : searchFocused_() ? "searchHint" : editingNumber_ ? "numberHint" : "tableHint");
     if (findingKey) {
         float x = t.footerButtonX(0), y = t.footerButtonY();
         bool over = hover.zone == Zone::Footer && t.footerButton(hover.x, hover.y) == 0;
@@ -1061,8 +1070,8 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
             fill(context,t.left+t.width-SettingsTable::pad,t.footerTop+3,2,track,palette::white,.08f);
             fill(context,t.left+t.width-SettingsTable::pad,y,2,thumb,palette::keyEdge);
         }
-        auto hint = translated(overflow ? "description.hint" : searchFocused_() ? "searchHint" : editingNumber_ ? "numberHint" : "tableHint");
-        label(context,textLeft,helpButtonY+2,textWidthAvailable-helpButtonWidth-SettingsTable::gap,std::move(hint),palette::faint);
+        if (overflow && screen::message().empty()) hint = translated("description.hint");
+        label(context,textLeft,t.descriptionHintY(),textWidthAvailable-helpButtonWidth-SettingsTable::gap,std::move(hint),screen::message().empty() ? palette::faint : palette::warning);
     } else if (t.shortFooter) {
         label(context,textLeft,t.footerTop+3,textWidthAvailable-(helpAvailable ? helpButtonWidth+SettingsTable::gap : 0),screen::message().empty() ? description() : screen::message(),
             screen::message().empty() ? palette::text : palette::warning);
@@ -1070,9 +1079,7 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
         bool warns = valid(selected) && rows[selected].option
             && optionWarning(rows[selected].option->id,preferences).has_value();
         paragraph(context,textLeft,t.footerTop+3,textWidthAvailable,description(),2,warns ? palette::warning : palette::text);
-        std::string hint = !screen::message().empty() ? screen::message()
-            : translated(keyQuery && hotkeysView() ? "keyFind.hint" : searchFocused_() ? "searchHint" : editingNumber_ ? "numberHint" : "tableHint");
-        label(context,textLeft,t.footerTop+30,textWidthAvailable-(helpAvailable ? helpButtonWidth+SettingsTable::gap : 0),std::move(hint),screen::message().empty() ? palette::faint : palette::warning);
+        label(context,textLeft,t.descriptionHintY(),textWidthAvailable-(helpAvailable ? helpButtonWidth+SettingsTable::gap : 0),std::move(hint),screen::message().empty() ? palette::faint : palette::warning);
     }
     if (helpAvailable) {
         if (onHelpButton(pointer.x,pointer.y)) fill(context,helpButtonX,helpButtonY,helpButtonWidth,SettingsTable::footerButtonHeight,palette::white,.07f);
@@ -1089,12 +1096,14 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
 
 void open() {
     descriptionExpanded = false; helpAvailable = false; revealDescriptionRow = false;
+    descriptionRow.reset();
     endEditing();
     query.clear(); searchCollapsed.clear(); searchFocused_() = false; capturing_.reset(); bindingEdit.reset();
     findingKey = false; foundKey.reset(); keyQuery.reset();
 }
 void reset() {
     descriptionExpanded = false; helpAvailable = false; revealDescriptionRow = false; helpText.clear();
+    descriptionRow.reset();
     sliderDrag = nullptr;
     endEditing();
     capturing_.reset(); bindingEdit.reset(); capture.clear();

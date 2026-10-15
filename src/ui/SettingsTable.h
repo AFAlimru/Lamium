@@ -143,6 +143,8 @@ struct SettingsTable {
     }
     // Find by key's Cancel on the footer's first line.
     static constexpr float footerButtonWidth = 50, footerButtonHeight = 11;
+    float descriptionButtonY() const { return top + height - footerButtonHeight - (shortFooter ? 1 : 5); }
+    float descriptionHintY() const { return descriptionButtonY() + 2; }
     float footerButtonX(int index) const { return left + pad + index * (footerButtonWidth + 4); }
     float footerButtonY() const { return footerTop + 3; }
     int footerButton(float x, float y) const {
