@@ -19,6 +19,19 @@ line-count or appearance settings. The layout editor uses sample text, not
 saved chat contents. The initial scope is verified and no longer carries
 Experimental. BACKLOG-DONE owns completion; VALIDATION owns coverage.
 
+## Chat-return regression (2026-10-15, L-203)
+
+The local smoke on `d5978e2` found a brief vanilla-position draw after
+returning from chat input before the chosen HUD position returns. Basic
+placement still works; this transition is reopened, with server coverage
+still pending. The render scope already identifies the actual HUD visual
+tree. It now uses that identity without also consulting the global screen
+stack name, which may still identify the closing chat/menu while the HUD
+is drawing again. Input/history visual trees remain untouched. Existing
+foreground/player, capability and hierarchy checks and per-draw restoration
+remain in place. This is a code-level timing hypothesis; the changed build
+needs chat send/close, Esc-close, expiry and disable/restoration checks.
+
 ## Current implementation and validation (2026-10-14)
 
 The maintainer passed the initial three-step checklist on `5b5750c`, then

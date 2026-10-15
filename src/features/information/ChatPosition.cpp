@@ -4,7 +4,6 @@
 #include "app/CapabilityHooks.h"
 #include "ui/Localization.h"
 #include "ui/Widgets.h"
-#include "input/Actions.h"
 #include "ll/api/memory/Hook.h"
 #include "mc/client/game/IClientInstance.h"
 #include "mc/client/game/ClientInstance.h"
@@ -42,8 +41,8 @@ struct RenderScope {
         if (!tree || !std::string_view(*tree->mRootControlName).ends_with(".hud_screen")) return;
         auto client = ll::service::getClientInstance();
         if (!client || !client->getLocalPlayer()) return;
-        auto screen = client->getScreenName();
-        if (!gameplayScreen(screen)) return;
+        // The rendered HUD is authoritative; the screen stack can still name
+        // chat or a menu during its first returning HUD draw.
         DWORD foregroundProcess = 0;
         GetWindowThreadProcessId(GetForegroundWindow(), &foregroundProcess);
         if (foregroundProcess != GetCurrentProcessId()) return;
