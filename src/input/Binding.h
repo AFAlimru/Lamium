@@ -182,9 +182,11 @@ inline bool closesSettings(Chord const& chord, int key) {
     return true;
 }
 // UI openers close on the same completing press, including mouse chords.
-// The caller excludes editing and repeated presses before asking.
+// The caller excludes editing and repeated presses before asking. A lone
+// left, right or middle button is the menu's own click, never a close.
 inline bool completesMenuBinding(Chord const& chord, Chord const& held, Token press) {
     if (chord.empty() || chord.back() != press) return false;
+    if (chord.size() == 1 && press.device == Device::Mouse && press.code <= 3) return false;
     std::ptrdiff_t last = -1;
     for (auto token : chord) {
         if (token.device == Device::Wheel) continue;

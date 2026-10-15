@@ -77,6 +77,11 @@ void bindingTests() {
     check(completesMenuBinding(Chord{Token{Device::Mouse, 5}}, Chord{Token{Device::Mouse, 5}}, Token{Device::Mouse, 5})
         && completesMenuBinding(lKey, lKey, Token{Device::Key, 0x4c}),
         "menu close matches keyboard and side-button completing presses");
+    check(!completesMenuBinding(Chord{Token{Device::Mouse, 2}}, Chord{Token{Device::Mouse, 2}}, Token{Device::Mouse, 2})
+        && !completesMenuBinding(Chord{Token{Device::Mouse, 1}}, Chord{Token{Device::Mouse, 1}}, Token{Device::Mouse, 1})
+        && completesMenuBinding(Chord{Token{Device::Key, 0x11}, Token{Device::Mouse, 2}},
+            Chord{Token{Device::Key, 0x11}, Token{Device::Mouse, 2}}, Token{Device::Mouse, 2}),
+        "a lone left/right click stays a menu click; a modified one still closes");
     Chord mouseChord{Token{Device::Key, 0x11}, Token{Device::Mouse, 5}};
     check(completesMenuBinding(mouseChord, mouseChord, mouseChord.back())
         && !completesMenuBinding(mouseChord, Chord{mouseChord.back()}, mouseChord.back())
