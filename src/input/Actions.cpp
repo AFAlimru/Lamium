@@ -77,11 +77,27 @@ void emitToggleToast(IClientInstance& client, input::Action action, Settings con
         name += " (" + ui::translated("effectsPaused") + ")";
     bool on = toggleState(client, value, action);
     auto level = pausedLevel(input::actions[static_cast<size_t>(action)].feature);
-    // These two paths are version-independent, but a missing hook can still
-    // stop them. A failure in fog must not label particles as stopped.
-    if (action == input::Action::HideParticles || action == input::Action::HideBossBars) {
-        auto id = action == input::Action::HideParticles ? capabilities::Id::HideParticles : capabilities::Id::HideBossBars;
-        level = capabilities::registry().status(id).paused() ? paused::Level::Partly : paused::Level::No;
+    // Each effect has its own paths: a failure in fog must not label particles
+    // as stopped, nor a particle failure the fog toggle. The master switch
+    // speaks for the effects selected under it.
+    if (input::actions[static_cast<size_t>(action)].feature == "hideEffects") {
+        using capabilities::Id;
+        auto stopped = [](Id id) { return capabilities::registry().status(id).paused(); };
+        bool any = false;
+        switch (action) {
+        case input::Action::HideWeather: any = stopped(Id::HideWeather); break;
+        case input::Action::HideParticles: any = stopped(Id::HideParticles); break;
+        case input::Action::HideBossBars: any = stopped(Id::HideBossBars); break;
+        case input::Action::HideNausea: any = stopped(Id::HideNausea); break;
+        case input::Action::HidePortal: any = stopped(Id::HidePortal); break;
+        case input::Action::HideWater: case input::Action::HideLava: case input::Action::HideDistanceFog:
+            any = stopped(Id::HideFog); break;
+        case input::Action::HidePowderSnow: any = stopped(Id::HideFog) || stopped(Id::HideNausea); break;
+        default:
+            for (auto const& d : capabilities::definitions)
+                if (d.feature == "hideEffects" && paused::requested(d.id, value) && stopped(d.id)) any = true;
+        }
+        level = any ? paused::Level::Partly : paused::Level::No;
     }
     if (on && level != paused::Level::No)
         name += " (" + ui::translated(level == paused::Level::Fully ? "paused.full" : "paused.partly") + ")";

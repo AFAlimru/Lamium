@@ -224,6 +224,7 @@ bool Runtime::enable() {
         // to explain the failure; critical input/render foundations still
         // abort startup through the rollback below.
         if (feature->optionalCapability != capabilities::Id::Count) {
+            mod.getLogger().error("{} could not start: {}", feature->name, reason);
             capabilities::fail(feature->optionalCapability,capabilities::Reason::HookUnavailable,reason.c_str());
             try { feature->stop(); }
             catch (...) { capabilities::fail(feature->optionalCapability,capabilities::Reason::RemovalFailed); }

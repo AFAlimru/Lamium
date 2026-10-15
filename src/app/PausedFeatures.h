@@ -32,9 +32,12 @@ inline constexpr auto gatedFeatures = [] {
     }
     return features;
 }();
+// An unverified game on a supported loader, for the static projections.
+inline constexpr capabilities::Environment unverifiedEnvironment{false, capabilities::loaderMajor,
+    capabilities::loaderMinor, capabilities::minimumLoaderPatch};
 inline Level onUnverified(std::string_view feature) {
     return static_cast<Level>(capabilities::featureImpact(feature,[](capabilities::Id id) {
-        return capabilities::Status{capabilities::compatibility(id,{false,26,51,5}),{capabilities::Stage::Waiting,capabilities::Reason::None}};
+        return capabilities::Status{capabilities::compatibility(id,unverifiedEnvironment),{capabilities::Stage::Waiting,capabilities::Reason::None}};
     }));
 }
 // This is only a projection of user intent for notices, never a capability's
@@ -76,7 +79,7 @@ std::vector<std::string_view> affected(Settings const& s, Read read) {
 }
 inline std::vector<std::string_view> inUse(Settings const& s) {
     return affected(s,[](capabilities::Id id) {
-        return capabilities::Status{capabilities::compatibility(id,{false,26,51,5}),{}};
+        return capabilities::Status{capabilities::compatibility(id,unverifiedEnvironment),{}};
     });
 }
 }
