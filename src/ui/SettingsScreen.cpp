@@ -1458,7 +1458,8 @@ void start() {
         }
         if (wheel) {
             // The footer and list scroll independently; selection stays put.
-            table_view::wheel(event.buttonData() > 0 ? -3 : 3, x, y);
+            // Wheel events carry no position; use the last drawn pointer.
+            table_view::wheel(event.buttonData() > 0 ? -3 : 3, lastPointer.x, lastPointer.y);
             return;
         }
         if (!scaled || !down) return;
