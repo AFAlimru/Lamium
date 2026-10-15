@@ -73,8 +73,8 @@ L-item wins. Every entry names what the task is, not only its number.
    follows the items below.
 1. **Small and medium features and fixes** (maintainer 2026-10-10: these
    come before large features and L-111 integration for now):
-   - Bugs: L-197 full-description presentation and L-203 chat position flicker
-     after returning from chat (local smoke 2026-10-15); L-177, L-181 (player reports, need reproductions or an agreed
+   - Bugs: L-197 in-place, button-only description expansion (chosen
+     2026-10-15; separate panel/chat-return follow-up passed); L-177, L-181 (player reports, need reproductions or an agreed
      rule); L-192, L-193, L-194 schematic drawing (maintainer 2026-10-15:
      schematic drawing work pauses here; far-away cases remain); L-123 elytra stretched on the inventory model after FreeCamera and
      L-91 shield glint in Lamium's icons (both parked); L-132 moving with
@@ -161,8 +161,9 @@ every server gap before a release.
 
 L-198 through L-202: the maintainer completed the local normal-build checklist
 1-14 on `d5978e2` (2026-10-15), except server checks, and found two issues:
-L-197 help presentation and L-203 chat-return placement timing. Those fixes
-need focused retests. Existing broader feature gaps remain in VALIDATION.
+L-197 help presentation and L-203 chat-return placement timing. Both follow-up
+checks passed locally on `f8c714b`. The new L-197 in-place footer expansion
+still needs focused retesting. Existing broader feature gaps remain in VALIDATION.
 Server/server-pack checks remain open. A separately requested forced-unverified
 test build must verify sensitive paths stay vanilla with matching UI/notices
 while independent paths work. Injected hook/cleanup failures and their partial-
@@ -412,30 +413,15 @@ found later are handled as bugs.
 
 ## Bugs
 
-### L-203 Keep chat position stable when returning from chat input
-Kind: Bug / Ready (strong model). Maintainer report 2026-10-15 on `d5978e2`.
-Status: render-scope follow-up built and pure tests pass; runtime verification pending.
-HUD chat can briefly draw at vanilla's upper left after sending/closing chat
-before returning to the configured position. Keep text/background placement
-consistent on the first returning HUD draw, without moving input/history or
-other menus. The actual rendered HUD identity must not be vetoed by a delayed
-global screen-stack name. Retain measured geometry, bounded hierarchy checks,
-foreground/player/capability guards and immediate cache restoration.
-Files: `features/information/ChatPosition.cpp`, its pure tests if applicable;
-contract and timing hypothesis: [CHAT-POSITION.md](CHAT-POSITION.md).
-Check send/close and Esc-close repeatedly, several and wrapped messages,
-expiry, OFF restoration, alt-tab and world re-entry. No native timing result
-is established by compilation or pure geometry tests.
 
 ### L-197 Make long settings descriptions fully readable
 Kind: Bug / Ready (strong model).
 Imported at the maintainer's request on 2026-10-15 from the
 [Notion idea inbox](https://app.notion.com/p/3f7c12ab5b2d8121b2a0db32608f6b7a).
-Status: full-help interaction passed local smoke on `d5978e2` (2026-10-15).
-The maintainer rejected its opaque, near-full-height presentation. Follow-up
-agreed: standard translucent panel/frame, centered and sized to wrapped
-content, with height capped at about 60% of the settings area and scrolling
-for overflow. That presentation fix awaits game checks. No release chosen.
+Status: the compact translucent panel and chat-return follow-up passed on
+`f8c714b` (2026-10-15). The maintainer then chose to replace the help surface
+with in-place footer expansion and remove F1. The new implementation awaits
+a focused game check. No release chosen.
 The maintainer reported the truncation again with L-198 through L-201.
 
 Problem confirmed in the current code: `SettingsTableView.cpp` draws the
@@ -447,13 +433,15 @@ available space, rather than a limit on the stored description. This is a
 settings-comprehension bug; the affected runtime layouts have not been
 reproduced in this task.
 
-Decided 2026-10-15: keep the compact footer and offer a full-text view only
-when the description is actually truncated. Open it by mouse and keyboard;
-allow scrolling when needed, and close with Esc or an outside click. Keep
-the settings list's row heights, selection and scroll position intact.
-Use a footer "Read full description" control and F1 to open a scrollable
-description panel; Esc returns to the settings list. Restore the prior focus
-without changing a setting. The maintainer accepted this interaction in chat.
+Latest decision 2026-10-15 (supersedes separate-panel/F1 interaction): keep
+the existing settings screen visible and use only the "Read full description"
+button to expand its own footer. Change that button to "Collapse" while
+expanded. Height follows measured wrapped text, limited to keep several
+settings rows and readable categories (up to about 60% of the settings area).
+Overflow scrolls under the pointer in the footer; the list keeps independent
+wheel scrolling. Header, categories, settings, editing and Esc retain their
+ordinary behavior. Preserve selection; reveal it minimally when reflow needs
+room. No dedicated help input mode, separate surface or F1 shortcut.
 
 Requirements for the chosen design:
 
@@ -465,8 +453,8 @@ Requirements for the chosen design:
   range/operation text before looking up `help.<option>` in `description()`;
   include the option's own help as well as its range and controls.
 - Preserve key capture, numeric/text editing, conflict tooltips, footer
-  errors and operation hints. Define focus and input ownership so opening
-  or closing help cannot change a setting or close the settings screen.
+  errors and operation hints. Expanding/collapsing the footer cannot commit
+  an edit or change a setting; all ordinary settings interactions stay active.
 
 Files to inspect: `src/ui/SettingsTableView.cpp`, `SettingsTable.h`,
 `TextFit.h`, shared widgets and screen input, translations in all three
@@ -474,8 +462,9 @@ languages, and their pure layout/text tests. Foundation: [UX-FOLLOWUP.md](UX-FOL
 Acceptance: pure tests for measured overflow, wrapping and UTF-8; in-game
 checks at wide, narrow and short sizes in English, Japanese and Simplified
 Chinese, including long Schematics and Item Transfer descriptions and
-numeric help. Exercise mouse/keyboard opening, scrolling, closing, focus
-return and editing/capture conflicts; the full text must remain readable.
+numeric help. Exercise button expansion/collapse, independent footer/list
+scrolling, selection retention and editing/capture/error states. F1 must not
+open help; the full text must remain readable without leaving the settings.
 
 ### L-177 Schematic mismatch highlight appears at the wrong position
 Kind: Bug / Research. User report 2026-10-14.

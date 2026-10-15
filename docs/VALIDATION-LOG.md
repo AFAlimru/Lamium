@@ -12,6 +12,25 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Help presentation and chat-return follow-up (2026-10-15, L-197/L-203)
+
+Maintainer passed both supplied checks on `f8c714b`, DLL SHA-256
+`9AB0A06CA4EDA61477092A03F339C9884B7E2928C5CC06B7CDDEA419ADE00636`.
+Same configured local environment: Minecraft 1.26.51.01, LeviLamina Client
+26.51.7, Windows x64, ordinary release build with traces/probes and forced-
+unverified mode off. Deployed DLL/PDB/manifest matched the build.
+- The compact translucent full-description panel's appearance, size,
+  scrolling and return interaction passed.
+- The chat-return check passed: repeated send/close and Esc-close, short/
+  wrapped messages and OFF restoration were supplied in that check. No
+  vanilla-position jump was reported. This closes L-203 in the local scope.
+
+The maintainer then replaced L-197's interaction contract: keep the existing
+settings screen visible, grow its own description footer to the measured
+text, and open/collapse it using the button only. Remove the separate panel
+and F1 shortcut. That subsequent implementation has no runtime result yet.
+Server and previously pending forced-unverified/failure checks remain open.
+
 ## Post-0.2.2 normal-build local smoke (2026-10-15, L-197 through L-203)
 
 Maintainer checked items 1-14 from the deployment checklist on `d5978e2`,

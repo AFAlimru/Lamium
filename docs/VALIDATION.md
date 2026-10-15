@@ -27,7 +27,10 @@ it was mostly fine. The exceptions are L-197 help presentation and L-203
 chat-return placement flicker. This establishes local smoke coverage of the
 listed adapters, not every older feature-specific gap. Server/server-pack,
 forced-unverified and injected hook/cleanup-failure checks remain open.
-Evidence and scope: VALIDATION-LOG. The help/chat follow-up build is unverified.
+The `f8c714b` local follow-up passed both checks: compact translucent help
+presentation and chat-return placement. The maintainer then chose in-place,
+button-only footer expansion (L-197), which still needs a game check.
+Evidence and scope: VALIDATION-LOG.
 
 | Feature | Last confirmed | Not yet checked |
 |---|---|---|
@@ -77,11 +80,11 @@ Evidence and scope: VALIDATION-LOG. The help/chat follow-up build is unverified.
 
 ## Information and overlays
 
-Chat position (L-174/L-203): 2026-10-15 local smoke on `d5978e2`:
-basic placement works, but returning
-from chat can briefly draw at the vanilla upper left (L-203). The render-
-scope follow-up awaits repeated send/close, Esc-close and restoration checks.
-Earlier confirmation below does not establish this transition.
+Chat position (L-174/L-203): 2026-10-15 local `f8c714b`: the maintainer
+passed the supplied send/close, Esc-close, short/wrapped message and OFF
+restoration checklist; no vanilla-position jump reported. The earlier
+`d5978e2` smoke had found that transition flicker. Server and broader
+pack/layout coverage remain open; this is not an exhaustive rerun.
 
 Earlier coverage: 2026-10-14 `5b5750c`, Minecraft 1.26.51.01;
 maintainer passed the supplied three-step checklist (text/background
@@ -136,7 +139,7 @@ Checklist: [CHAT-POSITION.md](CHAT-POSITION.md).
 | In-world language selection (L-167) | 2026-10-13 `9651b4e`, local: General settings > Game language lists languages, switches Japanese/English in the world, other game text follows, kept after restart. Vanilla title-screen order traced on `e93d154` | 2026-10-14 `2c77a5c`: a hang after 12 switches in 23 s, cause unknown; one change per 10 s since `5c61e50`, no freeze reported. Skip server resource packs seen on `241f635` with BDS (VALIDATION-LOG); English Search and schematic ghosts after a change, BDS; resource packs not built; required-server-pack disabling is separate unverified research |
 | Lamium settings outside a world (L-175) | 2026-10-14 `5c35918`: L and the title screen's "Lamium <version>" band open the settings at the title screen and OreUI menus; world views dimmed; game language applies there; band matches LeviLamina's line | Dressing room and Marketplace (not opened there, accepted); HUD layout editor not offered outside a world |
 | Simplified Chinese UI (L-90) | 2026-10-02, local: text fit, baseline and behavior on `ca25c2c` | Native review of the wording |
-| Settings screen, search, layout B (L-50, L-52, L-81) | 2026-09-27, local; 2026-09-30: edits finish with the frame, range warning cleared on moving (`1cdb481`); 2026-10-06: header version, tooltip and copy, no page-name breadcrumb (L-101, `ff55b9f`); 2026-10-12: three missing action labels fixed in three languages (L-155, `3767542`); search by a child row's shown label, toasts unchanged (L-158, `be0b1f1`); Find by key in Hotkeys (L-159, `c4ac083`); binding editor buttons on the edited row (`e93606e`); 2026-10-13 text fields with a caret, Delete, paste and click, world map coordinates typed (L-172, `ed4a4e7`); 2026-10-14 `9b3b8a9`: the Settings key closes the screen, held once, not while typing, still bindable (L-188); 2026-10-15 local `d5978e2`: full-help interaction checklist passed; opaque/near-full-height presentation rejected (L-197) | Individual binding edits; L-188 with a remapped key and on Shapes/Waypoints/Schematics pages; Ctrl+C, word jumps, long-text scrolling in fields; L-197 translucent, content-sized help presentation needs a focused recheck |
+| Settings screen, search, layout B (L-50, L-52, L-81) | 2026-09-27, local; 2026-09-30: edits finish with the frame, range warning cleared on moving (`1cdb481`); 2026-10-06: header version, tooltip and copy, no page-name breadcrumb (L-101, `ff55b9f`); 2026-10-12: three missing action labels fixed in three languages (L-155, `3767542`); search by a child row's shown label, toasts unchanged (L-158, `be0b1f1`); Find by key in Hotkeys (L-159, `c4ac083`); binding editor buttons on the edited row (`e93606e`); 2026-10-13 text fields with a caret, Delete, paste and click, world map coordinates typed (L-172, `ed4a4e7`); 2026-10-14 `9b3b8a9`: the Settings key closes the screen, held once, not while typing, still bindable (L-188); 2026-10-15 local `d5978e2`: full-help interaction checklist passed; initial presentation rejected; compact translucent follow-up passed on `f8c714b` (L-197) | Individual binding edits; L-188 with a remapped key and on Shapes/Waypoints/Schematics pages; Ctrl+C, word jumps, long-text scrolling in fields; L-197 new button-only, in-place footer expansion needs a focused recheck |
 | Dedicated Hotkeys/Shapes/HUD openers (L-02 follow-up) | Source and tests only (2026-09-28) | In game |
 | Toggle toasts; message toast | 2026-09-30, local | |
 | Version-sensitive gates and the unverified-game test build (L-137) | 2026-10-11, local: the gated features behave as before on the verified game (0.2.0 regression check 1, `2aea267`); the `--unverified_game=y` build of `891b798`: all nine capabilities stay vanilla with one log line each, the rest of their features work, no crash; `ddac26c`: paused marks in toggle toasts and settings rows, header warning, join toast | A real different game executable (next game update) |

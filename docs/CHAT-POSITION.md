@@ -29,8 +29,10 @@ tree. It now uses that identity without also consulting the global screen
 stack name, which may still identify the closing chat/menu while the HUD
 is drawing again. Input/history visual trees remain untouched. Existing
 foreground/player, capability and hierarchy checks and per-draw restoration
-remain in place. This is a code-level timing hypothesis; the changed build
-needs chat send/close, Esc-close, expiry and disable/restoration checks.
+remain in place. The maintainer passed the supplied chat-return checklist
+locally on `f8c714b`: no vanilla-position jump reported, with ordinary OFF
+restoration retained. This closes L-203 locally; server and broader layout/
+pack coverage remain open. Evidence and test scope: VALIDATION-LOG.
 
 ## Current implementation and validation (2026-10-14)
 
