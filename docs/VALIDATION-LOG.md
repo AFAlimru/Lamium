@@ -24,6 +24,9 @@ placement and shape rows select, center and show/hide; the chosen list
 survives reopening; a layer switched off on the map keeps its list with the
 "Hidden on the map" line. That line touched the first row's highlight; it
 got its own line in the next commit. Servers were not checked.
+Follow-up `5ddab02` (DLL
+`6D231C13E05035425C2E24B91EE02176FC1D2CED2F731C10FCFBCC5169DC4362`): the
+note on its own line looked right to the maintainer.
 
 ## L-169 held stack and drop gestures (2026-10-15)
 
