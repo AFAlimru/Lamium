@@ -12,6 +12,26 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Maintainer regression reports (2026-10-15, L-197 through L-201)
+
+Reported build/commit and DLL hash were not supplied. The local ordinary
+log identifies the configured Minecraft 1.26.51.01 instance and LeviLamina
+26.51.7; only the loader rejection below is tied to that log, not every
+reported reproduction. The maintainer reported:
+- Fake Offhand: primary blocks prevent fireworks while gliding and aiming
+  into air; with blocks in both slots secondary placement takes priority;
+  secondary blocks prevent eating primary food (L-198).
+- FreeCamera movement does not change waypoint distance (L-199), and
+  underground visibility has regressed (L-200). The log says
+  `FreeCamera terrain: vanilla visibility retained (unsupported loader version)`
+  after detecting 26.51.7; the code admitted only .5/.6.
+- Settings descriptions are cut off (L-197).
+- A world-map M binding opens/closes; Mouse 5 only opens (L-201).
+
+These reports reopen coverage for those exact cases. Fixes and pure tests
+are not a successful runtime recheck; the new build still awaits Minecraft
+validation. Server environment and other cases were not reported.
+
 ## Placed list headers and 0.2.2 release build (2026-10-15)
 
 Maintainer report, local: the release build `6ae5977` (DLL `8d3d2fad...a6ac4`)

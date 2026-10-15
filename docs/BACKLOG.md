@@ -73,8 +73,10 @@ L-item wins. Every entry names what the task is, not only its number.
    follows the items below.
 1. **Small and medium features and fixes** (maintainer 2026-10-10: these
    come before large features and L-111 integration for now):
-   - Bugs: L-197 settings descriptions cut off without a way to read the
-     rest (Design); L-177, L-181 (player reports, need reproductions or an agreed
+   - Bugs: L-198 Fake Offhand primary-use priority, L-199 waypoint distance
+     during FreeCamera, L-200 underground terrain on loader 26.51.7,
+     L-201 world map mouse-button close, and L-197 full settings descriptions
+     (interaction agreed 2026-10-15); L-177, L-181 (player reports, need reproductions or an agreed
      rule); L-192, L-193, L-194 schematic drawing (maintainer 2026-10-15:
      schematic drawing work pauses here; far-away cases remain); L-123 elytra stretched on the inventory model after FreeCamera and
      L-91 shield glint in Lamium's icons (both parked); L-132 moving with
@@ -159,7 +161,16 @@ every server gap before a release.
 
 ### Since 0.2.2 (unreleased)
 
-Nothing yet.
+L-197 through L-201: normal-build game checks pending. Fake Offhand must
+keep main-hand blocks and hungry food, and allow secondary fireworks while
+gliding with a primary block and air aim. FreeCamera marker distance/range
+must follow flight and return to the body after exit; underground terrain
+must work with loader 26.51.7 and restore normally. The world-map binding
+must close with Mouse 5 and chords, without closing during editing or from
+the opening hold. Long settings help must open, scroll and return correctly
+at wide/narrow/short sizes in all three languages, including numeric help,
+text editing, capture/conflict/error states and held Esc. Code tests do not
+establish these native outcomes. Details stay in the L-items and feature docs.
 
 ### Shipped in 0.2.2 (smoke-tested; remaining gaps in VALIDATION.md)
 
@@ -405,11 +416,65 @@ found later are handled as bugs.
 
 ## Bugs
 
+### L-198 Fake Offhand blocks primary use and misses secondary instant use
+Kind: Bug / Research. Maintainer report 2026-10-15.
+Status: fix built with pure regression tests; game verification pending.
+Reported: a block in the main hand prevents fireworks and similar secondary
+uses; when both hands have blocks the secondary can take priority
+over the main hand; a secondary block prevents eating primary food.
+Clarified by the maintainer: fireworks while gliding and aiming into air;
+the priority case has blocks in both slots. The placement branch now asks
+whether primary use passes and refuses an active primary timed use. Normal
+blocks pass in air before considering a reported native duration; the
+reported block's native traits have not been traced.
+Preserve ordinary target interaction and meaningful primary use before
+secondary placement or instant use. Never select away from an active timed
+use. Investigate air versus block aim and gliding for the fireworks case;
+do not turn a valid primary placement into a secondary use.
+Files: `FakeOffhand.cpp`, `FakeOffhandPlan.h`, `tests/FakeOffhandTests.cpp`;
+contract: [FAKE-OFFHAND.md](FAKE-OFFHAND.md). Check food while hungry,
+both hands holding blocks/instant items, fireworks while gliding with air
+and block aim, containers, repeated input and selection restoration.
+
+### L-199 Waypoint distance stays at the body during FreeCamera
+Kind: Bug / Ready. Maintainer report 2026-10-15.
+Status: fix built; game verification pending. The previous code used player
+feet even during FreeCamera.
+Use the viewing position for world-marker distance, its range filter and
+near/far ordering while FreeCamera is active. Keep the existing horizontal
+distance convention and ordinary-view behavior. Check flight toward/away
+from a waypoint and the death point, range filtering and restoration.
+Files: `WaypointMarkers.cpp`; contract: [MAP.md](MAP.md).
+
+### L-200 FreeCamera underground visibility regressed after loader update
+Kind: Bug / Research. Maintainer report 2026-10-15.
+Status: fix built, game verification pending. The local log identifies
+loader 26.51.7 rejected by the explicit 26.51.5/26.51.6 allowlist
+(`unsupported loader version`). This installed patch is now admitted while preserving executable,
+renderer ownership, virtual-entry and native request/retained-field checks.
+Do not remove the fail-open gates or change player abilities/game type.
+Files: `FreeCameraCulling.h`, its tests; contract: [CAMERA.md](CAMERA.md).
+Check caves from solid ground, normal view after leaving FreeCamera, local
+and server worlds, and the ordinary log's retained 3 -> 5 request.
+
+### L-201 World map opens but cannot close with Mouse 5 binding
+Kind: Bug / Ready. Maintainer report 2026-10-15.
+Status: fix built with chord-completion tests; game verification pending.
+The report was M closes, Mouse 5 opens only.
+The assigned opener must also close the map for keyboard and mouse chords,
+once per new press. Preserve editing, waypoint prompts, key capture and
+native input releases; never close immediately from the opening press.
+Files: `SettingsScreen.cpp`, input binding helpers and tests;
+contract: [MAP.md](MAP.md). Check M, Mouse 5, a modified mouse chord,
+held/released input, waypoint name/coordinate editing and prompts.
+
 ### L-197 Make long settings descriptions fully readable
-Kind: Bug / Design, then Ready once the interaction is agreed.
+Kind: Bug / Ready (strong model).
 Imported at the maintainer's request on 2026-10-15 from the
 [Notion idea inbox](https://app.notion.com/p/3f7c12ab5b2d8121b2a0db32608f6b7a).
-Status: accepted for design; not implemented, no release chosen.
+Status: interaction agreed and implementation built 2026-10-15; pure tests
+pass, game verification pending. No release chosen.
+The maintainer reported the truncation again with L-198 through L-201.
 
 Problem confirmed in the current code: `SettingsTableView.cpp` draws the
 footer description with a two-line `paragraph`, or a one-line `label` when
@@ -420,13 +485,13 @@ available space, rather than a limit on the stored description. This is a
 settings-comprehension bug; the affected runtime layouts have not been
 reproduced in this task.
 
-Design candidate: keep the compact footer and offer a full-text view only
+Decided 2026-10-15: keep the compact footer and offer a full-text view only
 when the description is actually truncated. Open it by mouse and keyboard;
 allow scrolling when needed, and close with Esc or an outside click. Keep
 the settings list's row heights, selection and scroll position intact.
-Open choices: the affordance's wording and placement, keyboard entry/focus
-and return behavior, and the full-text panel's layout. Agree these before
-building; the candidate is not yet a Decided UI rule.
+Use a footer "Read full description" control and F1 to open a scrollable
+description panel; Esc returns to the settings list. Restore the prior focus
+without changing a setting. The maintainer accepted this interaction in chat.
 
 Requirements for the chosen design:
 
