@@ -58,6 +58,9 @@ void toggleOption(std::string_view id);
 void showFeatureKeys(std::string_view featureId);
 // The settings table as last laid out (undocked views fit inside it).
 SettingsTable const& table();
+// The factor the settings screens are drawn at (ui::DrawScale); their layout
+// and input use unscaled units. Native drawing (3D previews) multiplies by it.
+float scale();
 
 // Where the local player stands (block, dimension), if anywhere.
 struct Place { int x, y, z, dimension; };

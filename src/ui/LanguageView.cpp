@@ -128,10 +128,8 @@ void renderContent(MinecraftUIRenderContext& context, SettingsTable const& t, gl
         : !notice.empty() ? translated(notice)
         : translated("language.current", game_language::currentName());
     label(context, textLeft, t.footerTop + 3, textWidth, text, notice.empty() ? palette::text : palette::warning);
-    if (!t.shortFooter) {
-        label(context, textLeft, t.footerTop + 16, textWidth, translated("help.gameLanguage"), palette::dim);
-        label(context, textLeft, t.footerTop + 30, textWidth, translated("language.hint"), palette::faint);
-    }
+    label(context, textLeft, t.footerTop + 16, textWidth, translated("help.gameLanguage"), palette::dim);
+    label(context, textLeft, t.footerTop + 30, textWidth, translated("language.hint"), palette::faint);
     context.flushText(0, std::nullopt);
 }
 }

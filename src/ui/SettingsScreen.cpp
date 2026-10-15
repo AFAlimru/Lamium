@@ -267,7 +267,16 @@ void releaseTextKeyboard() {
         keyboard.releaseKeyboardOwnership();
     }
 }
+// The settings family (table, language list, Shapes, Waypoints, Schematics)
+// lays out in its own units and draws shrunk on a GUI too small for it. The
+// world map, calculator, prompts, radial menu and HUD editor keep GUI units.
+float screenScale = 1;
+bool scaledView() {
+    return !calculatorOpen && !worldMapOpen && !prompt && !savePrompt && !schematicMenu && !hudEditorView();
+}
+float layoutScale() { return scaledView() ? screenScale : 1; }
 void syncTextKeyboard(float x, float y) {
+    x *= layoutScale(); y *= layoutScale();
     bool wanted = !closing && !table_view::capturing() && (calculatorOpen || table_view::searchFocused() || numericEditing() || shapes_view::editingName() || waypoints_view::editingName() || prompt
         || savePrompt
         || (worldMapOpen && map::world::editingName()));
@@ -996,7 +1005,8 @@ void render(ll::event::UIRenderEvent& event) {
     if (&current != client) return;
     if (!ownsTop()) { if (seen) clear(); return; }
     seen = true;
-    lastPointer = view.mPointerLocationPrevious;
+    screenScale = SettingsTable::scaleFor(size.x, size.y, navCount);
+    lastPointer = glm::vec2(view.mPointerLocationPrevious) / layoutScale();
     applyNumber();
     shapes_view::applyName();
     table_view::applyBinding();
@@ -1020,7 +1030,8 @@ void render(ll::event::UIRenderEvent& event) {
         pendingSearch = false;
         if (!scene) return;
         displayedInverseScale = current.getGuiData()->mInvGuiScale;
-        table_view::render(context, current, size, view.mPointerLocationPrevious);
+        DrawScale scale{screenScale};
+        table_view::render(context, current, size / screenScale, lastPointer);
         return;
     }
     if (calculatorOpen) {
@@ -1154,12 +1165,15 @@ void render(ll::event::UIRenderEvent& event) {
     if (!scene) return;
     // No HUD under the settings list: the overlap made both hard to read.
     displayedInverseScale = current.getGuiData()->mInvGuiScale;
-    glm::vec2 pointer = view.mPointerLocationPrevious;
     if (hudEditorView()) {
+        glm::vec2 pointer = view.mPointerLocationPrevious;
         releaseTextKeyboard();
         hud_editor::render(context, size.x, size.y, pointer.x, pointer.y);
         return;
     }
+    DrawScale scale{screenScale};
+    glm::vec2 pointer = lastPointer;
+    size /= screenScale;
     if (shapesView()) {
         shapes_view::refresh();
         auto caret = shapes_view::caret();
@@ -1204,7 +1218,7 @@ void nextNav(bool back) {
     selectNav(index);
 }
 bool navClick(float x, float y) {
-    auto hit = table_view::layout().hit(x, y, navCount, table_view::tabWidth());
+    auto hit = table_view::layout().hit(x, y, navCount);
     if (hit.zone == Zone::Nav) { ui::selectNav(hit.index); return true; }
     if (hit.zone == Zone::Version) { table_view::copyVersion(); return true; }
     return false;
@@ -1219,6 +1233,7 @@ void showFeatureKeys(std::string_view featureId) {
     table_view::selectFeature(featureId);
 }
 SettingsTable const& table() { return table_view::layout(); }
+float scale() { return ui::layoutScale(); }
 int currentNav() { return navigation.current; }
 void selectNav(int index) { ui::selectNav(index); }
 input::Chord const& heldKeys() { return uiHeld; }
@@ -1402,7 +1417,7 @@ void start() {
         // Render hover can still describe the previous pointer position when
         // movement and a click arrive between frames. Hit the displayed layout
         // using this event's pixel coordinates and the scale used to draw it.
-        float x = event.x() * displayedInverseScale, y = event.y() * displayedInverseScale;
+        float x = event.x() * displayedInverseScale / layoutScale(), y = event.y() * displayedInverseScale / layoutScale();
         bool scaled = std::isfinite(displayedInverseScale) && displayedInverseScale > 0;
         bool repeat = down && std::find(uiHeld.begin(), uiHeld.end(), token) != uiHeld.end();
         observeHeld(token, down);

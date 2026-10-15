@@ -7,19 +7,26 @@ void settingsTableTests() {
     using Zone = SettingsTable::Zone;
     using Column = SettingsTable::Column;
     constexpr int navItems = 13;
-    for (auto [w,h] : {std::pair{800.f,600.f}, std::pair{240.f,150.f}, std::pair{380.f,240.f}, std::pair{640.f,360.f}}) {
-        auto normal = SettingsTable::fit(w,h,60,5,20);
+    // Every screen size, shrunk as drawn, gets the one full layout.
+    for (auto [w,h] : {std::pair{800.f,600.f}, std::pair{240.f,150.f}, std::pair{380.f,240.f}, std::pair{640.f,360.f},
+                       std::pair{1920.f,1080.f}, std::pair{426.f,240.f}, std::pair{300.f,900.f}}) {
+        float scale = SettingsTable::scaleFor(w,h,20);
+        auto normal = SettingsTable::fit(w / scale,h / scale,60,5,20);
+        check(scale > 0 && scale <= 1 && normal.usable() && normal.tableLeft == normal.left + SettingsTable::sidebarWidth
+            && normal.navStep >= SettingsTable::minNavStep
+            && (normal.left + normal.width) * scale <= w + .01f && (normal.top + normal.height) * scale <= h + .01f,
+            "a small screen shrinks the full layout to fit instead of switching to another one");
         auto expanded = normal;
         expanded.expandDescription(100,20);
         auto shortText = normal;
         shortText.expandDescription(1,20);
         check(expanded.descriptionButtonY() == normal.descriptionButtonY()
             && expanded.descriptionHintY() == normal.descriptionHintY()
-            && normal.descriptionButtonY() == normal.footerTop + (normal.shortFooter ? 2 : 28)
+            && normal.descriptionButtonY() == normal.footerTop + 28
             && expanded.footerTop + 3 + expanded.descriptionLines * SettingsTable::descriptionLineHeight <= expanded.descriptionButtonY(),
             "description reflow keeps the button and operation hints anchored above the same bottom margin");
         check(expanded.left == normal.left && expanded.top == normal.top && expanded.height == normal.height
-            && expanded.rowsTop == normal.rowsTop && expanded.compact == normal.compact
+            && expanded.rowsTop == normal.rowsTop
             && expanded.footerTop < normal.footerTop && expanded.visible >= 3,
             "description expansion keeps the settings surface, header, categories and several rows visible");
         check(expanded.descriptionLines > 0 && expanded.descriptionLines < 100
@@ -28,8 +35,8 @@ void settingsTableTests() {
             && expanded.footerTop + 3 + expanded.descriptionLines * SettingsTable::descriptionLineHeight
                 <= expanded.top + expanded.height - SettingsTable::footerButtonHeight - 3,
             "the footer fits measured text and bounds long descriptions above its controls");
-        check(expanded.compact || (expanded.navStep >= SettingsTable::minNavStep
-            && expanded.navItemY(20 - SettingsTable::pinnedItems - 1) + expanded.navStep + 4 <= expanded.pinnedItemY(0)),
+        check(expanded.navStep >= SettingsTable::minNavStep
+            && expanded.navItemY(20 - SettingsTable::pinnedItems - 1) + expanded.navStep + 4 <= expanded.pinnedItemY(0),
             "expanded descriptions cannot overlap sidebar categories and pinned tools");
         check(expanded.hit(expanded.left + 8,expanded.footerTop + 4,20).zone == Zone::Footer
             && expanded.hit(expanded.nameX + 2,expanded.rowsTop + 3,20).zone == Zone::Row
@@ -40,7 +47,7 @@ void settingsTableTests() {
     // Typical 16:9 GUI sizes keep the sidebar and full columns.
     for (auto [w, h] : {std::pair{640.f, 360.f}, std::pair{480.f, 270.f}, std::pair{960.f, 540.f}}) {
         auto t = SettingsTable::fit(w, h, 60, 0);
-        check(t.usable() && !t.compact && !t.shortFooter, "16:9 keeps sidebar and full footer");
+        check(t.usable() && SettingsTable::scaleFor(w, h, 15) == 1, "16:9 GUI sizes fit unscaled");
         check(t.left >= 0 && t.left + t.width <= w && t.top >= 0 && t.top + t.height <= h, "panel inside screen");
         check(t.nameX < t.stateX && t.stateX + SettingsTable::stateWidth < t.keyX
             && t.keyX + t.keyWidth <= t.rowsRight(), "columns are ordered inside the table");
@@ -48,18 +55,17 @@ void settingsTableTests() {
         check(t.footerButtonX(2) + SettingsTable::footerButtonWidth <= t.left + t.width, "footer buttons fit");
     }
     auto wide = SettingsTable::fit(640, 360, 60, 0);
-    check(wide.keyWidth == 88 && SettingsTable::fit(500, 360, 60, 0).keyWidth == 70 && !SettingsTable::fit(500, 360, 60, 0).compact,
+    check(wide.keyWidth == 88 && SettingsTable::fit(500, 360, 60, 0).keyWidth == 70,
         "a narrower table narrows the key column first");
-    auto narrow = SettingsTable::fit(400, 360, 60, 0);
-    check(narrow.compact && narrow.tableLeft == narrow.left && narrow.rowsTop > wide.rowsTop - 1,
-        "narrow windows move categories into tabs");
-    auto shortWindow = SettingsTable::fit(640, 220, 60, 0);
-    check(shortWindow.shortFooter && shortWindow.usable(), "short windows keep a one-line footer");
-    check(!SettingsTable::fit(200, 300, 60, 0).usable() && !SettingsTable::fit(640, 120, 60, 0).usable(),
-        "too-small windows are reported unusable");
+    auto narrow = SettingsTable::fit(SettingsTable::minWidth + SettingsTable::margin, 360, 60, 0);
+    check(narrow.usable() && narrow.width == SettingsTable::minWidth, "the narrowest layout still has every column");
+    check(!SettingsTable::fit(400, 360, 60, 0).usable() && !SettingsTable::fit(640, 220, 60, 0).usable()
+        && SettingsTable::scaleFor(400, 360, 13) < 1 && SettingsTable::scaleFor(640, 220, 13) < 1
+        && SettingsTable::scaleFor(1920, 1080, 13) == 1,
+        "below the minimum the layout is drawn shrunk, never enlarged");
     // L-101: the version after the title is its own zone and clears the search
     // field even in the narrowest usable panel ("Lamium" ~30 units, "0.1.6" ~22).
-    for (float w : {300.f, 400.f, 640.f}) {
+    for (float w : {456.f, 520.f, 640.f}) {
         auto t = SettingsTable::fit(w, 360, 60, 0);
         t.placeVersion(31, 22);
         float y = t.top + 6;
@@ -71,8 +77,8 @@ void settingsTableTests() {
     }
     check(SettingsTable::fit(640, 360, 60, 0).hit(40, 30, navItems).zone != Zone::Version,
         "without a placed version there is no version zone");
-    auto tiny = SettingsTable::fit(240, 360, 60, 0);
-    tiny.placeVersion(31, 40);
+    auto tiny = SettingsTable::fit(456, 360, 60, 0);
+    tiny.placeVersion(31, 200);
     check(tiny.versionWidth == 0 && tiny.hit(tiny.versionX + 1, tiny.top + 6, navItems).zone != Zone::Version,
         "a version that would reach the search field is hidden");
     // The versionLine format is what bug reports paste.
@@ -105,12 +111,13 @@ void settingsTableTests() {
     // Scrolling is owned by the caller and clamped.
     check(SettingsTable::fit(640, 360, 60, 1000).first == 60 - wide.visible, "scroll clamps to the last page");
     // Fourteen sidebar items (L-93 added Schematics twice) in a short window.
-    auto squeezed = SettingsTable::fit(640, 250, 60, 0, 14), tabbed = SettingsTable::fit(640, 190, 60, 0, 14);
-    check(!squeezed.compact && squeezed.navStep >= SettingsTable::minNavStep
+    auto squeezed = SettingsTable::fit(640, 260, 60, 0, 14);
+    check(squeezed.usable() && squeezed.navStep >= SettingsTable::minNavStep
           && squeezed.navItemY(14 - SettingsTable::pinnedItems - 1) + squeezed.navStep + 4 <= squeezed.pinnedItemY(0),
           "a short window narrows sidebar items so the top ones and the pinned ones do not meet");
-    check(tabbed.compact && SettingsTable::fit(640, 360, 60, 0, 14).navStep == SettingsTable::navItemHeight,
-          "a window too short for the sidebar uses tabs; a tall one keeps full items");
+    check(!SettingsTable::fit(640, 190, 60, 0, 14).usable() && SettingsTable::scaleFor(640, 190, 14) < 1
+          && SettingsTable::fit(640, 360, 60, 0, 14).navStep == SettingsTable::navItemHeight,
+          "a window too short for the sidebar is drawn shrunk; a tall one keeps full items");
     check(SettingsTable::fit(640, 360, 5, 3).first == 0, "short lists do not scroll");
     check(SettingsTable::reveal(10, 5, 8) == 5 && SettingsTable::reveal(10, 20, 8) == 13 && SettingsTable::reveal(10, 12, 8) == 10,
         "reveal scrolls minimally");
@@ -144,10 +151,6 @@ void settingsTableTests() {
     check(t.footerButton(t.footerButtonX(1) + 3, t.footerButtonY() + 3) == 1, "footer button index");
     check(t.hit(t.left - 1, y, navItems).zone == Zone::None, "outside the panel");
     check(t.hit(std::numeric_limits<float>::quiet_NaN(), y, navItems).zone == Zone::None, "invalid pointer");
-    auto tabs = SettingsTable::fit(400, 360, 60, 0);
-    float tabWidth = (tabs.width - 4) / navItems;
-    auto tab = tabs.hit(tabs.left + 2 + tabWidth * 3 + 2, tabs.navTop + 5, navItems, tabWidth);
-    check(tab.zone == Zone::Nav && tab.index == 3, "tab hit");
 
     // Stepper parts are right-aligned in the value columns.
     check(t.stepperPart(t.stepperX() + 2) == -1 && t.stepperPart(t.stepperX() + t.stepperWidth() - 2) == 1

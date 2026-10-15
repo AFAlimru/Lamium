@@ -447,7 +447,7 @@ void drawWaypointsBody(MinecraftUIRenderContext& context, ShapesLayout const& l,
     // Footer.
     fill(context,l.left,l.footerTop,l.width,1,palette::white,.14f);
     float textLeft = l.left + ShapesLayout::pad, available = l.width - 2 * ShapesLayout::pad;
-    bool shortFooter = l.docked || screen::table().shortFooter;
+    bool shortFooter = l.docked;
     std::string text = !screen::message().empty() ? screen::message() : waypointDescription();
     if (shortFooter) label(context,textLeft,l.footerTop+3,available,std::move(text),screen::message().empty() ? palette::text : palette::warning);
     else {

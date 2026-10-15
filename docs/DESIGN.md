@@ -107,6 +107,12 @@ All colors come from `ui::palette` in `src/ui/Widgets.h`:
 Sizes (GUI units, `SettingsTable`): header 20, row 14, nav item 14, sidebar
 112, padding 6, gap 6, key cap height 11, switch 18×9. The settings panel is
 at most 640×380 and centered. New screens reuse these numbers.
+(Decided 2026-10-15) There is one settings layout. A GUI smaller than it
+needs (440 wide, and tall enough for every sidebar item and a footer that
+can expand three lines) draws the settings screens (table, language list,
+Shapes, Waypoints, Schematics) shrunk to fit, rather than a second layout
+with tabs or a one-line footer. The world map, calculator, prompts, radial
+menu and HUD editor keep GUI units.
 
 ### Components (Decided)
 
@@ -118,10 +124,9 @@ at most 640×380 and centered. New screens reuse these numbers.
   collapsing keeps the clicked row where it was. The wheel scrolls without
   moving the selection.
 - **Sidebar** with categories; Hotkeys and Shapes are pinned at the bottom.
-  Below 440 units wide the sidebar becomes tabs; below 380 the key column
-  narrows. Search spans all categories.
+  Below 380 units the key column narrows. Search spans all categories.
 - **Header** (decided 2026-10-06, L-101): `Lamium` and the faint Lamium
-  version, then search and Close. The sidebar or tabs show where you are, so
+  version, then search and Close. The sidebar shows where you are, so
   the header never repeats the page name; only a panel without a sidebar
   (docked Shapes, Waypoints, Schematics) titles itself. Hovering the version
   shows the Lamium, Minecraft and LeviLamina versions (English) and clicking

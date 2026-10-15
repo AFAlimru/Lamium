@@ -544,7 +544,7 @@ void drawShapesBody(MinecraftUIRenderContext& context, ShapesLayout const& l, gl
     // Footer.
     fill(context,l.left,l.footerTop,l.width,1,palette::white,.14f);
     float textLeft = l.left + ShapesLayout::pad, available = l.width - 2 * ShapesLayout::pad;
-    bool shortFooter = l.docked || screen::table().shortFooter;
+    bool shortFooter = l.docked;
     // Simple graphics draw faces poorly (additive, order dependent); say so
     // rather than tuning that mode further.
     bool simple = screen::client() && screen::client()->getOptions().getGraphicsMode() == GraphicsMode::Simple;

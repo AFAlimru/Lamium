@@ -105,7 +105,6 @@ int first = 0;
 bool keyboardTip = false;
 glm::vec2 tipPointer{};
 SettingsTable displayed;
-float displayedTabWidth = 0;
 bool descriptionExpanded = false, helpAvailable = false, revealDescriptionRow = false;
 std::optional<SettingsRow> descriptionRow;
 std::string helpText;
@@ -574,7 +573,7 @@ void drawGuide(MinecraftUIRenderContext& context, float y, bool last) {
     fill(context,x,y,1,last ? SettingsTable::rowHeight / 2 : SettingsTable::rowHeight,palette::white,.18f);
     fill(context,x+1,y+SettingsTable::rowHeight/2,5,1,palette::white,.18f);
 }
-std::string navLabel(int index, bool compact) {
+std::string navLabel(int index) {
     if (index == 0) return translated("nav.all");
     if (index == nav::hotkeys) return translated("nav.hotkeys");
     if (index == nav::shapes) return translated("nav.shapes");
@@ -584,7 +583,7 @@ std::string navLabel(int index, bool compact) {
     if (index == nav::hud) return translated("nav.hudLayout");
     if (index == nav::calculator) return translated("nav.calculator");
     auto key = std::string(sections[index-1]);
-    return translated(compact ? key + ".short" : key);
+    return translated(key);
 }
 std::string sectionCount(std::string_view section, Settings const& preferences) {
     int on = 0, total = 0;
@@ -808,7 +807,7 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
     }
     auto const preferences = Runtime::instance().preferences();
     keyQueryName = keyQuery ? bindingChordName(current, *keyQuery) : std::string{};
-    auto hover = t.hit(pointer.x, pointer.y, nav::count, displayedTabWidth);
+    auto hover = t.hit(pointer.x, pointer.y, nav::count);
     if (pointer != tipPointer) { keyboardTip = false; tipPointer = pointer; }
     panel(context,t.left,t.top,t.width,t.height,.8f);
     frame(context,t.left,t.top,t.width,t.height,palette::white,.14f);
@@ -843,41 +842,28 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
         closeHover ? palette::text : palette::dim,Align::Center);
     fill(context,t.left,t.top+SettingsTable::headerHeight-1,t.width,1,palette::white,.14f);
 
-    // Categories: sidebar, or tabs when narrow.
+    // Categories in the sidebar.
     // A query searches every category, so the navigation shows "All" meanwhile.
     bool searching = query.value().find_first_not_of(' ') != std::string::npos;
     int activeNav = searching && !hotkeysView() ? 0 : screen::currentNav();
-    if (t.compact) {
-        displayedTabWidth = (t.width - 4) / nav::count;
-        for (int i = 0; i < nav::count; ++i) {
-            float x = t.left + 2 + i * displayedTabWidth;
-            bool active = i == activeNav, over = hover.zone == Zone::Nav && hover.index == i;
-            if (over && !active) fill(context,x,t.navTop,displayedTabWidth,SettingsTable::tabsHeight,palette::white,.07f);
-            if (active) fill(context,x+2,t.navBottom-2,displayedTabWidth-4,2,palette::accent);
-            label(context,x+1,t.navTop+3,displayedTabWidth-2,navLabel(i,true),active || over ? palette::text : palette::dim,Align::Center);
-        }
-        fill(context,t.left,t.navBottom-1,t.width,1,palette::white,.14f);
-    } else {
-        displayedTabWidth = 0;
-        fill(context,t.tableLeft-1,t.navTop,1,t.navBottom-t.navTop,palette::white,.14f);
-        for (int i = 0; i < nav::count; ++i) {
-            bool pinned = i >= nav::count - SettingsTable::pinnedItems;
-            float y = pinned ? t.pinnedItemY(i - (nav::count - SettingsTable::pinnedItems)) : t.navItemY(i);
-            float x = t.left + 1, w = SettingsTable::sidebarWidth - 2;
-            bool active = i == activeNav, over = hover.zone == Zone::Nav && hover.index == i;
-            if (i == nav::count - SettingsTable::pinnedItems) fill(context,x+6,y-4,w-12,1,palette::white,.14f);
-            if (active) { fill(context,x,y,w,t.navStep,palette::accent,.16f); fill(context,x,y,2,t.navStep,palette::accent); }
-            else if (over) fill(context,x,y,w,t.navStep,palette::white,.07f);
-            bool unavailable = nav::needsWorld(i) && !(screen::client() && screen::client()->getLocalPlayer());
-            std::string count = unavailable ? std::string{} : i > 0 && i < nav::hotkeys ? sectionCount(sections[i-1], preferences)
-                : i == nav::shapes ? std::to_string(overlay::shapes::list().size())
-                : i == nav::waypoints ? std::to_string(map::waypoints::current().waypoints.size())
-                : i == nav::schematics ? std::to_string(schematic::session::current().placements.size()) : std::string{};
-            float countWidth = count.empty() ? 0 : textWidth(context, count) + 4;
-            float ty = y + (t.navStep - 8) / 2;
-            label(context,x+7,ty,w-12-countWidth,navLabel(i,false),unavailable ? palette::faint : active || over ? palette::text : palette::dim);
-            if (!count.empty()) label(context,x+w-5-countWidth,ty,countWidth,count,palette::faint,Align::Right);
-        }
+    fill(context,t.tableLeft-1,t.navTop,1,t.navBottom-t.navTop,palette::white,.14f);
+    for (int i = 0; i < nav::count; ++i) {
+        bool pinned = i >= nav::count - SettingsTable::pinnedItems;
+        float y = pinned ? t.pinnedItemY(i - (nav::count - SettingsTable::pinnedItems)) : t.navItemY(i);
+        float x = t.left + 1, w = SettingsTable::sidebarWidth - 2;
+        bool active = i == activeNav, over = hover.zone == Zone::Nav && hover.index == i;
+        if (i == nav::count - SettingsTable::pinnedItems) fill(context,x+6,y-4,w-12,1,palette::white,.14f);
+        if (active) { fill(context,x,y,w,t.navStep,palette::accent,.16f); fill(context,x,y,2,t.navStep,palette::accent); }
+        else if (over) fill(context,x,y,w,t.navStep,palette::white,.07f);
+        bool unavailable = nav::needsWorld(i) && !(screen::client() && screen::client()->getLocalPlayer());
+        std::string count = unavailable ? std::string{} : i > 0 && i < nav::hotkeys ? sectionCount(sections[i-1], preferences)
+            : i == nav::shapes ? std::to_string(overlay::shapes::list().size())
+            : i == nav::waypoints ? std::to_string(map::waypoints::current().waypoints.size())
+            : i == nav::schematics ? std::to_string(schematic::session::current().placements.size()) : std::string{};
+        float countWidth = count.empty() ? 0 : textWidth(context, count) + 4;
+        float ty = y + (t.navStep - 8) / 2;
+        label(context,x+7,ty,w-12-countWidth,navLabel(i),unavailable ? palette::faint : active || over ? palette::text : palette::dim);
+        if (!count.empty()) label(context,x+w-5-countWidth,ty,countWidth,count,palette::faint,Align::Right);
     }
 
     if (language_view::opened()) {
@@ -1043,7 +1029,7 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
     // Footer: description and hints, or the binding editor's buttons.
     fill(context,t.left,t.footerTop,t.width,1,palette::white,.14f);
     float textLeft = t.left + SettingsTable::pad, textWidthAvailable = t.width - 2*SettingsTable::pad;
-    size_t footerLines = t.shortFooter ? 1 : 2;
+    size_t footerLines = 2;
     if (overflowCheck.width != textWidthAvailable || overflowCheck.lines != footerLines)
         overflowCheck = {textWidthAvailable, footerLines, textOverflows(helpText, textWidthAvailable, footerLines, measure)};
     helpAvailable = !capturing_ && !findingKey && screen::message().empty()
@@ -1069,7 +1055,7 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
     } else if (capturing_) {
         label(context,textLeft,t.footerTop+3,textWidthAvailable,
             screen::message().empty() ? fullDescription : screen::message(),screen::message().empty() ? palette::dim : palette::warning);
-        if (!t.shortFooter) label(context,textLeft,t.footerTop+30,textWidthAvailable,translated("captureInline"),palette::faint);
+        label(context,textLeft,t.footerTop+30,textWidthAvailable,translated("captureInline"),palette::faint);
     } else if (t.descriptionLines) {
         for (int i = 0; i < t.descriptionLines && helpFirst + i < helpLineCount; ++i)
             label(context,textLeft,t.footerTop+3+i*SettingsTable::descriptionLineHeight,
@@ -1084,9 +1070,6 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
         }
         if (overflow && screen::message().empty()) hint = translated("description.hint");
         label(context,textLeft,t.descriptionHintY(),textWidthAvailable-helpButtonWidth-SettingsTable::gap,std::move(hint),screen::message().empty() ? palette::faint : palette::warning);
-    } else if (t.shortFooter) {
-        label(context,textLeft,t.footerTop+3,textWidthAvailable-(helpAvailable ? helpButtonWidth+SettingsTable::gap : 0),screen::message().empty() ? fullDescription : screen::message(),
-            screen::message().empty() ? (warns ? palette::warning : palette::text) : palette::warning);
     } else {
         paragraph(context,textLeft,t.footerTop+3,textWidthAvailable,fullDescription,2,warns ? palette::warning : palette::text);
         label(context,textLeft,t.descriptionHintY(),textWidthAvailable-(helpAvailable ? helpButtonWidth+SettingsTable::gap : 0),std::move(hint),screen::message().empty() ? palette::faint : palette::warning);
@@ -1176,15 +1159,15 @@ void applyBinding() {
 }
 bool onCaptureButton(float x, float y) {
     if (findingKey) {
-        auto hit = displayed.hit(x, y, nav::count, displayedTabWidth);
+        auto hit = displayed.hit(x, y, nav::count);
         return hit.zone == Zone::Footer && displayed.footerButton(hit.x, hit.y) == 0;
     }
     return captureButtonAt(x, y) >= 0;
 }
-void click(float x, float y, bool right) { handleClick(displayed.hit(x, y, nav::count, displayedTabWidth), right); }
+void click(float x, float y, bool right) { handleClick(displayed.hit(x, y, nav::count), right); }
 void key(int key) { handleKey(key); }
 void wheel(int step, float x, float y) {
-    if (displayed.descriptionLines && displayed.hit(x,y,nav::count,displayedTabWidth).zone == Zone::Footer)
+    if (displayed.descriptionLines && displayed.hit(x,y,nav::count).zone == Zone::Footer)
         helpFirst = SettingsTable::clampFirst(helpFirst + step,helpLineCount,displayed.descriptionLines);
     else first = SettingsTable::clampFirst(first + step, static_cast<int>(rows.size()), displayed.visible);
 }
@@ -1198,7 +1181,6 @@ void render(MinecraftUIRenderContext& context, IClientInstance& client, glm::vec
     renderTable(context, client, size, pointer);
 }
 SettingsTable const& layout() { return displayed; }
-float tabWidth() { return displayedTabWidth; }
 void copyVersion() { copyVersion_(); }
 int selectedRow() { return selected; }
 void expand(std::string_view featureId) {

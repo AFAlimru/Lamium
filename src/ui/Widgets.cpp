@@ -32,10 +32,16 @@ namespace lamium::ui {
 namespace {
 constexpr mce::Color white{1.f,1.f,1.f,1.f};
 mce::Color color(Rgb value) { return {value.r, value.g, value.b, 1.f}; }
+float currentScale = 1;
 Font& defaultFont(MinecraftUIRenderContext& context) {
     return context.mClient.getMinecraftGame_DEPRECATED().getFontRepository()->getFontFromFontType("default").getFont();
 }
 }
+float drawScale() { return currentScale; }
+DrawScale::DrawScale(float scale) : previous(currentScale) {
+    currentScale = std::isfinite(scale) && scale > 0 ? scale : 1;
+}
+DrawScale::~DrawScale() { currentScale = previous; }
 float textWidth(MinecraftUIRenderContext& context, std::string_view text) {
     return defaultFont(context).getLineLength(text, 1.0f, false);
 }
@@ -45,7 +51,8 @@ float textWidthScaled(MinecraftUIRenderContext& context, std::string_view text, 
 }
 void fill(MinecraftUIRenderContext& context, float x, float y, float width, float height, Rgb value, float opacity) {
     if (width <= 0 || height <= 0) return;
-    context.fillRectangle(RectangleArea{x,x+width,y,y+height}, color(value), std::clamp(opacity,0.f,1.f));
+    float s = currentScale;
+    context.fillRectangle(RectangleArea{x*s,(x+width)*s,y*s,(y+height)*s}, color(value), std::clamp(opacity,0.f,1.f));
     context.flushImages(white,1,HashedString{"ui_fillColor"});
 }
 void frame(MinecraftUIRenderContext& context, float x, float y, float width, float height, Rgb value, float opacity) {
@@ -67,9 +74,11 @@ float latinRaise() {
 float const labelShadowOffset = .5f;
 void drawRun(MinecraftUIRenderContext& context, Font& font, float x, float y, float width, std::string text, Rgb value,
              ::ui::TextAlignment align, float size) {
-    TextMeasureData const measure{size, 0.0f, false, false, false, align};
+    float s = currentScale;
+    TextMeasureData const measure{size*s, 0.0f, false, false, false, align};
     CaretMeasureData const caret{-1, false};
-    context.drawText(font, RectangleArea{x,x+width,y,y+14*size}, std::move(text), color(value), size, align, measure, caret);
+    context.drawText(font, RectangleArea{x*s,(x+width)*s,y*s,(y+14*size)*s}, std::move(text), color(value), size*s, align,
+                     measure, caret);
 }
 }
 float boxTextInset() { return japaneseLocale() ? 0.f : 1.f; }
@@ -187,7 +196,7 @@ void images(MinecraftUIRenderContext& context, std::string_view texture, std::ve
     std::shared_ptr<BedrockTextureData const> const& data = pointer.mClientTexture;
     if (!data) return;
     for (auto const& r : rects)
-        context.drawImage(*data->mClientTexture, glm::vec2{r.x, r.y}, glm::vec2{r.w, r.h}, glm::vec2{0, 0},
+        context.drawImage(*data->mClientTexture, glm::vec2{r.x, r.y} * currentScale, glm::vec2{r.w, r.h} * currentScale, glm::vec2{0, 0},
                           glm::vec2{1, 1}, false);
     context.flushImages(white, std::clamp(opacity, 0.f, 1.f), HashedString{"ui_textured_and_glcolor"});
 }
@@ -221,7 +230,7 @@ void imageUv(MinecraftUIRenderContext& context, std::string_view texture, ImageR
              float v1, float opacity) {
     auto data = iconTexture(context, texture);
     if (!data) return;
-    context.drawImage(*data->mClientTexture, glm::vec2{rect.x, rect.y}, glm::vec2{rect.w, rect.h},
+    context.drawImage(*data->mClientTexture, glm::vec2{rect.x, rect.y} * currentScale, glm::vec2{rect.w, rect.h} * currentScale,
                       glm::vec2{u0, v0}, glm::vec2{u1 - u0, v1 - v0}, false);
     context.flushImages(white, std::clamp(opacity, 0.f, 1.f), HashedString{"ui_textured_and_glcolor"});
 }
@@ -234,7 +243,7 @@ bool runtimeImage(MinecraftUIRenderContext& context, ResourceLocation const& tex
     if (!data) return false;
     IsMissingTexture missing = data->mIsMissingTexture;
     if (missing == IsMissingTexture::Yes) return false;
-    context.drawImage(*data->mClientTexture, glm::vec2{rect.x, rect.y}, glm::vec2{rect.w, rect.h}, glm::vec2{u, v},
+    context.drawImage(*data->mClientTexture, glm::vec2{rect.x, rect.y} * currentScale, glm::vec2{rect.w, rect.h} * currentScale, glm::vec2{u, v},
                       glm::vec2{uSpan, vSpan}, false);
     context.flushImages(white, std::clamp(opacity, 0.f, 1.f), HashedString{"ui_textured_and_glcolor"});
     return true;

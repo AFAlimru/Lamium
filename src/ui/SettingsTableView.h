@@ -64,7 +64,6 @@ void render(MinecraftUIRenderContext& context, IClientInstance& client, glm::vec
 
 // The table as last laid out, for the views drawn inside it.
 SettingsTable const& layout();
-float tabWidth();
 void copyVersion();
 // Where a range warning was raised (L-81).
 int selectedRow();

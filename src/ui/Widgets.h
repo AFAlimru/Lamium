@@ -18,6 +18,18 @@ inline constexpr Rgb panel{.063f,.067f,.075f}, white{1,1,1}, text{1,1,1}, dim{.7
 }
 enum class Align { Left, Right, Center };
 
+// Lamium screens lay out in their own units and shrink to fit a small GUI:
+// fills, text and images multiply by this factor as they reach the game, so
+// layout code, measurement and hit tests stay unscaled. 1 outside a scope.
+float drawScale();
+struct DrawScale {
+    float previous;
+    explicit DrawScale(float scale);
+    ~DrawScale();
+    DrawScale(DrawScale const&) = delete;
+    DrawScale& operator=(DrawScale const&) = delete;
+};
+
 // Coordinates use the game's GUI units. Widgets borrow the render context only
 // for this call; screens retain navigation and input ownership themselves.
 void label(MinecraftUIRenderContext&, float x, float y, float width, std::string text,

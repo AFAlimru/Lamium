@@ -464,7 +464,7 @@ std::vector<Missing> missingMaterials() {
 }
 void pickInPreview(glm::vec2 at) {
     auto& t = previewTurn;
-    t.picked = schematic::preview::pickAt(at.x, at.y);
+    t.picked = schematic::preview::pickAt(at.x * screen::scale(), at.y * screen::scale());
     t.pickedFile = t.file;
     if (schematicTab != SchematicTab::Verify || !t.picked) return;
     auto const* checked = checkedPlacement();
@@ -658,7 +658,9 @@ std::string layersText(schematic::SavedPlacement const& p) {
 void drawItemIcon(MinecraftUIRenderContext& context, std::string const& icon, float x, float y, float size) {
     auto const* stack = schematic::items::iconStack(icon);
     if (!stack) return;
-    inspection::render::drawItemIcon(context, {stack, std::round(x), std::round(y), size / 16}, 17);
+    // Item icons and the 3D preview draw in GUI units, outside the widgets' scale.
+    float s = drawScale();
+    inspection::render::drawItemIcon(context, {stack, std::round(x * s), std::round(y * s), size * s / 16}, 17);
 }
 std::map<std::string, std::uint64_t> carriedItems() {
     auto* player = screen::client() ? screen::client()->getLocalPlayer() : nullptr;
@@ -1020,7 +1022,8 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
                     std::optional<schematic::preview::Cell> pick = t.pickedFile == f.relative ? t.picked : std::nullopt;
                     schematic::preview::Tint tint{pick ? static_cast<std::uint64_t>((pick->x * 4099 + pick->y) * 4099 + pick->z) + 7 : 0,
                         [pick](int x, int y, int z) -> std::uint32_t { return pick && !(*pick == schematic::preview::Cell{x, y, z}) ? 0xff737373u : 0xffffffffu; }};
-                    if (!schematic::preview::draw(context, structure, dx + 1, top + 1, dw - 2, bottom - top - 2,
+                    float s = drawScale();
+                    if (!schematic::preview::draw(context, structure, (dx + 1) * s, (top + 1) * s, (dw - 2) * s, (bottom - top - 2) * s,
                             schematic::preview::View{yaw, t.pitch, t.zoom, t.peel, t.peelAxis, t.peelSign}, pick ? &tint : nullptr))
                         t.w = 0;
                     else drawPreviewLabel(context, dx, top, dw);
@@ -1101,7 +1104,8 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
                 auto& turn = previewTurn;
                 turn.x = dx; turn.y = pvTop; turn.w = dw; turn.h = pvHeight;
                 if (turn.file != checked->file) { turn.file = checked->file; turn.peel = 0; turn.zoom = 1; turn.picked.reset(); }
-                if (!schematic::preview::draw(context, structure, dx + 1, pvTop + 1, dw - 2, pvHeight - 2,
+                float s = drawScale();
+                if (!schematic::preview::draw(context, structure, (dx + 1) * s, (pvTop + 1) * s, (dw - 2) * s, (pvHeight - 2) * s,
                         schematic::preview::View{turn.yaw, turn.pitch, turn.zoom, turn.peel, turn.peelAxis, turn.peelSign}, &tint))
                     turn.w = 0;
                 else drawPreviewLabel(context, dx, pvTop, dw);
@@ -1245,7 +1249,7 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
     // Footer.
     fill(context,l.left,l.footerTop,l.width,1,palette::white,.14f);
     float textLeft = l.left + ShapesLayout::pad, available = l.width - 2 * ShapesLayout::pad;
-    bool shortFooter = l.docked || screen::table().shortFooter;
+    bool shortFooter = l.docked;
     std::string text = !screen::message().empty() ? screen::message() : schematicDescription();
     if (shortFooter) label(context,textLeft,l.footerTop+3,available,std::move(text),screen::message().empty() ? palette::text : palette::warning);
     else {
