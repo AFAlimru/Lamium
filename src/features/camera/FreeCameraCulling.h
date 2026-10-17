@@ -7,14 +7,13 @@ namespace lamium::camera {
 inline constexpr std::uint8_t terrainCuller(std::uint8_t requested, bool freeCamera) noexcept {
     return freeCamera && requested == 3 ? 5 : requested;
 }
-// The spectator culler draws terrain the camera is inside, but it culls less
-// than the normal type and halves the frame rate while it stays selected
-// (L-207). Only a camera below its column's surface benefits: above ground
-// the normal culler already shows everything the free camera can see.
-// `eyeY` is the camera eye's height, `surfaceY` the heightmap position of
-// the top blocking block in its column.
-inline constexpr bool freeCameraUnderground(double eyeY, int surfaceY) noexcept {
-    return eyeY < static_cast<double>(surfaceY) + 1.0;
+// The spectator culler draws terrain while the camera is inside it, where
+// the normal culler clips at chunk borders; in open space the normal culler
+// renders the view normally, and the spectator type only costs frame rate
+// while it stays selected (L-207). `insideTerrain`: the camera eye's block
+// is not air (an unloaded column or an out-of-range height reads as no).
+inline constexpr bool spectatorTerrainWanted(bool freeCamera, bool insideTerrain) noexcept {
+    return freeCamera && insideTerrain;
 }
 void startTerrainCulling() noexcept;
 void stopTerrainCulling() noexcept;

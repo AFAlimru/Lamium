@@ -445,7 +445,10 @@ Status: reproduced and measured in a local world 2026-10-18: 65 -> 32 at a
 standstill, 39 while flying, 64 after FreeCamera off. The forced 3 -> 5
 spectator override alone accounts for the drop; the detached view and
 terrain streaming do not. Fix 2026-10-18: the override is only requested
-while the camera is under the surface; in-game check pending.
+while the camera is inside terrain; measured in game 2026-10-18 (local
+world): requests arrive continuously (~85-110 per second), the type
+returns to the normal culler within a second of the camera leaving
+terrain, and the above-ground frame rate is back at 78 (49 inside).
 Check when reproducing (measure first, L-105): how much of the drop is the
 detached view drawing more of the world, how much the forced spectator
 culler (3 -> 5, L-37; its cost is unmeasured and it may cull less than the

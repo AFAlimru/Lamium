@@ -10,6 +10,8 @@
 #include "mc/legacy/ActorRuntimeID.h"
 #include "mc/world/level/BlockPos.h"
 #include "mc/world/level/BlockSource.h"
+#include "mc/world/level/block/Block.h"
+#include "mc/world/level/dimension/Dimension.h"
 #include <Windows.h>
 #include <atomic>
 #include <cmath>
@@ -41,7 +43,7 @@ bool gameCode(void* address) {
 
 LL_TYPE_INSTANCE_HOOK(TerrainCullerRequest, ll::memory::HookPriority::Normal, LevelRendererCameraListeners,
     cullerTarget, void, LevelCullerType requested) {
-    bool own = false, free = false, underground = false;
+    bool own = false, free = false, inside = false;
     try {
         if (enabled() && GetCurrentThreadId() == rendererThread.load()) {
             auto& renderer = static_cast<LevelRenderer&>(mLevelRenderer);
@@ -51,20 +53,27 @@ LL_TYPE_INSTANCE_HOOK(TerrainCullerRequest, ll::memory::HookPriority::Normal, Le
             auto* player = own ? client.getLocalPlayer() : nullptr;
             free = player && player->hasRuntimeID()
                 && CameraSessions::instance().freeCameraFor(client, player->getRuntimeID().rawID);
-            // Above ground the normal culler already shows what the free
-            // camera sees, so the spectator culler is only worth its frame
-            // cost while the camera itself is under the surface (L-207).
+            // The spectator culler draws terrain while the camera is inside
+            // it, where the normal culler clips at chunk borders (L-37). In
+            // open space — above ground, in caves, under the Nether ceiling —
+            // the normal culler renders the view normally, so the extra
+            // frame cost is not paid (L-207).
             if (free) {
                 if (auto ray = CameraSessions::instance().detachedViewRay(client)) {
+                    BlockPos at{static_cast<int>(std::floor(ray->x)), static_cast<int>(std::floor(ray->y)),
+                                static_cast<int>(std::floor(ray->z))};
+                    auto const& range = player->getDimension().mHeightRange;
                     auto& region = player->getDimensionBlockSource();
-                    BlockPos at{static_cast<int>(std::floor(ray->x)), 0, static_cast<int>(std::floor(ray->z))};
-                    underground = freeCameraUnderground(ray->y, static_cast<int>(region.getHeightmapPos(at).y));
+                    // An unloaded column or a height outside the dimension
+                    // reads as no terrain, never as a surface to swap for.
+                    if (at.y >= range->mMin && at.y < range->mMax && region.getChunkAt(at))
+                        inside = !region.getBlock(at).isAir();
                 }
             }
         }
     } catch (...) { unavailable("native request ownership could not be verified"); }
     auto native = static_cast<std::uint8_t>(requested);
-    auto selected = terrainCuller(native, free && underground && versionSensitiveAllowed(capability));
+    auto selected = terrainCuller(native, spectatorTerrainWanted(free, inside) && versionSensitiveAllowed(capability));
     origin(static_cast<LevelCullerType>(selected));
     if (!own || !enabled() || native != 3) return;
     // Observe the unmodified call first; never guess an ABI from the slot alone.

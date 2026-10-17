@@ -212,10 +212,12 @@ L-207 follow-up (2026-10-18): the frame-rate report was measured in a local
 world. At a standstill on open ground the drop (65 -> 32 frames per second,
 64 after FreeCamera off) is this forced 3 -> 5 override alone; the detached
 view and terrain streaming do not account for it (39 while flying). The
-override is now gated to the camera eye being under its column's heightmap,
-where the revealed terrain is actually wanted; above ground the normal
-culler stays and the cost is not paid. Binding, ownership and
-retained-field validation are unchanged.
+override is now gated to the camera eye being inside terrain (its block is
+not air; an unloaded column or a height outside the dimension reads as no):
+that is the case it exists for, while open space — above ground, inside
+caves and under the Nether ceiling — keeps the normal culler and does not
+pay the cost. Binding, ownership and retained-field validation are
+unchanged.
 
 Runtime status: **underground terrain checked in a local world and on BDS**
 by the maintainer on `d56b81e`, 2026-10-07, Minecraft 1.26.51.01 / LeviLamina
