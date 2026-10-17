@@ -12,6 +12,20 @@ void check(bool, char const*);
 namespace {
 using namespace lamium::map;
 bool near(double a, double b, double epsilon = 1e-6) { return std::abs(a - b) <= epsilon; }
+// The scan loop's shape (Minimap.cpp `scan()`), pure: a call walks at most
+// `cells` cells and collects the chunks a scan would stop at, resuming at
+// the walk, so several calls in a row walk on like the real scan path.
+std::vector<ChunkKey> dueCells(TileCache const& cache, ScanWalk& walk, ChunkKey center, int radius, double now,
+                               int cells, int layer = 0, int tolerance = 1 << 20) {
+    std::vector<ChunkKey> due;
+    walkAt(walk, center, radius);
+    for (int i = 0; i < cells; ++i) {
+        auto key = walkCell(walk);
+        if (scanDue(cache.find(key), walk.ring, now, layer, tolerance)) due.push_back(key);
+        if (!walkStep(walk, radius)) break;
+    }
+    return due;
+}
 void geometry() {
     check(chunkOf(0, 0) == ChunkKey{0, 0} && chunkOf(15, 15) == ChunkKey{0, 0} && chunkOf(16, -1) == ChunkKey{1, -1},
           "chunk of non-negative and just-negative blocks");
@@ -55,25 +69,225 @@ void geometry() {
     check(chunkRadius(128, false) == 5 && chunkRadius(128, true) == 7 && chunkRadius(32, false) == 2,
           "scan radius covers the map and its turning corners");
 }
+// Recording follows the view distance (L-206): the floor is the old fixed
+// range, the ceiling the game's own view-distance maximum.
+void recording() {
+    check(recordingBlocks(12, 96) == 384 && recordingBlocks(6, 96) == 384 && recordingBlocks(0, 96) == 384,
+          "recording keeps the old fixed range as its floor");
+    check(recordingBlocks(32, 96) == 1024 && recordingBlocks(48, 96) == 1536, "recording follows the view distance");
+    check(recordingBlocks(120, 96) == 3072 && recordingBlocks(32, 24) == 768, "recording stops at the game's maximum");
+    check(recordingBlocks(-4, 0) == 384 && recordingBlocks(200, -1) == 3072, "broken option values fall back");
+}
+// The scan walk (L-206 review): rings from the middle out, a bounded number
+// of cells looked at per call, and progress that lives in the walk and not
+// in the tiles, so the display cache's eviction cannot rewind it.
+void scanning() {
+    // A pass walks every cell of every ring once, nearer rings first.
+    ScanWalk walk;
+    walkAt(walk, {5, -3}, 2);
+    std::vector<ChunkKey> cells;
+    for (;;) {
+        cells.push_back(walkCell(walk));
+        if (!walkStep(walk, 2)) break;
+    }
+    auto ring = [](ChunkKey k) { return std::max(std::abs(k.x - 5), std::abs(k.z + 3)); };
+    bool inOrder = true, onceEach = true;
+    for (size_t i = 0; i < cells.size(); ++i) {
+        if (i && ring(cells[i]) < ring(cells[i - 1])) inOrder = false;
+        if (ring(cells[i]) > 2) onceEach = false;
+        for (size_t j = 0; j < i; ++j)
+            if (cells[j] == cells[i]) onceEach = false;
+    }
+    check(cells.size() == 25 && cells[0] == ChunkKey{5, -3}, "the walk starts at the center chunk");
+    check(inOrder, "nearer rings come first");
+    check(onceEach && walk.ring == 0 && walk.step == 0, "a pass covers each cell once and returns to the center");
+
+    // A scanned area: nothing due, and a call still looks at a bounded
+    // number of cells before the next one walks on.
+    TileCache scanned;
+    for (int z = -1; z <= 1; ++z)
+        for (int x = -1; x <= 1; ++x) {
+            auto& tile = scanned.put({x, z});
+            tile.loaded = true;
+            tile.scannedAt = 10;
+        }
+    ScanWalk quiet;
+    check(dueCells(scanned, quiet, {0, 0}, 1, 10.5, 100).empty(), "a scanned area has nothing due");
+    ScanWalk bounded;
+    dueCells(scanned, bounded, {0, 0}, 1, 10.5, 4);
+    check(bounded.ring == 1 && bounded.step == 3, "a call looks at at most the given number of cells, then resumes");
+
+    // Progress does not depend on the display cache (L-206 review): every
+    // call evicts the rings beyond `keep`, exactly like scan() does, and the
+    // walk still reaches the far ring, looking at each cell of the pass once.
+    TileCache far;
+    ScanWalk record;
+    int const radius = 12, keep = 3, perCall = 64;
+    int examined = 0, laps = 0;
+    bool reachedFar = false;
+    for (int calls = 0; calls < 32 && laps == 0; ++calls) {
+        walkAt(record, {0, 0}, radius);
+        for (int i = 0; i < perCall; ++i) {
+            auto key = walkCell(record);
+            ++examined;
+            if (scanDue(far.find(key), record.ring, 0)) {
+                auto& tile = far.put(key);
+                tile.loaded = true;
+                tile.scannedAt = 0;
+                if (record.ring == radius) reachedFar = true;
+            }
+            if (!walkStep(record, radius)) {
+                ++laps;
+                break;
+            }
+        }
+        far.evict({0, 0}, keep); // the display cache drops the far rings
+    }
+    check(laps == 1 && reachedFar, "the walk reaches the far ring despite the display eviction");
+    check(examined == 1 + 4 * radius * (radius + 1), "eviction does not make a pass look at a cell twice");
+
+    // The walk follows the player: ordinary walking keeps its place; a jump
+    // or a radius that no longer holds it starts over at the center.
+    ScanWalk followed;
+    walkAt(followed, {0, 0}, 5);
+    for (int i = 0; i < 3; ++i) walkStep(followed, 5);
+    auto keptRing = followed.ring, keptStep = followed.step;
+    walkAt(followed, {-4, 2}, 5);
+    check(followed.ring == keptRing && followed.step == keptStep && followed.center == ChunkKey{-4, 2},
+          "walking keeps the walk's place");
+    walkAt(followed, {60, 2}, 5);
+    check(followed.ring == 0 && followed.step == 0, "a jump farther than the restart range starts the walk over");
+    ScanWalk shrunk;
+    walkAt(shrunk, {0, 0}, 5);
+    for (int i = 0; i < 20; ++i) walkStep(shrunk, 5);
+    walkAt(shrunk, {0, 0}, 1);
+    check(shrunk.ring == 0 && shrunk.step == 0, "a radius that no longer holds the walk starts it over");
+}
+void scheduledScanning() {
+    TileCache cache;
+    for (int z = -4; z <= 4; ++z)
+        for (int x = -4; x <= 4; ++x) {
+            auto& tile = cache.put({x, z});
+            tile.loaded = true;
+            tile.layer = 64;
+        }
+    ScanSchedule schedule;
+    schedule.sweep.ring = 97;
+    schedule.nearNext = false;
+    std::vector<ChunkKey> scanned;
+    auto scan = [&](ChunkKey key) {
+        scanned.push_back(key);
+        auto& tile = cache.put(key);
+        tile.loaded = true;
+        tile.layer = 64;
+        tile.scannedAt = 2;
+        return true;
+    };
+    auto oneChunk = [] { return true; }; // The first scan uses the whole time budget.
+    for (int call = 0; call < 2; ++call)
+        scanBatch(cache, schedule, {0, 0}, 97, 2, 64, 0, scan, oneChunk);
+    check(scanned.size() == 2 && scanned[1] == ChunkKey{0, 0},
+          "an overdue center updates on the next near turn while the sweep is at ring 97");
+    check(schedule.sweep.ring == 97 && schedule.sweep.step == 1,
+          "near updates preserve the wide sweep's progress with a one-chunk budget");
+
+    schedule.nearNext = true;
+    scanBatch(cache, schedule, {1, 0}, 97, 2, 64, 0, scan, oneChunk);
+    check(scanned.back() == ChunkKey{1, 0} && schedule.sweep.ring == 97,
+          "crossing a chunk boundary updates the new center without waiting for the outer rings");
+    schedule.nearNext = true;
+    scanBatch(cache, schedule, {1, 0}, 97, 2, 80, 0, scan, oneChunk);
+    check(scanned.size() == 4 && scanned.back() == ChunkKey{1, 0},
+          "a changed cave layer updates near the player even when the old tile is fresh");
+
+    TileCache missing;
+    ScanSchedule busy;
+    busy.sweep.ring = 97;
+    int nearAttempts = 0, farAttempts = 0;
+    for (int call = 0; call < 12; ++call)
+        scanBatch(missing, busy, {0, 0}, 97, 0, 0, 0, [&](ChunkKey key) {
+            if (key == ChunkKey{0, 0}) ++nearAttempts;
+            else ++farAttempts;
+            return true; // Near tiles stay due: the sweep must still get turns.
+        }, oneChunk);
+    check(nearAttempts == 6 && farAttempts == 6 && busy.sweep.step == 6,
+          "a continuously due near area cannot starve the outer sweep");
+
+    ScanSchedule waiting;
+    waiting.sweep.ring = 97;
+    int attempts = 0;
+    auto resources = [&](ChunkKey key) {
+        ++attempts;
+        return key != ChunkKey{0, 0};
+    };
+    int completed = scanBatch(missing, waiting, {0, 0}, 97, 0, 0, 0, resources, oneChunk);
+    completed += scanBatch(missing, waiting, {0, 0}, 97, 0, 0, 0, resources, oneChunk);
+    completed += scanBatch(missing, waiting, {0, 0}, 97, 0, 0, 0, resources, oneChunk);
+    check(completed == 1 && attempts == 3 && waiting.sweep.step == 1,
+          "a near texture wait retries without blocking the wide sweep's next turn");
+
+    TileCache fresh;
+    for (int z = -12; z <= 12; ++z)
+        for (int x = -12; x <= 12; ++x) {
+            auto& tile = fresh.put({x, z});
+            tile.loaded = true;
+            tile.scannedAt = 10;
+        }
+    ScanSchedule bounded;
+    int unexpected = 0;
+    scanBatch(fresh, bounded, {0, 0}, 12, 10, 0, 0, [&](ChunkKey) { ++unexpected; return true; }, [] { return false; });
+    ScanWalk expected;
+    for (int i = 0; i < scanCellsPerCall - 81; ++i) walkStep(expected, 12);
+    check(unexpected == 0 && bounded.sweep.ring == expected.ring && bounded.sweep.step == expected.step,
+          "near and wide searches share one cell budget even when no chunks need scanning");
+
+    TileCache evicted;
+    ScanSchedule outer;
+    bool reachedFar = false, leftCenter = false, finished = false;
+    for (int call = 0; call < 2000 && !finished; ++call) {
+        scanBatch(evicted, outer, {0, 0}, 12, 0, 0, 0, [&](ChunkKey key) {
+            auto& tile = evicted.put(key);
+            tile.loaded = true;
+            if (std::max(std::abs(key.x), std::abs(key.z)) == 12) reachedFar = true;
+            return true;
+        }, oneChunk);
+        evicted.evict({0, 0}, 4);
+        leftCenter = leftCenter || outer.sweep.ring > 0;
+        finished = leftCenter && outer.sweep.ring == 0;
+    }
+    check(reachedFar && finished, "scheduled near updates still let the wide sweep finish despite display eviction");
+}
 void tiles() {
     TileCache cache;
-    auto order = scanOrder(cache, {3, -4}, 2, 0, 100);
-    check(order.size() == 25 && order[0] == ChunkKey{3, -4}, "the center chunk is scanned first");
+    ScanWalk firstWalk;
+    auto first = dueCells(cache, firstWalk, {3, -4}, 2, 0, 100);
+    check(first.size() == 25 && first[0] == ChunkKey{3, -4}, "the center chunk is scanned first");
     bool ringOrder = true;
-    for (size_t i = 1; i < order.size(); ++i) {
+    for (size_t i = 1; i < first.size(); ++i) {
         auto ring = [&](ChunkKey k) { return std::max(std::abs(k.x - 3), std::abs(k.z + 4)); };
-        if (ring(order[i]) < ring(order[i - 1])) ringOrder = false;
+        if (ring(first[i]) < ring(first[i - 1])) ringOrder = false;
     }
     check(ringOrder, "nearer rings come first");
-    check(scanOrder(cache, {0, 0}, 3, 0, 5).size() == 5, "the order stops at its limit");
+    ScanWalk cappedWalk;
+    auto capped = dueCells(cache, cappedWalk, {0, 0}, 3, 0, 5);
+    check(capped.size() == 5, "a call looks at a bounded number of cells");
+    auto resumed = dueCells(cache, cappedWalk, {0, 0}, 3, 0, 5);
+    bool overlap = false;
+    for (auto a : capped)
+        for (auto b : resumed) if (a == b) overlap = true;
+    check(resumed.size() == 5 && !overlap, "the next call resumes where the last stopped");
     auto& tile = cache.put({0, 0});
     tile.loaded = true;
     tile.scannedAt = 10;
     cache.put({1, 0}) = Tile{{}, true, 10};
-    auto fresh = scanOrder(cache, {0, 0}, 1, 10.5, 100);
+    ScanWalk freshWalk;
+    auto fresh = dueCells(cache, freshWalk, {0, 0}, 1, 10.5, 100);
     check(fresh.size() == 7, "fresh chunks are not scanned again");
-    auto later = scanOrder(cache, {0, 0}, 1, 11.5, 100);
-    check(later.size() == 9 && later[7] == ChunkKey{0, 0}, "stale chunks follow unseen ones");
+    ScanWalk staleWalk;
+    auto later = dueCells(cache, staleWalk, {0, 0}, 1, 11.5, 100);
+    check(later.size() == 9 && later[0] == ChunkKey{0, 0}, "stale chunks are picked up again, nearest first");
+    check(std::find(later.begin(), later.end(), ChunkKey{1, 0}) != later.end(),
+          "a stale seen chunk comes back with the unseen ones");
     cache.put({1, 1}) = Tile{{}, false, 10};
     check(rescanAfter(5, false) < rescanAfter(0, true) && rescanAfter(9, true) > rescanAfter(2, true),
           "missing chunks retry soon, far chunks rescan rarely");
@@ -203,12 +417,14 @@ void cave() {
     auto& tile = cache.put({0, 0});
     tile.loaded = true;
     tile.layer = 64;
-    check(scanOrder(cache, {0, 0}, 0, 0, 10, 64, 0).empty() && scanOrder(cache, {0, 0}, 0, 0, 10, 65, 0).size() == 1,
+    ScanWalk atLayer, otherLayer, waiting, retried;
+    check(dueCells(cache, atLayer, {0, 0}, 0, 0, 10, 64, 0).empty()
+          && dueCells(cache, otherLayer, {0, 0}, 0, 0, 10, 65, 0).size() == 1,
           "a cave chunk scanned at another layer is scanned again");
     tile.scannedAt = 0;
-    check(scanOrder(cache, {0, 0}, 0, .6, 10, 64, 0).empty(), "a complete chunk waits");
+    check(dueCells(cache, waiting, {0, 0}, 0, .6, 10, 64, 0).empty(), "a complete chunk waits");
     tile.partial = true;
-    check(scanOrder(cache, {0, 0}, 0, .6, 10, 64, 0).size() == 1, "a chunk with missing blocks is retried soon");
+    check(dueCells(cache, retried, {0, 0}, 0, .6, 10, 64, 0).size() == 1, "a chunk with missing blocks is retried soon");
     Frame frame;
     frame.pixels = 4;
     frame.blocks = 4;
@@ -293,6 +509,9 @@ void mapTests() {
     cave();
     radar();
     geometry();
+    recording();
+    scanning();
+    scheduledScanning();
     tiles();
     image();
 }

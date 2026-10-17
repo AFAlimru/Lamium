@@ -8,6 +8,19 @@ runtime coverage is in [VALIDATION.md](VALIDATION.md), with evidence in
 
 ## Current implementation
 
+Recording-range update (2026-10-17, L-206): recording follows the client's
+view distance with the previous 384-block width as its floor and the game's
+reported maximum (capped at 96 chunks) as its ceiling. Each scan path keeps
+a persistent wide sweep independent of display-cache eviction and alternates
+it with a nearest-first search within four chunks. This keeps nearby changes,
+new player positions and cave layers from waiting for a full wide pass,
+including when the minimap is off. Both searches share the 512-cell lookup
+cap and the existing time budget (1.5 ms display, 1 ms recording); even a
+one-chunk budget gives both paths turns. Pure regression tests cover nearby
+refreshes, movement, layers, resource waits, fairness, lookup bounds and
+completion despite eviction. In-game coverage and frame times at 32/64/96
+chunks remain unchecked for this update.
+
 Bug fix checked locally (2026-10-15, L-199, `d5978e2`): world-marker distance,
 range filtering and near/far ordering follow the rendered FreeCamera eye;
 outside FreeCamera they retain the player's horizontal feet distance.
@@ -429,9 +442,15 @@ with runs, shading, 2:1 downsampling), `WorldMapView.h` (view, zoom steps
 player kept in memory; a worker thread per joined world reads and saves
 region files, builds images by level from regions or the level below with
 an LRU of about 40 MB, and is joined on world exit and mod stop; damaged
-files count as missing), `Minimap.cpp` `record()` (scans 384 blocks around
-the player with its own 1 ms budget whenever the world map is on; chunks
-the client has not loaded are filled from the saved regions, Overworld
+files count as missing), `Minimap.cpp` `record()` (scans out to the view
+distance around the player, never below 384 blocks and never above the
+game's own view-distance maximum, with its own 1 ms budget whenever the
+world map is on; the display and recording scans walk the rings with a
+cursor that resumes where it stopped, alternates with nearby refreshes and
+looks at a bounded number of cells per frame, so a mostly scanned wide area
+costs bounded tile lookups and display-cache eviction cannot rewind the
+recording's progress (L-206 review); chunks the client has not loaded are
+filled from the saved regions, Overworld
 caves are not recorded), `WorldMap.cpp` (the screen: a pool of 96 runtime
 textures, at most 6 uploads per frame, 16 in the first second, a coarser
 image stands in until a tile is ready), and a world-map mode in the

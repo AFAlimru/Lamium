@@ -95,4 +95,15 @@ inline int chunkRadius(int blocks, bool rotating) {
     double half = std::max(1, blocks) / 2.0 * (rotating ? 1.4143 : 1.0);
     return static_cast<int>(std::ceil(half / 16.0)) + 1;
 }
+
+// Blocks across the range the world map records around the player (BACKLOG
+// L-206): follows the view distance, in blocks, keeping the old fixed range
+// as its floor and stopping at the game's own view-distance maximum (96
+// chunks when the game reports none). Pure; Minimap.cpp reads the options.
+inline constexpr int recordingBlocksFloor = 384;
+inline int recordingBlocks(int viewDistanceChunks, int maximumChunks) {
+    int ceiling = std::clamp(maximumChunks > 0 ? maximumChunks : 96, 1, 96);
+    int chunks = std::clamp(viewDistanceChunks, 0, ceiling);
+    return std::max(recordingBlocksFloor, chunks * 32);
+}
 }
