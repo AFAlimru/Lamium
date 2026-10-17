@@ -1,8 +1,11 @@
 #pragma once
+#include <array>
+#include <cmath>
 #include <cstdint>
 #include <optional>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 namespace lamium::visuals::connected {
@@ -42,6 +45,14 @@ inline bool connectsPane(std::string_view identifier) {
 // Joined sides in the texture image's own orientation (x to the right, y down).
 enum Side : unsigned { Left = 1, Right = 2, Top = 4, Bottom = 8 };
 using Mask = unsigned;
+// L-208: a corner variant of a two-side mask (one joined side on each axis),
+// drawn with the source's own texels kept at the joined corner.
+inline constexpr Mask Corner = 16;
+inline bool cornerPose(Mask mask) {
+    Mask sided = mask & 15;
+    bool left = (sided & Left) != 0, right = (sided & Right) != 0;
+    return (left != right) && ((sided & Top) != 0) != ((sided & Bottom) != 0);
+}
 // How many source texels a block drops on each joined side of a face, out of
 // 16 (scaled for larger textures), and the texel each refilled strip starts
 // from (-1: the texels right inside the border). Glass loses its frame on
@@ -52,12 +63,14 @@ struct Rule {
     int left = 1, right = 1, top = 1, bottom = 1;
     bool sidesOnly = false;
     int leftFrom = -1, rightFrom = -1, topFrom = -1, bottomFrom = -1;
+    // L-208: the rule also gets sprites that keep a border at a two-side corner.
+    bool corners = false;
 };
 // Far away the game samples shrunk copies of the texture that average
 // neighboring texels, so a strip right next to the frame let it show again at
 // a distance (2026-10-11). Glass drops two texels and refills them from the
 // middle. Sandstone copies rock from the middle too (chosen in game).
-inline Rule glassRule() { return {2, 2, 2, 2, false, 7, 7, 7, 7}; }
+inline Rule glassRule() { return {2, 2, 2, 2, false, 7, 7, 7, 7, true}; }
 inline Rule bookshelfRule() { return {1, 1, 0, 0, true}; }
 inline Rule sandstoneRule() { return {0, 0, 4, 0, true, -1, -1, 8, -1}; }
 inline std::optional<Rule> ruleFor(std::string_view identifier) {
@@ -88,7 +101,10 @@ inline std::vector<Mask> variantMasks(Rule const& rule) {
     std::vector<Mask> out;
     Mask all = ruleSides(rule);
     for (Mask mask = 1; mask < 16; ++mask)
-        if ((mask & all) == mask) out.push_back(mask);
+        if ((mask & all) == mask) {
+            out.push_back(mask);
+            if (rule.corners && cornerPose(mask)) out.push_back(mask | Corner);
+        }
     return out;
 }
 // The source column (row) texel `i` of a joined face shows.
@@ -101,10 +117,26 @@ inline int sourceTexel(int i, int size, bool lowJoined, int low, int lowFrom, bo
 // The sprite for `mask`, from RGBA pixels in rows.
 inline std::vector<std::uint32_t> bake(std::uint32_t const* pixels, int width, int height, Rule const& rule, Mask mask) {
     std::vector<std::uint32_t> out(static_cast<size_t>(width) * height);
+    // A corner variant (L-208) keeps the source's own texels where the two
+    // joined strips meet, so the border bends around the turn on the face.
+    Mask sided = mask & 15;
+    bool corner = (mask & Corner) != 0;
+    int cornerLowX = 0, cornerX = 0, cornerLowY = 0, cornerY = 0;
+    if (corner) {
+        if (sided & Left) cornerX = width * rule.left / 16;
+        else { cornerLowX = width - width * rule.right / 16; cornerX = width; }
+        if (sided & Top) cornerY = height * rule.top / 16;
+        else { cornerLowY = height - height * rule.bottom / 16; cornerY = height; }
+    }
     for (int y = 0; y < height; ++y) {
-        int sy = sourceTexel(y, height, mask & Top, rule.top, rule.topFrom, mask & Bottom, rule.bottom, rule.bottomFrom);
+        int sy = sourceTexel(y, height, sided & Top, rule.top, rule.topFrom, sided & Bottom, rule.bottom, rule.bottomFrom);
+        bool cornerRow = corner && y >= cornerLowY && y < cornerY;
         for (int x = 0; x < width; ++x) {
-            int sx = sourceTexel(x, width, mask & Left, rule.left, rule.leftFrom, mask & Right, rule.right, rule.rightFrom);
+            if (cornerRow && x >= cornerLowX && x < cornerX) {
+                out[static_cast<size_t>(y) * width + x] = pixels[static_cast<size_t>(y) * width + x];
+                continue;
+            }
+            int sx = sourceTexel(x, width, sided & Left, rule.left, rule.leftFrom, sided & Right, rule.right, rule.rightFrom);
             out[static_cast<size_t>(y) * width + x] = pixels[static_cast<size_t>(sy) * width + sx];
         }
     }
@@ -181,5 +213,42 @@ Parts partsOf(Boxes const& boxes) {
         if (box.z0 < 0.1f) parts.part[partIndex(Part::North)] = true;
     }
     return parts;
+}
+// L-208: the corner an L-shaped pane turns around - one arm on each axis - in
+// block coordinates, or none for straight, lone or absent panes.
+inline std::optional<std::pair<float, float>> paneCornerPoint(Parts const& parts) {
+    if (!parts.present) return std::nullopt;
+    if (parts.has(Part::West) == parts.has(Part::East) || parts.has(Part::North) == parts.has(Part::South))
+        return std::nullopt;
+    return std::pair{parts.has(Part::East) ? 0.437f : 0.562f, parts.has(Part::North) ? 0.562f : 0.437f};
+}
+// The post faces the corner rewrite applies to: the center part's own quads.
+inline bool panePostQuad(Part part, float x0, float x1, float z0, float z1) {
+    return part == Part::Center && x0 > 0.4f && x1 < 0.6f && z0 > 0.4f && z1 < 0.6f;
+}
+// The u the post face's corner-end vertices take: the tile border at the pane
+// corner they sit on, chosen by the side their own u leans to. Away vertices
+// keep their u; false when no vertex sits at the corner (then the quad is the
+// mask path's). Only u moves - the border the vertical joins shift on v is
+// never touched here.
+inline bool paneCornerU(std::array<float, 4> const& x, std::array<float, 4> const& z, std::array<float, 4> const& u,
+                        float cornerX, float cornerZ, float uLow, float uHigh, std::array<float, 4>& out) {
+    bool any = false, away = false;
+    float atU = 0, awayU = 0;
+    for (size_t i = 0; i < u.size(); ++i) {
+        if (std::abs(x[i] - cornerX) < 0.06f && std::abs(z[i] - cornerZ) < 0.06f) {
+            atU = u[i];
+            any = true;
+        } else {
+            awayU = u[i];
+            away = true;
+        }
+    }
+    if (!any) return false;
+    float target = !away || atU > awayU ? uHigh : uLow;
+    out = u;
+    for (size_t i = 0; i < u.size(); ++i)
+        if (std::abs(x[i] - cornerX) < 0.06f && std::abs(z[i] - cornerZ) < 0.06f) out[i] = target;
+    return true;
 }
 }
