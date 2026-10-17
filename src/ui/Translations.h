@@ -53,6 +53,7 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"feature.connectedTextures", "Connected Textures", "つながるテクスチャ"},
     {"connectedTextures", "Connected Textures: {}", "つながるテクスチャ: {}"},
     {"key.Lamium.connectedtextures", "Toggle Connected Textures", "つながるテクスチャを切り替え"},
+    {"connectedCorners", "Corner edges", "角の縁を残す"},
     {"help.connectedTextures", "Glass, glass panes, bookshelves and sandstone next to the same block draw as one surface: no border between glass, no divider between side-by-side bookshelves, no band between stacked sandstone. Stained glass joins only the same color. Experimental.", "隣り合う同じブロックを 1 枚の面として描きます。ガラスと板ガラスは境目の枠線、横に並べた本棚は間の仕切り、積んだ砂岩は間の帯が消えます。色付きガラスは同じ色どうしだけつながります。実験的な機能です。"},
     {"help.hideEffects", "Hide the selected visual effects. Turning the main switch off restores all drawing and keeps your selections. Sound and gameplay stay unchanged. Experimental.", "選んだ視覚効果を隠します。全体をオフにするとすべて通常表示に戻り、個別の選択は保持されます。音やゲームの状態は変わりません。実験的な機能です。"},
     {"effectsPaused", "Main switch off", "全体OFF"},

@@ -139,6 +139,7 @@ Json encode(Settings const& settings) {
         {"visuals", {{"hideOffhand", settings.visuals.hideOffhand},
                      {"hideEffects", settings.visuals.hideEffects},
                      {"connectedTextures", settings.visuals.connectedTextures},
+                     {"connectedCorners", settings.visuals.connectedCorners},
                      {"hideWeather", settings.visuals.hideWeather}, {"hideParticles", settings.visuals.hideParticles},
                      {"hideBossBars", settings.visuals.hideBossBars}, {"hideNausea", settings.visuals.hideNausea},
                      {"hideWater", settings.visuals.hideWater}, {"hideLava", settings.visuals.hideLava},
@@ -378,6 +379,7 @@ Settings decodeSettings(std::string_view text) {
         value.visuals.hideOffhand = visuals.value("hideOffhand", value.visuals.hideOffhand);
         value.visuals.hideEffects = visuals.value("hideEffects", value.visuals.hideEffects);
         value.visuals.connectedTextures = visuals.value("connectedTextures", value.visuals.connectedTextures);
+        value.visuals.connectedCorners = visuals.value("connectedCorners", value.visuals.connectedCorners);
         value.visuals.skipServerPacks = visuals.value("skipServerPacks", value.visuals.skipServerPacks);
         value.visuals.hideWeather = visuals.value("hideWeather", value.visuals.hideWeather);
         value.visuals.hideParticles = visuals.value("hideParticles", value.visuals.hideParticles);

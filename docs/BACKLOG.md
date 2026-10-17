@@ -598,9 +598,18 @@ straight (at corners), for glass blocks and glass panes.
 Current: a face drops its border on the sides where the neighbor in the
 face's plane is the same block; a pane's L-corner post merges completely
 (screenshots in the report).
-Open: the option set and its default; glass blocks and panes; the
-generated-sprite cost of corner variants; whether it lives under the
-experimental switch.
+Status: built 2026-10-18. `visuals.connectedCorners` ("Corner edges",
+default on, under the experimental switch) keeps the border at a glass
+block's two-side corner (a corner-variant sprite with the source texels
+kept where the joined strips meet) and makes an L-shaped pane's corner
+post reach the tile border at its two outside faces. Straight and fully
+surrounded poses are unchanged.
+Checked in game 2026-10-18 (local world): with the option on the border
+bridges the turn and with it off the lines stop short at the same corner;
+a pixel diff between the two states changes only at the corner (43 px,
+peak 97) while straight runs and controls show none.
+Open: corner poses of three- and four-side joins; the generated-sprite
+cost of corner variants.
 
 ### L-196 Review license notices, source access and provenance classification
 Kind: Research, then Ready for changes supported by the findings.

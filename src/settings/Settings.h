@@ -197,6 +197,7 @@ struct Settings {
         // (maintainer, 2026-09-30).
         bool hideEffects = false;
         bool connectedTextures = false; // Glass without inner borders (L-96), Experimental
+        bool connectedCorners = true; // Keep an edge where connected glass turns a corner (L-208), Experimental
         bool hideWeather = true;
         bool hideParticles = true;
         bool hideBossBars = true;

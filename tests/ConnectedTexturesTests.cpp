@@ -33,9 +33,9 @@ void connectedTexturesTests() {
     check(ruleForTexture("textures/blocks/bookshelf")->left == ruleFor("minecraft:bookshelf")->left
               && ruleForTexture("textures/blocks/sandstone_normal")->top == ruleFor("minecraft:sandstone")->top,
           "a texture is baked with its block's rule");
-    check(variantMasks(glassRule()).size() == 15 && variantMasks(bookshelfRule()).size() == 3
+    check(variantMasks(glassRule()).size() == 19 && variantMasks(bookshelfRule()).size() == 3
               && variantMasks(sandstoneRule()).size() == 1 && variantMasks(sandstoneRule())[0] == Top,
-          "one sprite per joined combination a rule can show");
+          "one sprite per joined combination a rule can show, and a two-side corner pose twice");
     check(spriteName("textures/blocks/glass_red", Left | Top) == "lamium_ct_glass_red_5"
               && spritePath("textures/blocks/glass", 15) == "textures/blocks/lamium_ct_glass_15"
               && spriteName("textures/blocks/bookshelf", 0) == "lamium_ct_bookshelf_0",
@@ -61,6 +61,14 @@ void connectedTexturesTests() {
     auto sandstone = bake(image.data(), 16, 16, sandstoneRule(), Top);
     check(at(sandstone, 4, 0) == 804 && at(sandstone, 4, 3) == 1104 && at(sandstone, 4, 4) == 404,
           "sandstone under another shows rock rows 8-11 for its band");
+    check(cornerPose(Left | Bottom) && cornerPose(Right | Top) && !cornerPose(Left | Right) && !cornerPose(Top)
+              && !cornerPose(Left | Right | Top | Bottom),
+          "only two joined sides on different axes take a corner variant");
+    auto turn = bake(image.data(), 16, 16, glassRule(), Left | Bottom | Corner);
+    check(at(turn, 0, 15) == 1500 && at(turn, 1, 14) == 1401 && at(turn, 0, 0) == 7,
+          "a corner variant keeps its own texels at the joined corner");
+    check(at(turn, 0, 5) == 507 && at(turn, 5, 15) == 805,
+          "the joined strips still refill away from the corner");
     check(sourceTexel(1, 32, true, 2, 7, false, 0, -1) == 15 && sourceTexel(4, 32, true, 2, 7, false, 0, -1) == 4,
           "larger textures scale the strips");
     // Orientation.
