@@ -39,4 +39,12 @@ inline std::uint32_t tinted(std::uint32_t color, float r, float g, float b) {
     };
     return packColor(mul(channel(color, 0), r), mul(channel(color, 1), g), mul(channel(color, 2), b), channel(color, 3));
 }
+// Which block of a surface column the map shows. The heightmap is the top
+// light-blocking block, so the scan starts one above its position: a
+// covering block there (snow layer, carpet) wins over the ground below it.
+// Plants and anything else that does not cover its column are looked
+// through, and from the heightmap down any visible block counts.
+inline constexpr bool columnBlockWins(bool skip, bool cover, int y, int heightmapY) {
+    return !skip && (cover || y < heightmapY);
+}
 }
