@@ -77,7 +77,9 @@ L-item wins. Every entry names what the task is, not only its number.
      rule); L-192, L-193, L-194 schematic drawing (maintainer 2026-10-15:
      schematic drawing work pauses here; far-away cases remain); L-123 elytra stretched on the inventory model after FreeCamera and
      L-91 shield glint in Lamium's icons (both parked); L-132 moving with
-     the inventory screen open (paused after eight rounds).
+     the inventory screen open (paused after eight rounds); L-205 world map
+     carpet colors and L-207 FreeCamera frame rate (2026-10-17 player
+     reports, need reproductions).
    - L-196 license/provenance follow-up: verify notices and distribution
      evidence, then make the supported documentation/packaging changes.
    - Specs to agree with the maintainer before building: L-165 Mass Craft,
@@ -132,6 +134,10 @@ L-item wins. Every entry names what the task is, not only its number.
    policy does not require a full regression).
 
 The 2026-10-14 player-feedback triage is recorded as L-177 through L-189:
+reported problems are unverified and proposed behavior is still Design/Research.
+These entries do not select an implementation, priority or release.
+
+The 2026-10-17 player-feedback triage is recorded as L-205 through L-208:
 reported problems are unverified and proposed behavior is still Design/Research.
 These entries do not select an implementation, priority or release.
 
@@ -423,6 +429,28 @@ found later are handled as bugs.
 ## Bugs
 
 
+### L-205 Carpets do not draw with their colors on the world map
+Kind: Bug / Research. User report 2026-10-17.
+Status: unverified; no reproduction yet.
+A build made of wool carpet appears on the world map without the colors the
+carpets should draw (screenshots in the report). Reproduce locally with a
+small patch of each carpet color; if it does not reproduce, ask the reporter
+to keep the world. Check where the color is lost (recording or drawing) and
+which carpets are affected. [MAP.md](MAP.md)
+
+### L-207 FreeCamera halves the frame rate
+Kind: Bug / Research. User report 2026-10-17; maintainer asked the reporter
+for other observed factors the same day.
+Status: unverified; no reproduction yet. The frame rate reportedly drops by
+half while FreeCamera is on.
+Check when reproducing (measure first, L-105): how much of the drop is the
+detached view drawing more of the world, how much the forced spectator
+culler (3 -> 5, L-37; its cost is unmeasured and it may cull less than the
+normal type), and how much fast flight (up to 200 blocks/s with sprint)
+keeps terrain streaming and mesh building busy. Questions for the reporter:
+constant or only while moving; hover in place; recovery after stopping;
+speed setting. [CAMERA.md](CAMERA.md)
+
 ### L-177 Schematic mismatch highlight appears at the wrong position
 Kind: Bug / Research. User report 2026-10-14.
 Status: cause found and fix built 2026-10-14 (`0235527`), not checked in game.
@@ -548,6 +576,26 @@ find where the game draws translucent terrain relative to the camera's
 chunk, or draw the faces with a material that does not write depth.
 
 ## Feature work and research
+
+### L-206 World map recording range is a fixed radius instead of the view distance
+Kind: Design. User report 2026-10-17; maintainer 2026-10-17: fix it.
+Current: `Minimap.cpp` `record()` scans 384 blocks around the player with
+its own 1 ms budget (MAP.md). The reporter expected recording to follow the
+view distance.
+Open: the range rule (follow the view distance with a minimum/maximum?),
+how the per-frame budget and memory/cache scale with it, and what the Map
+settings show about coverage.
+
+### L-208 Connected Textures: an option to keep an edge where glass does not continue straight
+Kind: Design. User suggestion 2026-10-17; maintainer 2026-10-17: try the display option.
+Goal: an option to draw an edge/border where glass does not continue
+straight (at corners), for glass blocks and glass panes.
+Current: a face drops its border on the sides where the neighbor in the
+face's plane is the same block; a pane's L-corner post merges completely
+(screenshots in the report).
+Open: the option set and its default; glass blocks and panes; the
+generated-sprite cost of corner variants; whether it lives under the
+experimental switch.
 
 ### L-196 Review license notices, source access and provenance classification
 Kind: Research, then Ready for changes supported by the findings.
