@@ -578,13 +578,18 @@ chunk, or draw the faces with a material that does not write depth.
 ## Feature work and research
 
 ### L-206 World map recording range is a fixed radius instead of the view distance
-Kind: Design. User report 2026-10-17; maintainer 2026-10-17: fix it.
-Current: `Minimap.cpp` `record()` scans 384 blocks around the player with
-its own 1 ms budget (MAP.md). The reporter expected recording to follow the
-view distance.
-Open: the range rule (follow the view distance with a minimum/maximum?),
-how the per-frame budget and memory/cache scale with it, and what the Map
-settings show about coverage.
+Kind: Ready. User report 2026-10-17; maintainer 2026-10-17: fix it, then
+approved PR #13's range rule and merging after review fixes and main sync.
+Implemented: `record()` follows the client's view distance, retaining the
+384-block width as a floor and the reported maximum (at most 96 chunks) as
+a ceiling. No new settings rows. Display retention and time budgets stay
+bounded; a persistent sweep reaches the far rings despite cache eviction,
+alternating with nearby refreshes so local edits, movement and cave layers
+do not wait for the wide pass. The scheduler is pure and tested, including
+one-chunk budgets and resource waits. Details: MAP.md, L-206 current notes.
+Remaining: in-game recording coverage and frame times at 32/64/96 chunks,
+with the minimap off as well as on; near changes and movement during a wide
+pass. Build/tests alone do not establish these runtime results.
 
 ### L-208 Connected Textures: an option to keep an edge where glass does not continue straight
 Kind: Design. User suggestion 2026-10-17; maintainer 2026-10-17: try the display option.

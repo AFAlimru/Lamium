@@ -163,6 +163,100 @@ void scanning() {
     walkAt(shrunk, {0, 0}, 1);
     check(shrunk.ring == 0 && shrunk.step == 0, "a radius that no longer holds the walk starts it over");
 }
+void scheduledScanning() {
+    TileCache cache;
+    for (int z = -4; z <= 4; ++z)
+        for (int x = -4; x <= 4; ++x) {
+            auto& tile = cache.put({x, z});
+            tile.loaded = true;
+            tile.layer = 64;
+        }
+    ScanSchedule schedule;
+    schedule.sweep.ring = 97;
+    schedule.nearNext = false;
+    std::vector<ChunkKey> scanned;
+    auto scan = [&](ChunkKey key) {
+        scanned.push_back(key);
+        auto& tile = cache.put(key);
+        tile.loaded = true;
+        tile.layer = 64;
+        tile.scannedAt = 2;
+        return true;
+    };
+    auto oneChunk = [] { return true; }; // The first scan uses the whole time budget.
+    for (int call = 0; call < 2; ++call)
+        scanBatch(cache, schedule, {0, 0}, 97, 2, 64, 0, scan, oneChunk);
+    check(scanned.size() == 2 && scanned[1] == ChunkKey{0, 0},
+          "an overdue center updates on the next near turn while the sweep is at ring 97");
+    check(schedule.sweep.ring == 97 && schedule.sweep.step == 1,
+          "near updates preserve the wide sweep's progress with a one-chunk budget");
+
+    schedule.nearNext = true;
+    scanBatch(cache, schedule, {1, 0}, 97, 2, 64, 0, scan, oneChunk);
+    check(scanned.back() == ChunkKey{1, 0} && schedule.sweep.ring == 97,
+          "crossing a chunk boundary updates the new center without waiting for the outer rings");
+    schedule.nearNext = true;
+    scanBatch(cache, schedule, {1, 0}, 97, 2, 80, 0, scan, oneChunk);
+    check(scanned.size() == 4 && scanned.back() == ChunkKey{1, 0},
+          "a changed cave layer updates near the player even when the old tile is fresh");
+
+    TileCache missing;
+    ScanSchedule busy;
+    busy.sweep.ring = 97;
+    int nearAttempts = 0, farAttempts = 0;
+    for (int call = 0; call < 12; ++call)
+        scanBatch(missing, busy, {0, 0}, 97, 0, 0, 0, [&](ChunkKey key) {
+            if (key == ChunkKey{0, 0}) ++nearAttempts;
+            else ++farAttempts;
+            return true; // Near tiles stay due: the sweep must still get turns.
+        }, oneChunk);
+    check(nearAttempts == 6 && farAttempts == 6 && busy.sweep.step == 6,
+          "a continuously due near area cannot starve the outer sweep");
+
+    ScanSchedule waiting;
+    waiting.sweep.ring = 97;
+    int attempts = 0;
+    auto resources = [&](ChunkKey key) {
+        ++attempts;
+        return key != ChunkKey{0, 0};
+    };
+    int completed = scanBatch(missing, waiting, {0, 0}, 97, 0, 0, 0, resources, oneChunk);
+    completed += scanBatch(missing, waiting, {0, 0}, 97, 0, 0, 0, resources, oneChunk);
+    completed += scanBatch(missing, waiting, {0, 0}, 97, 0, 0, 0, resources, oneChunk);
+    check(completed == 1 && attempts == 3 && waiting.sweep.step == 1,
+          "a near texture wait retries without blocking the wide sweep's next turn");
+
+    TileCache fresh;
+    for (int z = -12; z <= 12; ++z)
+        for (int x = -12; x <= 12; ++x) {
+            auto& tile = fresh.put({x, z});
+            tile.loaded = true;
+            tile.scannedAt = 10;
+        }
+    ScanSchedule bounded;
+    int unexpected = 0;
+    scanBatch(fresh, bounded, {0, 0}, 12, 10, 0, 0, [&](ChunkKey) { ++unexpected; return true; }, [] { return false; });
+    ScanWalk expected;
+    for (int i = 0; i < scanCellsPerCall - 81; ++i) walkStep(expected, 12);
+    check(unexpected == 0 && bounded.sweep.ring == expected.ring && bounded.sweep.step == expected.step,
+          "near and wide searches share one cell budget even when no chunks need scanning");
+
+    TileCache evicted;
+    ScanSchedule outer;
+    bool reachedFar = false, leftCenter = false, finished = false;
+    for (int call = 0; call < 2000 && !finished; ++call) {
+        scanBatch(evicted, outer, {0, 0}, 12, 0, 0, 0, [&](ChunkKey key) {
+            auto& tile = evicted.put(key);
+            tile.loaded = true;
+            if (std::max(std::abs(key.x), std::abs(key.z)) == 12) reachedFar = true;
+            return true;
+        }, oneChunk);
+        evicted.evict({0, 0}, 4);
+        leftCenter = leftCenter || outer.sweep.ring > 0;
+        finished = leftCenter && outer.sweep.ring == 0;
+    }
+    check(reachedFar && finished, "scheduled near updates still let the wide sweep finish despite display eviction");
+}
 void tiles() {
     TileCache cache;
     ScanWalk firstWalk;
@@ -384,6 +478,18 @@ void colors() {
     check(usableTint(.596f, .765f, .357f) && !usableTint(0, 0, 0) && !usableTint(NAN, 1, 1),
           "a black or broken biome tint is not used");
 }
+void surface() {
+    // The heightmap (100) holds the ground under a carpet (101): the scan
+    // starts one above, and only a covering block wins there.
+    check(columnBlockWins(false, true, 101, 100), "a covering block above the heightmap wins over the ground");
+    check(columnBlockWins(false, true, 100, 100) && columnBlockWins(false, false, 99, 100),
+          "from the heightmap down, covering and other visible blocks count");
+    check(!columnBlockWins(false, false, 100, 100), "a non-covering block at the heightmap is looked through");
+    check(!columnBlockWins(false, false, 101, 100) && !columnBlockWins(false, false, 102, 100),
+          "plants and other non-covering blocks above the heightmap are looked through");
+    check(!columnBlockWins(true, true, 101, 100) && !columnBlockWins(true, false, 99, 100),
+          "skipped blocks never win");
+}
 void teleport() {
     check(canTeleport(true, false, 0, 0, 0),
           "a server listing /tp offers teleport even where the world's commands flag is off");
@@ -399,11 +505,13 @@ void teleport() {
 void mapTests() {
     teleport();
     colors();
+    surface();
     cave();
     radar();
     geometry();
     recording();
     scanning();
+    scheduledScanning();
     tiles();
     image();
 }

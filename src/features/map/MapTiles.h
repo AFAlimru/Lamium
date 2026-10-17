@@ -145,4 +145,52 @@ inline bool scanDue(Tile const* tile, int ring, double now, int layer = 0, int t
     if (!tile || std::abs(tile->layer - layer) > tolerance) return true;
     return now - tile->scannedAt >= rescanAfter(ring, tile->loaded && !tile->partial && !tile->stored);
 }
+
+struct ScanSchedule {
+    ScanWalk sweep;
+    bool nearNext = true;
+};
+inline constexpr int nearScanRadius = 4, scanCellsPerCall = 512;
+// Start the near search at the player every call, but keep the wide sweep's
+// place. Alternating due chunks lets both progress even if one scan uses the
+// whole frame's budget. The shared cell cap also bounds fresh-tile lookups.
+// scan returns false while waiting for resources; stop checks the time budget.
+template <class Scan, class Stop>
+int scanBatch(TileCache const& cache, ScanSchedule& schedule, ChunkKey center, int radius, double now,
+              int layer, int tolerance, Scan&& scan, Stop&& stop) {
+    walkAt(schedule.sweep, center, radius);
+    ScanWalk near{center};
+    int const nearRadius = std::min(radius, nearScanRadius);
+    bool nearDone = false, sweepDone = false;
+    int examined = 0, completed = 0;
+    auto next = [&](bool local) -> std::optional<ChunkKey> {
+        auto& walk = local ? near : schedule.sweep;
+        auto& done = local ? nearDone : sweepDone;
+        int limit = local ? nearRadius : radius;
+        while (!done && examined < scanCellsPerCall) {
+            ++examined;
+            auto key = walkCell(walk);
+            if (scanDue(cache.find(key), walk.ring, now, layer, tolerance)) return key;
+            if (!walkStep(walk, limit)) done = true;
+        }
+        return std::nullopt;
+    };
+    while (examined < scanCellsPerCall) {
+        bool local = schedule.nearNext;
+        auto key = next(local);
+        if (!key) {
+            local = !local;
+            key = next(local);
+        }
+        if (!key) break;
+        schedule.nearNext = !local;
+        if (!scan(*key)) break;
+        ++completed;
+        if (local) {
+            if (!walkStep(near, nearRadius)) nearDone = true;
+        } else if (!walkStep(schedule.sweep, radius)) sweepDone = true;
+        if (stop()) break;
+    }
+    return completed;
+}
 }

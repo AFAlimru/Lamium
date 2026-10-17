@@ -78,11 +78,6 @@ std::atomic<bool> facesHeld{false}; // The radar's hold key flips faces and dots
 // Per-frame scan budget; one chunk is the smallest step, so a frame may run
 // over by one chunk's scan.
 constexpr double scanBudgetSeconds = .0015, recordBudgetSeconds = .001;
-// Cells of the scan walk looked at per call, per scan path: the bounded part
-// of the search for the next chunks to scan (L-206 review), so a mostly
-// scanned wide area costs this many tile lookups and not one per ring
-// position out to the radius. The scans themselves stay time-budgeted.
-constexpr int walkCellsPerCall = 512;
 // Kept around the player beyond the widest view (enlarged, turning) so
 // zooming back is instant and an enlarged map does not evict what it shows.
 // A display bound only: the recording walk carries its progress out to the
@@ -164,14 +159,10 @@ struct Diagnostics {
 
 struct State {
     TileCache surface, cave; // Each view keeps its own data, so switching is instant.
-    // The scan walks (L-206 review), one per scan path beside the caches,
-    // not inside them: the display eviction prunes far tiles but must not
-    // touch the recording walk's progress (recordWalk), or recording would
-    // rescan the inner outer rings forever and never reach the far edge. The
-    // minimap and the recording walk on their own cursors cannot rewind each
-    // other's place either.
-    ScanWalk surfaceWalk, caveWalk; // The minimap's display scans.
-    ScanWalk recordWalk;            // The recording scan; the current dimension only.
+    // Each path keeps its sweep despite display eviction, and alternates it
+    // with near updates so a wide recording pass cannot hold up the player.
+    ScanSchedule surfaceWalk, caveWalk; // The minimap's display scans.
+    ScanSchedule recordWalk;            // The recording scan; the current dimension only.
     unsigned generation = ~0u, storeEpoch = ~0u;
     int dimension = -1;
     unsigned revision = 0;
@@ -360,21 +351,22 @@ bool sawPending = false;
 std::uint32_t blockColor(BlockLook const& look, BlockSource& region, BlockPos const& pos, Block const& block) {
     return look.color ? biomeTint(look.tint, region, pos, block, look.color) : mapColor(region, pos, block);
 }
-// One surface column. The heightmap gives the top light-blocking block; a
-// covering block just above it (snow layer, carpet) wins, blocks that are
+// One surface column. The heightmap gives the top light-blocking block; the
+// scan starts one above it, since the heightmap misses covering blocks
+// (snow layers, carpets), and a covering block there wins. Blocks that are
 // not drawn (glass) are looked through. Colors are what the world shows: the
 // top texture's average times the biome tint.
 std::optional<Column> surfaceColumn(IClientInstance& client, BlockSource& region, int x, int z, short minY,
                                     bool voidFloor) {
     auto top = region.getHeightmapPos(BlockPos{x, 0, z});
-    int y = top.y;
+    int y = top.y + 1;
     for (int steps = 0; y >= minY && steps < 16; --y, ++steps) {
         BlockPos pos{x, y, z};
         auto const& block = region.getBlock(pos);
         auto const* look = blockLook(client, block);
         if (!look) return std::nullopt;
         if (look->pending) { sawPending = true; return Column{}; }
-        if (look->skip || (y == top.y && !look->cover)) continue;
+        if (!columnBlockWins(look->skip, look->cover, y, top.y)) continue;
         tintNotReady = false;
         if (auto color = blockColor(*look, region, pos, block)) {
             if (tintNotReady) sawPending = columnProvisional = true;
@@ -468,12 +460,9 @@ Scan scanChunk(IClientInstance& client, BlockSource& region, TileCache& cache, C
     ++state.revision;
     return Scan::Done;
 }
-// One scan call for one path: the walk looks at at most `walkCellsPerCall`
-// cells, resuming where the last call stopped, and scans the chunks due among
-// them until the time budget runs out. A chunk the client has not fully
-// loaded leaves the walk on its cell and stops the call (as before): it is
-// scanned again, not skipped, once its blocks arrive.
-void scan(IClientInstance& client, LocalPlayer& player, TileCache& cache, ScanWalk& walk, double centerX, double centerZ,
+// Near updates and the persistent sweep share the cell and time budgets.
+// A scan waiting for texture resources retries on its path's next turn.
+void scan(IClientInstance& client, LocalPlayer& player, TileCache& cache, ScanSchedule& walk, double centerX, double centerZ,
           bool cave, int layer, double blocks, bool rotate, double time, Saved saved, double budget = scanBudgetSeconds) {
     auto& region = player.getDimensionBlockSource();
     auto center = chunkOf(blockFloor(centerX), blockFloor(centerZ));
@@ -481,18 +470,9 @@ void scan(IClientInstance& client, LocalPlayer& player, TileCache& cache, ScanWa
     textureLoadsLeft = textureLoadsPerFrame;
     if (!cave) layer = 0;
     int const radius = chunkRadius(static_cast<int>(blocks), rotate), tolerance = cave ? 0 : 1 << 20;
-    walkAt(walk, center, radius);
-    for (int examined = 0; examined < walkCellsPerCall; ++examined) {
-        auto key = walkCell(walk);
-        if (!scanDue(cache.find(key), walk.ring, time, layer, tolerance)) {
-            if (!walkStep(walk, radius)) break; // one pass at most per call
-            continue;
-        }
-        if (scanChunk(client, region, cache, key, cave, layer, time, saved) == Scan::Waiting) break;
-        ++state.diagnostics.chunks;
-        if (!walkStep(walk, radius)) break;
-        if (now() - start >= budget) break;
-    }
+    state.diagnostics.chunks += scanBatch(cache, walk, center, radius, time, layer, tolerance,
+        [&](ChunkKey key) { return scanChunk(client, region, cache, key, cave, layer, time, saved) == Scan::Done; },
+        [&] { return now() - start >= budget; });
     state.diagnostics.scanSeconds += now() - start;
     if (time - state.evictedAt > 1) {
         state.surface.evict(center, keepChunks);
