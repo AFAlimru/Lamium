@@ -432,7 +432,11 @@ an LRU of about 40 MB, and is joined on world exit and mod stop; damaged
 files count as missing), `Minimap.cpp` `record()` (scans out to the view
 distance around the player, never below 384 blocks and never above the
 game's own view-distance maximum, with its own 1 ms budget whenever the
-world map is on; chunks
+world map is on; the display and recording scans walk the rings with a
+cursor that resumes where it stopped and looks at a bounded number of cells
+per frame, so a mostly scanned wide area costs bounded tile lookups and the
+display cache's eviction cannot rewind the recording's progress (L-206
+review); chunks
 the client has not loaded are filled from the saved regions, Overworld
 caves are not recorded), `WorldMap.cpp` (the screen: a pool of 96 runtime
 textures, at most 6 uploads per frame, 16 in the first second, a coarser
