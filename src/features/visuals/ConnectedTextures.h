@@ -1,8 +1,11 @@
 #pragma once
+#include <array>
+#include <cmath>
 #include <cstdint>
 #include <optional>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 namespace lamium::visuals::connected {
@@ -210,5 +213,42 @@ Parts partsOf(Boxes const& boxes) {
         if (box.z0 < 0.1f) parts.part[partIndex(Part::North)] = true;
     }
     return parts;
+}
+// L-208: the corner an L-shaped pane turns around - one arm on each axis - in
+// block coordinates, or none for straight, lone or absent panes.
+inline std::optional<std::pair<float, float>> paneCornerPoint(Parts const& parts) {
+    if (!parts.present) return std::nullopt;
+    if (parts.has(Part::West) == parts.has(Part::East) || parts.has(Part::North) == parts.has(Part::South))
+        return std::nullopt;
+    return std::pair{parts.has(Part::East) ? 0.437f : 0.562f, parts.has(Part::North) ? 0.562f : 0.437f};
+}
+// The post faces the corner rewrite applies to: the center part's own quads.
+inline bool panePostQuad(Part part, float x0, float x1, float z0, float z1) {
+    return part == Part::Center && x0 > 0.4f && x1 < 0.6f && z0 > 0.4f && z1 < 0.6f;
+}
+// The u the post face's corner-end vertices take: the tile border at the pane
+// corner they sit on, chosen by the side their own u leans to. Away vertices
+// keep their u; false when no vertex sits at the corner (then the quad is the
+// mask path's). Only u moves - the border the vertical joins shift on v is
+// never touched here.
+inline bool paneCornerU(std::array<float, 4> const& x, std::array<float, 4> const& z, std::array<float, 4> const& u,
+                        float cornerX, float cornerZ, float uLow, float uHigh, std::array<float, 4>& out) {
+    bool any = false, away = false;
+    float atU = 0, awayU = 0;
+    for (size_t i = 0; i < u.size(); ++i) {
+        if (std::abs(x[i] - cornerX) < 0.06f && std::abs(z[i] - cornerZ) < 0.06f) {
+            atU = u[i];
+            any = true;
+        } else {
+            awayU = u[i];
+            away = true;
+        }
+    }
+    if (!any) return false;
+    float target = !away || atU > awayU ? uHigh : uLow;
+    out = u;
+    for (size_t i = 0; i < u.size(); ++i)
+        if (std::abs(x[i] - cornerX) < 0.06f && std::abs(z[i] - cornerZ) < 0.06f) out[i] = target;
+    return true;
 }
 }

@@ -18,9 +18,11 @@
 #include "mc/world/level/block/Block.h"
 #include "mc/world/level/block/BlockType.h"
 #include <algorithm>
+#include <array>
 #include <atomic>
 #include <cmath>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 namespace lamium::visuals::connected {
@@ -159,11 +161,9 @@ void adjustPane(Tessellator& tessellator, Block const& block, size_t before) {
     // L-208: an L-shaped pane (arms on two adjacent sides) keeps vanilla's
     // fully merged corner post; with the option on, the post's outside faces
     // reach the tile border at their corner ends, so the turn keeps an edge.
-    auto self = partsAt(block, pane.pos);
-    bool postCorner = corners.load() && self.present && (self.has(Part::West) != self.has(Part::East))
-        && (self.has(Part::North) != self.has(Part::South));
-    float cornerX = self.has(Part::East) ? 0.437f : 0.562f;
-    float cornerZ = self.has(Part::North) ? 0.562f : 0.437f;
+    // With the option off no pane geometry is computed at all.
+    std::optional<std::pair<float, float>> postCorner;
+    if (corners.load()) postCorner = paneCornerPoint(partsAt(block, pane.pos));
     auto const& g = pane.glass;
     float uLow = std::min(g.u0, g.u1), uHigh = std::max(g.u0, g.u1), vLow = std::min(g.v0, g.v1), vHigh = std::max(g.v0, g.v1);
     float du = (uHigh - uLow) / g.width, dv = (vHigh - vLow) / g.height;
@@ -186,18 +186,15 @@ void adjustPane(Tessellator& tessellator, Block const& block, size_t before) {
         }
         bool glass = uvs[q].x >= uLow - e && uvs[q].x <= uHigh + e && uvs[q].y >= vLow - e && uvs[q].y <= vHigh + e;
         if (!glass) continue;
-        if (postCorner && part == Part::Center && x0 > 0.4f && x1 < 0.6f && z0 > 0.4f && z1 < 0.6f) {
-            float atCorner = 0, away = 0;
-            for (size_t i = q; i < q + 4; ++i) {
-                float x = positions[i].x - bx, z = positions[i].z - bz;
-                if (std::abs(x - cornerX) < 0.06f && std::abs(z - cornerZ) < 0.06f) atCorner = uvs[i].x;
-                else away = uvs[i].x;
+        if (postCorner && panePostQuad(part, x0, x1, z0, z1)) {
+            std::array<float, 4> x{}, z{}, u{}, turned{};
+            for (size_t i = 0; i < 4; ++i) {
+                x[i] = positions[q + i].x - bx;
+                z[i] = positions[q + i].z - bz;
+                u[i] = uvs[q + i].x;
             }
-            float target = atCorner > away ? uHigh : uLow;
-            for (size_t i = q; i < q + 4; ++i) {
-                float x = positions[i].x - bx, z = positions[i].z - bz;
-                if (std::abs(x - cornerX) < 0.06f && std::abs(z - cornerZ) < 0.06f) uvs[i].x = target;
-            }
+            if (paneCornerU(x, z, u, postCorner->first, postCorner->second, uLow, uHigh, turned))
+                for (size_t i = 0; i < 4; ++i) uvs[q + i].x = turned[i];
         }
         Mask mask = 0;
         for (size_t i = q; i < q + 4; ++i) {

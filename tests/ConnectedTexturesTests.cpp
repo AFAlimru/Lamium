@@ -1,5 +1,7 @@
 #include "features/visuals/ConnectedTextures.h"
+#include <array>
 #include <cstdint>
+#include <utility>
 #include <vector>
 void check(bool, char const*);
 void connectedTexturesTests() {
@@ -94,4 +96,46 @@ void connectedTexturesTests() {
     auto straight = partsOf(std::vector<Box>{{0.f, 1.f, 0.438f, 0.562f}});
     check(straight.has(Part::East) && straight.has(Part::West), "a straight pane has both arms");
     check(!Parts{}.has(Part::Center), "no pane, no parts");
+    // L-208: the L corner point, per orientation, and the post UV rewrite.
+    auto arms = [](bool east, bool west, bool south, bool north) {
+        Parts parts;
+        parts.present = true;
+        parts.part[partIndex(Part::Center)] = true;
+        parts.part[partIndex(Part::East)] = east;
+        parts.part[partIndex(Part::West)] = west;
+        parts.part[partIndex(Part::South)] = south;
+        parts.part[partIndex(Part::North)] = north;
+        return parts;
+    };
+    auto es = paneCornerPoint(arms(true, false, true, false));
+    auto en = paneCornerPoint(arms(true, false, false, true));
+    auto wn = paneCornerPoint(arms(false, true, false, true));
+    auto ws = paneCornerPoint(arms(false, true, true, false));
+    check(es && es->first == 0.437f && es->second == 0.437f && en && en->first == 0.437f && en->second == 0.562f
+              && wn && wn->first == 0.562f && wn->second == 0.562f && ws && ws->first == 0.562f && ws->second == 0.437f,
+          "each L orientation turns around the corner away from its two arms");
+    check(!paneCornerPoint(arms(true, true, false, false)) && !paneCornerPoint(arms(false, false, true, true))
+              && !paneCornerPoint(arms(true, false, false, false)) && !paneCornerPoint(arms(false, false, false, false)),
+          "straight, lone and absent panes have no corner to turn around");
+    check(panePostQuad(Part::Center, 0.437f, 0.563f, 0.437f, 0.563f)
+              && !panePostQuad(Part::East, 0.437f, 1.f, 0.437f, 0.563f) && !panePostQuad(Part::Center, 0.f, 0.437f, 0.437f, 0.563f),
+          "only the post's own faces carry the corner");
+    std::array<float, 4> px{}, pz{}, pu{}, turned{};
+    auto postFace = [&](float cornerX, float nearU, float farU) {
+        float other = cornerX < 0.5f ? 0.562f : 0.437f;
+        px = {cornerX, other, cornerX, other};
+        pz = {0.437f, 0.437f, 0.437f, 0.437f};
+        pu = {nearU, farU, nearU, farU};
+    };
+    postFace(0.437f, 0.9f, 0.1f);
+    check(paneCornerU(px, pz, pu, 0.437f, 0.437f, 0.25f, 0.75f, turned) && turned[0] == 0.75f && turned[2] == 0.75f
+              && turned[1] == 0.1f && turned[3] == 0.1f,
+          "the corner-end vertices reach the border their u leans to");
+    postFace(0.562f, 0.1f, 0.9f);
+    check(paneCornerU(px, pz, pu, 0.562f, 0.437f, 0.25f, 0.75f, turned) && turned[0] == 0.25f && turned[2] == 0.25f
+              && turned[1] == 0.9f && turned[3] == 0.9f,
+          "a corner leaning to the low border takes uLow");
+    postFace(0.562f, 0.9f, 0.1f);
+    check(!paneCornerU(px, pz, pu, 0.562f, 0.562f, 0.25f, 0.75f, turned),
+          "a quad that does not sit at the corner is left to the mask path");
 }
