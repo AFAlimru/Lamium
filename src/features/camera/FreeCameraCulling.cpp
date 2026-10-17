@@ -8,8 +8,11 @@
 #include "mc/client/renderer/game/LevelRenderer.h"
 #include "mc/client/renderer/game/LevelRendererPlayer.h"
 #include "mc/legacy/ActorRuntimeID.h"
+#include "mc/world/level/BlockPos.h"
+#include "mc/world/level/BlockSource.h"
 #include <Windows.h>
 #include <atomic>
+#include <cmath>
 #include <vector>
 #pragma comment(lib, "version.lib")
 
@@ -38,7 +41,7 @@ bool gameCode(void* address) {
 
 LL_TYPE_INSTANCE_HOOK(TerrainCullerRequest, ll::memory::HookPriority::Normal, LevelRendererCameraListeners,
     cullerTarget, void, LevelCullerType requested) {
-    bool own = false, free = false;
+    bool own = false, free = false, underground = false;
     try {
         if (enabled() && GetCurrentThreadId() == rendererThread.load()) {
             auto& renderer = static_cast<LevelRenderer&>(mLevelRenderer);
@@ -48,10 +51,20 @@ LL_TYPE_INSTANCE_HOOK(TerrainCullerRequest, ll::memory::HookPriority::Normal, Le
             auto* player = own ? client.getLocalPlayer() : nullptr;
             free = player && player->hasRuntimeID()
                 && CameraSessions::instance().freeCameraFor(client, player->getRuntimeID().rawID);
+            // Above ground the normal culler already shows what the free
+            // camera sees, so the spectator culler is only worth its frame
+            // cost while the camera itself is under the surface (L-207).
+            if (free) {
+                if (auto ray = CameraSessions::instance().detachedViewRay(client)) {
+                    auto& region = player->getDimensionBlockSource();
+                    BlockPos at{static_cast<int>(std::floor(ray->x)), 0, static_cast<int>(std::floor(ray->z))};
+                    underground = freeCameraUnderground(ray->y, static_cast<int>(region.getHeightmapPos(at).y));
+                }
+            }
         }
     } catch (...) { unavailable("native request ownership could not be verified"); }
     auto native = static_cast<std::uint8_t>(requested);
-    auto selected = terrainCuller(native, free && versionSensitiveAllowed(capability));
+    auto selected = terrainCuller(native, free && underground && versionSensitiveAllowed(capability));
     origin(static_cast<LevelCullerType>(selected));
     if (!own || !enabled() || native != 3) return;
     // Observe the unmodified call first; never guess an ABI from the slot alone.

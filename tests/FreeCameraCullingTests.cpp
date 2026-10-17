@@ -10,6 +10,15 @@ void freeCameraCullingTests() {
             check(terrainCuller(requested, true) == requested, "capture, shadow and unknown cullers are not replaced");
     }
     check(terrainCuller(3, true) == 5, "FreeCamera uses the observed spectator terrain visibility");
+    using lamium::camera::freeCameraUnderground;
+    check(freeCameraUnderground(70.0, 70) && freeCameraUnderground(40.5, 70),
+        "an eye inside the top block or below it is underground");
+    check(!freeCameraUnderground(71.0, 70) && !freeCameraUnderground(100.5, 63),
+        "an eye at the surface or in the air above stays above ground");
+    check(terrainCuller(3, freeCameraUnderground(60.0, 70)) == 5,
+        "the spectator culler is only asked for under the surface");
+    check(terrainCuller(3, freeCameraUnderground(90.0, 70)) == 3,
+        "above ground the free camera keeps the normal culler");
     unsigned rebuilds = 0;
     std::uint8_t last = 255;
     auto frame = [&](bool free) {

@@ -208,6 +208,15 @@ restoration and hiding on .7; the ordinary log records native `3 -> 5`
 retention. Server coverage for this migration remains open. The older
 runtime coverage below belongs to .6.
 
+L-207 follow-up (2026-10-18): the frame-rate report was measured in a local
+world. At a standstill on open ground the drop (65 -> 32 frames per second,
+64 after FreeCamera off) is this forced 3 -> 5 override alone; the detached
+view and terrain streaming do not account for it (39 while flying). The
+override is now gated to the camera eye being under its column's heightmap,
+where the revealed terrain is actually wanted; above ground the normal
+culler stays and the cost is not paid. Binding, ownership and
+retained-field validation are unchanged.
+
 Runtime status: **underground terrain checked in a local world and on BDS**
 by the maintainer on `d56b81e`, 2026-10-07, Minecraft 1.26.51.01 / LeviLamina
 Client 26.51.6 (DLL `822285b2...5f8bfe7c`, trace options off). The runtime log
