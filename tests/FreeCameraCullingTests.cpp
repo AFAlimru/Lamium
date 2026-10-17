@@ -10,6 +10,13 @@ void freeCameraCullingTests() {
             check(terrainCuller(requested, true) == requested, "capture, shadow and unknown cullers are not replaced");
     }
     check(terrainCuller(3, true) == 5, "FreeCamera uses the observed spectator terrain visibility");
+    using lamium::camera::spectatorTerrainWanted;
+    check(spectatorTerrainWanted(true, true), "the spectator culler is wanted while the camera is inside terrain");
+    check(!spectatorTerrainWanted(true, false) && !spectatorTerrainWanted(false, true),
+        "open space and other cameras stay on the normal culler");
+    check(terrainCuller(3, spectatorTerrainWanted(true, true)) == 5
+              && terrainCuller(3, spectatorTerrainWanted(true, false)) == 3,
+        "the native request follows the camera being inside terrain");
     unsigned rebuilds = 0;
     std::uint8_t last = 255;
     auto frame = [&](bool free) {
