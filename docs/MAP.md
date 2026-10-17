@@ -429,8 +429,10 @@ with runs, shading, 2:1 downsampling), `WorldMapView.h` (view, zoom steps
 player kept in memory; a worker thread per joined world reads and saves
 region files, builds images by level from regions or the level below with
 an LRU of about 40 MB, and is joined on world exit and mod stop; damaged
-files count as missing), `Minimap.cpp` `record()` (scans 384 blocks around
-the player with its own 1 ms budget whenever the world map is on; chunks
+files count as missing), `Minimap.cpp` `record()` (scans out to the view
+distance around the player, never below 384 blocks and never above the
+game's own view-distance maximum, with its own 1 ms budget whenever the
+world map is on; chunks
 the client has not loaded are filled from the saved regions, Overworld
 caves are not recorded), `WorldMap.cpp` (the screen: a pool of 96 runtime
 textures, at most 6 uploads per frame, 16 in the first second, a coarser

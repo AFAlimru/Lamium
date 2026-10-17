@@ -25,6 +25,7 @@
 #include "mc/client/renderer/screen/MinecraftUIRenderContext.h"
 #include "mc/client/renderer/TextureGroup.h"
 #include "mc/client/game/IClientInstance.h"
+#include "mc/client/options/IOptionRegistry.h"
 #include "mc/client/player/LocalPlayer.h"
 #include "mc/client/network/ClientNetworkHandler.h"
 #include "mc/network/packet/AvailableCommandsPacket.h"
@@ -77,8 +78,6 @@ std::atomic<bool> facesHeld{false}; // The radar's hold key flips faces and dots
 // Per-frame scan budget; one chunk is the smallest step, so a frame may run
 // over by one chunk's scan.
 constexpr double scanBudgetSeconds = .0015, recordBudgetSeconds = .001;
-// Recorded around the player: about what the client keeps loaded.
-constexpr int recordBlocks = 384;
 // Kept around the player beyond the widest view (enlarged, turning) so
 // zooming back is instant and an enlarged map does not evict what it shows.
 int const keepChunks = chunkRadius(zoomSteps.back() * 2, true) + 4;
@@ -830,7 +829,12 @@ void record(IClientInstance& client, Settings::Map const& settings, bool scannin
         Saved saved{true, mapLayer(view->dimension, layer)};
         store::frame(place.world, place.mapFolder, saved.layer, view->playerX, view->playerZ, time);
         if (!scanning || !settings.worldMap) return;
-        scan(client, *player, cave ? state.cave : state.surface, view->playerX, view->playerZ, cave, layer, recordBlocks,
+        // Recording follows the view distance (L-206): what the client keeps
+        // loaded around the player, from the old fixed range up to the game's
+        // own view-distance maximum.
+        auto const& options = client.getOptions();
+        double blocks = recordingBlocks(options.getViewDistanceChunks(), options.getMaxViewDistanceChunksRaw());
+        scan(client, *player, cave ? state.cave : state.surface, view->playerX, view->playerZ, cave, layer, blocks,
              false, time, saved, recordBudgetSeconds);
     } catch (std::exception const& error) {
         state.failed = true;

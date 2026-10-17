@@ -55,6 +55,15 @@ void geometry() {
     check(chunkRadius(128, false) == 5 && chunkRadius(128, true) == 7 && chunkRadius(32, false) == 2,
           "scan radius covers the map and its turning corners");
 }
+// Recording follows the view distance (L-206): the floor is the old fixed
+// range, the ceiling the game's own view-distance maximum.
+void recording() {
+    check(recordingBlocks(12, 96) == 384 && recordingBlocks(6, 96) == 384 && recordingBlocks(0, 96) == 384,
+          "recording keeps the old fixed range as its floor");
+    check(recordingBlocks(32, 96) == 1024 && recordingBlocks(48, 96) == 1536, "recording follows the view distance");
+    check(recordingBlocks(120, 96) == 3072 && recordingBlocks(32, 24) == 768, "recording stops at the game's maximum");
+    check(recordingBlocks(-4, 0) == 384 && recordingBlocks(200, -1) == 3072, "broken option values fall back");
+}
 void tiles() {
     TileCache cache;
     auto order = scanOrder(cache, {3, -4}, 2, 0, 100);
@@ -280,6 +289,7 @@ void mapTests() {
     cave();
     radar();
     geometry();
+    recording();
     tiles();
     image();
 }
