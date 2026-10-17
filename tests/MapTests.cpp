@@ -262,6 +262,18 @@ void colors() {
     check(usableTint(.596f, .765f, .357f) && !usableTint(0, 0, 0) && !usableTint(NAN, 1, 1),
           "a black or broken biome tint is not used");
 }
+void surface() {
+    // The heightmap (100) holds the ground under a carpet (101): the scan
+    // starts one above, and only a covering block wins there.
+    check(columnBlockWins(false, true, 101, 100), "a covering block above the heightmap wins over the ground");
+    check(columnBlockWins(false, true, 100, 100) && columnBlockWins(false, false, 99, 100),
+          "from the heightmap down, covering and other visible blocks count");
+    check(!columnBlockWins(false, false, 100, 100), "a non-covering block at the heightmap is looked through");
+    check(!columnBlockWins(false, false, 101, 100) && !columnBlockWins(false, false, 102, 100),
+          "plants and other non-covering blocks above the heightmap are looked through");
+    check(!columnBlockWins(true, true, 101, 100) && !columnBlockWins(true, false, 99, 100),
+          "skipped blocks never win");
+}
 void teleport() {
     check(canTeleport(true, false, 0, 0, 0),
           "a server listing /tp offers teleport even where the world's commands flag is off");
@@ -277,6 +289,7 @@ void teleport() {
 void mapTests() {
     teleport();
     colors();
+    surface();
     cave();
     radar();
     geometry();
