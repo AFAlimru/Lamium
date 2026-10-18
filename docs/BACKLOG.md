@@ -435,8 +435,13 @@ missing entity's name tag is hidden, from the render camera; it names no
 block and needed no change. The same mechanism as L-217 remained in the
 card's ghost search: it walks the eye ray, so at a block's edge it could
 enter the air cell above the outlined block and show a ghost there. From
-the body the search now stops just short of the game's own hit. Not
-reproduced; not checked in game. Check: with a schematic ghost directly
+the body the search now stops just short of the game's own hit. Checked
+2026-10-19 (`b66feb0`): not enough. A black wool ghost (527, 63, -460) under
+a real (extra) block and in front of real stone: aimed just under the seam
+the card named the stone behind; the eye ray met the real block above the
+ghost and the search stopped there. Second fix: the search runs on the
+game's own line, back from its hit along the view, so the eye's offset no
+longer matters. Not checked in game. Check: with a schematic ghost directly
 above a real block, aim just under the seam; the card names the real block.
 
 ### L-207 FreeCamera halves the frame rate
