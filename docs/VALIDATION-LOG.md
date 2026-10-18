@@ -12,6 +12,18 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-224 target card at ghost edges (2026-10-19)
+
+Same environment as L-222. `507c605` (DLL
+`6f31895e105bee9094bbc875688860fda55f406bc91536e6f5a100c2a725fe32`): stacked
+ghost and block fixed; with ghosts set diagonally (touching at an edge) to
+a real block or another ghost, slowly turning showed what was behind for a
+moment, flipped between the two ghosts several times, and ghost edges
+flickered (screenshots). `30b66ce` (DLL
+`050a0dd5094de4cdb6c0d7c4e0c0b475c7bc86661fdebf6e148c97b5671e9ec9`): one
+change between diagonal ghosts, nothing from behind, no flicker at edges.
+Maintainer: OK. Not checked: a ghost in front of an entity.
+
 ## L-223 position labels (2026-10-19)
 
 `cdc02c5` (DLL `b6aea5601ae2df9363d83602e69d541ab04007be6eda788eb980ca2b4572a9a1`),
