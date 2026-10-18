@@ -12,6 +12,18 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-213 FreeCamera culler check tolerates switching (2026-10-18)
+
+Combined test build `6c2fde2` (main with PR #20 and #21, plus
+`l213-culler-check`; DLL
+`296cdca7f9a270c03ebdb96fcebb0ac8a7a6118b186ee5b41277bc499d167dc3`), LIP
+instance, Minecraft 1.26.51.01, LeviLamina Client 26.51.7, Windows x64, local
+world, maintainer. Flying the FreeCamera in and out of terrain for a while:
+the underground view kept working and the setting was not paused (before:
+paused 19 s after binding). Noted: entering even a small cave rebuilds the
+view when the culler switches (L-207 behavior), which may not suit everyone
+(L-214).
+
 ## L-211 finer map images stand in after zooming out (2026-10-18)
 
 Combined test builds with `l211-map-zoom-out-stand-in` (`6c720f3`) merged

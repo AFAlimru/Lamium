@@ -10,6 +10,18 @@ Runtime status is in [VALIDATION.md](VALIDATION.md), the evidence in
 
 ## Bugs
 
+### L-213 FreeCamera underground view turns itself off mid-session
+Kind: Bug. Maintainer 2026-10-18 (in game, `38d7d5a`): during FreeCamera the
+underground view worked, then stopped; settings showed "FreeCamera:
+Underground visibility" paused, log: "native culler update did not retain
+its requested type" 19 s after the hook bound. Since L-207 the culler type
+switches between normal (3) and spectator (5) as the camera crosses
+terrain, and one native update that still showed the previous type failed
+the contract check for the session. Fix (`l213-culler-check`): only 30
+such updates in a row fail it (`CullerCheck`, tested). Not checked in game.
+Done 2026-10-18: merged from PR #23 after the maintainer's in-game check
+(VALIDATION-LOG). Follow-up on how the switching feels: L-214.
+
 ### L-211 World map goes dark when zooming out until coarse images are built
 Kind: Bug / Ready. Maintainer report 2026-10-18 (during L-210 work): zooming
 the world map out turns already drawn areas dark ("Loading N") until the
