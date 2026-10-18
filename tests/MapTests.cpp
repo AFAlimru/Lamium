@@ -165,6 +165,18 @@ void scanning() {
     backoff.saw({10, 0}, Seen::Partial, 0, 50);
     check(waitsLonger(53.1), "a complete result resets the backoff");
 
+    // A chunk that arrives makes its incomplete neighbors due at once, so a
+    // patch the client sent fills together instead of as scattered specks.
+    ScanGrid patch;
+    seeAll(patch, dueNow(patch, {0, 0}, 20, 0), Seen::Partial, 0);
+    patch.saw({10, 0}, Seen::Complete, 0, 1);
+    auto soon = patch.due(1.1, 0, 1 << 20, 16, 1000);
+    bool neighbors = true;
+    for (ChunkKey key : {ChunkKey{9, -1}, ChunkKey{11, 0}, ChunkKey{10, 1}})
+        if (std::find(soon.begin(), soon.end(), key) == soon.end()) neighbors = false;
+    check(neighbors && std::find(soon.begin(), soon.end(), ChunkKey{15, 0}) == soon.end(),
+          "an arrived chunk's incomplete neighbors are retried at once, others keep waiting");
+
     // Following the player: chunks still in range keep their state, new ones
     // are due, a jump starts over.
     ScanGrid moving;

@@ -38,7 +38,11 @@ one, a 2,048-cell window that moves on for retries and stale rescans), and
 the kinds take turns across calls (never-seen every other turn). The run
 also showed what stays dark is mostly what the client never loaded: the
 range filled after the view was turned, which suggests the client asks
-for terrain toward where the player looks (not confirmed). A pass that finds
+for terrain toward where the player looks (not confirmed).
+Fourth run (2026-10-18): the range filled, but as scattered specks, since
+each chunk was picked up at its own retry time. A chunk seen complete now
+makes its incomplete neighbors due at once, so a patch the client sent
+fills together. The large view-direction gaps were L-212 (distance fog). A pass that finds
 nothing skips until the next chunk is due. The 30 s diagnostics line counts
 the recording range by state, to tell unvisited chunks from blocks the
 client never received. A pure test walks a player through the world and

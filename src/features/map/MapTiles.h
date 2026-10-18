@@ -169,12 +169,29 @@ public:
         auto i = index(key);
         return i ? &cells_[*i] : nullptr;
     }
+    // A chunk seen complete makes its incomplete neighbors due at once: the
+    // client sends terrain in patches, and each chunk's own retry time
+    // differed, so a patch that had arrived showed up chunk by chunk as
+    // scattered specks (maintainer, 2026-10-18).
     void saw(ChunkKey key, Seen seen, int layer, double now) {
-        if (auto i = index(key)) {
-            auto& cell = cells_[*i];
-            int tries = seen != Seen::Complete && cell.seen == seen ? std::min(cell.tries + 1, 8) : 0;
-            cell = {seen, static_cast<std::uint8_t>(tries), layer, now};
-        }
+        auto i = index(key);
+        if (!i) return;
+        auto& cell = cells_[*i];
+        bool arrived = seen == Seen::Complete && cell.seen != Seen::Complete;
+        int tries = seen != Seen::Complete && cell.seen == seen ? std::min(cell.tries + 1, 8) : 0;
+        cell = {seen, static_cast<std::uint8_t>(tries), layer, now};
+        if (!arrived) return;
+        for (int dz = -1; dz <= 1; ++dz)
+            for (int dx = -1; dx <= 1; ++dx) {
+                ChunkKey next{key.x + dx, key.z + dz};
+                auto j = index(next);
+                if (!j || (dx == 0 && dz == 0)) continue;
+                auto& neighbor = cells_[*j];
+                if (neighbor.seen != Seen::Missing && neighbor.seen != Seen::Partial) continue;
+                neighbor.at = -1e9;
+                neighbor.tries = 0;
+                if (hints_.size() < maxHints) hints_.push_back(next);
+            }
     }
     void clear() { *this = {}; }
     // Up to `limit` due chunks, the kinds (near, never seen, the window's
@@ -195,10 +212,22 @@ public:
         while (freshFrom_ < order_.size() && kind(freshFrom_) != Due::Fresh) ++freshFrom_;
         for (size_t i = freshFrom_, looked = 0; i < order_.size() && lists[1].size() < limit && looked < scanWindowCells; ++i, ++looked)
             if (kind(i) == Due::Fresh) lists[1].push_back(key(i));
+        // Neighbors of chunks that just arrived go first among the rest.
+        size_t used = 0;
+        for (; used < hints_.size() && lists[2].size() < limit; ++used) {
+            auto j = index(hints_[used]);
+            if (!j) continue;
+            ChunkKey offset{hints_[used].x - center_.x, hints_[used].z - center_.z};
+            auto k = dueOf(cells_[*j], ringOf(offset), now, layer, tolerance, staleRadius, next);
+            if (k == Due::Retry || k == Due::Stale) lists[2].push_back(hints_[used]);
+        }
+        hints_.erase(hints_.begin(), hints_.begin() + static_cast<std::ptrdiff_t>(used));
         for (size_t looked = 0; looked < std::min(scanWindowCells, order_.size()) && lists[2].size() < limit; ++looked) {
             window_ = (window_ + 1) % order_.size();
             auto k = kind(window_);
-            if (k == Due::Retry || k == Due::Stale) lists[2].push_back(key(window_));
+            if ((k == Due::Retry || k == Due::Stale)
+                && std::find(lists[2].begin(), lists[2].end(), key(window_)) == lists[2].end())
+                lists[2].push_back(key(window_));
         }
         // Never-seen chunks get every other turn, near and the rest share the
         // others; a kind with nothing due passes its turn on.
@@ -250,6 +279,8 @@ private:
     size_t freshFrom_ = 0;        // No never-seen cell before this.
     size_t window_ = 0;           // Where the retry window stopped.
     size_t turn_ = 0;             // Where the turn pattern starts this call.
+    std::vector<ChunkKey> hints_; // Neighbors of chunks that just arrived.
+    static constexpr size_t maxHints = 512;
 };
 inline constexpr size_t scanChunksPerCall = 64;
 // One call of a scan path: the due chunks, nearest first, until the time
