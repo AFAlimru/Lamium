@@ -121,6 +121,45 @@ void scanning() {
     check(ring1 < unseen && unseen < ring5 && ring5 < static_cast<long long>(staleFar.size()),
           "unseen chunks come after stale near ones and before stale far ones");
 
+    // The edge of what the client loads (L-210, seen in game): hundreds of
+    // partial chunks there must not keep the scan from the chunks beyond.
+    ScanGrid edge;
+    auto everything = dueNow(edge, {0, 0}, 20, 0);
+    for (auto key : everything) {
+        double d = std::sqrt(double(key.x * key.x + key.z * key.z));
+        if (d <= 8) edge.saw(key, Seen::Complete, 0, 0);
+        else if (d <= 10) edge.saw(key, Seen::Partial, 0, 0);
+    }
+    auto next = edge.due(10, 0, 1 << 20, 16, 100000);
+    size_t lastNever = 0, firstPartial = next.size();
+    for (size_t i = 0; i < next.size(); ++i) {
+        auto seen = edge.find(next[i])->seen;
+        if (seen == Seen::Never) lastNever = i;
+        if (seen == Seen::Partial && firstPartial == next.size()) firstPartial = i;
+    }
+    check(lastNever > 0 && firstPartial < next.size() && lastNever < firstPartial,
+          "chunks never looked at come before retries of partial ones");
+    ScanGrid retries;
+    seeAll(retries, dueNow(retries, {0, 0}, 12, 0), Seen::Complete, 0);
+    retries.saw({10, 0}, Seen::Partial, 0, 5);
+    retries.saw({0, 11}, Seen::Missing, 0, 1);
+    retries.saw({7, 0}, Seen::Partial, 0, 3);
+    auto order = retries.due(30, 0, 1 << 20, 0, 1000);
+    auto place = [&](ChunkKey key) { return std::find(order.begin(), order.end(), key) - order.begin(); };
+    check(place({0, 11}) < place({7, 0}) && place({7, 0}) < place({10, 0}) && place({10, 0}) < static_cast<long long>(order.size()),
+          "far retries go longest waiting first");
+    ScanGrid backoff;
+    seeAll(backoff, dueNow(backoff, {0, 0}, 12, 0), Seen::Complete, 0);
+    for (double at : {0.0, 10.0, 20.0}) backoff.saw({10, 0}, Seen::Partial, 0, at);
+    auto waitsLonger = [&](double now) {
+        auto list = backoff.due(now, 0, 1 << 20, 0, 1000);
+        return std::find(list.begin(), list.end(), ChunkKey{10, 0}) != list.end();
+    };
+    check(!waitsLonger(24) && waitsLonger(32.1), "a far chunk that stays partial is retried less often");
+    backoff.saw({10, 0}, Seen::Complete, 0, 40);
+    backoff.saw({10, 0}, Seen::Partial, 0, 50);
+    check(waitsLonger(53.1), "a complete result resets the backoff");
+
     // Following the player: chunks still in range keep their state, new ones
     // are due, a jump starts over.
     ScanGrid moving;

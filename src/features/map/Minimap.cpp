@@ -151,14 +151,16 @@ struct Diagnostics {
         try { Runtime::instance().self().getLogger().info("Minimap: {}", text); } catch (...) {}
     }
     // `recorded`: the recording range by what was seen (never, missing,
-    // partial, complete), to tell unvisited chunks from unreceived blocks.
-    void report(double time, size_t tiles, std::array<int, 4> recorded) {
+    // partial, complete) and how far the client had chunks, to tell
+    // unvisited chunks from what the client never sent.
+    void report(double time, size_t tiles, ScanGrid::Counts recorded) {
         if (windowStart == 0) { windowStart = time; return; }
         if (time - windowStart < 30) return;
         log(std::format("{} composes avg {:.2f} ms, {} uploads avg {:.2f} ms, {} chunks scanned avg {:.3f} ms, {} tiles kept, "
-                        "recording range {} unseen / {} missing / {} partial / {} complete",
+                        "recording range {} unseen / {} missing / {} partial / {} complete, reach {} chunks",
             composes, composes ? composeSeconds * 1000 / composes : 0., uploads, uploads ? uploadSeconds * 1000 / uploads : 0.,
-            chunks, chunks ? scanSeconds * 1000 / chunks : 0., tiles, recorded[0], recorded[1], recorded[2], recorded[3]));
+            chunks, chunks ? scanSeconds * 1000 / chunks : 0., tiles, recorded.seen[0], recorded.seen[1], recorded.seen[2],
+            recorded.seen[3], recorded.reach));
         *this = Diagnostics{lines, time};
     }
 };
@@ -169,6 +171,7 @@ struct State {
     // cache and its eviction (L-206 review, L-210).
     ScanGrid surfaceGrid, caveGrid; // The minimap's display scans.
     ScanGrid recordGrid;            // The recording scan; the current dimension only.
+    double recordBlocks = 0;        // Logged when it changes.
     unsigned generation = ~0u, storeEpoch = ~0u;
     int dimension = -1;
     unsigned revision = 0;
@@ -864,6 +867,11 @@ void record(IClientInstance& client, Settings::Map const& settings, bool scannin
         // beyond the display's reach are recorded once per visit.
         auto const& options = client.getOptions();
         double blocks = recordingBlocks(options.getViewDistanceChunks(), options.getMaxViewDistanceChunksRaw());
+        if (blocks != state.recordBlocks) {
+            state.recordBlocks = blocks;
+            state.diagnostics.log(std::format("recording {} blocks across (view distance {} chunks, maximum {})", blocks,
+                                              options.getViewDistanceChunks(), options.getMaxViewDistanceChunksRaw()));
+        }
         scan(client, *player, cave ? state.cave : state.surface, state.recordGrid, view->playerX, view->playerZ, cave, layer,
              blocks, false, time, saved, recordBudgetSeconds, true, recordStaleRadius);
     } catch (std::exception const& error) {

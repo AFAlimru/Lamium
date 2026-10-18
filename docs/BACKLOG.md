@@ -628,7 +628,10 @@ the L-206 ring walk resumed relative to a moving player and skipped cells.
 land only: sections the client had not received when the chunk was
 scanned, never completed because the player left.
 Status: (a) fixed 2026-10-18 on `l210-map-scan-grid` (scan grid, see
-MAP.md); not checked in game. (b) open: the 30 s diagnostics line now counts
+MAP.md). First game run: no arcs, but at 96 chunks the map stopped about
+33-40 chunks out while standing - edge retries starved the scan (fixed the
+same day: unseen first, retries oldest first with backoff); the log now
+also gives the reach and the reported view distance. (b) open: the 30 s diagnostics line now counts
 the recording range as unseen / missing / partial / complete. Check whether
 partial edge chunks complete while standing still before deciding anything;
 forcing sections to load costs frame rate and is not a fix (maintainer).

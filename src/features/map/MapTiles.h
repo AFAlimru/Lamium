@@ -2,6 +2,7 @@
 #include "features/map/MapView.h"
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <cstdint>
 #include <cstdlib>
 #include <optional>
@@ -80,36 +81,40 @@ inline Seen seenOf(Tile const& tile) {
     return tile.partial || tile.stored ? Seen::Partial : Seen::Complete;
 }
 // When a chunk should be scanned again: chunks near the player change most
-// (the player builds and digs there); incomplete chunks are retried soon,
-// since the client may send the rest any moment, far ones less often: the
-// edge of the range can hold many that the client fills slowly or never,
-// and each retry scans the whole chunk.
-inline double rescanAfter(int ring, Seen seen) {
-    if (seen != Seen::Complete) return ring <= 4 ? 0.5 : 3.0;
-    if (ring <= 1) return 1.0;
-    if (ring <= 4) return 4.0;
-    return 15.0;
+// (the player builds and digs there); incomplete chunks near the player are
+// retried soon, since the client may send the rest any moment. Far ones back
+// off with each incomplete result (`tries`): the edge of what the client
+// loads can hold thousands it fills slowly or never, and each retry of a
+// partial chunk scans all of it (L-210: 700 edge chunks retried every 3 s
+// held the whole budget and the range never grew past them).
+inline double rescanAfter(int ring, Seen seen, int tries = 0) {
+    if (seen == Seen::Complete) return ring <= 1 ? 1.0 : ring <= 4 ? 4.0 : 15.0;
+    if (ring <= 4) return 0.5;
+    return std::min(24.0, 3.0 * (1 << std::clamp(tries, 0, 3)));
 }
 inline constexpr int nearScanRadius = 4;
-// How urgent a chunk is for a scan path (L-210): 0 first - never seen,
-// scanned at another cave layer, incomplete and due a retry, or stale near
-// the player; 1 after those - stale complete chunks out to `staleRadius`;
-// -1 not due. `next` lowers to when a waiting chunk becomes due.
 struct ScanCell {
     Seen seen = Seen::Never;
+    std::uint8_t tries = 0; // Incomplete results in a row.
     int layer = 0;
     double at = 0;
 };
-inline int dueTier(ScanCell const& cell, int ring, double now, int layer, int tolerance, int staleRadius, double& next) {
-    if (cell.seen == Seen::Never || std::abs(cell.layer - layer) > tolerance) return 0;
-    bool complete = cell.seen == Seen::Complete;
-    if (complete && ring > nearScanRadius && ring > staleRadius) return -1;
-    double due = cell.at + rescanAfter(ring, cell.seen);
+// How a due chunk is picked: Urgent ones nearest first - never seen,
+// scanned at another cave layer, or due near the player; then Retry ones,
+// incomplete far chunks, longest waiting first so a few cannot hold the
+// budget; then Stale ones, complete chunks out to `staleRadius`, nearest
+// first. `next` lowers to when a waiting chunk becomes due.
+enum class Due { Not, Urgent, Retry, Stale };
+inline Due dueOf(ScanCell const& cell, int ring, double now, int layer, int tolerance, int staleRadius, double& next) {
+    if (cell.seen == Seen::Never || std::abs(cell.layer - layer) > tolerance) return Due::Urgent;
+    bool complete = cell.seen == Seen::Complete, near = ring <= nearScanRadius;
+    if (complete && !near && ring > staleRadius) return Due::Not;
+    double due = cell.at + rescanAfter(ring, cell.seen, cell.tries);
     if (now < due) {
         next = std::min(next, due);
-        return -1;
+        return Due::Not;
     }
-    return complete && ring > nearScanRadius ? 1 : 0;
+    return near ? Due::Urgent : complete ? Due::Stale : Due::Retry;
 }
 // Per scan path (display surface, display caves, recording), the state of
 // every chunk in range around the player, in a grid that moves with the
@@ -154,40 +159,65 @@ public:
         return i ? &cells_[*i] : nullptr;
     }
     void saw(ChunkKey key, Seen seen, int layer, double now) {
-        if (auto i = index(key)) cells_[*i] = {seen, layer, now};
+        if (auto i = index(key)) {
+            auto& cell = cells_[*i];
+            int tries = seen != Seen::Complete && cell.seen == seen ? std::min(cell.tries + 1, 8) : 0;
+            cell = {seen, static_cast<std::uint8_t>(tries), layer, now};
+        }
         quietUntil_ = -1e300;
     }
     void clear() { *this = {}; }
-    // Up to `limit` due chunks: tier 0 nearest first, then tier 1. A pass that
+    // Up to `limit` due chunks in the order dueOf describes. A pass that
     // finds nothing remembers when the next chunk becomes due and skips
-    // until then, unless the grid moves or the layer changes.
+    // until then, unless the grid moves, a chunk is seen or the layer changes.
     std::vector<ChunkKey> due(double now, int layer, int tolerance, int staleRadius, size_t limit) {
         if (layer != layer_) {
             layer_ = layer;
             quietUntil_ = -1e300;
         }
-        std::vector<ChunkKey> first, later;
-        if (now < quietUntil_) return first;
+        std::vector<ChunkKey> out, stale;
+        if (now < quietUntil_) return out;
+        std::vector<std::pair<double, ChunkKey>> retry;
         double next = 1e300;
         for (auto offset : order_) {
             ChunkKey key{center_.x + offset.x, center_.z + offset.z};
-            int ring = std::max(std::abs(offset.x), std::abs(offset.z));
-            int tier = dueTier(*find(key), ring, now, layer, tolerance, staleRadius, next);
-            if (tier == 0) {
-                first.push_back(key);
-                if (first.size() >= limit) return first;
-            } else if (tier == 1 && later.size() < limit) later.push_back(key);
+            auto const& cell = *find(key);
+            switch (dueOf(cell, std::max(std::abs(offset.x), std::abs(offset.z)), now, layer, tolerance, staleRadius, next)) {
+            case Due::Urgent:
+                out.push_back(key);
+                if (out.size() >= limit) return out;
+                break;
+            case Due::Retry: retry.push_back({cell.at, key}); break;
+            case Due::Stale:
+                if (stale.size() < limit) stale.push_back(key);
+                break;
+            case Due::Not: break;
+            }
         }
-        if (first.empty() && later.empty()) quietUntil_ = next;
-        for (auto key : later)
-            if (first.size() < limit) first.push_back(key);
-        return first;
+        if (out.empty() && retry.empty() && stale.empty()) quietUntil_ = next;
+        size_t room = std::min(limit - out.size(), retry.size());
+        std::partial_sort(retry.begin(), retry.begin() + static_cast<std::ptrdiff_t>(room), retry.end(),
+                          [](auto const& a, auto const& b) { return a.first < b.first; });
+        for (size_t i = 0; i < room; ++i) out.push_back(retry[i].second);
+        for (auto key : stale)
+            if (out.size() < limit) out.push_back(key);
+        return out;
     }
     ChunkKey center() const { return center_; }
-    // Chunks in range by what was seen (Never, Missing, Partial, Complete).
-    std::array<int, 4> counts() const {
-        std::array<int, 4> out{};
-        for (auto offset : order_) ++out[static_cast<size_t>(find({center_.x + offset.x, center_.z + offset.z})->seen)];
+    // Chunks in range by what was seen (Never, Missing, Partial, Complete),
+    // and the farthest chunk the client had, in chunks from the center.
+    struct Counts {
+        std::array<int, 4> seen{};
+        int reach = 0;
+    };
+    Counts counts() const {
+        Counts out;
+        for (auto offset : order_) {
+            auto seen = find({center_.x + offset.x, center_.z + offset.z})->seen;
+            ++out.seen[static_cast<size_t>(seen)];
+            if (seen == Seen::Partial || seen == Seen::Complete)
+                out.reach = std::max(out.reach, static_cast<int>(std::sqrt(offset.x * offset.x + offset.z * offset.z)));
+        }
         return out;
     }
 

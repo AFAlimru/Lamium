@@ -18,8 +18,12 @@ picks the due chunks nearest first from scratch: never-seen, incomplete and
 near stale chunks first, then stale complete chunks out to a stale radius
 (the recording rescans complete chunks only within 16 chunks; farther ones
 are recorded once per visit). The recording range is the disc the client
-loads, not its square. Incomplete chunks beyond four chunks retry every
-3 s, so the range edge cannot keep the budget busy. A pass that finds
+loads, not its square. Never-seen chunks come before retries; far
+incomplete chunks retry longest-waiting first and back off (3 s doubling to
+24 s per incomplete result). First in-game run (2026-10-18, 96 chunks, new
+terrain): about 700 partial chunks at the edge of what the client had
+(~33-40 chunks out) were retried nearest first every 3 s, held the whole
+budget, and the 14,600 cells beyond were never looked at. A pass that finds
 nothing skips until the next chunk is due. The 30 s diagnostics line counts
 the recording range by state, to tell unvisited chunks from blocks the
 client never received. A pure test walks a player through the world and
