@@ -359,11 +359,10 @@ bool sawPending = false;
 std::uint32_t blockColor(BlockLook const& look, BlockSource& region, BlockPos const& pos, Block const& block) {
     return look.color ? biomeTint(look.tint, region, pos, block, look.color) : mapColor(region, pos, block);
 }
-// One surface column. The heightmap gives the top light-blocking block; the
-// scan starts one above it, since the heightmap misses covering blocks
-// (snow layers, carpets), and a covering block there wins. Blocks that are
-// not drawn (glass) are looked through. Colors are what the world shows: the
-// top texture's average times the biome tint.
+// One surface column, from one above the heightmap position down (see
+// columnBlockWins): a covering block (snow layer, carpet) wins, blocks that
+// are not drawn (glass) are looked through. Colors are what the world shows:
+// the top texture's average times the biome tint.
 std::optional<Column> surfaceColumn(IClientInstance& client, BlockSource& region, int x, int z, short minY,
                                     bool voidFloor) {
     auto top = region.getHeightmapPos(BlockPos{x, 0, z});
