@@ -593,6 +593,8 @@ shows the parent's text. Give each `information.*` / `hud.info.*` row under
 Info HUD its own `help.<option id>` in English, Japanese and Simplified
 Chinese, saying what the line shows and where its value comes from (body or
 FreeCamera camera).
+Status: written 2026-10-18 for all 28 rows (Info HUD switch excluded: it
+uses `help.infoHud`); not read in game yet.
 
 ### L-219 Info HUD coordinate lines and the aimed block's position
 Kind: Design. Maintainer 2026-10-18: the "Coordinates" (exact position) and
