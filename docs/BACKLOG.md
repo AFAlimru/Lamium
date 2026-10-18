@@ -588,17 +588,6 @@ Remaining: in-game recording coverage and frame times at 32/64/96 chunks,
 with the minimap off as well as on; near changes and movement during a wide
 pass. Build/tests alone do not establish these runtime results.
 
-### L-214 FreeCamera: how the underground view switches
-Kind: Design. Maintainer 2026-10-18: since L-207 the spectator culler is
-used only while the camera is inside terrain, which is the cheaper choice,
-but entering even a small cave rebuilds the view, and some players may
-prefer the old way (spectator culler for the whole session, heavier, no
-rebuilds). Options: (1) hysteresis, no new setting: switch to spectator on
-entering terrain and back only after the camera has been outside for a few
-seconds; (2) a child setting choosing "always" (old) or "only inside
-terrain" (current). Proposed: try (1) first, add (2) if preferences still
-split. Not decided. [CAMERA.md](CAMERA.md)
-
 ### L-215 World map stays black at other scales while the player moves
 Kind: Bug. Maintainer 2026-10-18 (in game, flying with the map open): at a
 coarser scale, areas already recorded stayed black and were not drawn until

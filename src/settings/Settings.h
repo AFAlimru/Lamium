@@ -52,6 +52,9 @@ struct Settings {
         bool freeCameraWorldFixed = false;
         bool freeCameraLeaveOnHit = false; // L-126: any hit, even without damage, ends FreeCamera.
         int freeCameraHide = 1; // L-191: hidden while flying: 0 nothing, 1 hand, 2 hand and hotbar, 3 whole HUD.
+        // L-214: how long the underground view stays after leaving terrain:
+        // 0 s, 1, 3, 5, 10, 30 s, or always (index 6).
+        int freeCameraUndergroundHold = 2;
         float freeCameraSpeed = 20.f;
         float magnification = 3.0f;
         bool zoomWideAngle = false; // L-140: the wheel may go below 1x.
@@ -303,6 +306,7 @@ struct Settings {
         information.debugLabels = std::clamp(information.debugLabels, 0, 1);
         schematic.menuBackground = std::clamp(schematic.menuBackground, 0, 2);
         camera.freeCameraHide = std::clamp(camera.freeCameraHide, 0, 3);
+        camera.freeCameraUndergroundHold = std::clamp(camera.freeCameraUndergroundHold, 0, 6);
         schematic.ghostTint = std::clamp(schematic.ghostTint, 0, 100);
         schematic.ghostLines = std::clamp(schematic.ghostLines, 0, 2);
         if (!std::isfinite(schematic.outlineDistance)) schematic.outlineDistance = 48;
