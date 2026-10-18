@@ -13,9 +13,9 @@ namespace lamium::information {
 // Ordered info-line model (BACKLOG L-04b; providers extended by L-05).
 // Switches stay the existing Information flags; only the order is saved.
 inline constexpr auto infoLineIds = std::to_array<std::string_view>(
-    {"coordinates", "scaledCoordinates", "dimension", "biome", "difficulty", "facing", "yaw",
-     "pitch", "sprinting", "fps", "frameTime", "light", "ping", "rotation", "block", "targetBlock", "chunk", "speed",
-     "horizontalSpeed", "verticalSpeed", "time", "realTime", "weather", "moon"});
+    {"coordinates", "block", "targetBlock", "scaledCoordinates", "chunk", "dimension", "biome", "facing",
+     "rotation", "yaw", "pitch", "speed", "horizontalSpeed", "verticalSpeed", "sprinting", "light",
+     "weather", "time", "moon", "difficulty", "fps", "frameTime", "ping", "realTime"});
 struct ChunkPosition { int chunkX, chunkZ, inX, inZ; };
 inline ChunkPosition chunkPosition(double x, double z) {
     int chunkX = static_cast<int>(std::floor(x / 16));
@@ -128,17 +128,20 @@ public:
 inline std::vector<std::string> defaultLineOrder() {
     return {infoLineIds.begin(), infoLineIds.end()};
 }
-// Stored order wins for known ids; missing known ids append in default order;
-// unknown ids drop out (typos must not pin a dead row).
+// Stored order wins for known ids; a missing known id (a line added since the
+// order was saved) goes right after the line before it in the default order
+// (the first default line goes last); unknown ids drop out (typos must not pin a dead row).
 inline std::vector<std::string> mergeLineOrder(std::vector<std::string> stored) {
     std::vector<std::string> result;
     for (auto const& id : stored)
         if (std::find(infoLineIds.begin(), infoLineIds.end(), id) != infoLineIds.end()
             && std::find(result.begin(), result.end(), id) == result.end())
             result.push_back(id);
-    for (auto id : infoLineIds)
-        if (std::find(result.begin(), result.end(), id) == result.end())
-            result.emplace_back(id);
+    for (size_t i = 0; i < infoLineIds.size(); ++i) {
+        if (std::find(result.begin(), result.end(), infoLineIds[i]) != result.end()) continue;
+        auto at = i > 0 ? std::find(result.begin(), result.end(), infoLineIds[i - 1]) + 1 : result.end();
+        result.emplace(at, infoLineIds[i]);
+    }
     return result;
 }
 // Move one line up (direction < 0) or down within the order. Clamped at the

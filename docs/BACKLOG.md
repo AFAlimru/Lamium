@@ -587,7 +587,11 @@ Decided 2026-10-18 (maintainer took the proposed names): "Block" becomes
 (`information.targetBlock`, default off) shows only the aimed block's
 coordinates, looks as far as Target Info's Range, uses the card's pick (the
 game's hit from the body, L-217) without schematic ghosts, and is hidden
-with nothing aimed at or an entity. Implemented; not checked in game.
+with nothing aimed at or an entity. Checked in game 2026-10-18 (`cdd2bcd`):
+names and values OK; the maintainer asked to revisit the order, and took the
+proposed grouping (DESIGN "Info lines") for the settings rows and the
+default HUD order. A saved order is not rewritten; a line missing from it
+now goes after its default neighbor instead of the end. Not checked in game.
 
 ### L-206 World map recording range is a fixed radius instead of the view distance
 Kind: Ready. User report 2026-10-17; maintainer 2026-10-17: fix it, then

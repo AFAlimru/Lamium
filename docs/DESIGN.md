@@ -234,6 +234,12 @@ Contents:
 - **Info lines**: providers with an id, a label and a value; unavailable values
   say so. Each line has a switch and a position in a user-ordered list.
   Defaults on: coordinates, facing, biome, FPS. Everything else starts off.
+  Default order, also the settings rows' order (2026-10-18, L-219): position
+  (coordinates, block coordinates, target block, scaled coordinates, chunk,
+  dimension, biome), view (facing, rotation, yaw, pitch), movement (speed,
+  horizontal, vertical, sprinting), surroundings (light, weather, time,
+  moon, difficulty), then FPS, frame interval, ping and real time. A saved
+  order is kept; a line added later goes after its default neighbor.
 - **Target** (Jade/WAILA role): icon, name, identifier line, then rows. What
   is shown is chosen by independent rows in the settings list: icon, ID,
   health (hearts / bar / number), armor (icons / bar / number), growth
