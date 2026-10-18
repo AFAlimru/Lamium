@@ -600,26 +600,6 @@ Remaining: in-game recording coverage and frame times at 32/64/96 chunks,
 with the minimap off as well as on; near changes and movement during a wide
 pass. Build/tests alone do not establish these runtime results.
 
-### L-208 Connected Textures: an option to keep an edge where glass does not continue straight
-Kind: Design. User suggestion 2026-10-17; maintainer 2026-10-17: try the display option.
-Goal: an option to draw an edge/border where glass does not continue
-straight (at corners), for glass blocks and glass panes.
-Current: a face drops its border on the sides where the neighbor in the
-face's plane is the same block; a pane's L-corner post merges completely
-(screenshots in the report).
-Status: built 2026-10-18. `visuals.connectedCorners` ("Corner edges",
-default on, under the experimental switch) keeps the border at a glass
-block's two-side corner (a corner-variant sprite with the source texels
-kept where the joined strips meet) and makes an L-shaped pane's corner
-post reach the tile border at its two outside faces. Straight and fully
-surrounded poses are unchanged.
-Checked in game 2026-10-18 (local world): with the option on the border
-bridges the turn and with it off the lines stop short at the same corner;
-a pixel diff between the two states changes only at the corner (43 px,
-peak 97) while straight runs and controls show none.
-Open: corner poses of three- and four-side joins; the generated-sprite
-cost of corner variants.
-
 ### L-196 Review license notices, source access and provenance classification
 Kind: Research, then Ready for changes supported by the findings.
 Imported at the maintainer's request on 2026-10-15 from the current-tree

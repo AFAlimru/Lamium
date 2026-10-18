@@ -12,6 +12,19 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-208 Connected Textures corner edges (2026-10-18)
+
+Combined test build `84052d8` (main plus PR #19, #20 and #18; DLL
+`6d71574e2ed6fb9a0afd67049a773d6f34f1b68c2756aba0703abf3be6a96173`; the
+glass code is the same since `43407ec8`), local single player, Minecraft
+1.26.51.01, LeviLamina Client 26.51.7, Windows x64. The maintainer checked:
+the flat-L notch shows the one corner texel without sticking out; with
+"Edges at inside corners" on, glass-block walls keep a vertical line on both
+sides of an inside corner, and off they join as before; with "Edges at glass
+pane corners" on, an L-shaped pane gets an outside edge without a stretched
+post. The two options show their own help text. Not checked: 64 px resource
+packs, three- and four-side notches in game, frame cost of the extra sprites.
+
 ## 0.2.3 release build check (2026-10-15)
 
 Maintainer checked the release build from `b80fa83` (version 0.2.3), DLL
