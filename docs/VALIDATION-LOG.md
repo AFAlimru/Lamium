@@ -12,6 +12,20 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-212 distance fog next to the render distance (2026-10-18)
+
+Combined test build `9afe8d4` (main plus `l212-distance-fog-range` and PR
+#20; DLL `b9867739437a27a02893563f87d668826c323f3e46ca5b50d03f77a1fab57426`),
+LIP instance, Minecraft 1.26.51.01, LeviLamina Client 26.51.7, Windows x64,
+local world, render distance 96 chunks. Before the fix, re-entering the same
+place three ways: A (Lamium, distance fog hidden) built only exactly where
+the player looked; B (Lamium, distance fog shown) built the area around the
+view; C (Lamium disabled) the same as B. With the fix and distance fog
+hidden, the area around the view fills as in B; the fog stays gone on land,
+at night and in rain; the same with the minimap and world map on. Small holes
+that stay even when looked at appeared in A, B and C at the same places, and
+not in the latest store release without LeviLamina (maintainer).
+
 ## L-205 carpets on the world map (2026-10-18)
 
 Build from `l205-carpet-recording` (`82a90ae`, DLL
