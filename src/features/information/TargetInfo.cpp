@@ -267,7 +267,8 @@ void appendStates(TargetInfo& result, Block const& block, std::set<std::string> 
 }
 // The nearest schematic ghost in front of the aimed block (L-184): its block
 // as the card's target, marked as a block still to place.
-std::optional<TargetInfo> ghostTarget(LocalPlayer& player, BlockSource& source, bool includeStates, std::optional<ViewRay> const& ray) {
+std::optional<TargetInfo> ghostTarget(LocalPlayer& player, BlockSource& source, bool includeStates, std::optional<ViewRay> const& ray,
+                                      bool throughBlocks) {
     double x, y, z, dx, dy, dz, reach;
     if (ray) { x = ray->x; y = ray->y; z = ray->z; dx = ray->dx; dy = ray->dy; dz = ray->dz; reach = ray->reach; }
     else {
@@ -276,7 +277,8 @@ std::optional<TargetInfo> ghostTarget(LocalPlayer& player, BlockSource& source, 
         reach = 6;
     }
     if (!(reach > 0)) return std::nullopt;
-    auto ghost = schematic::ghosts::ghostAlong(source, static_cast<int>(player.getDimensionId()), x, y, z, dx, dy, dz, reach);
+    auto ghost = schematic::ghosts::ghostAlong(source, static_cast<int>(player.getDimensionId()), x, y, z, dx, dy, dz, reach,
+                                                   throughBlocks);
     if (!ghost || !ghost->block) return std::nullopt;
     Block const& block = *ghost->block;
     BlockPos pos{ghost->cell.x, ghost->cell.y, ghost->cell.z};
@@ -303,16 +305,19 @@ std::optional<TargetInfo> collectTargetInfo(IClientInstance& client, bool includ
         gameHit = *gameDistance <= ray->reach;
     }
     auto ghostRay = ray;
+    bool onGameLine = false;
     if (ray && (ray->detached || !gameHit)) pick = pickAlong(*player, *ray);
     else {
         // Ghosts are searched on the game's own line: back from its hit along
         // the view, up to just short of it. The eye ray runs a little off that
-        // line and at a block's edge met other cells (L-222).
-        if (ray && gameDistance && latest.mType == HitResultType::Tile) {
+        // line and at a block's edge met other cells (L-222). An entity hit
+        // counts too: a ghost in front of it is the target (L-224).
+        if (ray && gameDistance) {
             double length = std::sqrt(ray->dx * ray->dx + ray->dy * ray->dy + ray->dz * ray->dz);
             if (length > 0) {
                 double ux = ray->dx / length, uy = ray->dy / length, uz = ray->dz / length, d = *gameDistance;
                 ghostRay = ViewRay{latest.mPos.x - ux * d, latest.mPos.y - uy * d, latest.mPos.z - uz * d, ux, uy, uz, d - .05};
+                onGameLine = true;
             }
         }
         pick.type = latest.mType;
@@ -321,8 +326,9 @@ std::optional<TargetInfo> collectTargetInfo(IClientInstance& client, bool includ
     }
     struct { HitResultType mType; BlockPos mBlock; } hit{pick.type, pick.block};
     // A ghost in front of the aimed block (or in the air) is the target.
-    if (includeSchematic && hit.mType != HitResultType::Entity)
-        if (auto ghost = ghostTarget(*player, player->getDimensionBlockSource(), includeStates, ghostRay)) return ghost;
+    if (includeSchematic && (hit.mType != HitResultType::Entity || onGameLine))
+        if (auto ghost = ghostTarget(*player, player->getDimensionBlockSource(), includeStates, ghostRay, onGameLine))
+            return ghost;
     if (hit.mType == HitResultType::Entity) {
         auto* entity = pick.entity;
         if (!entity || entity == player || entity->mRemoved

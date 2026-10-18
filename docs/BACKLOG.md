@@ -428,6 +428,16 @@ found later are handled as bugs.
 
 ## Bugs
 
+### L-224 Target card shows what is behind a ghost at a ghost's edge
+Kind: Bug. Maintainer 2026-10-19 (`cdc02c5`): dragging the crosshair slowly
+across the border between a real block and a schematic ghost, the card
+sometimes names the block or entity behind the ghost. Two causes in the
+ghost search on the game's line (L-222): an entity hit skipped the search
+altogether, and the walk could graze a real block's cell at the edge (the
+game's line does not hit it) and stop there. Fix: entity hits also search
+on the game's line, and on that line real block cells are passed over.
+Not checked in game.
+
 ### L-207 FreeCamera halves the frame rate
 Kind: Bug / Research. User report 2026-10-17; maintainer asked the reporter
 for other observed factors the same day.
@@ -572,18 +582,6 @@ find where the game draws translucent terrain relative to the camera's
 chunk, or draw the faces with a material that does not write depth.
 
 ## Feature work and research
-
-### L-223 Position labels follow the game's own wording
-Kind: Ready. Maintainer 2026-10-19: English showed "XYZ", "Position" and
-"Block coordinates" side by side. Checked the game's 1.26.51 texts: its
-Show Coordinates line is `map.position` "Position: %s, %s, %s" / 位置 / 位置,
-the option is "Show coordinates" / 座標を表示 / 显示坐标; Java's debug screen
-uses "XYZ", "Block" and "Targeted Block". Decided (option A): the
-whole-number line is "Position" / 位置 / 位置, the decimal line "Exact
-position" / 正確な位置 / 精确位置, the target card row "Position" / 位置 /
-位置 (its switch "Show position"), "Target block" stays, Debug View keeps
-"XYZ" and gets its own "Block" key. Settings keys unchanged. Not checked
-in game.
 
 ### L-206 World map recording range is a fixed radius instead of the view distance
 Kind: Ready. User report 2026-10-17; maintainer 2026-10-17: fix it, then

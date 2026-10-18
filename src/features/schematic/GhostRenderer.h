@@ -46,8 +46,12 @@ struct GhostAt {
     Block const* block = nullptr;
     std::string placement;
 };
+// The first ghost along a ray. A real block stops the search, unless
+// `throughBlocks`: the caller knows nothing solid lies within `reach` (the
+// game's own pick) and a block cell met there is only the walk grazing an
+// edge (L-224).
 std::optional<GhostAt> ghostAlong(BlockSource& region, int dimension, double x, double y, double z, double dx, double dy,
-                                  double dz, double reach);
+                                  double dz, double reach, bool throughBlocks = false);
 // Whether a block hides the neighbor faces it touches: an opaque full block
 // that the in-world tessellation draws (a honey block draws nothing there).
 bool coversNeighbors(Block const& block, BlockTessellator& tessellator, ScreenContext& screen);
