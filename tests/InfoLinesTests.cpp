@@ -7,11 +7,19 @@ void infoLinesTests() {
     using namespace lamium::information;
     check(mergeLineOrder({}) == defaultLineOrder(), "empty order falls back to every line");
     check(mergeLineOrder({"ping", "coordinates"}).front() == "ping"
-          && mergeLineOrder({"ping", "coordinates"})[1] == "coordinates"
+          && mergeLineOrder({"ping", "coordinates"})[1] == "realTime"
           && mergeLineOrder({"ping", "coordinates"}).size() == infoLineIds.size(),
-          "stored order wins and missing lines append");
+          "stored order wins and missing lines fill in");
+    {
+        std::vector<std::string> old{"moon", "block", "coordinates"};
+        auto merged = mergeLineOrder(old);
+        auto at = [&](std::string_view id) { return std::find(merged.begin(), merged.end(), id) - merged.begin(); };
+        check(merged[0] == "moon" && at("targetBlock") == at("block") + 1 && at("scaledCoordinates") == at("targetBlock") + 1
+              && merged.size() == infoLineIds.size(),
+              "a line added since the order was saved goes after its default neighbor, not to the end");
+    }
     auto cleaned = mergeLineOrder({"nope", "fps", "fps"});
-    check(cleaned.front() == "fps" && cleaned.size() == infoLineIds.size()
+    check(std::count(cleaned.begin(), cleaned.end(), "fps") == 1 && cleaned.size() == infoLineIds.size()
           && std::find(cleaned.begin(), cleaned.end(), "nope") == cleaned.end(),
           "unknown ids drop out and duplicates collapse");
     check(decodeSettings("{}").information.lineOrder == defaultLineOrder(), "fresh settings list every line");

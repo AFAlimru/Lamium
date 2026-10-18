@@ -29,6 +29,17 @@ void settingsRowsTests() {
         check(found != rows.end() && found->kind == RowKind::Option && found->feature->id == "targetInfo",
               "schematic display is a child option of Target Info in the settings row catalog");
     }
+    {
+        auto rows = ui::buildSettingsRows(false, "section.information", {}, {"infoHud"}, translate);
+        std::vector<std::string_view> ids;
+        for (auto const& row : rows)
+            if (row.option && row.feature->id == "infoHud") ids.push_back(row.option->id);
+        auto at = [&](std::string_view id) { return std::ranges::find(ids, id) - ids.begin(); };
+        check(at("information.coordinates") == 0 && at("information.block") == 1 && at("information.targetBlock") == 2
+              && at("information.biomeDisplay") == at("information.biome") + 1
+              && at("information.facing") > at("information.biome") && at("information.realTime") > at("information.ping"),
+              "Info HUD rows keep the grouped catalog order, whatever the HUD's line order");
+    }
     check(translate(ui::actionTranslationKey(input::Action::FreeCameraSpeedUp,true)) == "Increase speed"
           && translate(ui::actionTranslationKey(input::Action::FreeCameraSpeedDown,true)) == "Decrease speed"
           && translate(ui::actionTranslationKey(input::Action::FreeCameraSpeedUp)) == "Increase FreeCamera speed",
@@ -44,13 +55,13 @@ void settingsRowsTests() {
         ui::KeyFilter keys{z, {}};
         keys.bindings[static_cast<size_t>(input::Action::Zoom)] = z;
         keys.bindings[static_cast<size_t>(input::Action::Hitboxes)] = ctrlZ;
-        auto found = ui::buildSettingsRows(true, {}, ui::SearchQuery{}, {}, translate, {}, {}, &keys);
+        auto found = ui::buildSettingsRows(true, {}, ui::SearchQuery{}, {}, translate, {}, &keys);
         std::vector<input::Action> listed;
         for (auto const& row : found) if (row.action) listed.push_back(*row.action);
         check(listed.size() == 2 && std::ranges::count(listed, input::Action::Zoom) && std::ranges::count(listed, input::Action::Hitboxes),
               "Hotkeys found by key lists exactly the actions whose binding uses the key");
         keys.pressed = {{Device::Key, 0x72}, {Device::Key, 0x47}}; // F3+G, Chunk Borders' default
-        found = ui::buildSettingsRows(true, {}, ui::SearchQuery{}, {}, translate, {}, {}, &keys);
+        found = ui::buildSettingsRows(true, {}, ui::SearchQuery{}, {}, translate, {}, &keys);
         check(std::ranges::any_of(found, [](auto const& row) { return row.action == input::Action::ChunkBorders; }),
               "find by key sees default bindings");
     }
@@ -271,7 +282,7 @@ void settingsRowsTests() {
         "search reveals matching settings in any category");
     {
         std::set<std::string_view> collapsed = {"zoom"};
-        auto folded = ui::buildSettingsRows(false, {}, query, expanded, translate, {}, collapsed);
+        auto folded = ui::buildSettingsRows(false, {}, query, expanded, translate, collapsed);
         check(folded.size() == 2 && folded[1].feature->id == "zoom" && !folded[1].expanded,
               "a setting match can be collapsed while searching");
         collapsed.clear();
@@ -361,15 +372,16 @@ void settingsRowsTests() {
             "Hotkeys lists General's openers in sidebar order");
     }
     {
-        // Info line rows follow the user-ordered list, not catalog order.
-        std::vector<std::string> order = {"ping", "coordinates"};
+        // Info line rows list the lines in the default (grouped) order, whatever
+        // order the HUD keeps (L-219).
+        std::vector<std::string> order;
         for (auto id : information::defaultLineOrder()) {
-            if (id != "ping" && id != "coordinates") order.emplace_back(id);
+            order.emplace_back(id);
             if (id == "biome") order.emplace_back("biomeDisplay");
             if (id == "realTime") order.emplace_back("realTimeDisplay");
         }
         std::set<std::string_view> open = {"infoHud"};
-        auto view = ui::buildSettingsRows(false, "section.information", query, open, translate, order);
+        auto view = ui::buildSettingsRows(false, "section.information", query, open, translate);
         std::vector<std::string> seen;
         bool underInfo = false;
         for (auto const& row : view) {
@@ -377,7 +389,7 @@ void settingsRowsTests() {
             else if (underInfo && row.option && row.option->id.starts_with("information."))
                 seen.emplace_back(row.option->id.substr(std::string_view{"information."}.size()));
         }
-        check(seen == order, "settings rows list info lines in user order");
+        check(seen == order, "settings rows list info lines in the default order");
     }
 
     // Every option label splits into a column name and a formattable value.

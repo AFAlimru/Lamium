@@ -428,7 +428,6 @@ found later are handled as bugs.
 
 ## Bugs
 
-
 ### L-207 FreeCamera halves the frame rate
 Kind: Bug / Research. User report 2026-10-17; maintainer asked the reporter
 for other observed factors the same day.

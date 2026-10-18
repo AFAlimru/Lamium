@@ -1,5 +1,6 @@
 #include "features/information/TargetInfo.h"
 #include "features/information/SchematicTarget.h"
+#include "features/information/TargetPick.h"
 #include "features/schematic/GhostRenderer.h"
 #include "features/schematic/SchematicSession.h"
 #include "app/Runtime.h"
@@ -52,18 +53,33 @@ Pick pickAlong(LocalPlayer& player, ViewRay const& ray) {
         return std::sqrt(dx * dx + dy * dy + dz * dz);
     };
     auto& source = player.getDimensionBlockSource();
+    // Like the game's own pick, look through water and lava.
+    auto solid = [](Block const& block) {
+        auto name = block.getTypeName();
+        return name != "minecraft:water" && name != "minecraft:flowing_water" && name != "minecraft:lava"
+            && name != "minecraft:flowing_lava";
+    };
     Pick pick;
     double best = ray.reach;
     auto hit = source.clip(from, to, false, ShapeType::Outline, static_cast<int>(ray.reach) + 1, false, false, nullptr,
-        [](BlockSource const&, Block const& block, bool) {
-            // Like the game's own pick, look through water and lava.
-            auto name = block.getTypeName();
-            return name != "minecraft:water" && name != "minecraft:flowing_water" && name != "minecraft:lava"
-                && name != "minecraft:flowing_lava";
-        }, false);
-    if (hit.mType == HitResultType::Tile) {
-        pick = {HitResultType::Tile, hit.mBlock, nullptr};
-        best = distance(hit.mPos);
+        [&](BlockSource const&, Block const& block, bool) { return solid(block); }, false);
+    std::optional<CellHit> game;
+    if (hit.mType == HitResultType::Tile) game = CellHit{{hit.mBlock.x, hit.mBlock.y, hit.mBlock.z}, distance(hit.mPos)};
+    // The game's clip can name the block above the aimed one (L-217): check
+    // the cells up to its hit and keep the nearest face.
+    auto cellHit = nearestCellHit(ray.x, ray.y, ray.z, ray.dx, ray.dy, ray.dz, ray.reach, game,
+        [&](schematic::Point const& cell) -> std::optional<double> {
+            BlockPos pos{cell.x, cell.y, cell.z};
+            auto const& block = source.getBlock(pos);
+            if (block.isAir() || !solid(block)) return std::nullopt;
+            auto result = block.clip(source, pos, from, to, ShapeType::Outline, {});
+            if (result.mType != HitResultType::Tile) return std::nullopt;
+            return distance(result.mPos);
+        },
+        [&](schematic::Point const& cell) { return !source.getChunkAt(BlockPos{cell.x, cell.y, cell.z}); });
+    if (cellHit) {
+        pick = {HitResultType::Tile, BlockPos{cellHit->cell.x, cellHit->cell.y, cellHit->cell.z}, nullptr};
+        best = cellHit->distance;
     }
     AABB area{Vec3{std::min(from.x, to.x) - 1, std::min(from.y, to.y) - 1, std::min(from.z, to.z) - 1},
               Vec3{std::max(from.x, to.x) + 1, std::max(from.y, to.y) + 1, std::max(from.z, to.z) + 1}};
@@ -277,9 +293,14 @@ std::optional<TargetInfo> collectTargetInfo(IClientInstance& client, bool includ
     auto* player = client.getLocalPlayer();
     if (!player) return {};
     Pick pick;
-    if (ray) pick = pickAlong(*player, *ray);
+    auto const& latest = client.getLatestHitResult();
+    bool gameHit = latest.mType == HitResultType::Tile || latest.mType == HitResultType::Entity;
+    if (gameHit && ray && !ray->detached) {
+        double dx = latest.mPos.x - ray->x, dy = latest.mPos.y - ray->y, dz = latest.mPos.z - ray->z;
+        gameHit = std::sqrt(dx * dx + dy * dy + dz * dz) <= ray->reach;
+    }
+    if (ray && (ray->detached || !gameHit)) pick = pickAlong(*player, *ray);
     else {
-        auto const& latest = client.getLatestHitResult();
         pick.type = latest.mType;
         pick.block = latest.mBlock;
         if (latest.mType == HitResultType::Entity) pick.entity = latest.getEntity();

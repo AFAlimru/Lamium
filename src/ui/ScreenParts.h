@@ -45,6 +45,8 @@ void returnToMap();
 // The navigation item shown (SettingsNavigation.h nav::), and choosing one.
 int currentNav();
 void selectNav(int index);
+// The calculator panel over the settings; Esc returns (L-220).
+void openCalculator();
 // Tab / Shift+Tab: the next or previous navigation item.
 void nextNav(bool back);
 // A click on the sidebar or the version in an undocked view; true if it

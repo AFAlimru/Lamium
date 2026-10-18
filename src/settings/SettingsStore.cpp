@@ -128,6 +128,7 @@ Json encode(Settings const& settings) {
                          {"light", settings.information.light},
                          {"ping", settings.information.ping},
                          {"rotation", settings.information.rotation}, {"block", settings.information.block},
+                         {"targetBlock", settings.information.targetBlock},
                          {"chunk", settings.information.chunk}, {"speed", settings.information.speed},
                          {"horizontalSpeed", settings.information.horizontalSpeed},
                          {"verticalSpeed", settings.information.verticalSpeed},
@@ -361,6 +362,7 @@ Settings decodeSettings(std::string_view text) {
         value.information.ping = info.value("ping", value.information.ping);
         value.information.rotation = info.value("rotation", value.information.rotation);
         value.information.block = info.value("block", value.information.block);
+        value.information.targetBlock = info.value("targetBlock", value.information.targetBlock);
         value.information.chunk = info.value("chunk", value.information.chunk);
         value.information.speed = info.value("speed", value.information.speed);
         value.information.horizontalSpeed = info.value("horizontalSpeed", value.information.horizontalSpeed);

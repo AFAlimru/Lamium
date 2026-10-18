@@ -1054,6 +1054,7 @@ bool infoLineEnabled(Settings::Information const& settings, std::string_view id)
     if (id == "ping") return settings.ping;
     if (id == "rotation") return settings.rotation;
     if (id == "block") return settings.block;
+    if (id == "targetBlock") return settings.targetBlock;
     if (id == "chunk") return settings.chunk;
     if (id == "speed") return settings.speed;
     if (id == "horizontalSpeed") return settings.horizontalSpeed;
@@ -1074,7 +1075,7 @@ bool followsCamera(std::string_view id) {
 std::optional<std::string> infoLineText(std::string_view id, PlayerInfo const& info,
                                         std::optional<FrameStatistics> timing, std::optional<std::int64_t> ping,
                                         std::optional<SpeedValues> speed, std::optional<std::string> const& realTime,
-                                        BiomeDisplay biomeStyle) {
+                                        BiomeDisplay biomeStyle, std::optional<TargetInfo::BlockPosition> targetBlock) {
     if (id == "coordinates") {
         if (info.position) {
             auto const& p = *info.position;
@@ -1128,6 +1129,11 @@ std::optional<std::string> infoLineText(std::string_view id, PlayerInfo const& i
         auto const& p = *info.position;
         return ui::translated("hudBlock", static_cast<int>(std::floor(p.x)), static_cast<int>(std::floor(p.y)),
             static_cast<int>(std::floor(p.z)));
+    }
+    // Hidden with nothing aimed at, like Sprinting while walking (L-219).
+    if (id == "targetBlock") {
+        if (!targetBlock) return std::nullopt;
+        return ui::translated("hudTargetBlock", targetBlock->x, targetBlock->y, targetBlock->z);
     }
     if (id == "chunk") {
         if (!info.position) return ui::translated("hudChunk", ui::translated("unavailable"));
@@ -1413,7 +1419,7 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
         auto* player = context.mClient.getLocalPlayer();
         if (!player) return std::nullopt;
         if (auto view = CameraSessions::instance().detachedViewRay(context.mClient))
-            return ViewRay{view->x, view->y, view->z, view->dx, view->dy, view->dz, reach};
+            return ViewRay{view->x, view->y, view->z, view->dx, view->dy, view->dz, reach, true};
         auto eye = player->getEyePos();
         auto direction = player->getViewVector();
         return ViewRay{eye.x, eye.y, eye.z, direction.x, direction.y, direction.z, reach};
@@ -1594,12 +1600,17 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
         speedSampler.reset();
     auto speed = anySpeed ? speedSampler.read() : std::optional<SpeedValues>{};
     auto realTime = settings.realTime ? localClock(settings.realTimeDate) : std::optional<std::string>{};
+    // The same ray and distance as the target card, without its schematic ghosts.
+    std::optional<TargetInfo::BlockPosition> targetBlock;
+    if (settings.targetBlock)
+        if (auto target = collectTargetInfo(context.mClient, false, viewRay(settings.targetDistance), false))
+            targetBlock = target->blockPosition;
     std::vector<ElementLine> lines;
     int capacity = std::max(1, static_cast<int>((height - 8) / (14 * elementZoom(hud.info))));
     for (auto const& id : settings.lineOrder) {
         if (static_cast<int>(lines.size()) >= capacity) break;
         if (!infoLineEnabled(settings, id)) continue;
-        if (auto text = infoLineText(id, info, timing, ping, speed, realTime, biomeDisplay(settings))) {
+        if (auto text = infoLineText(id, info, timing, ping, speed, realTime, biomeDisplay(settings), targetBlock)) {
             if (info.camera && followsCamera(id)) *text = ui::translated("hudCameraTag") + " " + *text;
             lines.push_back({std::move(*text), {}});
         }

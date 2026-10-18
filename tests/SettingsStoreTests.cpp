@@ -253,6 +253,10 @@ void settingsStoreTests() {
               && !fresh.information.verticalSpeed && !fresh.information.realTime
               && !fresh.information.realTimeDate,
               "new wave-one Info HUD lines default off");
+        check(!fresh.information.targetBlock
+              && decodeSettings(R"({"information":{"targetBlock":true,"block":true}})").information.targetBlock
+              && !decodeSettings(R"({"information":{"block":true}})").information.targetBlock,
+              "the aimed-block line defaults off, loads when saved and is not the standing-block switch");
         check(fresh.information.debugHideHud && fresh.information.debugHideTarget && fresh.information.debugShadow
               && fresh.information.debugLabels == 0 && !fresh.information.debug,
               "a fresh file hides the Info HUD and Target while Debug is on, with shadows and game-standard names");

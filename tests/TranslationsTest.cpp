@@ -40,7 +40,7 @@ void translationTests() {
             else if (entry.key == "bindingRow" || entry.key == "numberInput" || entry.key == "worldMap.layerShown") rendered = std::vformat(pattern, std::make_format_args(key, zoom));
             else if (entry.key == "numberRange" || entry.key == "integerRange" || entry.key == "numberRangeLine") rendered = std::vformat(pattern, std::make_format_args(number, number));
             else if (entry.key == "hudLightValues") rendered = std::vformat(pattern, std::make_format_args(remaining,maximum));
-            else if (entry.key == "hudBlock") rendered = std::vformat(pattern, std::make_format_args(remaining,remaining,remaining));
+            else if (entry.key == "hudBlock" || entry.key == "hudTargetBlock") rendered = std::vformat(pattern, std::make_format_args(remaining,remaining,remaining));
             else if (entry.key == "hudTime") rendered = std::vformat(pattern, std::make_format_args(remaining,key));
             else if (entry.key == "mouseButton") rendered = std::vformat(pattern, std::make_format_args(remaining));
             else if (entry.key == "autoInterval" || entry.key == "autoClicks")

@@ -10,6 +10,46 @@ Runtime status is in [VALIDATION.md](VALIDATION.md), the evidence in
 
 ## Bugs
 
+### L-221 Chat sample shows through the HUD layout editor's lines list
+Kind: Bug. Maintainer screenshot 2026-10-18 (`a5edf9a`): with the Info HUD
+selected and its lines list open over the chat preview, the sample chat
+text reads through the list and through the "Reset this element" button.
+Cause not confirmed: the toolbar, its popovers and the action bar were
+92-94 % opaque and the buttons 90 %. They are opaque now. If the text still
+shows, the next suspect is text drawn after the editor's fills in the same
+frame. Checked 2026-10-18 (`7856e1e`): the chat sample no longer shows
+through. The maintainer also found: the lines list ran under the Reset/Done
+strip (its row text mixed into "Reset this element"), it scrolled neither
+by wheel (wheel events carry no position; the pointer as last drawn is
+used now) nor by its bar (only drawn), and nothing restored the default
+line order. Fixed: the list stops above the strip and its text is flushed
+before the strip is drawn; the bar has its own strip and drags; the Info
+HUD's "Reset this element" also restores the line order. Checked
+2026-10-18 (`5a99b86`): all OK except dragging the bar (a click moved it,
+a drag did not: the drag read the bar's track after it had been cleared for
+the frame). Fixed (`b8b065a`); checked in game 2026-10-18: OK.
+
+### L-217 Target View names the block above the aimed one
+Kind: Bug. Maintainer report 2026-10-18: with another block directly above
+the target, looking at the target's upper part sometimes shows the upper
+block's coordinates.
+Cause (not reproduced here): the card takes the cell from one
+`BlockSource::clip` call along the view ray and trusts its `mBlock`. Fix:
+the card also clips each solid cell the ray passes before that hit against
+the full ray and keeps the nearest hit (`information/TargetPick.h`, pure and
+tested), so a cell reported behind the face the ray reaches first loses.
+Check in game: stack two blocks, aim at the lower one's upper edge from
+several angles and distances; the card shows the lower block's name and
+coordinates, also in Freelook and FreeCamera.
+Checked 2026-10-18 (`1b578e4`): still wrong. The maintainer's screenshots
+(stone on stone, aiming just under the seam) put the
+card's ray origin a few hundredths above the game's own pick, so near a
+block's edge the card's ray, not the game's clip, reaches the upper block.
+Second fix: from the body the card uses the game's own hit (the outlined
+block) whenever it is within the card's distance; its own ray only reaches
+past it and serves Freelook and FreeCamera.
+Maintainer checked the second fix in game 2026-10-18 (`c4884e5`): OK.
+
 ### L-215 World map stays black at other scales while the player moves
 Kind: Bug. Maintainer 2026-10-18 (in game, flying with the map open): at a
 coarser scale, areas already recorded stayed black and were not drawn until
@@ -1175,6 +1215,23 @@ result is only the converted text; Latin typing and Backspace unchanged.
 ---
 
 ## Ready
+
+### L-218 Info HUD lines have no descriptions
+Kind: Ready. Maintainer 2026-10-18: every Info HUD child row in the settings
+shows the parent's text. Give each `information.*` / `hud.info.*` row under
+Info HUD its own `help.<option id>` in English, Japanese and Simplified
+Chinese, saying what the line shows and where its value comes from (body or
+FreeCamera camera).
+Status: written 2026-10-18 for all 28 rows (Info HUD switch excluded: it
+uses `help.infoHud`); maintainer OK in game
+2026-10-18.
+
+### L-220 Calculator leaves the settings sidebar
+Kind: Ready. Maintainer 2026-10-18: the calculator does not belong in the
+sidebar's pinned tools. It stays openable from the settings screen: its row
+gets an Open button in the switch column; its key still opens it from
+gameplay. Checked in game 2026-10-18 (sidebar, Open button); maintainer the
+same day: the row belongs in General, moved there; checked OK (`c4884e5`).
 
 ### L-208 Connected Textures: edges where glass turns a corner
 Kind: Ready. User suggestion 2026-10-17; maintainer 2026-10-17: try the display option.
@@ -2988,6 +3045,31 @@ two new sprite paths load (icons appear at all).
 ---
 
 ## Design
+
+### L-219 Info HUD coordinate lines and the aimed block's position
+Kind: Design. Maintainer 2026-10-18: the "Coordinates" (exact position) and
+"Block" (the block the player stands in, whole numbers as the game's own
+position line shows) rows explain little, and "Block" is the wrong name.
+Also wanted: an Info HUD line with the aimed block's coordinates that works
+without Target View. Names and descriptions are the maintainer's choice;
+existing settings keys keep their meaning, a new key is tolerated when
+missing.
+Decided 2026-10-18 (maintainer took the proposed names): "Block" becomes
+"Block coordinates" / ブロック座標 (key `information.block` unchanged);
+"Coordinates" keeps its name; new line "Target block" / 照準先のブロック
+(`information.targetBlock`, default off) shows only the aimed block's
+coordinates, looks as far as Target Info's Range, uses the card's pick (the
+game's hit from the body, L-217) without schematic ghosts, and is hidden
+with nothing aimed at or an entity. Checked in game 2026-10-18 (`cdd2bcd`):
+names and values OK; the maintainer asked to revisit the order, and took the
+proposed grouping (DESIGN "Info lines") for the settings rows and the
+default HUD order. A saved order is not rewritten; a line missing from it
+now goes after its default neighbor instead of the end. In game
+(`a5edf9a`) the settings rows still showed the saved HUD order: they had
+always followed it, and "Reset this element" does not reset the line order
+(only the whole-layout reset does). Maintainer 2026-10-18: the settings
+rows keep the grouped catalog order, independent of the HUD order.
+Checked in game 2026-10-18 (`7856e1e`, reset of the order `5a99b86`): OK.
 
 ### L-214 FreeCamera: how the underground view switches
 Kind: Design. Maintainer 2026-10-18: since L-207 the spectator culler is

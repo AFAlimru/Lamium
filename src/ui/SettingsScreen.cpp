@@ -100,7 +100,7 @@ std::string error;
 
 // Navigation items (SettingsNavigation.h).
 constexpr int navCount = nav::count, hotkeysNav = nav::hotkeys, shapesNav = nav::shapes, waypointsNav = nav::waypoints,
-    schematicsNav = nav::schematics, worldMapNav = nav::worldMap, hudNav = nav::hud, calculatorNav = nav::calculator;
+    schematicsNav = nav::schematics, worldMapNav = nav::worldMap, hudNav = nav::hud;
 // Leaving the HUD layout editor returns to editorReturn.
 int editorReturn = 0;
 bool pendingRelease = false;
@@ -165,7 +165,7 @@ int schematicMenuClosedAt = -1; // the level shown when it last closed
 // returns to it.
 bool worldMapOpen = false, promptOnMap = false, pendingMapClose = false;
 // The calculator panel (L-171): replaces everything else while open. Opened
-// from the settings sidebar, Esc returns there; from its key, Esc closes.
+// from its settings row, Esc returns there; from its key, Esc closes.
 bool calculatorOpen = false, calculatorFromSettings = false;
 void enterCalculator(bool fromSettings);
 // The text field the keyboard edits now and what tells its owner it changed
@@ -223,7 +223,6 @@ void selectNav(int index, bool temporary = false) {
     if (nav::needsWorld(index) && !(client && client->getLocalPlayer())) { error = translated("worldOnly"); return; }
     waypoints_view::setFromMap(false);
     if (index == worldMapNav) { enterWorldMap(true, false); return; }
-    if (index == calculatorNav) { enterCalculator(true); return; }
     if (index == hudNav && navigation.current != hudNav) {
         editorReturn = navigation.current;
         hud_editor::reset();
@@ -1236,6 +1235,7 @@ SettingsTable const& table() { return table_view::layout(); }
 float scale() { return ui::layoutScale(); }
 int currentNav() { return navigation.current; }
 void selectNav(int index) { ui::selectNav(index); }
+void openCalculator() { enterCalculator(true); }
 input::Chord const& heldKeys() { return uiHeld; }
 void numberReset() { numberDirty = false; }
 std::optional<Place> standingPlace() { return ui::standingPlace(); }
@@ -1455,7 +1455,8 @@ void start() {
             return;
         }
         if (hudEditorView() && wheel) {
-            if (scaled) hud_editor::wheel(event.buttonData() > 0 ? -3 : 3, x, y);
+            // Wheel events carry no position: use the pointer as last drawn.
+            hud_editor::wheel(event.buttonData() > 0 ? -3 : 3, lastPointer.x, lastPointer.y);
             return;
         }
         if (schematicsView() && wheel) {

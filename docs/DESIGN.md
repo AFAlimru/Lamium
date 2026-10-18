@@ -212,10 +212,12 @@ Editing:
   on each HUD feature that opens the editor with that element selected.
   The settings list has no placement or look rows of its own.
 - A corner bar holds "Reset" and "Done (Esc)". Reset returns the selected
-  element to its defaults at once; with nothing selected it resets the whole
+  element to its defaults at once (the Info HUD's also restores its line
+  order, L-221); with nothing selected it resets the whole
   layout (including the info-line order) and asks for a second press.
-- Popovers (snap-to, lines) never cover their toolbar: they open on the side
-  that fits and scroll when there is not enough room.
+- Popovers (snap-to, lines) never cover their toolbar or the Reset/Done
+  strip: they open on the side that fits and scroll (wheel or scroll bar)
+  when there is not enough room.
 - The editor shows the live HUD (sample content for empty elements). Click
   selects, drag moves, arrows nudge (Shift: 10), Esc deselects then leaves.
   A dashed guide joins the anchor point and the element while selected.
@@ -234,6 +236,14 @@ Contents:
 - **Info lines**: providers with an id, a label and a value; unavailable values
   say so. Each line has a switch and a position in a user-ordered list.
   Defaults on: coordinates, facing, biome, FPS. Everything else starts off.
+  Default order, also the settings rows' order (2026-10-18, L-219): position
+  (coordinates, block coordinates, target block, scaled coordinates, chunk,
+  dimension, biome), view (facing, rotation, yaw, pitch), movement (speed,
+  horizontal, vertical, sprinting), surroundings (light, weather, time,
+  moon, difficulty), then FPS, frame interval, ping and real time. A saved
+  order is kept; a line added later goes after its default neighbor. The
+  settings rows always use this order; the HUD layout's lines list is where
+  the HUD order is changed.
 - **Target** (Jade/WAILA role): icon, name, identifier line, then rows. What
   is shown is chosen by independent rows in the settings list: icon, ID,
   health (hearts / bar / number), armor (icons / bar / number), growth

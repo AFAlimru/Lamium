@@ -30,6 +30,10 @@ int linesFirst = 0;
 Boxes lastBoxes;
 std::vector<Control> controls;
 std::optional<Box> popoverBox;
+// The lines list's scroll bar as drawn, and whether it is being dragged.
+struct LinesTrack { float x, top, track; int count, visible; };
+std::optional<LinesTrack> linesTrack;
+bool scrolling = false;
 float screenW = 0, screenH = 0;
 bool resetArmed = false; // Reset asks for a second press.
 
@@ -94,7 +98,7 @@ void moveTo(HudElementId id, float x, float y, Box const& box) {
 }
 void button(MinecraftUIRenderContext& context, Box box, std::string text, bool hot, Rgb edge = palette::keyEdge,
             bool dropdown = false) {
-    fill(context, box.x, box.y, box.w, box.h, palette::keyFill, .9f);
+    fill(context, box.x, box.y, box.w, box.h, palette::keyFill);
     if (hot) fill(context, box.x, box.y, box.w, box.h, palette::white, .08f);
     frame(context, box.x, box.y, box.w, box.h, edge);
     float textW = dropdown ? box.w - 9 : box.w;
@@ -107,6 +111,8 @@ void triangle(MinecraftUIRenderContext& context, float x, float y, bool up, Rgb 
 }
 
 // ---- Toolbar ----
+// The toolbar, its popovers and the action bar are opaque: element previews
+// (the chat sample) showed through them (L-221).
 constexpr float barHeight = 15, itemHeight = 11, pad = 2, gap = 3;
 Box drawToolbar(MinecraftUIRenderContext& context, Settings const& value, Box element, float px, float py) {
     auto id = *selected;
@@ -130,7 +136,7 @@ Box drawToolbar(MinecraftUIRenderContext& context, Settings const& value, Box el
     if (!spot || element.overlaps(Box{spot->x, spot->y, width, barHeight}))
         spot = toolbarSpot(element, width, barHeight, screenW, screenH);
     Box bar{spot->x, spot->y, width, barHeight};
-    panel(context, bar.x, bar.y, bar.w, bar.h, .92f);
+    panel(context, bar.x, bar.y, bar.w, bar.h, 1.f);
     frame(context, bar.x, bar.y, bar.w, bar.h, palette::white, .14f);
     float x = bar.x + pad, y = bar.y + (barHeight - itemHeight) / 2;
     auto add = [&](float w, Command command) {
@@ -144,7 +150,7 @@ Box drawToolbar(MinecraftUIRenderContext& context, Settings const& value, Box el
     if (!positionOnly) {
         // Scale: arrows at both ends of one field.
         Box scaleBox{x, y, scaleW, itemHeight};
-        fill(context, scaleBox.x, scaleBox.y, scaleBox.w, scaleBox.h, palette::keyFill, .9f);
+        fill(context, scaleBox.x, scaleBox.y, scaleBox.w, scaleBox.h, palette::keyFill);
         frame(context, scaleBox.x, scaleBox.y, scaleBox.w, scaleBox.h, palette::keyEdge);
         controls.push_back({{scaleBox.x, y, 10, itemHeight}, Command::ScaleDown});
         controls.push_back({{scaleBox.x + scaleW - 10, y, 10, itemHeight}, Command::ScaleUp});
@@ -169,6 +175,7 @@ Box drawToolbar(MinecraftUIRenderContext& context, Settings const& value, Box el
         button(context, box, linesText, popover == Popover::Lines || hovering(box, px, py), palette::keyEdge, true);
     }
     popoverBox.reset();
+    linesTrack.reset();
     if (popover == Popover::Snap) {
         float cellW = 14, cellH = 9, cellGap = 2;
         std::string readout = translated("hudEditor.anchorReadout",
@@ -178,7 +185,7 @@ Box drawToolbar(MinecraftUIRenderContext& context, Settings const& value, Box el
         float h = 6 + 3 * cellH + 2 * cellGap + 4 + 12;
         auto at = popoverSpot(*spot, barHeight, w, h, screenW, screenH);
         popoverBox = Box{at.x, at.y, w, h};
-        panel(context, at.x, at.y, w, h, .94f);
+        panel(context, at.x, at.y, w, h, 1.f);
         frame(context, at.x, at.y, w, h, palette::white, .14f);
         for (int i = 0; i < 9; ++i) {
             Box cell{at.x + 6 + (i % 3) * (cellW + cellGap), at.y + 6 + (i / 3) * (cellH + cellGap), cellW, cellH};
@@ -191,14 +198,19 @@ Box drawToolbar(MinecraftUIRenderContext& context, Settings const& value, Box el
     } else if (popover == Popover::Lines) {
         auto const& order = value.information.lineOrder;
         constexpr float rowH = 12;
-        float w = 130;
-        auto at = popoverSpot(*spot, barHeight, w, order.size() * rowH + 6, screenW, screenH);
+        // Rows take 130; the scroll bar has its own strip on the right.
+        float w = 136;
+        // The list stops above the bottom strip of Reset and Done.
+        auto at = popoverSpot(*spot, barHeight, w, order.size() * rowH + 6, screenW, screenH - barHeight - hudInset - 2);
         int visible = std::clamp(static_cast<int>((at.h - 6) / rowH), 0, static_cast<int>(order.size()));
         linesFirst = std::clamp(linesFirst, 0, std::max(0, static_cast<int>(order.size()) - visible));
         float h = visible * rowH + 6;
         if (!spot->below || at.y < spot->y) at.y = at.y + at.h - h; // Hug the toolbar when opening upward.
+        // Dragging the bar: the track as drawn now (linesTrack is rebuilt below).
+        if (scrolling)
+            linesFirst = scrollFirstAt(py, at.y + 3, visible * rowH, static_cast<int>(order.size()), visible);
         popoverBox = Box{at.x, at.y, w, h};
-        panel(context, at.x, at.y, w, h, .94f);
+        panel(context, at.x, at.y, w, h, 1.f);
         frame(context, at.x, at.y, w, h, palette::white, .14f);
         for (int i = 0; i < visible; ++i) {
             auto const& line = order[linesFirst + i];
@@ -212,16 +224,20 @@ Box drawToolbar(MinecraftUIRenderContext& context, Settings const& value, Box el
             label(context, at.x + 8 + switchWidth, ry + 1, w - switchWidth - 36, splitLabel(translated(option->label)).name,
                   on ? palette::text : palette::faint);
             bool firstLine = linesFirst + i == 0, lastLine = linesFirst + i + 1 == static_cast<int>(order.size());
-            triangle(context, at.x + w - 22, ry + 4, true, firstLine ? palette::off : palette::dim);
-            triangle(context, at.x + w - 11, ry + 4, false, lastLine ? palette::off : palette::dim);
-            controls.push_back({{at.x + 2, ry, w - 30, rowH}, Command::LineSwitch, 0, line});
-            controls.push_back({{at.x + w - 26, ry, 11, rowH}, Command::LineUp, 0, line});
-            controls.push_back({{at.x + w - 15, ry, 13, rowH}, Command::LineDown, 0, line});
+            float rw = w - 6;
+            triangle(context, at.x + rw - 22, ry + 4, true, firstLine ? palette::off : palette::dim);
+            triangle(context, at.x + rw - 11, ry + 4, false, lastLine ? palette::off : palette::dim);
+            controls.push_back({{at.x + 2, ry, rw - 30, rowH}, Command::LineSwitch, 0, line});
+            controls.push_back({{at.x + rw - 26, ry, 11, rowH}, Command::LineUp, 0, line});
+            controls.push_back({{at.x + rw - 15, ry, 13, rowH}, Command::LineDown, 0, line});
         }
+        linesTrack.reset();
         if (visible < static_cast<int>(order.size()) && visible > 0) {
-            float track = visible * rowH, thumb = std::max(6.f, track * visible / order.size());
-            float top = at.y + 3 + (track - thumb) * linesFirst / std::max<size_t>(1, order.size() - visible);
-            fill(context, at.x + w - 3, top, 2, thumb, palette::white, .3f);
+            int count = static_cast<int>(order.size());
+            linesTrack = LinesTrack{at.x + w - 5, at.y + 3, visible * rowH, count, visible};
+            auto thumb = scrollThumb(linesTrack->top, linesTrack->track, count, visible, linesFirst);
+            fill(context, linesTrack->x, linesTrack->top, 3, linesTrack->track, palette::white, .08f);
+            fill(context, linesTrack->x, thumb.top, 3, thumb.h, palette::white, scrolling ? .55f : .3f);
         }
     }
     return bar;
@@ -241,7 +257,7 @@ void drawActions(MinecraftUIRenderContext& context, std::optional<Box> toolbar, 
     };
     Box bar = placeAt(screenW - w - hudInset);
     if (blocked(bar)) bar = placeAt(hudInset);
-    panel(context, bar.x, bar.y, bar.w, bar.h, .92f);
+    panel(context, bar.x, bar.y, bar.w, bar.h, 1.f);
     frame(context, bar.x, bar.y, bar.w, bar.h, palette::white, .14f);
     float y = bar.y + (barHeight - itemHeight) / 2;
     Box resetBox{bar.x + pad, y, resetW, itemHeight};
@@ -258,7 +274,9 @@ void run(Control const& control) {
         resetArmed = false;
         for (auto id : drawOrder)
             if (!selected || *selected == id) settings::hudElement(value, id) = defaultHudElement(id);
-        if (!selected) value.information.lineOrder = information::defaultLineOrder();
+        // The Info HUD's own reset also restores its line order (L-221).
+        if (!selected || *selected == HudElementId::Info) value.information.lineOrder = information::defaultLineOrder();
+        linesFirst = 0;
         spot.reset();
         save(value);
         return;
@@ -309,6 +327,8 @@ void reset() {
     lastBoxes = {};
     controls.clear();
     popoverBox.reset();
+    linesTrack.reset();
+    scrolling = false;
 }
 void select(std::optional<HudElementId> id) {
     if (selected != id) { spot.reset(); popover = Popover::None; linesFirst = 0; resetArmed = false; }
@@ -382,6 +402,8 @@ void render(MinecraftUIRenderContext& context, float width, float height, float 
             if (auto const& box = lastBoxes[static_cast<size_t>(*selected)]) {
                 toolbar = drawToolbar(context, value, *box, pointerX, pointerY);
             }
+        // Text is drawn at a flush: the list's text must not land on the action bar.
+        context.flushText(0, std::nullopt);
         drawActions(context, toolbar, pointerX, pointerY);
     }
     context.flushText(0, std::nullopt);
@@ -395,6 +417,12 @@ Result press(float x, float y) {
         return Result::Stay;
     }
     resetArmed = false;
+    if (popover == Popover::Lines && linesTrack && x >= linesTrack->x - 2 && x < linesTrack->x + 5
+        && y >= linesTrack->top && y < linesTrack->top + linesTrack->track) {
+        scrolling = true;
+        linesFirst = scrollFirstAt(y, linesTrack->top, linesTrack->track, linesTrack->count, linesTrack->visible);
+        return Result::Stay;
+    }
     if (popoverBox && popoverBox->contains(x, y)) return Result::Stay;
     popover = Popover::None;
     auto id = topmost(lastBoxes, x, y);
@@ -406,6 +434,7 @@ Result press(float x, float y) {
     return Result::Stay;
 }
 void release() {
+    scrolling = false;
     if (!drag) return;
     auto finished = *drag;
     drag.reset();

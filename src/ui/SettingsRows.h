@@ -23,7 +23,7 @@ inline constexpr std::string_view featureSection(std::string_view id) {
     if (id == "zoom" || id == "freelook" || id == "freecamera" || id == "nightVision" || id == "hideOffhand" || id == "hideEffects" || id == "connectedTextures") return "section.camera";
     if (id == "previews" || id == "durability" || id == "foodValues" || id == "lockedTrades" || id == "repeatTrades" || id == "englishSearch" || id == "sorting" || id == "transfer" || id == "toolSwitch" || id == "weaponSwitch" || id == "handRestock" || id == "fakeOffhand" || id == "offhandSwap" || id == "deathRestore") return "section.inventory";
     if (id == "restrictions" || id == "permanentSneak" || id == "permanentSprint" || id == "edgeGuard" || id == "toolGuard" || id == "elytraSwap" || id == "periodicAttack" || id == "periodicUse") return "section.interaction";
-    if (id == "settings" || id == "gameLanguage" || id == "skipServerPacks" || id == "toasts" || id == "hudText") return "section.interface";
+    if (id == "settings" || id == "gameLanguage" || id == "skipServerPacks" || id == "calculator" || id == "toasts" || id == "hudText") return "section.interface";
     if (id.starts_with("schematic")) return "section.schematic";
     if (id == "minimap" || id == "mapText" || id == "caveView" || id == "radar" || id == "waypoints" || id == "worldMap") return "section.map";
     return "section.information";
@@ -68,7 +68,6 @@ inline constexpr auto features = std::to_array<FeatureInfo>({
     {"usedSlots", "feature.usedSlots", "help.usedSlots", "information.usedSlots", false, input::Action::ToggleUsedSlots},
     {"chatPosition", "feature.chatPosition", "help.chatPosition", "information.chatPosition", false, input::Action::ToggleChatPosition},
     {"statusEffects", "feature.statusEffects", "help.statusEffects", "information.effectsHud", false, input::Action::ToggleStatusEffects},
-    {"calculator", "feature.calculator", "help.calculator", "", false, input::Action::OpenCalculator},
     {"offhandSlot", "feature.offhandSlot", "help.offhandSlot", "information.offhandSlot", false, input::Action::ToggleOffhandSlot},
     {"saturation", "feature.saturation", "help.saturation", "information.saturation", false, input::Action::ToggleSaturation},
     {"debugView", "feature.debugView", "help.debugView", "information.debug", false, input::Action::DebugView},
@@ -97,6 +96,7 @@ inline constexpr auto features = std::to_array<FeatureInfo>({
     {"settings", "feature.settings", "help.settings", "", false, input::Action::Settings},
     {"gameLanguage", "feature.gameLanguage", "help.gameLanguage", "", true},
     {"skipServerPacks", "feature.skipServerPacks", "help.skipServerPacks", "visuals.skipServerPacks", true, input::Action::ToggleSkipServerPacks},
+    {"calculator", "feature.calculator", "help.calculator", "", false, input::Action::OpenCalculator},
     // Headings without a switch: their first row is the switch (no key of its own).
     {"toasts", "feature.toasts", "help.toasts", ""},
     // Text of the line elements (Info HUD, Status, Debug View) and HUD backgrounds.
@@ -252,7 +252,6 @@ struct SettingsRow {
 template<class Translate>
 std::vector<SettingsRow> buildSettingsRows(bool hotkeys, std::string_view category, SearchQuery const& query,
     std::set<std::string_view> const& expanded, Translate translate,
-    std::vector<std::string> const& lineOrder = {},
     std::set<std::string_view> const& searchCollapsed = {}, KeyFilter const* keys = nullptr) {
     std::vector<SettingsRow> rows;
     bool const searching = query.value().find_first_not_of(' ') != std::string::npos;
@@ -303,23 +302,8 @@ std::vector<SettingsRow> buildSettingsRows(bool hotkeys, std::string_view catego
                     return row.action == input::Action::Sort || row.action == input::Action::FakeOffhandUse
                         || row.action == input::Action::SwapOffhand;
                 });
-            // Info lines follow the user-ordered list; every other child
-            // keeps catalog order (stable). Unknown ids sort last.
-            if (!lineOrder.empty()) {
-                auto orderKey = [&](SettingsRow const& row) {
-                    if (!row.option) return lineOrder.size();
-                    constexpr std::string_view prefix = "information.";
-                    if (!row.option->id.starts_with(prefix)) return lineOrder.size();
-                    auto id = row.option->id.substr(prefix.size());
-                    if (id == "biomeDisplay") id = "biome";
-                    if (id == "realTimeDisplay") id = "realTime";
-                    auto at = std::find(lineOrder.begin(), lineOrder.end(), id);
-                    return at == lineOrder.end() ? lineOrder.size()
-                                                 : static_cast<size_t>(at - lineOrder.begin());
-                };
-                std::stable_sort(children.begin(), children.end(),
-                    [&](SettingsRow const& a, SettingsRow const& b) { return orderKey(a) < orderKey(b); });
-            }
+            // Info lines keep catalog order (grouped by kind), not the HUD's
+            // order: the HUD layout arranges them (L-219).
             if (auto element = layoutElement(feature.id))
                 children.push_back({RowKind::Layout, &feature, nullptr, {}, section, element});
             if (feature.id == "worldMap") children.push_back({RowKind::MapCache, &feature, nullptr, {}, section});

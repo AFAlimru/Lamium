@@ -272,6 +272,7 @@ struct Settings {
         bool ping = false;
         bool rotation = false;
         bool block = false;
+        bool targetBlock = false; // the aimed block's coordinates (L-219)
         bool chunk = false;
         bool speed = false;
         bool horizontalSpeed = false;

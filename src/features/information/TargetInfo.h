@@ -117,8 +117,10 @@ inline std::optional<TargetInfo::DetailRow> interpretBlockState(std::string_view
         return DetailRow{"target.hinge", number ? "target.hingeRight" : "target.hingeLeft", true, {}};
     return {};
 }
-// A camera ray for detached views; without one the game's own hit is used.
-struct ViewRay { double x, y, z, dx, dy, dz; double reach; };
+// The ray the card looks along. From the body (not detached), the game's own
+// hit wins within the reach: it is the block the outline shows, and a ray
+// from the eye position can differ from it at a block's edge (L-217).
+struct ViewRay { double x, y, z, dx, dy, dz; double reach; bool detached = false; };
 std::optional<TargetInfo> collectTargetInfo(IClientInstance&, bool includeStates = false,
                                             std::optional<ViewRay> ray = std::nullopt, bool includeSchematic = true);
 // Drops per-world icon lookups on world exit.
