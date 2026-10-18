@@ -588,6 +588,19 @@ Remaining: in-game recording coverage and frame times at 32/64/96 chunks,
 with the minimap off as well as on; near changes and movement during a wide
 pass. Build/tests alone do not establish these runtime results.
 
+### L-212 Hiding distance fog keeps far chunks from being built
+Kind: Bug. Found 2026-10-18 while chasing L-210 (maintainer, in game, 96
+chunks, same place re-entered): with "Distance fog" hidden, large unbuilt
+areas filled only exactly where the player looked; with it shown, the area
+around the view filled too. Small holes that stay even when looked at were
+seen in every case, with Lamium disabled as well (game behavior at 96).
+Cause (likely): the fog range was moved to 16384-32768 blocks, and the game
+uses it when choosing which chunks to build. Fix (`l212-distance-fog-range`):
+the fog starts at the render distance (or vanilla's end if farther) and ends
+5% past it, so nothing drawn is fogged, in rain too. Not checked in game.
+Check in game: fog still gone on land, at night and in rain; at 96 chunks the
+area around the view fills as with the fog shown. [VISUAL-EFFECTS.md](VISUAL-EFFECTS.md)
+
 ### L-196 Review license notices, source access and provenance classification
 Kind: Research, then Ready for changes supported by the findings.
 Imported at the maintainer's request on 2026-10-15 from the current-tree
