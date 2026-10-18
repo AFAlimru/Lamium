@@ -12,6 +12,14 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-223 position labels (2026-10-19)
+
+`cdc02c5` (DLL `b6aea5601ae2df9363d83602e69d541ab04007be6eda788eb980ca2b4572a9a1`),
+same environment as L-222, English: Info HUD "Exact position", "Position",
+"Target block"; card row "Position"; Debug View still "XYZ" and "Block".
+Maintainer: OK. Same session: dragging across a ghost's edge sometimes
+showed what was behind the ghost (L-224).
+
 ## L-222 target card ghosts at a block's edge (2026-10-19)
 
 Builds from `l222-ghost-target-seam`, LIP instance, Minecraft 1.26.51.01,
