@@ -10,6 +10,26 @@ Runtime status is in [VALIDATION.md](VALIDATION.md), the evidence in
 
 ## Bugs
 
+### L-225 Incomplete map chunks stop getting whole rescans after eight retries
+Kind: Bug. Code review of v0.2.3..main, 2026-10-19; not seen in game.
+`ScanGrid::saw` caps a chunk's incomplete-result count at 8, and
+`probeFirst` asks for a whole scan only when `tries % 4 == 3`, so from the
+eighth retry on every retry is the five-column probe. If the probed columns
+never arrive while others do, the chunk stays a hole. Fix: keep the backoff
+cap but let the count cycle so every fourth retry stays a whole scan.
+Checked in game 2026-10-19 (`9a565f0`): maintainer OK. [MAP.md](MAP.md)
+
+### L-226 Recording drops the minimap's tiles while FreeCamera flies far away
+Kind: Bug. Code review of v0.2.3..main, 2026-10-19; not seen in game.
+The recording scan runs before the minimap each frame and evicts the shared
+tile caches around the player (`keepChunks`, 51 chunks) once a second. With
+the world map recording and FreeCamera more than 51 chunks from the player,
+the minimap's tiles around the camera are dropped while its own scan grid
+still says Complete, so they wait 4-15 s for a rescan and the minimap keeps
+losing pieces. Fix: eviction keeps tiles near any scan grid's center (display
+and recording), so every grid cell keeps its tile.
+Checked in game 2026-10-19 (`9a565f0`): maintainer OK. [MAP.md](MAP.md)
+
 ### L-224 Target card shows what is behind a ghost at a ghost's edge
 Kind: Bug. Maintainer 2026-10-19 (`cdc02c5`): dragging the crosshair slowly
 across the border between a real block and a schematic ghost, the card
