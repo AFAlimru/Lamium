@@ -239,7 +239,9 @@ Contents:
   dimension, biome), view (facing, rotation, yaw, pitch), movement (speed,
   horizontal, vertical, sprinting), surroundings (light, weather, time,
   moon, difficulty), then FPS, frame interval, ping and real time. A saved
-  order is kept; a line added later goes after its default neighbor.
+  order is kept; a line added later goes after its default neighbor. The
+  settings rows always use this order; the HUD layout's lines list is where
+  the HUD order is changed.
 - **Target** (Jade/WAILA role): icon, name, identifier line, then rows. What
   is shown is chosen by independent rows in the settings list: icon, ID,
   health (hearts / bar / number), armor (icons / bar / number), growth

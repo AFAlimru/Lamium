@@ -252,7 +252,6 @@ struct SettingsRow {
 template<class Translate>
 std::vector<SettingsRow> buildSettingsRows(bool hotkeys, std::string_view category, SearchQuery const& query,
     std::set<std::string_view> const& expanded, Translate translate,
-    std::vector<std::string> const& lineOrder = {},
     std::set<std::string_view> const& searchCollapsed = {}, KeyFilter const* keys = nullptr) {
     std::vector<SettingsRow> rows;
     bool const searching = query.value().find_first_not_of(' ') != std::string::npos;
@@ -303,23 +302,8 @@ std::vector<SettingsRow> buildSettingsRows(bool hotkeys, std::string_view catego
                     return row.action == input::Action::Sort || row.action == input::Action::FakeOffhandUse
                         || row.action == input::Action::SwapOffhand;
                 });
-            // Info lines follow the user-ordered list; every other child
-            // keeps catalog order (stable). Unknown ids sort last.
-            if (!lineOrder.empty()) {
-                auto orderKey = [&](SettingsRow const& row) {
-                    if (!row.option) return lineOrder.size();
-                    constexpr std::string_view prefix = "information.";
-                    if (!row.option->id.starts_with(prefix)) return lineOrder.size();
-                    auto id = row.option->id.substr(prefix.size());
-                    if (id == "biomeDisplay") id = "biome";
-                    if (id == "realTimeDisplay") id = "realTime";
-                    auto at = std::find(lineOrder.begin(), lineOrder.end(), id);
-                    return at == lineOrder.end() ? lineOrder.size()
-                                                 : static_cast<size_t>(at - lineOrder.begin());
-                };
-                std::stable_sort(children.begin(), children.end(),
-                    [&](SettingsRow const& a, SettingsRow const& b) { return orderKey(a) < orderKey(b); });
-            }
+            // Info lines keep catalog order (grouped by kind), not the HUD's
+            // order: the HUD layout arranges them (L-219).
             if (auto element = layoutElement(feature.id))
                 children.push_back({RowKind::Layout, &feature, nullptr, {}, section, element});
             if (feature.id == "worldMap") children.push_back({RowKind::MapCache, &feature, nullptr, {}, section});

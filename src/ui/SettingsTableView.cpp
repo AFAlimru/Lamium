@@ -157,7 +157,7 @@ void rebuild_(bool keepSelection) {
     std::optional<KeyFilter> keys;
     if (keyQuery && hotkeysView()) keys = KeyFilter{*keyQuery, preferences.bindings};
     rows = buildSettingsRows(hotkeysView(), categoryKey(), query, expanded,
-        [](std::string_view key) { return translated(key); }, preferences.information.lineOrder,
+        [](std::string_view key) { return translated(key); },
         searchCollapsed, keys ? &*keys : nullptr);
     selected = -1;
     if (previous)
