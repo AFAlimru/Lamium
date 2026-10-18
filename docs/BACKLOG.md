@@ -428,6 +428,17 @@ found later are handled as bugs.
 
 ## Bugs
 
+### L-222 Target card can show a ghost above the outlined block
+Kind: Bug. Found 2026-10-19 while following up L-217 (maintainer asked to
+fix the schematic side too). `GhostMarks.cpp`'s clip only decides whether a
+missing entity's name tag is hidden, from the render camera; it names no
+block and needed no change. The same mechanism as L-217 remained in the
+card's ghost search: it walks the eye ray, so at a block's edge it could
+enter the air cell above the outlined block and show a ghost there. From
+the body the search now stops just short of the game's own hit. Not
+reproduced; not checked in game. Check: with a schematic ghost directly
+above a real block, aim just under the seam; the card names the real block.
+
 ### L-207 FreeCamera halves the frame rate
 Kind: Bug / Research. User report 2026-10-17; maintainer asked the reporter
 for other observed factors the same day.

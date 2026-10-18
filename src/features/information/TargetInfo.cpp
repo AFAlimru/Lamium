@@ -266,8 +266,11 @@ void appendStates(TargetInfo& result, Block const& block, std::set<std::string> 
     }
 }
 // The nearest schematic ghost in front of the aimed block (L-184): its block
-// as the card's target, marked as a block still to place.
-std::optional<TargetInfo> ghostTarget(LocalPlayer& player, BlockSource& source, bool includeStates, std::optional<ViewRay> const& ray) {
+// as the card's target, marked as a block still to place. `before` stops the
+// search short of the game's own hit: the eye ray can pass above the outlined
+// block at its edge and find a ghost the player is not aiming at (L-222).
+std::optional<TargetInfo> ghostTarget(LocalPlayer& player, BlockSource& source, bool includeStates, std::optional<ViewRay> const& ray,
+                                      std::optional<double> before) {
     double x, y, z, dx, dy, dz, reach;
     if (ray) { x = ray->x; y = ray->y; z = ray->z; dx = ray->dx; dy = ray->dy; dz = ray->dz; reach = ray->reach; }
     else {
@@ -275,6 +278,8 @@ std::optional<TargetInfo> ghostTarget(LocalPlayer& player, BlockSource& source, 
         x = eye.x; y = eye.y; z = eye.z; dx = view.x; dy = view.y; dz = view.z;
         reach = 6;
     }
+    if (before) reach = std::min(reach, *before - .05);
+    if (!(reach > 0)) return std::nullopt;
     auto ghost = schematic::ghosts::ghostAlong(source, static_cast<int>(player.getDimensionId()), x, y, z, dx, dy, dz, reach);
     if (!ghost || !ghost->block) return std::nullopt;
     Block const& block = *ghost->block;
@@ -295,12 +300,16 @@ std::optional<TargetInfo> collectTargetInfo(IClientInstance& client, bool includ
     Pick pick;
     auto const& latest = client.getLatestHitResult();
     bool gameHit = latest.mType == HitResultType::Tile || latest.mType == HitResultType::Entity;
+    std::optional<double> gameDistance;
     if (gameHit && ray && !ray->detached) {
         double dx = latest.mPos.x - ray->x, dy = latest.mPos.y - ray->y, dz = latest.mPos.z - ray->z;
-        gameHit = std::sqrt(dx * dx + dy * dy + dz * dz) <= ray->reach;
+        gameDistance = std::sqrt(dx * dx + dy * dy + dz * dz);
+        gameHit = *gameDistance <= ray->reach;
     }
+    std::optional<double> ghostBefore;
     if (ray && (ray->detached || !gameHit)) pick = pickAlong(*player, *ray);
     else {
+        if (latest.mType == HitResultType::Tile) ghostBefore = gameDistance;
         pick.type = latest.mType;
         pick.block = latest.mBlock;
         if (latest.mType == HitResultType::Entity) pick.entity = latest.getEntity();
@@ -308,7 +317,7 @@ std::optional<TargetInfo> collectTargetInfo(IClientInstance& client, bool includ
     struct { HitResultType mType; BlockPos mBlock; } hit{pick.type, pick.block};
     // A ghost in front of the aimed block (or in the air) is the target.
     if (includeSchematic && hit.mType != HitResultType::Entity)
-        if (auto ghost = ghostTarget(*player, player->getDimensionBlockSource(), includeStates, ray)) return ghost;
+        if (auto ghost = ghostTarget(*player, player->getDimensionBlockSource(), includeStates, ray, ghostBefore)) return ghost;
     if (hit.mType == HitResultType::Entity) {
         auto* entity = pick.entity;
         if (!entity || entity == player || entity->mRemoved
