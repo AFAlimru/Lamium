@@ -719,6 +719,26 @@ void drawTiles(MinecraftUIRenderContext& context, glm::vec2 size, double pixelsP
         usedNow[static_cast<size_t>(index)] = true;
         if (!ui::runtimeImage(context, slotLocation(index), rect, u, v, span, span)) slot.uploaded = false;
     };
+    // Ready slots of this layer, and the tiles in view without their own.
+    auto onGpu = [&](std::vector<int>& at) {
+        std::vector<TileKey> keys;
+        at.clear();
+        for (int i = 0; i < slotCount; ++i)
+            if (auto const& slot = slots[static_cast<size_t>(i)]; ready(i) && slot.tile && slot.tile->first == layer) {
+                keys.push_back(slot.tile->second);
+                at.push_back(i);
+            }
+        return keys;
+    };
+    std::vector<TileKey> missing;
+    for (auto tile : tiles)
+        if (int index = findSlot(tile); index < 0 || !ready(index)) missing.push_back(tile);
+    // Finer images standing in after zooming out are taken for new tiles last.
+    std::vector<bool> standing(slotCount, false);
+    std::vector<int> gpuSlots;
+    auto gpuTiles = onGpu(gpuSlots);
+    for (auto i : finerStandIns(lod, missing, gpuTiles)) standing[static_cast<size_t>(gpuSlots[i])] = true;
+    missing.clear();
     for (auto tile : tiles) {
         auto image = store::image(layer, tile);
         if (image && !image->pixels) { ++empty; continue; }
@@ -727,13 +747,13 @@ void drawTiles(MinecraftUIRenderContext& context, glm::vec2 size, double pixelsP
             && slots[static_cast<size_t>(index)].version == image->version;
         if (image && !current && budget > 0) {
             if (index < 0) {
-                double oldest = INFINITY;
+                std::pair<bool, double> oldest{true, INFINITY};
                 for (int i = 0; i < slotCount; ++i) {
                     auto const& s = slots[static_cast<size_t>(i)];
                     // Shown this frame, or still waiting for its image to land.
                     if (usedNow[static_cast<size_t>(i)] || (s.uploaded && tileFrame < s.readyAt)) continue;
-                    double age = s.tile ? s.used : -INFINITY;
-                    if (age < oldest) { oldest = age; index = i; }
+                    std::pair<bool, double> age{standing[static_cast<size_t>(i)], s.tile ? s.used : -INFINITY};
+                    if (index < 0 || age < oldest) { oldest = age; index = i; }
                 }
             }
             if (index >= 0) {
@@ -768,7 +788,11 @@ void drawTiles(MinecraftUIRenderContext& context, glm::vec2 size, double pixelsP
             drawSlot(at, rectOf(tile), (tile.x - (parent.x << up)) * span, (tile.z - (parent.z << up)) * span, span);
             break;
         }
+        missing.push_back(tile);
     }
+    // Zooming out: finer images on the GPU draw over the coarser stand-in.
+    gpuTiles = onGpu(gpuSlots);
+    for (auto i : finerStandIns(lod, missing, gpuTiles)) drawSlot(gpuSlots[i], rectOf(gpuTiles[i]), 0, 0, 1);
     (void)size;
 }
 

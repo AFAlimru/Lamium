@@ -453,7 +453,9 @@ recording's progress (L-206 review); chunks the client has not loaded are
 filled from the saved regions, Overworld
 caves are not recorded), `WorldMap.cpp` (the screen: a pool of 96 runtime
 textures, at most 6 uploads per frame, 16 in the first second, a coarser
-image stands in until a tile is ready), and a world-map mode in the
+image stands in until a tile is ready, and after zooming out the finer
+images still on the GPU draw over it and are the last slots taken for new
+tiles, L-211), and a world-map mode in the
 settings screen's scene (cursor ownership as for the other screens; the
 add prompt opened from the map returns to it; "Edit" opens the Waypoints
 screen on that waypoint). Saved under the world's `lamium/map/` or
