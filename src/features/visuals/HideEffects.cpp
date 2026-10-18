@@ -217,7 +217,7 @@ void hideDistanceFog(LevelRendererPlayer& self, unsigned mask, CameraMedium show
         if (!hidesDistanceFog(mask, shown, vibrant)) return;
         auto& fog = *self.mCurrentDistanceFog;
         FogRange vanilla{fog.mStart, fog.mEnd};
-        auto far = farFog(vanilla);
+        auto far = farFog(vanilla, static_cast<float>(self.mClientInstance.getOptions().getViewDistanceChunks()) * 16.f);
         if (!far) return;
         heldFog = {reinterpret_cast<std::uintptr_t>(&self), vanilla};
         fog.mStart = far->start;

@@ -26,6 +26,11 @@ identity). Render distance is unchanged. Checked in game on `34c3593`:
 land (day, night, rain), Nether and End, and restoration. No effect under
 Vibrant Visuals (its fog is volumetric); left for later.
 
+L-212 (2026-10-18): 16384/32768 kept the game from building chunks away from
+the view direction at 96 chunks (seen in game). `farFog` now starts the fog
+at the render distance (`getViewDistanceChunks() * 16`, or vanilla's end if
+farther) and ends it 5% past, so the range stays next to vanilla's.
+
 ## First implementation step, 2026-09-30
 
 The first step exposed Rain and snow, and Particles, with the

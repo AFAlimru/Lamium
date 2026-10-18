@@ -64,12 +64,21 @@ struct FogRange {
     float start = 0, end = 0;
     constexpr bool operator==(FogRange const&) const = default;
 };
-inline constexpr float farFogStart = 16384, farFogEnd = 32768;
-// Unreadable values stay vanilla; fog already farther away is left alone.
-inline constexpr std::optional<FogRange> farFog(FogRange vanilla) {
+// The fog starts at the end of the render distance (`renderBlocks`, or
+// vanilla's own end when that is farther) and ends just past it, so nothing
+// drawn is fogged, in rain as well. It stays next to the render distance:
+// moving it to 32768 blocks made the game build chunks only right where the
+// player looked, leaving large holes elsewhere at 96 chunks (L-212, seen in
+// game 2026-10-18). Unreadable values and fog with nothing to hide stay
+// vanilla.
+inline constexpr float farFogMargin = 1.05f;
+inline constexpr std::optional<FogRange> farFog(FogRange vanilla, float renderBlocks) {
     auto finite = [](float v) { return v == v && v > -3.0e38f && v < 3.0e38f; };
-    if (!finite(vanilla.start) || !finite(vanilla.end) || vanilla.end >= farFogEnd) return std::nullopt;
-    return FogRange{vanilla.start > farFogStart ? vanilla.start : farFogStart, farFogEnd};
+    if (!finite(vanilla.start) || !finite(vanilla.end) || !finite(renderBlocks) || vanilla.end <= 0
+        || vanilla.start >= vanilla.end) return std::nullopt;
+    float edge = renderBlocks > vanilla.end ? renderBlocks : vanilla.end;
+    if (vanilla.start >= edge) return std::nullopt;
+    return FogRange{edge, edge * farFogMargin};
 }
 class BossBarRoute {
     bool healthPanel = false, hudPanel = false;
