@@ -741,11 +741,14 @@ void drawTiles(MinecraftUIRenderContext& context, glm::vec2 size, double pixelsP
     missing.clear();
     for (auto tile : tiles) {
         auto image = store::image(layer, tile);
-        if (image && !image->pixels) { ++empty; continue; }
-        int index = findSlot(tile);
+        // An image with nothing in it is not uploaded, but a coarser image
+        // may still stand in for it (L-215).
+        bool hollow = image && !image->pixels;
+        if (hollow) ++empty;
+        int index = hollow ? -1 : findSlot(tile);
         bool current = index >= 0 && slots[static_cast<size_t>(index)].uploaded
             && slots[static_cast<size_t>(index)].version == image->version;
-        if (image && !current && budget > 0) {
+        if (image && !hollow && !current && budget > 0) {
             if (index < 0) {
                 std::pair<bool, double> oldest{true, INFINITY};
                 for (int i = 0; i < slotCount; ++i) {

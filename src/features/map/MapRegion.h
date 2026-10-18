@@ -242,4 +242,18 @@ typename std::vector<Id>::const_iterator nextBuild(std::vector<Id> const& wanted
     auto first = std::find_if(wanted.begin(), wanted.end(), missing);
     return first != wanted.end() ? first : std::find_if(wanted.begin(), wanted.end(), buildable);
 }
+// What a coarser image does with one quarter while it is rebuilt. A child
+// image that could not be made right now - a region still loading, a file
+// not saved yet - used to clear the quarter, and the cleared image counted
+// as fresh, so recorded land stayed black at that scale once the player had
+// moved on (L-215). Now a quarter with recorded data keeps its last pixels
+// and the image is rebuilt again later; only a quarter with nothing recorded
+// is cleared.
+enum class Quarter { Keep, Draw, Clear, KeepAndRetry };
+inline constexpr Quarter quarterAction(bool unchanged, bool built, bool recorded, bool hadPixels) {
+    if (unchanged) return Quarter::Keep;
+    if (built) return Quarter::Draw;
+    if (recorded && hadPixels) return Quarter::KeepAndRetry;
+    return Quarter::Clear;
+}
 }

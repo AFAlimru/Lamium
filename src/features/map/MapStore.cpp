@@ -189,7 +189,7 @@ Pixels build(ImageId const& id, unsigned started) {
     // Quarters whose regions did not change are kept from the last image, so
     // a change near the player rebuilds one path down, not the whole area.
     Pixels previous;
-    std::array<bool, 4> keep{};
+    std::array<bool, 4> keep{}, recorded{};
     auto below = [&](int q) { return ImageId{id.layer, {id.tile.lod - 1, id.tile.x * 2 + (q & 1), id.tile.z * 2 + (q >> 1)}}; };
     {
         std::lock_guard lock(mutex);
@@ -197,13 +197,27 @@ Pixels build(ImageId const& id, unsigned started) {
         dirty.erase(id);
         auto found = images.find(id);
         if (found != images.end()) previous = found->second.pixels;
-        for (int q = 0; q < 4; ++q) keep[static_cast<size_t>(q)] = previous && known(below(q)) && !dirty.contains(below(q));
+        for (int q = 0; q < 4; ++q) {
+            recorded[static_cast<size_t>(q)] = known(below(q));
+            keep[static_cast<size_t>(q)] = previous && recorded[static_cast<size_t>(q)] && !dirty.contains(below(q));
+        }
     }
     auto pixels = previous ? *previous : std::vector<std::uint32_t>(static_cast<size_t>(regionColumns), 0);
+    bool retry = false;
     for (int q = 0; q < 4; ++q) {
-        if (keep[static_cast<size_t>(q)]) continue;
-        if (auto part = child(below(q), started)) downsampleInto(pixels, *part, q);
-        else clearQuadrant(pixels, q);
+        auto i = static_cast<size_t>(q);
+        if (keep[i]) continue;
+        auto part = child(below(q), started);
+        switch (quarterAction(false, part != nullptr, recorded[i], previous != nullptr)) {
+        case Quarter::Draw: downsampleInto(pixels, *part, q); break;
+        case Quarter::KeepAndRetry: retry = true; break;
+        case Quarter::Clear: clearQuadrant(pixels, q); break;
+        case Quarter::Keep: break;
+        }
+    }
+    if (retry) {
+        std::lock_guard lock(mutex);
+        if (started == generation) dirty.insert(id);
     }
     if (std::none_of(pixels.begin(), pixels.end(), [](std::uint32_t c) { return c >> 24; })) return nullptr;
     return std::make_shared<std::vector<std::uint32_t> const>(std::move(pixels));

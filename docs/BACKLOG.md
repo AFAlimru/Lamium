@@ -597,7 +597,15 @@ stale (each recorded chunk makes its region's images at every scale due a
 rebuild every 1.5 s), so images never built waited behind those rebuilds.
 Fix (`l215-map-coarse-refresh`): a never-built wanted image comes before
 any rebuild (`nextBuild`, tested); stale images keep showing their last
-version meanwhile. Not checked in game.
+version meanwhile. Second report (same day): better, but at 1000 blocks a
+quarter-shaped area that had been drawn turned black and showed again after
+zooming slightly. Cause: rebuilding a coarser image cleared a quarter whose
+child image could not be made right then (a region loading or not saved
+yet), and the cleared image counted as fresh. Now a quarter with recorded
+data keeps its pixels and the image is rebuilt again later; only a quarter
+with nothing recorded is cleared (`quarterAction`, tested). The map screen
+also lets a coarser image stand in for a tile whose image came out empty.
+Not checked in game.
 Check in game: fly with the world map open and change the scale (500 to
 2000 blocks): recorded areas appear within a moment at every scale.
 [MAP.md](MAP.md)

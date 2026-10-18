@@ -101,6 +101,12 @@ void images() {
                   && *nextBuild(wanted, missingNone, stale) == 1
                   && nextBuild(wanted, missingNone, [](int) { return false; }) == wanted.end(),
               "an image never built is made before stale ones are rebuilt");
+        check(quarterAction(true, false, true, true) == Quarter::Keep && quarterAction(false, true, true, true) == Quarter::Draw,
+              "unchanged quarters are kept, rebuilt ones drawn");
+        check(quarterAction(false, false, true, true) == Quarter::KeepAndRetry,
+              "a recorded quarter that could not be made now keeps its pixels and is tried again");
+        check(quarterAction(false, false, false, true) == Quarter::Clear && quarterAction(false, false, true, false) == Quarter::Clear,
+              "only a quarter with nothing recorded, or nothing to keep, is cleared");
     }
     RegionData region;
     auto stone = packColor(100, 100, 100);
