@@ -12,6 +12,25 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-219 Info HUD coordinate lines and order, L-221 HUD layout lines list (2026-10-18)
+
+Builds from `l217-info-hud-fixes`, LIP instance, Minecraft 1.26.51.01,
+LeviLamina Client 26.51.7, Windows x64, local world, maintainer.
+`cdd2bcd` (DLL `6e1e811a123994b2128fe1c9ef98550a1065ea72be2c86197c0de639e065ad93`):
+"Block coordinates" and "Target block" lines show the expected values
+(screenshot: target block 547, 48, -463 matching the card); the new line sat
+at the end of the saved order. `7856e1e` (DLL
+`8608677db8592fdb2e4ebd55d4835b8238fdb172f1b8eea9d3759804c21c0ccb`): the
+settings rows list the grouped order; the chat sample no longer shows
+through the editor's lines list. `5a99b86` (DLL
+`b5152eb469ecff33698966b596cd8c090883bc1b1a3346cebdb15e679028fee8`): the
+lines list stays clear of Reset/Done, scrolls by wheel, and the Info HUD's
+"Reset this element" restores the line order; dragging the bar did not
+move it. `b8b065a` (DLL
+`253d438704b74ac0152ded855bd18edcbf07b6fb8d261330a0a70d6551611f99`): the bar
+follows a drag. Not checked: Simplified Chinese text, Target block in
+FreeCamera.
+
 ## L-217 target card block, L-218 Info HUD help, L-220 calculator row (2026-10-18)
 
 Builds from `l217-info-hud-fixes`, LIP instance, Minecraft 1.26.51.01,

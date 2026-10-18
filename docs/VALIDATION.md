@@ -101,7 +101,7 @@ Checklist: [CHAT-POSITION.md](CHAT-POSITION.md).
 | Feature | Last confirmed | Not yet checked |
 |---|---|---|
 | Info HUD lines (L-04, L-05, L-56, L-98) | 2026-09-25, local; 2026-10-06: shared line height, per-line bands (Japanese and English, right-aligned on the right), background opacity, General headings, nearer-edge anchors on `f63be4e`; 2026-10-07: hides with F1 and returns, also in FreeCamera (L-107, `18e2cc8`) | Defaults (Info per line, Status card, Debug View per line) on a fresh settings file |
-| Info HUD wave 1 (L-53) | 2026-09-30, local (follow-up: embedded biome names, angle labels, display formats); every row has its own description (L-218, `1b578e4`, 2026-10-18) | L-219: "Block coordinates" name and the Target block line |
+| Info HUD wave 1 (L-53) | 2026-09-30, local (follow-up: embedded biome names, angle labels, display formats); every row has its own description (L-218, `1b578e4`, 2026-10-18); "Block coordinates" name, Target block line, grouped default and settings order (L-219, `7856e1e`, 2026-10-18) | Target block in FreeCamera |
 | Food values in the inventory (L-64, L-92) | 2026-10-02, local: painted inside the vanilla tooltip on `49665ca`, Japanese and English | Resource packs with other drumsticks or fonts; tooltips with wrapped lines |
 | Durability in the tooltip (L-92) | 2026-10-02, local on `8e7f8a9` | |
 | Saturation on the hunger bar (L-63) | 2026-10-02, local: outline, half marks, held-food preview, UI size, Pocket UI, creative on `70c440c`; values also on a server (trace `8a1214b`) | Resource packs with other drumsticks; hunger effect icons |
@@ -112,6 +112,7 @@ Checklist: [CHAT-POSITION.md](CHAT-POSITION.md).
 | Debug View and F3 keys (L-54, L-52) | 2026-09-28, local; 2026-10-06: LeviLamina in the first line, right column on screen at UI Profile 50/75/100% (`38373e9`) | |
 | Game's position line and paper doll hidden under Debug View and the Info HUD (L-143, L-145) | 2026-10-11, local: Debug View hides both and they return (`9c173b7`); the Info HUD at its default place hides them, moved away they return (`df79b8d`, `f822b70`) | Pocket UI, other UI scales |
 | Hotbar in the HUD layout editor (L-144) | 2026-10-11, local (`9c173b7`) | Pocket UI, a screen size never seen in play |
+| HUD layout editor lines list (L-221) | 2026-10-18, local (`b8b065a`): opaque over element previews, clear of Reset/Done, wheel and scroll-bar drag, the Info HUD's element reset restores the line order | Snap popover near the bottom edge; Pocket UI |
 | Chunk Borders (L-10), Hitboxes (L-11, L-51) | 2026-09-27, local; 2026-10-12: lines on walls stay whole after the pull toward the eye (L-157, `6cd2a68`); over the vanilla selection outline (`da218bd`); 2026-10-14: maintainer confirms both features lose line colors in Vibrant Visuals (L-176, build not separately identified); fix on `9b3b8a9`: colors shown in Vibrant Visuals (L-176) | L-176 in ordinary modes, graphics switching and depth/overlay regression; exact border shades side by side |
 | Light Level Overlay (L-16) | 2026-09-26, local | |
 | Shapes (L-13) | 2026-09-25, local; 2026-09-30: ten distinct type glyphs on `87f11cd`; revised glyphs and list glyphs on the `f7d49cf` trace build | Graphics modes, resource packs, performance |
