@@ -27,6 +27,15 @@ void freeCameraCullingTests() {
     check(reentered, "going back in within the hold keeps it without switching");
     check(!hold.wanted(false, true, 26) && !hold.wanted(true, false, 26.1),
           "ending FreeCamera drops the spectator culler at once and clears the hold");
+    using lamium::camera::undergroundHoldAlways;
+    lamium::camera::SpectatorHold quick, longer, always;
+    check(quick.wanted(true, true, 0, 0) && !quick.wanted(true, false, 0.01, 0),
+          "a 0 s hold switches back as soon as the camera leaves terrain");
+    check(longer.wanted(true, true, 0, 5) && longer.wanted(true, false, 29, 5) && !longer.wanted(true, false, 30.1, 5),
+          "the longest timed hold is 30 s");
+    check(always.wanted(true, false, 0, undergroundHoldAlways) && always.wanted(true, false, 1000, undergroundHoldAlways)
+              && !always.wanted(false, false, 1001, undergroundHoldAlways),
+          "always keeps the spectator culler for the whole session, as before L-207");
     lamium::camera::CullerCheck culler;
     bool transient = false;
     for (int i = 0; i < 5; ++i) transient = transient || culler.failed(false);

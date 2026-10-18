@@ -80,7 +80,9 @@ LL_TYPE_INSTANCE_HOOK(TerrainCullerRequest, ll::memory::HookPriority::Normal, Le
     } catch (...) { unavailable("native request ownership could not be verified"); }
     auto native = static_cast<std::uint8_t>(requested);
     // Other render stages' requests never move the primary camera's hold.
-    bool wanted = own && spectatorHold.wanted(free, inside, seconds());
+    int choice = undergroundHoldDefault;
+    try { if (own) choice = Runtime::instance().snapshot()->camera.freeCameraUndergroundHold; } catch (...) {}
+    bool wanted = own && spectatorHold.wanted(free, inside, seconds(), choice);
     auto selected = terrainCuller(native, wanted && versionSensitiveAllowed(capability));
     origin(static_cast<LevelCullerType>(selected));
     if (!own || !enabled() || native != 3) return;

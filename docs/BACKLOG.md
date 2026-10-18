@@ -601,7 +601,11 @@ split. Maintainer 2026-10-18: try (1).
 Status: built 2026-10-18 on `l214-spectator-hold`: the spectator culler
 stays for 3 s after the camera leaves terrain (`SpectatorHold`, tested);
 only the primary camera's requests move the hold; ending FreeCamera drops it
-at once. Not checked in game.
+at once. Checked in game 2026-10-18 (maintainer): fine; since the right
+length depends on render distance and hardware, it became a child setting
+of FreeCamera, "Keep underground view" (`camera.freeCameraUndergroundHold`):
+0, 1, 3 (default), 5, 10, 30 s or Always (the pre-L-207 behavior), which
+also covers option (2). The setting is not checked in game yet.
 Check in game: fly in and out of a small cave and skim the ground: the view
 rebuilds once on entering, not on every crossing; 3 s after leaving terrain
 the frame rate returns to the open-space level. [CAMERA.md](CAMERA.md)

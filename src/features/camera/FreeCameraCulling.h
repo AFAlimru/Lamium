@@ -1,4 +1,5 @@
 #pragma once
+#include <array>
 #include <cstdint>
 
 namespace lamium::camera {
@@ -17,18 +18,28 @@ inline constexpr bool spectatorTerrainWanted(bool freeCamera, bool insideTerrain
 }
 // The spectator culler stays selected for a while after the camera leaves
 // terrain (L-214): every switch rebuilds the view, and flying through a cave
-// or skimming the ground switched it each time it went in and out. Ending
-// the FreeCamera session drops it at once.
-inline constexpr double spectatorHoldSeconds = 3.0;
+// or skimming the ground switched it each time it went in and out. How long
+// is the player's choice (`camera.freeCameraUndergroundHold`): a rebuild
+// costs more at a larger render distance, a longer hold more frame rate in
+// open space. The last choice keeps the spectator culler for the whole
+// session, as before L-207. Ending the FreeCamera session drops it at once.
+inline constexpr std::array<double, 6> undergroundHoldSeconds{0, 1, 3, 5, 10, 30};
+inline constexpr int undergroundHoldAlways = static_cast<int>(undergroundHoldSeconds.size());
+inline constexpr int undergroundHoldDefault = 2; // 3 s
 struct SpectatorHold {
     double lastInside = -1e300;
-    constexpr bool wanted(bool freeCamera, bool insideTerrain, double now) noexcept {
+    constexpr bool wanted(bool freeCamera, bool insideTerrain, double now, int choice = undergroundHoldDefault) noexcept {
         if (!freeCamera) {
             lastInside = -1e300;
             return false;
         }
-        if (insideTerrain) lastInside = now;
-        return now - lastInside < spectatorHoldSeconds;
+        if (choice >= undergroundHoldAlways) return true;
+        if (insideTerrain) {
+            lastInside = now;
+            return true;
+        }
+        auto seconds = undergroundHoldSeconds[static_cast<size_t>(choice < 0 ? 0 : choice)];
+        return now - lastInside < seconds;
     }
 };
 // Native updates that did not keep the requested type, counted in a row.

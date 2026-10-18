@@ -342,6 +342,10 @@ void settingsStoreTests() {
     check(!old.map.minimap && old.map.zoom == map::defaultZoomIndex && !old.map.rotate && !old.map.round && old.map.debugHide
           && old.hud.minimap.anchor == ui::Anchor::TopRight, "the minimap starts off, at 128 blocks, top right");
     check(!old.map.minimapShapes, "shapes stay off the minimap until turned on (L-139)");
+    check(old.camera.freeCameraUndergroundHold == 2
+              && decodeSettings(R"({"camera":{"freeCameraUndergroundHold":6}})").camera.freeCameraUndergroundHold == 6
+              && decodeSettings(R"({"camera":{"freeCameraUndergroundHold":9}})").camera.freeCameraUndergroundHold == 6,
+          "the underground hold defaults to 3 s, keeps a saved choice and clamps unknown ones");
     check(old.camera.freeCameraHide == 1 && decodeSettings(R"({"camera":{"freeCameraHide":3}})").camera.freeCameraHide == 3
               && decodeSettings(R"({"camera":{"freeCameraHide":8}})").camera.freeCameraHide == 3,
           "FreeCamera hides the hand by default; the setting loads and is clamped (L-191)");
