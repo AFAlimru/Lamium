@@ -231,4 +231,41 @@ inline std::optional<MapLayer> layerOfFolder(std::string_view folder) {
     }
     return std::nullopt;
 }
+// The next wanted image the worker builds. Moving while the map is open
+// keeps the images around the player stale - every recorded chunk makes its
+// region's images, at every scale, due for a rebuild - and rebuilding those
+// first left images never built, shown black, waiting until the player
+// stopped; building never-built ones first left the area by the player out
+// of date at coarse scales instead (L-215, in game 2026-10-18). So the two
+// take turns: `missingTurn` says whose turn it is, and the other kind goes
+// when that one has nothing due.
+template <class Id, class Missing, class Buildable>
+typename std::vector<Id>::const_iterator nextBuild(std::vector<Id> const& wanted, Missing&& missing, Buildable&& buildable,
+                                                   bool missingTurn = true) {
+    auto never = std::find_if(wanted.begin(), wanted.end(), missing);
+    auto stale = std::find_if(wanted.begin(), wanted.end(), [&](Id const& id) { return !missing(id) && buildable(id); });
+    if (missingTurn) return never != wanted.end() ? never : stale;
+    return stale != wanted.end() ? stale : never;
+}
+// What a coarser image does with one quarter while it is rebuilt. A child
+// image that could not be made right now - a region still loading, a file
+// not saved yet - used to clear the quarter, and the cleared image counted
+// as fresh, so recorded land stayed black at that scale once the player had
+// moved on (L-215). Now a quarter with recorded data keeps its last pixels
+// and the image is rebuilt again later; only a quarter with nothing recorded
+// is cleared.
+enum class Quarter { Keep, Draw, Clear, KeepAndRetry };
+// Whether a coarser image keeps a quarter as it is: the child image it was
+// made from (`madeFrom`, a version, 0 none) is still the current, fresh one.
+// A dirty mark alone was not enough: a child rebuilt on its own first lost
+// it, and the old quarter stayed (L-215).
+inline constexpr bool quarterUnchanged(bool hadPixels, bool recorded, unsigned madeFrom, unsigned current, bool currentFresh) {
+    return hadPixels && recorded && madeFrom != 0 && currentFresh && current == madeFrom;
+}
+inline constexpr Quarter quarterAction(bool unchanged, bool built, bool recorded, bool hadPixels) {
+    if (unchanged) return Quarter::Keep;
+    if (built) return Quarter::Draw;
+    if (recorded && hadPixels) return Quarter::KeepAndRetry;
+    return Quarter::Clear;
+}
 }

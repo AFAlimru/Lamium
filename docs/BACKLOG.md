@@ -588,6 +588,31 @@ Remaining: in-game recording coverage and frame times at 32/64/96 chunks,
 with the minimap off as well as on; near changes and movement during a wide
 pass. Build/tests alone do not establish these runtime results.
 
+### L-216 World map region file format for the long term
+Kind: Design. Maintainer 2026-10-18: the saved map takes much more space than
+the world (LamiumTest: 166 MB of map in 1,369 region files, 36 MB of world
+`db`). The current `LMR1` format is uncompressed runs of (length, color,
+height) per region; natural terrain changes color almost every column, so
+runs average about five columns. zlib on the current files measured 5.3x
+(planar palette + height deltas + zlib 5.8x). The maintainer agrees to a new
+format but wants it designed once for the long term before switching, and
+would rather not add much CPU.
+Questions to settle first:
+- Versioning: a header with a format version and a section table, so later
+  additions are new sections that older readers skip, not new formats.
+- What a region may need later besides color and height: water depth or
+  surface block, biome, per-chunk "recorded at" time (freshness, merging
+  edits), a recorded-chunk bitmap (partial chunks), cave/Nether bands.
+- Compression: zlib (available as an xmake package, zlib licence) per
+  section; level and CPU budget on the worker; zstd as the alternative.
+- Integrity: a checksum per section so a damaged file degrades to "missing"
+  for that section only.
+- Downgrades: older Lamium reads new files as damaged and may overwrite them.
+  Option: release reading first, switch writing a release later; or write
+  under a new extension.
+- Migration: lazily, when a region is next saved; no bulk rewrite.
+[MAP.md](MAP.md)
+
 ### L-196 Review license notices, source access and provenance classification
 Kind: Research, then Ready for changes supported by the findings.
 Imported at the maintainer's request on 2026-10-15 from the current-tree

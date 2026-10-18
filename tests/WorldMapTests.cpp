@@ -92,6 +92,29 @@ void regions() {
     check(copyChunk(live, {-1, 2}, back) && back[0].color == grass, "what was scanned since wins over the file");
 }
 void images() {
+    {
+        // L-215: never-built images come before rebuilds of stale ones.
+        std::vector<int> wanted{1, 2, 3, 4};
+        auto stale = [](int id) { return id <= 2; };
+        auto missingNone = [](int) { return false; };
+        check(*nextBuild(wanted, [](int id) { return id == 4; }, stale) == 4
+                  && *nextBuild(wanted, missingNone, stale) == 1
+                  && nextBuild(wanted, missingNone, [](int) { return false; }) == wanted.end(),
+              "an image never built is made before stale ones are rebuilt");
+        check(*nextBuild(wanted, [](int id) { return id == 4; }, stale, false) == 1
+                  && *nextBuild(wanted, [](int id) { return id == 4; }, [](int) { return false; }, false) == 4,
+              "on the other turn a stale image is rebuilt first, and a never-built one when none is stale");
+        check(quarterAction(true, false, true, true) == Quarter::Keep && quarterAction(false, true, true, true) == Quarter::Draw,
+              "unchanged quarters are kept, rebuilt ones drawn");
+        check(quarterAction(false, false, true, true) == Quarter::KeepAndRetry,
+              "a recorded quarter that could not be made now keeps its pixels and is tried again");
+        check(quarterAction(false, false, false, true) == Quarter::Clear && quarterAction(false, false, true, false) == Quarter::Clear,
+              "only a quarter with nothing recorded, or nothing to keep, is cleared");
+        check(quarterUnchanged(true, true, 7, 7, true) && !quarterUnchanged(true, true, 7, 9, true)
+                  && !quarterUnchanged(true, true, 7, 7, false) && !quarterUnchanged(true, true, 0, 0, true)
+                  && !quarterUnchanged(false, true, 7, 7, true),
+              "a quarter is kept only while its child is the very image it was made from");
+    }
     RegionData region;
     auto stone = packColor(100, 100, 100);
     mergeChunk(region, {0, 0}, chunkOf(stone, 64));
