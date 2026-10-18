@@ -520,8 +520,13 @@ void scan(IClientInstance& client, LocalPlayer& player, TileCache& cache, ScanGr
         [&] { return now() - start >= budget; });
     state.diagnostics.scanSeconds += now() - start;
     if (time - state.evictedAt > 1) {
-        state.surface.evict(center, keepChunks);
-        state.cave.evict(center, keepChunks);
+        // Around every path's center, not only this one's: the recording
+        // follows the player while the display may follow a far camera.
+        std::vector<ChunkKey> centers;
+        for (auto const* path : {&state.surfaceGrid, &state.caveGrid, &state.recordGrid})
+            if (path->following()) centers.push_back(path->center());
+        state.surface.evict(centers, keepChunks);
+        state.cave.evict(centers, keepChunks);
         state.evictedAt = time;
     }
 }

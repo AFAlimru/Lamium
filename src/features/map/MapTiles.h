@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <optional>
+#include <span>
 #include <unordered_map>
 #include <vector>
 
@@ -63,11 +64,17 @@ public:
         if (!(c.color >> 24)) return std::nullopt;
         return c;
     }
-    // Bound memory: forget chunks farther than `keep` chunks from the center.
-    void evict(ChunkKey center, int keep) {
+    // Bound memory: forget chunks farther than `keep` chunks from every
+    // center. One center per scan path that reads this cache, so a path's
+    // grid never says Complete for a tile another path evicted (L-226: the
+    // recording, centered on the player, dropped the minimap's tiles around
+    // a FreeCamera camera far away, and they waited 4-15 s for a rescan).
+    void evict(std::span<ChunkKey const> centers, int keep) {
         std::erase_if(tiles, [&](auto const& entry) {
-            int x = int(std::int32_t(entry.first >> 32)), z = int(std::int32_t(entry.first & 0xFFFFFFFFu));
-            return std::abs(x - center.x) > keep || std::abs(z - center.z) > keep;
+            ChunkKey key{int(std::int32_t(entry.first >> 32)), int(std::int32_t(entry.first & 0xFFFFFFFFu))};
+            return std::none_of(centers.begin(), centers.end(), [&](ChunkKey center) {
+                return std::abs(key.x - center.x) <= keep && std::abs(key.z - center.z) <= keep;
+            });
         });
     }
 };
@@ -255,6 +262,7 @@ public:
         return out;
     }
     ChunkKey center() const { return center_; }
+    bool following() const { return radius_ >= 0; }
     // Chunks in range by what was seen (Never, Missing, Partial, Complete),
     // and the farthest chunk the client had, in chunks from the center.
     struct Counts {

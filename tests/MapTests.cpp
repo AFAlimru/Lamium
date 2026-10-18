@@ -314,8 +314,18 @@ void tiles() {
           "only known columns of loaded chunks are read");
     cache.put({40, 0});
     cache.put({-9, -9});
-    cache.evict({0, 0}, 8);
-    check(cache.find({40, 0}) == nullptr && cache.find({-9, -9}) == nullptr && cache.find({1, 0}) != nullptr,
+    cache.put({70, 0});
+    std::array<ChunkKey, 1> playerOnly{ChunkKey{0, 0}};
+    std::array<ChunkKey, 2> playerAndCamera{ChunkKey{0, 0}, ChunkKey{64, 0}};
+    cache.evict(playerAndCamera, 8);
+    check(cache.find({70, 0}) != nullptr && cache.find({40, 0}) == nullptr && cache.find({1, 0}) != nullptr,
+          "tiles near any scan path's center are kept");
+    ScanGrid idle, moved;
+    moved.follow({64, 0}, 3, false);
+    check(!idle.following() && moved.following() && moved.center() == ChunkKey{64, 0},
+          "only a grid that follows a center keeps tiles");
+    cache.evict(playerOnly, 8);
+    check(cache.find({70, 0}) == nullptr && cache.find({-9, -9}) == nullptr && cache.find({1, 0}) != nullptr,
           "far chunks are forgotten");
 }
 void image() {
