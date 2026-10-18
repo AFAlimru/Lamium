@@ -588,35 +588,6 @@ Remaining: in-game recording coverage and frame times at 32/64/96 chunks,
 with the minimap off as well as on; near changes and movement during a wide
 pass. Build/tests alone do not establish these runtime results.
 
-### L-210 World map: black gaps inside the recorded area
-Kind: Bug. Maintainer 2026-10-18: places inside the view distance stay black
-on the world map; to a player that reads as a bug, not as a limit. Goal:
-where the player went, the map fills; the logic stays bounded.
-Found from the saved regions (2026-10-18, LamiumTest): two kinds of gaps.
-(a) Whole chunks missing along one-chunk arcs and wedges, also over ocean:
-the L-206 ring walk resumed relative to a moving player and skipped cells.
-(b) Contour-shaped blobs inside partial chunks at the edge of a visit, on
-land only: sections the client had not received when the chunk was
-scanned, never completed because the player left.
-Status: (a) fixed 2026-10-18 on `l210-map-scan-grid` (scan grid, see
-MAP.md). First game run: no arcs, but at 96 chunks the map stopped about
-33-40 chunks out while standing - edge retries starved the scan (fixed the
-same day: unseen first, retries oldest first with backoff); the log now
-also gives the reach and the reported view distance. Second run: the near
-chunks stayed partial and starved the range the same way (fixed: near and
-never-seen chunks take turns, near retries back off). Third run: filled
-only after the view turned and then slowly; picking cost a full pass of
-30,000 cells per frame (fixed: bounded picking, kinds take turns across
-calls). Open: wedges the player never faced stay dark (client loading,
-likely by view direction); zooming the world map out shows coarse images
-being rebuilt as dark areas for a while (display, separate from recording). (b) open: the 30 s diagnostics line now counts
-the recording range as unseen / missing / partial / complete. Check whether
-partial edge chunks complete while standing still before deciding anything;
-forcing sections to load costs frame rate and is not a fix (maintainer).
-Check in game: fly a straight line at 32+ chunks view distance, stop, open
-the world map: no arcs or wedges of black inside the range; the partial
-count in the log drops while standing; frame time unchanged.
-
 ### L-196 Review license notices, source access and provenance classification
 Kind: Research, then Ready for changes supported by the findings.
 Imported at the maintainer's request on 2026-10-15 from the current-tree

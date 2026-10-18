@@ -12,6 +12,25 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-210 world-map recording scan grid (2026-10-18)
+
+Builds from `l210-map-scan-grid` merged into local test branches (the last
+one `38d7d5a`, main plus PR #20 and #21; DLL
+`32daef21a8789cac3fa1fb2f19f2678aa8e1995066aa5e928cd9bd9f365d82ae`), LIP
+instance, Minecraft 1.26.51.01, LeviLamina Client 26.51.7, Windows x64,
+local world, render distance 96 chunks, maintainer. Runs, each after a
+teleport to new terrain: (1) no arcs or wedges, but the map stopped about
+33-40 chunks out while standing (edge retries starved the scan); (2) near
+partial chunks starved it the same way; (3) range reached in about a minute
+after picking was bounded, filled slowly; (4) with L-212 the area around the
+view fills, but as scattered specks; (5) with probed retries the log shows
+about 90,000 checks in the first 30 s (0.015 ms each), 0 unseen, the rest
+waiting for the client; the map fills from where the player looks. Left
+dark: one-chunk lines of chunks the client never receives, also holes in
+the world itself with Lamium disabled (not in the latest store release).
+Carpets, snow layers and rails draw on the map (also checked in this
+build). Not measured: frame time against a build without the recording.
+
 ## L-212 distance fog next to the render distance (2026-10-18)
 
 Combined test build `9afe8d4` (main plus `l212-distance-fog-range` and PR
