@@ -56,8 +56,7 @@ void bindingTests() {
         && !lamium::outsideWorldMenu("world_loading_progress_screen - local_world_load", false)
         && !lamium::outsideWorldMenu("hud_screen", false), "the title screen's menus count, loading screens and play do not");
     check(lamium::ui::nav::needsWorld(lamium::ui::nav::waypoints) && lamium::ui::nav::needsWorld(lamium::ui::nav::hud)
-        && !lamium::ui::nav::needsWorld(0) && !lamium::ui::nav::needsWorld(lamium::ui::nav::hotkeys)
-        && !lamium::ui::nav::needsWorld(lamium::ui::nav::calculator), "settings lists and keys work outside a world; world views do not");
+        && !lamium::ui::nav::needsWorld(0) && !lamium::ui::nav::needsWorld(lamium::ui::nav::hotkeys), "settings lists and keys work outside a world; world views do not");
     Bindings fresh;
     check(effectiveChord(fresh, Action::Settings) == Chord{Token{Device::Key, 0x4C}}
         && effectiveChord(fresh, Action::ChunkBorders) == defaultChord(Action::ChunkBorders)

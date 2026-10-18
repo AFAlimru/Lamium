@@ -606,7 +606,7 @@ missing.
 ### L-220 Calculator leaves the settings sidebar
 Kind: Ready. Maintainer 2026-10-18: the calculator does not belong in the
 sidebar's pinned tools. It stays openable from the settings screen: its row
-(Interface) gets an Open button in the switch column; its key still opens it
+(Information) gets an Open button in the switch column; its key still opens it
 from gameplay.
 
 ### L-206 World map recording range is a fixed radius instead of the view distance

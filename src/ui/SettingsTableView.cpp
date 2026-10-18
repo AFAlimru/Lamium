@@ -281,6 +281,7 @@ void activateRow(int row, bool space) {
     case RowKind::Section: return;
     case RowKind::Feature:
         if (entry.feature->id == "gameLanguage") { language_view::begin(); return; }
+        if (entry.feature->id == "calculator") { screen::openCalculator(); return; }
         if (space && hasSwitch(*entry.feature)) { toggleFeature(*entry.feature); return; }
         if (entry.children) { setExpanded(row, !entry.expanded); return; }
         if (hasSwitch(*entry.feature)) { toggleFeature(*entry.feature); return; }
@@ -369,6 +370,7 @@ void handleClick(SettingsTable::Hit const& hit, bool right) {
     switch (entry.kind) {
     case RowKind::Feature:
         if (entry.feature->id == "gameLanguage") { language_view::begin(); return; }
+        if (entry.feature->id == "calculator" && hit.column == Column::State) { screen::openCalculator(); return; }
         if (hit.column == Column::State) toggleFeature(*entry.feature);
         else if (hit.column == Column::Key) {
             if (auto primary = primaryAction(*entry.feature)) startCapture(*primary);
@@ -576,7 +578,6 @@ std::string navLabel(int index) {
     if (index == nav::schematics) return translated("nav.schematics");
     if (index == nav::worldMap) return translated("nav.worldMap");
     if (index == nav::hud) return translated("nav.hudLayout");
-    if (index == nav::calculator) return translated("nav.calculator");
     auto key = std::string(sections[index-1]);
     return translated(key);
 }
@@ -927,6 +928,10 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
                 drawSmallButton(context, t.stateX, y + 1, width, capHeight, game_language::currentName(),
                     hover.zone == Zone::Row && hover.index == i);
             }
+            // The calculator opens from here, not from the sidebar (L-220).
+            if (entry.feature->id == "calculator" && !editingRow)
+                drawSmallButton(context, t.stateX, y + 1, SettingsTable::stateWidth, capHeight, translated("open"),
+                    hover.zone == Zone::Row && hover.index == i && hover.column == Column::State);
             break;
         }
         case RowKind::Option: {
