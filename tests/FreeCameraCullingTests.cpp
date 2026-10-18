@@ -17,6 +17,16 @@ void freeCameraCullingTests() {
     check(terrainCuller(3, spectatorTerrainWanted(true, true)) == 5
               && terrainCuller(3, spectatorTerrainWanted(true, false)) == 3,
         "the native request follows the camera being inside terrain");
+    lamium::camera::SpectatorHold hold;
+    bool entered = hold.wanted(true, true, 10);
+    bool held = hold.wanted(true, false, 11) && hold.wanted(true, false, 12.9);
+    bool released = !hold.wanted(true, false, 13.1);
+    check(entered && held && released, "the spectator culler stays for a few seconds after leaving terrain");
+    hold.wanted(true, true, 20);
+    bool reentered = hold.wanted(true, false, 22) && hold.wanted(true, true, 22.5) && hold.wanted(true, false, 25);
+    check(reentered, "going back in within the hold keeps it without switching");
+    check(!hold.wanted(false, true, 26) && !hold.wanted(true, false, 26.1),
+          "ending FreeCamera drops the spectator culler at once and clears the hold");
     lamium::camera::CullerCheck culler;
     bool transient = false;
     for (int i = 0; i < 5; ++i) transient = transient || culler.failed(false);

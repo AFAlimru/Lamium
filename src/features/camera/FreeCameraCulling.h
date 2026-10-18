@@ -15,6 +15,22 @@ inline constexpr std::uint8_t terrainCuller(std::uint8_t requested, bool freeCam
 inline constexpr bool spectatorTerrainWanted(bool freeCamera, bool insideTerrain) noexcept {
     return freeCamera && insideTerrain;
 }
+// The spectator culler stays selected for a while after the camera leaves
+// terrain (L-214): every switch rebuilds the view, and flying through a cave
+// or skimming the ground switched it each time it went in and out. Ending
+// the FreeCamera session drops it at once.
+inline constexpr double spectatorHoldSeconds = 3.0;
+struct SpectatorHold {
+    double lastInside = -1e300;
+    constexpr bool wanted(bool freeCamera, bool insideTerrain, double now) noexcept {
+        if (!freeCamera) {
+            lastInside = -1e300;
+            return false;
+        }
+        if (insideTerrain) lastInside = now;
+        return now - lastInside < spectatorHoldSeconds;
+    }
+};
 // Native updates that did not keep the requested type, counted in a row.
 // Switching between the normal and spectator culler as the camera crosses
 // terrain (L-207) left the previous type for a moment, and one such update

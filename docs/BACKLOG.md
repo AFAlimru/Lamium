@@ -597,7 +597,14 @@ rebuilds). Options: (1) hysteresis, no new setting: switch to spectator on
 entering terrain and back only after the camera has been outside for a few
 seconds; (2) a child setting choosing "always" (old) or "only inside
 terrain" (current). Proposed: try (1) first, add (2) if preferences still
-split. Not decided. [CAMERA.md](CAMERA.md)
+split. Maintainer 2026-10-18: try (1).
+Status: built 2026-10-18 on `l214-spectator-hold`: the spectator culler
+stays for 3 s after the camera leaves terrain (`SpectatorHold`, tested);
+only the primary camera's requests move the hold; ending FreeCamera drops it
+at once. Not checked in game.
+Check in game: fly in and out of a small cave and skim the ground: the view
+rebuilds once on entering, not on every crossing; 3 s after leaving terrain
+the frame rate returns to the open-space level. [CAMERA.md](CAMERA.md)
 
 ### L-196 Review license notices, source access and provenance classification
 Kind: Research, then Ready for changes supported by the findings.
