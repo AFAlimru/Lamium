@@ -12,6 +12,15 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-211 finer map images stand in after zooming out (2026-10-18)
+
+Combined test builds with `l211-map-zoom-out-stand-in` (`6c720f3`) merged
+(`d524a54`, DLL `6ba62deccf5b5bf6f7fd0c3f4703a7a07002a38a1d5903533aa5caa6d11bea50`,
+and `38d7d5a`), LIP instance, Minecraft 1.26.51.01, LeviLamina Client
+26.51.7, Windows x64, local world, maintainer. Zooming the world map out over
+explored areas showed the drawn map instead of dark areas, now and then
+with a short delay. Not checked: memory or upload counts against a build
+without the change.
 ## L-210 world-map recording scan grid (2026-10-18)
 
 Builds from `l210-map-scan-grid` merged into local test branches (the last

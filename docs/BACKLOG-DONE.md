@@ -10,6 +10,20 @@ Runtime status is in [VALIDATION.md](VALIDATION.md), the evidence in
 
 ## Bugs
 
+### L-211 World map goes dark when zooming out until coarse images are built
+Kind: Bug / Ready. Maintainer report 2026-10-18 (during L-210 work): zooming
+the world map out turns already drawn areas dark ("Loading N") until the
+coarser image levels are built; zooming in already had a coarser stand-in.
+Fix 2026-10-18 (branch `l211-map-zoom-out-stand-in`): a wanted tile not
+shown yet is covered by the finer images of its area still on the GPU,
+drawn over any coarser stand-in (`finerStandIns()`, tested). While they
+stand in they are the last slots taken for new tiles, so the coarse uploads
+do not evict them first. No extra uploads or CPU images: the 96 textures,
+6 uploads per frame and the store's image cache are unchanged. Not checked
+in game.
+Done 2026-10-18: merged from PR #21 after the maintainer's in-game check
+(VALIDATION-LOG): zooming out shows the drawn map, sometimes with a short
+delay before the coarse images replace it.
 ### L-210 World map: black gaps inside the recorded area
 Kind: Bug. Maintainer 2026-10-18: places inside the view distance stay black
 on the world map; to a player that reads as a bug, not as a limit. Goal:

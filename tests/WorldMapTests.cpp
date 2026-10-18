@@ -169,6 +169,14 @@ void view() {
               && !index.has({1, 0, 0}),
           "coarse tiles know whether a region is under them");
     check(parentTile({0, -1, 3}) == TileKey{1, -1, 1}, "a tile's parent covers it");
+    check(ancestorAt({0, -1, 3}, 2) == TileKey{2, -1, 0} && ancestorAt({3, 1, 1}, 1) == TileKey{3, 1, 1},
+          "a tile's ancestor at a coarser level covers it");
+    {
+        std::vector<TileKey> gpu{{0, 0, 0}, {1, 1, 0}, {0, -1, 0}, {2, 0, 0}, {0, 5, 0}, {1, 0, 1}};
+        auto standIns = finerStandIns(2, {{2, 0, 0}, {2, -1, 0}}, gpu);
+        check(standIns == std::vector<size_t>{1, 5, 0, 2}, "finer images under missing tiles stand in, coarser first");
+        check(finerStandIns(0, {{0, 0, 0}}, gpu).empty(), "an image of the level itself is no stand-in");
+    }
     WorldView wide{0, 0, defaultWorldScale, 1000, 600}; // 2 units per block: 500 x 300 blocks.
     auto tiles = visibleTiles(wide, 0);
     check(tiles.size() == 4 && tiles.front().x * 256 <= 0 && tiles.front().x * 256 + 256 >= 0, "the tiles on screen, center first");
