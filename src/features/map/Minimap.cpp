@@ -291,7 +291,15 @@ BlockLook const* blockLook(IClientInstance& client, Block const& block) {
     else if (material == Material::ClientRequestPlaceholder) look.pending = true;
     else if (auto const* graphics = BlockGraphics::getForBlock(block)) {
         auto const& shape = *graphics->mVisualShape;
-        look.cover = material != Material::Plant && shape.max.x - shape.min.x > .99f && shape.max.z - shape.min.z > .99f;
+        AABB buffer{};
+        auto const& visual = type.getVisualShape(block, buffer);
+        // Either shape may span the column: a carpet's graphics shape reads
+        // as its center only ((0.4,0.4)-(0.6,0.6)) while the block type's
+        // own shape is the full footprint (found in game, 2026-10-18).
+        bool const plant = material == Material::Plant;
+        auto covers = [&](float x0, float x1, float z0, float z1) { return coversColumn(plant, x1 - x0, z1 - z0); };
+        look.cover = covers(shape.min.x, shape.max.x, shape.min.z, shape.max.z)
+                     || covers(visual.min.x, visual.max.x, visual.min.z, visual.max.z);
         auto const& uv = graphics->getTexture(static_cast<std::uint64_t>(FacingID::Up), type.getVariant(block));
         auto const& path = uv.sourceFileLocation->mPath->value;
         if (auto cached = textureColors.find(path); cached != textureColors.end()) look.color = cached->second;
@@ -351,11 +359,10 @@ bool sawPending = false;
 std::uint32_t blockColor(BlockLook const& look, BlockSource& region, BlockPos const& pos, Block const& block) {
     return look.color ? biomeTint(look.tint, region, pos, block, look.color) : mapColor(region, pos, block);
 }
-// One surface column. The heightmap gives the top light-blocking block; the
-// scan starts one above it, since the heightmap misses covering blocks
-// (snow layers, carpets), and a covering block there wins. Blocks that are
-// not drawn (glass) are looked through. Colors are what the world shows: the
-// top texture's average times the biome tint.
+// One surface column, from one above the heightmap position down (see
+// columnBlockWins): a covering block (snow layer, carpet) wins, blocks that
+// are not drawn (glass) are looked through. Colors are what the world shows:
+// the top texture's average times the biome tint.
 std::optional<Column> surfaceColumn(IClientInstance& client, BlockSource& region, int x, int z, short minY,
                                     bool voidFloor) {
     auto top = region.getHeightmapPos(BlockPos{x, 0, z});
