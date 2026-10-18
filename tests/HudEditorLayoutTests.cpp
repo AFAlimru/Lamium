@@ -48,4 +48,12 @@ void hudEditorLayoutTests() {
           "a tall popover shrinks instead of covering the toolbar");
     check(Box{0, 0, 10, 10}.overlaps(Box{5, 5, 10, 10}) && !Box{0, 0, 10, 10}.overlaps(Box{10, 0, 5, 5}),
           "box overlap excludes touching edges");
+    // The lines list's scroll bar (L-221): 24 rows, 10 shown, a 120-unit track.
+    auto thumb = scrollThumb(100, 120, 24, 10, 0);
+    check(thumb.top == 100 && std::abs(thumb.h - 50) < .01f, "the thumb is as tall as the shown share of the list");
+    auto last = scrollThumb(100, 120, 24, 10, 14);
+    check(std::abs(last.top + last.h - 220) < .01f, "at the last page the thumb reaches the track's end");
+    check(scrollFirstAt(90, 100, 120, 24, 10) == 0 && scrollFirstAt(400, 100, 120, 24, 10) == 14
+          && scrollFirstAt(160, 100, 120, 24, 10) == 7, "the pointer maps the track to every first row, clamped");
+    check(scrollFirstAt(160, 100, 120, 8, 10) == 0, "a list that fits does not scroll");
 }

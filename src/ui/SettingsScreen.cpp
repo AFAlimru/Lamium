@@ -1455,7 +1455,8 @@ void start() {
             return;
         }
         if (hudEditorView() && wheel) {
-            if (scaled) hud_editor::wheel(event.buttonData() > 0 ? -3 : 3, x, y);
+            // Wheel events carry no position: use the pointer as last drawn.
+            hud_editor::wheel(event.buttonData() > 0 ? -3 : 3, lastPointer.x, lastPointer.y);
             return;
         }
         if (schematicsView() && wheel) {

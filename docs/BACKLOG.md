@@ -435,7 +435,15 @@ text reads through the list and through the "Reset this element" button.
 Cause not confirmed: the toolbar, its popovers and the action bar were
 92-94 % opaque and the buttons 90 %. They are opaque now. If the text still
 shows, the next suspect is text drawn after the editor's fills in the same
-frame. Check in game: open the lines list over the chat preview.
+frame. Checked 2026-10-18 (`7856e1e`): the chat sample no longer shows
+through. The maintainer also found: the lines list ran under the Reset/Done
+strip (its row text mixed into "Reset this element"), it scrolled neither
+by wheel (wheel events carry no position; the pointer as last drawn is
+used now) nor by its bar (only drawn), and nothing restored the default
+line order. Fixed: the list stops above the strip and its text is flushed
+before the strip is drawn; the bar has its own strip and drags; the Info
+HUD's "Reset this element" also restores the line order. Not checked in
+game.
 
 ### L-207 FreeCamera halves the frame rate
 Kind: Bug / Research. User report 2026-10-17; maintainer asked the reporter
