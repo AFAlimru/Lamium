@@ -104,12 +104,16 @@ void settingsStoreTests() {
               && !hidesDistanceFog(mediumBits, CameraMedium{}),
               "distance fog hides only where no medium fog is shown, and only for its own switch");
         check(!hidesDistanceFog(distanceFogBit, CameraMedium{}, true), "distance fog stays vanilla under Vibrant Visuals");
-        check(farFog(FogRange{416, 512}) == FogRange{farFogStart, farFogEnd}
-              && farFog(FogRange{0, 24}) == FogRange{farFogStart, farFogEnd},
-              "air and weather fog move far beyond any render distance");
-        check(!farFog(FogRange{0, 40000}) && !farFog(FogRange{std::numeric_limits<float>::quiet_NaN(), 512})
-              && !farFog(FogRange{0, std::numeric_limits<float>::infinity()}),
-              "fog already farther away and unreadable values stay vanilla");
+        check(farFog(FogRange{416, 512}, 512) == FogRange{512, 512 * farFogMargin}
+              && farFog(FogRange{0, 24}, 512) == FogRange{512, 512 * farFogMargin},
+              "air and rain fog start at the render distance and end just past it");
+        check(farFog(FogRange{416, 600}, 512) == FogRange{600, 600 * farFogMargin},
+              "vanilla fog ending beyond the render distance is the edge");
+        check(!farFog(FogRange{512, 512}, 512) && !farFog(FogRange{0, 0}, 512)
+              && !farFog(FogRange{std::numeric_limits<float>::quiet_NaN(), 512}, 512)
+              && !farFog(FogRange{0, std::numeric_limits<float>::infinity()}, 512)
+              && !farFog(FogRange{0, 512}, std::numeric_limits<float>::quiet_NaN()),
+              "fog with nothing to hide and unreadable values stay vanilla");
     }
     {
         check(decodeSettings("{}").visuals.hideBossBars
