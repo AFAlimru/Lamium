@@ -12,6 +12,20 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-205 carpets on the world map (2026-10-18)
+
+Build from `l205-carpet-recording` (`82a90ae`, DLL
+`f0fe542f517095b79510982389336ad12cd34d8c2e146b1aa98e57a272f82339`), local
+single player (LamiumTest: a 16-color carpet row and wool stripes on a stone
+platform at y=100), Minecraft 1.26.51.01, LeviLamina Client 26.51.7, Windows
+x64. Run by an agent driving the game, not the maintainer. A temporary
+diagnostic logged for a carpet: graphics shape (0.40,0.40)-(0.60,0.60),
+type shape (0.00,0.00)-(1.00,1.00), cover true. After the fix the saved
+regions hold the carpet columns at y=101 with their colors where they held
+the stone (y=100) before. The same change is in the combined test builds the
+maintainer ran on 2026-10-18 (`84052d8`); carpets there were not separately
+reported. Not checked: other thin blocks (rails, redstone dust, trapdoors).
+
 ## L-208 Connected Textures corner edges (2026-10-18)
 
 Combined test build `84052d8` (main plus PR #19, #20 and #18; DLL

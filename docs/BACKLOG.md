@@ -429,15 +429,6 @@ found later are handled as bugs.
 ## Bugs
 
 
-### L-205 Carpets do not draw with their colors on the world map
-Kind: Bug / Research. User report 2026-10-17.
-Status: unverified; no reproduction yet.
-A build made of wool carpet appears on the world map without the colors the
-carpets should draw (screenshots in the report). Reproduce locally with a
-small patch of each carpet color; if it does not reproduce, ask the reporter
-to keep the world. Check where the color is lost (recording or drawing) and
-which carpets are affected. [MAP.md](MAP.md)
-
 ### L-207 FreeCamera halves the frame rate
 Kind: Bug / Research. User report 2026-10-17; maintainer asked the reporter
 for other observed factors the same day.
