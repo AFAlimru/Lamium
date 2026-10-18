@@ -255,6 +255,13 @@ typename std::vector<Id>::const_iterator nextBuild(std::vector<Id> const& wanted
 // and the image is rebuilt again later; only a quarter with nothing recorded
 // is cleared.
 enum class Quarter { Keep, Draw, Clear, KeepAndRetry };
+// Whether a coarser image keeps a quarter as it is: the child image it was
+// made from (`madeFrom`, a version, 0 none) is still the current, fresh one.
+// A dirty mark alone was not enough: a child rebuilt on its own first lost
+// it, and the old quarter stayed (L-215).
+inline constexpr bool quarterUnchanged(bool hadPixels, bool recorded, unsigned madeFrom, unsigned current, bool currentFresh) {
+    return hadPixels && recorded && madeFrom != 0 && currentFresh && current == madeFrom;
+}
 inline constexpr Quarter quarterAction(bool unchanged, bool built, bool recorded, bool hadPixels) {
     if (unchanged) return Quarter::Keep;
     if (built) return Quarter::Draw;

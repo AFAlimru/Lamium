@@ -607,9 +607,41 @@ with nothing recorded is cleared (`quarterAction`, tested). The map screen
 also lets a coarser image stand in for a tile whose image came out empty.
 Third report: the area right by the player lagged at 2000 blocks (stale
 images waited behind never-built ones); never-built and stale images now
-take turns. Not checked in game.
+take turns. Fourth report: the area by the player was still black at
+2000 blocks. Cause (from the code): a coarse image kept a quarter when its
+child was not marked dirty, but a child rebuilt on its own first (viewed at
+a finer scale) had lost that mark, so the old quarter stayed. Coarse images
+now remember the child versions they were made from and keep a quarter only
+while that child is unchanged (`quarterUnchanged`, tested). The log also
+names images that come out empty with recorded land under them, and why
+("World map image ..."), bounded to 150 lines. Not checked in game.
 Check in game: fly with the world map open and change the scale (500 to
 2000 blocks): recorded areas appear within a moment at every scale.
+[MAP.md](MAP.md)
+
+### L-216 World map region file format for the long term
+Kind: Design. Maintainer 2026-10-18: the saved map takes much more space than
+the world (LamiumTest: 166 MB of map in 1,369 region files, 36 MB of world
+`db`). The current `LMR1` format is uncompressed runs of (length, color,
+height) per region; natural terrain changes color almost every column, so
+runs average about five columns. zlib on the current files measured 5.3x
+(planar palette + height deltas + zlib 5.8x). The maintainer agrees to a new
+format but wants it designed once for the long term before switching, and
+would rather not add much CPU.
+Questions to settle first:
+- Versioning: a header with a format version and a section table, so later
+  additions are new sections that older readers skip, not new formats.
+- What a region may need later besides color and height: water depth or
+  surface block, biome, per-chunk "recorded at" time (freshness, merging
+  edits), a recorded-chunk bitmap (partial chunks), cave/Nether bands.
+- Compression: zlib (available as an xmake package, zlib licence) per
+  section; level and CPU budget on the worker; zstd as the alternative.
+- Integrity: a checksum per section so a damaged file degrades to "missing"
+  for that section only.
+- Downgrades: older Lamium reads new files as damaged and may overwrite them.
+  Option: release reading first, switch writing a release later; or write
+  under a new extension.
+- Migration: lazily, when a region is next saved; no bulk rewrite.
 [MAP.md](MAP.md)
 
 ### L-196 Review license notices, source access and provenance classification

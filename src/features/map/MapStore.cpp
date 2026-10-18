@@ -76,6 +76,7 @@ std::optional<std::uint64_t> usageBytes;
 bool usageDirty = false;
 unsigned versions = 0;
 double clock = 0;
+std::map<ImageId, std::array<unsigned, 4>> builtFrom; // Worker side: the child versions each coarse image was made from.
 bool missingTurn = true; // Worker only: never-built and stale images take turns (L-215).
 int logged = 0;
 ll::event::ListenerPtr exitListener;
@@ -90,6 +91,15 @@ void log(std::string const& text) {
     // Bounded: the log is for the first runs of an experimental feature.
     if (++logged > 30) return;
     try { Runtime::instance().self().getLogger().info("World map: {}", text); } catch (...) {}
+}
+// Why an image with recorded land under it came out without it (L-215):
+// bounded, for chasing the black areas seen while moving.
+int traced = 0;
+void trace(ImageId const& id, std::string_view why) {
+    if (++traced > 150) return;
+    try {
+        Runtime::instance().self().getLogger().info("World map image {} {} {}: {}", id.tile.lod, id.tile.x, id.tile.z, why);
+    } catch (...) {}
 }
 std::filesystem::path regionPath(std::filesystem::path const& base, RegionId const& id) {
     return base / std::filesystem::u8path(layerFolder(id.layer)) / regionFileName(id.key);
@@ -147,23 +157,25 @@ void trimImages();
 // Worker side. Builds without the lock; takes it only to read sources and to
 // publish. Results from an older generation are dropped.
 Pixels build(ImageId const& id, unsigned started);
-Pixels child(ImageId const& id, unsigned started) {
+// A child image and its version (0 when it could not be made).
+std::pair<Pixels, unsigned> child(ImageId const& id, unsigned started) {
     {
         std::lock_guard lock(mutex);
-        if (started != generation || finishing || !known(id)) return nullptr;
+        if (started != generation || finishing || !known(id)) return {nullptr, 0};
         auto found = images.find(id);
         if (found != images.end() && fresh(found->second) && !dirty.contains(id)) {
             found->second.used = clock;
-            return found->second.pixels;
+            return {found->second.pixels, found->second.version};
         }
     }
     auto pixels = build(id, started);
     std::lock_guard lock(mutex);
-    if (started != generation) return nullptr;
-    images[id] = Cached{pixels, ++versions, false, clock, clock};
+    if (started != generation) return {nullptr, 0};
+    auto version = ++versions;
+    images[id] = Cached{pixels, version, false, clock, clock};
     // A far view builds every image under it; keep memory bounded meanwhile.
     trimImages();
-    return pixels;
+    return {pixels, pixels ? version : 0u};
 }
 Pixels build(ImageId const& id, unsigned started) {
     if (id.tile.lod == 0) {
@@ -177,20 +189,32 @@ Pixels build(ImageId const& id, unsigned started) {
             auto found = residents.find(region);
             if (found != residents.end() && found->second.ready) source = found->second.data;
             else if (root) path = regionPath(*root, region);
+            if (!source && found != residents.end()) trace(id, "region still loading, read from its file");
         }
         std::optional<RegionData> read;
         if (!source && path) {
             read = readRegion(*path);
-            if (!read) return nullptr;
+            if (!read) {
+                trace(id, "no region file to read");
+                return nullptr;
+            }
         }
         auto const& data = source ? *source : *read;
-        if (data.empty()) return nullptr;
+        if (data.empty()) {
+            trace(id, source ? "resident region is empty" : "region file is empty");
+            return nullptr;
+        }
         return std::make_shared<std::vector<std::uint32_t> const>(shadeRegion(data));
     }
-    // Quarters whose regions did not change are kept from the last image, so
-    // a change near the player rebuilds one path down, not the whole area.
+    // Quarters whose child image did not change are kept from the last
+    // image, so a change near the player rebuilds one path down, not the
+    // whole area. "Did not change" is the child's version this image was
+    // built from: a child rebuilt on its own first (viewed at a finer scale)
+    // had lost its dirty mark, and the coarse image kept the old quarter for
+    // good (L-215, the area by the player stayed black at coarse scales).
     Pixels previous;
     std::array<bool, 4> keep{}, recorded{};
+    std::array<unsigned, 4> from{}, made{};
     auto below = [&](int q) { return ImageId{id.layer, {id.tile.lod - 1, id.tile.x * 2 + (q & 1), id.tile.z * 2 + (q >> 1)}}; };
     {
         std::lock_guard lock(mutex);
@@ -198,29 +222,50 @@ Pixels build(ImageId const& id, unsigned started) {
         dirty.erase(id);
         auto found = images.find(id);
         if (found != images.end()) previous = found->second.pixels;
+        if (auto sources = builtFrom.find(id); previous && sources != builtFrom.end()) from = sources->second;
         for (int q = 0; q < 4; ++q) {
-            recorded[static_cast<size_t>(q)] = known(below(q));
-            keep[static_cast<size_t>(q)] = previous && recorded[static_cast<size_t>(q)] && !dirty.contains(below(q));
+            auto i = static_cast<size_t>(q);
+            recorded[i] = known(below(q));
+            auto current = images.find(below(q));
+            bool currentFresh = current != images.end() && fresh(current->second) && !dirty.contains(below(q));
+            keep[i] = quarterUnchanged(previous != nullptr, recorded[i], from[i],
+                                       current != images.end() ? current->second.version : 0u, currentFresh);
         }
     }
     auto pixels = previous ? *previous : std::vector<std::uint32_t>(static_cast<size_t>(regionColumns), 0);
     bool retry = false;
     for (int q = 0; q < 4; ++q) {
         auto i = static_cast<size_t>(q);
-        if (keep[i]) continue;
-        auto part = child(below(q), started);
+        if (keep[i]) {
+            made[i] = from[i];
+            continue;
+        }
+        auto [part, version] = child(below(q), started);
         switch (quarterAction(false, part != nullptr, recorded[i], previous != nullptr)) {
-        case Quarter::Draw: downsampleInto(pixels, *part, q); break;
-        case Quarter::KeepAndRetry: retry = true; break;
+        case Quarter::Draw:
+            downsampleInto(pixels, *part, q);
+            made[i] = version;
+            break;
+        case Quarter::KeepAndRetry:
+            retry = true;
+            trace(below(q), "not made now; its old quarter is kept and the parent retried");
+            break;
         case Quarter::Clear: clearQuadrant(pixels, q); break;
         case Quarter::Keep: break;
         }
     }
-    if (retry) {
+    {
         std::lock_guard lock(mutex);
-        if (started == generation) dirty.insert(id);
+        if (started == generation) {
+            if (retry) dirty.insert(id);
+            builtFrom[id] = made;
+        }
     }
-    if (std::none_of(pixels.begin(), pixels.end(), [](std::uint32_t c) { return c >> 24; })) return nullptr;
+    if (std::none_of(pixels.begin(), pixels.end(), [](std::uint32_t c) { return c >> 24; })) {
+        if (std::any_of(recorded.begin(), recorded.end(), [](bool r) { return r; }))
+            trace(id, retry ? "empty for now, retried" : "built empty though recorded land is under it");
+        return nullptr;
+    }
     return std::make_shared<std::vector<std::uint32_t> const>(std::move(pixels));
 }
 void trimImages() {
@@ -231,7 +276,10 @@ void trimImages() {
     std::sort(order.begin(), order.end(), [](auto const& a, auto const& b) {
         return std::pair(a.second.tile.lod, a.first) < std::pair(b.second.tile.lod, b.first);
     });
-    for (size_t i = 0; i < order.size() && images.size() > maxImages; ++i) images.erase(order[i].second);
+    for (size_t i = 0; i < order.size() && images.size() > maxImages; ++i) {
+        images.erase(order[i].second);
+        builtFrom.erase(order[i].second);
+    }
 }
 std::uint64_t folderSize(std::filesystem::path const& folder) {
     std::uint64_t total = 0;
@@ -361,6 +409,7 @@ void finish(std::unique_lock<std::mutex>& lock) {
     root.reset();
     residents.clear();
     images.clear();
+    builtFrom.clear();
     explored.clear();
     dirty.clear();
     indexing = false;
@@ -467,6 +516,7 @@ bool clear() {
     ++epochs;
     residents.clear();
     images.clear();
+    builtFrom.clear();
     explored.clear();
     dirty.clear();
     indexing = false;

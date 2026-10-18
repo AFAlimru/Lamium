@@ -110,6 +110,10 @@ void images() {
               "a recorded quarter that could not be made now keeps its pixels and is tried again");
         check(quarterAction(false, false, false, true) == Quarter::Clear && quarterAction(false, false, true, false) == Quarter::Clear,
               "only a quarter with nothing recorded, or nothing to keep, is cleared");
+        check(quarterUnchanged(true, true, 7, 7, true) && !quarterUnchanged(true, true, 7, 9, true)
+                  && !quarterUnchanged(true, true, 7, 7, false) && !quarterUnchanged(true, true, 0, 0, true)
+                  && !quarterUnchanged(false, true, 7, 7, true),
+              "a quarter is kept only while its child is the very image it was made from");
     }
     RegionData region;
     auto stone = packColor(100, 100, 100);
