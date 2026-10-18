@@ -12,6 +12,18 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-214 FreeCamera underground view hold and its setting (2026-10-18)
+
+Builds from `l214-spectator-hold`: `d703378` (3 s hold, DLL
+`7a7af228671c12f61bcf770059b876e51694a46c355accbf7eb740dbdcdd94cc`) and
+`f8bcd8d` (the "Keep underground view" setting, DLL
+`f08a1f4e39dfa37f4d933ce2641f01b94db7c9680e894336d5d2cd463ddcb62d`), LIP
+instance, Minecraft 1.26.51.01, LeviLamina Client 26.51.7, Windows x64, local
+world, maintainer. The 3 s hold stopped the rebuild at every crossing of a
+small cave or the ground; the setting appears under FreeCamera with its help
+and its choices behave as described (0 s, timed, Always). Not measured:
+frame rates per choice.
+
 ## L-213 FreeCamera culler check tolerates switching (2026-10-18)
 
 Combined test build `6c2fde2` (main with PR #20 and #21, plus

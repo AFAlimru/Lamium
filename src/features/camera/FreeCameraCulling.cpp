@@ -14,6 +14,7 @@
 #include "mc/world/level/dimension/Dimension.h"
 #include <Windows.h>
 #include <atomic>
+#include <chrono>
 #include <cmath>
 #include <vector>
 #pragma comment(lib, "version.lib")
@@ -27,6 +28,10 @@ std::uintptr_t cullerTarget = 0;
 bool renderInstalled = false, cullerInstalled = false;
 std::atomic<bool> appliedLogged{false};
 CullerCheck cullerCheck; // Renderer thread only.
+SpectatorHold spectatorHold; // Renderer thread only, the primary camera's requests.
+double seconds() {
+    return std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count();
+}
 
 void unavailable(char const* reason, capabilities::Reason kind = capabilities::Reason::NativeContract) noexcept {
     capabilities::fail(capability,kind,reason);
@@ -74,7 +79,11 @@ LL_TYPE_INSTANCE_HOOK(TerrainCullerRequest, ll::memory::HookPriority::Normal, Le
         }
     } catch (...) { unavailable("native request ownership could not be verified"); }
     auto native = static_cast<std::uint8_t>(requested);
-    auto selected = terrainCuller(native, spectatorTerrainWanted(free, inside) && versionSensitiveAllowed(capability));
+    // Other render stages' requests never move the primary camera's hold.
+    int choice = undergroundHoldDefault;
+    try { if (own) choice = Runtime::instance().snapshot()->camera.freeCameraUndergroundHold; } catch (...) {}
+    bool wanted = own && spectatorHold.wanted(free, inside, seconds(), choice);
+    auto selected = terrainCuller(native, wanted && versionSensitiveAllowed(capability));
     origin(static_cast<LevelCullerType>(selected));
     if (!own || !enabled() || native != 3) return;
     // Observe the unmodified call first; never guess an ABI from the slot alone.
@@ -137,6 +146,7 @@ void startTerrainCulling() noexcept {
     capabilities::begin(capability);
     appliedLogged = false;
     cullerCheck = {};
+    spectatorHold = {};
     try {
         if (capabilities::registry().status(capability).compatibility != capabilities::Reason::None) {
             versionSensitiveAllowed(capability); return;
