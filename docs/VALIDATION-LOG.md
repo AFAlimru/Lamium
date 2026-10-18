@@ -12,6 +12,19 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-222 target card ghosts at a block's edge (2026-10-19)
+
+Builds from `l222-ghost-target-seam`, LIP instance, Minecraft 1.26.51.01,
+LeviLamina Client 26.51.7, Windows x64, local world, maintainer.
+`b66feb0` (DLL `73a2dd39a3fb90ef7962fee1e2b0226c67f62fe35925454d9efec9471cfe752d`):
+a black wool ghost at 527, 63, -460 under a real block and in front of
+real stone; aimed just under the seam the card named the stone at 528
+(screenshots), elsewhere the ghost. `41ee214` (DLL
+`90b74e1710b64ded067a49ced408703855ebc87f42f26c938a44750ed8f9fed9`): OK.
+Same session: the block card in Freelook and FreeCamera OK; the HUD in
+English and Simplified Chinese read without problems apart from the mixed
+English position names (L-223).
+
 ## L-219 Info HUD coordinate lines and order, L-221 HUD layout lines list (2026-10-18)
 
 Builds from `l217-info-hud-fixes`, LIP instance, Minecraft 1.26.51.01,
