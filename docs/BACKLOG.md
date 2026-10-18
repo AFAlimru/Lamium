@@ -429,16 +429,20 @@ found later are handled as bugs.
 ## Bugs
 
 ### L-227 FreeCamera outside the loaded area shows only the sky
-Kind: Bug. Maintainer 2026-10-19 (`9a565f0`): with FreeCamera flown out past
-the render distance, all terrain disappears, also the loaded terrain near
-the player that should still be in view; only the sky and environment
-draw. Hypothesis, not checked: since L-207 the spectator culler is asked
-for only while the camera eye's block is solid, and an unloaded column reads
-as no terrain, so the camera outside the loaded area gets the normal culler,
-which may draw nothing when its own chunk is missing. First check: the
-underground hold set to Always (the pre-L-207 behavior). If terrain then
-shows, treat an unloaded camera column as wanting the spectator culler.
-[CAMERA.md](CAMERA.md)
+Kind: Bug / Research. Maintainer 2026-10-19 (`9a565f0`): with FreeCamera
+flown out past the render distance, all terrain disappears, also the loaded
+terrain near the player that should still be in view; only the sky and
+environment draw.
+Rejected 2026-10-19: the L-207 culler gate. With the underground hold set
+to Always (the spectator culler for the whole session, as before L-207)
+the maintainer still saw only the sky.
+Open: whether the view goes blank as soon as the camera's own chunk is not
+loaded (something keyed to the camera's chunk, e.g. the renderer's visibility
+walk starting there) or only once the loaded area is past the camera's own
+render radius (the renderer's chunk grid centered on the camera, a vanilla
+limit). Ask the maintainer where it goes blank, then read the SDK's
+LevelRenderer/culler types before choosing a hook. Terrain beyond the
+loaded area stays out of scope (CAMERA.md). [CAMERA.md](CAMERA.md)
 
 ### L-207 FreeCamera halves the frame rate
 Kind: Bug / Research. User report 2026-10-17; maintainer asked the reporter
