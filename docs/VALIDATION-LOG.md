@@ -12,6 +12,16 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-225 and L-226 map rescans (2026-10-19)
+
+Same environment as L-222. `9a565f0` (DLL
+`13ec74f778dbdb17cf0849046190421cf89866cbd3212a6fbc7dc2841c56b591`): with the
+world map recording and FreeCamera flown more than 60 chunks from the
+player (checklist item 1), the minimap around the camera no longer lost pieces; slow chunks at
+the edge filled in instead of staying holes (item 2). Maintainer: both pass. Seen in
+the same session: past the render distance FreeCamera shows only the sky
+(L-227, separate).
+
 ## L-224 target card at ghost edges (2026-10-19)
 
 Same environment as L-222. `507c605` (DLL

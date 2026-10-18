@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <optional>
+#include <span>
 #include <unordered_map>
 #include <vector>
 
@@ -63,11 +64,17 @@ public:
         if (!(c.color >> 24)) return std::nullopt;
         return c;
     }
-    // Bound memory: forget chunks farther than `keep` chunks from the center.
-    void evict(ChunkKey center, int keep) {
+    // Bound memory: forget chunks farther than `keep` chunks from every
+    // center. One center per scan path that reads this cache, so a path's
+    // grid never says Complete for a tile another path evicted (L-226: the
+    // recording, centered on the player, dropped the minimap's tiles around
+    // a FreeCamera camera far away, and they waited 4-15 s for a rescan).
+    void evict(std::span<ChunkKey const> centers, int keep) {
         std::erase_if(tiles, [&](auto const& entry) {
-            int x = int(std::int32_t(entry.first >> 32)), z = int(std::int32_t(entry.first & 0xFFFFFFFFu));
-            return std::abs(x - center.x) > keep || std::abs(z - center.z) > keep;
+            ChunkKey key{int(std::int32_t(entry.first >> 32)), int(std::int32_t(entry.first & 0xFFFFFFFFu))};
+            return std::none_of(centers.begin(), centers.end(), [&](ChunkKey center) {
+                return std::abs(key.x - center.x) <= keep && std::abs(key.z - center.z) <= keep;
+            });
         });
     }
 };
@@ -107,6 +114,11 @@ struct ScanCell {
 inline bool probeFirst(ScanCell const& cell) {
     return (cell.seen == Seen::Missing || cell.seen == Seen::Partial) && cell.tries % 4 != 3;
 }
+// The count after one more incomplete result in a row. Past the backoff's
+// last step (rescanAfter clamps at 3) it cycles 4..7 instead of stopping, so
+// every fourth retry stays a whole scan (L-225: a cap at 8 made every later
+// retry a probe, and a chunk whose probed columns never arrived stayed a hole).
+inline constexpr int nextTries(int tries) { return tries < 7 ? tries + 1 : 4; }
 // What a due chunk is: Near (due within four chunks), Fresh (never seen, or
 // scanned at another cave layer), Retry (incomplete beyond four chunks) or
 // Stale (complete, out to `staleRadius`). `next` lowers to when a waiting
@@ -184,7 +196,7 @@ public:
         if (!i) return;
         auto& cell = cells_[*i];
         bool arrived = seen == Seen::Complete && cell.seen != Seen::Complete;
-        int tries = seen != Seen::Complete && cell.seen == seen ? std::min(cell.tries + 1, 8) : 0;
+        int tries = seen != Seen::Complete && cell.seen == seen ? nextTries(cell.tries) : 0;
         cell = {seen, static_cast<std::uint8_t>(tries), layer, now};
         if (!arrived) return;
         for (int dz = -1; dz <= 1; ++dz)
@@ -250,6 +262,7 @@ public:
         return out;
     }
     ChunkKey center() const { return center_; }
+    bool following() const { return radius_ >= 0; }
     // Chunks in range by what was seen (Never, Missing, Partial, Complete),
     // and the farthest chunk the client had, in chunks from the center.
     struct Counts {

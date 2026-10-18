@@ -428,6 +428,32 @@ found later are handled as bugs.
 
 ## Bugs
 
+### L-227 FreeCamera outside the loaded area shows only the sky
+Kind: Bug / Research. Maintainer 2026-10-19 (`9a565f0`): with FreeCamera
+flown out past the render distance, all terrain disappears, also the loaded
+terrain near the player that should still be in view; only the sky and
+environment draw.
+Rejected 2026-10-19: the L-207 culler gate. With the underground hold set
+to Always (the spectator culler for the whole session, as before L-207)
+the maintainer still saw only the sky.
+Where (maintainer, by eye): about one chunk past the edge of the loaded
+area, all at once, while the loaded terrain is still well inside the
+camera's render radius. So something keyed to the camera's own position
+having no chunk, not the render radius.
+SDK (26.51.5 headers, 2026-10-19): the culler classes (`LevelCullerBase`,
+`LevelCullerDistanceField*`, `LevelCullerManhattan`, `LevelCullerNone`,
+`VisibilityExtimator`) are empty there, so the walk cannot be read.
+`LevelRendererCamera` has the camera-centered view area (`mViewArea`,
+`updateViewArea`/`setViewArea`, `mViewAreaDistance`), `mLastCameraPos`,
+`shouldCullThisFrame(lastNumRenderChunksVisibleFromCullingPoint)` and
+`_createCuller(type, ...)`. Candidates to test with a trace build, not
+decided: (a) when the camera's chunk is not loaded, request another culler
+type through the L-37 hook (types other than 3 and 5 are not mapped yet);
+(b) find what the "culling point" is and whether it can stay at the nearest
+loaded chunk. Each is a new game dependency (GAME-UPDATES.md) and needs the
+maintainer's go-ahead. Terrain beyond the loaded area stays out of scope
+(CAMERA.md). [CAMERA.md](CAMERA.md)
+
 ### L-207 FreeCamera halves the frame rate
 Kind: Bug / Research. User report 2026-10-17; maintainer asked the reporter
 for other observed factors the same day.
