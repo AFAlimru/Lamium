@@ -107,6 +107,11 @@ struct ScanCell {
 inline bool probeFirst(ScanCell const& cell) {
     return (cell.seen == Seen::Missing || cell.seen == Seen::Partial) && cell.tries % 4 != 3;
 }
+// The count after one more incomplete result in a row. Past the backoff's
+// last step (rescanAfter clamps at 3) it cycles 4..7 instead of stopping, so
+// every fourth retry stays a whole scan (L-225: a cap at 8 made every later
+// retry a probe, and a chunk whose probed columns never arrived stayed a hole).
+inline constexpr int nextTries(int tries) { return tries < 7 ? tries + 1 : 4; }
 // What a due chunk is: Near (due within four chunks), Fresh (never seen, or
 // scanned at another cave layer), Retry (incomplete beyond four chunks) or
 // Stale (complete, out to `staleRadius`). `next` lowers to when a waiting
@@ -184,7 +189,7 @@ public:
         if (!i) return;
         auto& cell = cells_[*i];
         bool arrived = seen == Seen::Complete && cell.seen != Seen::Complete;
-        int tries = seen != Seen::Complete && cell.seen == seen ? std::min(cell.tries + 1, 8) : 0;
+        int tries = seen != Seen::Complete && cell.seen == seen ? nextTries(cell.tries) : 0;
         cell = {seen, static_cast<std::uint8_t>(tries), layer, now};
         if (!arrived) return;
         for (int dz = -1; dz <= 1; ++dz)

@@ -170,12 +170,16 @@ void scanning() {
     ScanGrid probing;
     dueNow(probing, {0, 0}, 12, 0);
     bool probes = true;
-    for (int i = 0; i < 8; ++i) {
+    int wholeScans = 0;
+    for (int i = 0; i < 40; ++i) {
         probing.saw({10, 0}, Seen::Partial, 0, i);
         bool expected = probing.find({10, 0})->tries % 4 != 3;
         if (probeFirst(*probing.find({10, 0})) != expected) probes = false;
+        if (i >= 20 && !probeFirst(*probing.find({10, 0}))) ++wholeScans;
     }
-    probing.saw({10, 0}, Seen::Complete, 0, 9);
+    check(wholeScans == 5 && rescanAfter(10, Seen::Partial, probing.find({10, 0})->tries) == 4.0,
+          "a chunk that stays incomplete keeps a whole scan every fourth retry at the longest wait");
+    probing.saw({10, 0}, Seen::Complete, 0, 41);
     check(probes && !probeFirst(*probing.find({10, 0})) && !probeFirst(ScanCell{}),
           "incomplete retries probe first except every fourth; complete and unseen chunks are scanned");
     check(rescanAfter(10, Seen::Partial, 8) <= 4.0 && rescanAfter(10, Seen::Missing, 0) <= 1.0,
