@@ -34,13 +34,13 @@ void translationTests() {
             auto pattern = find(entry.key, locale);
             std::string rendered;
             if (entry.key == "shape.entry") rendered = std::vformat(pattern, std::make_format_args(key,on,remaining));
-            else if (entry.key == "hudXYZ") rendered = std::vformat(pattern, std::make_format_args(number,number,number));
+            else if (entry.key == "hudXYZ" || entry.key == "hudExactPosition") rendered = std::vformat(pattern, std::make_format_args(number,number,number));
             else if (entry.key == "hudScaledCoordinates") rendered = std::vformat(pattern, std::make_format_args(key,number,number,number));
             else if (entry.key == "targetBlockPosition" || entry.key == "worldMap.teleported") rendered = std::vformat(pattern, std::make_format_args(remaining,remaining,remaining));
             else if (entry.key == "bindingRow" || entry.key == "numberInput" || entry.key == "worldMap.layerShown") rendered = std::vformat(pattern, std::make_format_args(key, zoom));
             else if (entry.key == "numberRange" || entry.key == "integerRange" || entry.key == "numberRangeLine") rendered = std::vformat(pattern, std::make_format_args(number, number));
             else if (entry.key == "hudLightValues") rendered = std::vformat(pattern, std::make_format_args(remaining,maximum));
-            else if (entry.key == "hudBlock" || entry.key == "hudTargetBlock") rendered = std::vformat(pattern, std::make_format_args(remaining,remaining,remaining));
+            else if (entry.key == "hudBlock" || entry.key == "hudTargetBlock" || entry.key == "debugBlock") rendered = std::vformat(pattern, std::make_format_args(remaining,remaining,remaining));
             else if (entry.key == "hudTime") rendered = std::vformat(pattern, std::make_format_args(remaining,key));
             else if (entry.key == "mouseButton") rendered = std::vformat(pattern, std::make_format_args(remaining));
             else if (entry.key == "autoInterval" || entry.key == "autoClicks")
