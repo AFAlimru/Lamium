@@ -14,7 +14,7 @@ namespace lamium::information {
 // Switches stay the existing Information flags; only the order is saved.
 inline constexpr auto infoLineIds = std::to_array<std::string_view>(
     {"coordinates", "scaledCoordinates", "dimension", "biome", "difficulty", "facing", "yaw",
-     "pitch", "sprinting", "fps", "frameTime", "light", "ping", "rotation", "block", "chunk", "speed",
+     "pitch", "sprinting", "fps", "frameTime", "light", "ping", "rotation", "block", "targetBlock", "chunk", "speed",
      "horizontalSpeed", "verticalSpeed", "time", "realTime", "weather", "moon"});
 struct ChunkPosition { int chunkX, chunkZ, inX, inZ; };
 inline ChunkPosition chunkPosition(double x, double z) {

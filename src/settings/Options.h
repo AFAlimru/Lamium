@@ -265,6 +265,7 @@ inline constexpr auto options = std::to_array<Option>({
     toggle<&Settings::information, &Settings::Information::ping>("information.ping", "infoHud", "hudPing"),
     toggle<&Settings::information, &Settings::Information::rotation>("information.rotation", "infoHud", "hudRotation"),
     toggle<&Settings::information, &Settings::Information::block>("information.block", "infoHud", "hudBlock"),
+    toggle<&Settings::information, &Settings::Information::targetBlock>("information.targetBlock", "infoHud", "hudTargetBlock"),
     toggle<&Settings::information, &Settings::Information::chunk>("information.chunk", "infoHud", "hudChunk"),
     toggle<&Settings::information, &Settings::Information::speed>("information.speed", "infoHud", "hudSpeed"),
     toggle<&Settings::information, &Settings::Information::horizontalSpeed>("information.horizontalSpeed", "infoHud", "hudHorizontalSpeed"),
