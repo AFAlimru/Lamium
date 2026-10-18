@@ -204,10 +204,11 @@ Box drawToolbar(MinecraftUIRenderContext& context, Settings const& value, Box el
         auto at = popoverSpot(*spot, barHeight, w, order.size() * rowH + 6, screenW, screenH - barHeight - hudInset - 2);
         int visible = std::clamp(static_cast<int>((at.h - 6) / rowH), 0, static_cast<int>(order.size()));
         linesFirst = std::clamp(linesFirst, 0, std::max(0, static_cast<int>(order.size()) - visible));
-        if (scrolling && linesTrack)
-            linesFirst = scrollFirstAt(py, linesTrack->top, linesTrack->track, static_cast<int>(order.size()), visible);
         float h = visible * rowH + 6;
         if (!spot->below || at.y < spot->y) at.y = at.y + at.h - h; // Hug the toolbar when opening upward.
+        // Dragging the bar: the track as drawn now (linesTrack is rebuilt below).
+        if (scrolling)
+            linesFirst = scrollFirstAt(py, at.y + 3, visible * rowH, static_cast<int>(order.size()), visible);
         popoverBox = Box{at.x, at.y, w, h};
         panel(context, at.x, at.y, w, h, 1.f);
         frame(context, at.x, at.y, w, h, palette::white, .14f);

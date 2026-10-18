@@ -442,8 +442,10 @@ by wheel (wheel events carry no position; the pointer as last drawn is
 used now) nor by its bar (only drawn), and nothing restored the default
 line order. Fixed: the list stops above the strip and its text is flushed
 before the strip is drawn; the bar has its own strip and drags; the Info
-HUD's "Reset this element" also restores the line order. Not checked in
-game.
+HUD's "Reset this element" also restores the line order. Checked
+2026-10-18 (`5a99b86`): all OK except dragging the bar (a click moved it,
+a drag did not: the drag read the bar's track after it had been cleared for
+the frame). Fixed; not checked in game.
 
 ### L-207 FreeCamera halves the frame rate
 Kind: Bug / Research. User report 2026-10-17; maintainer asked the reporter
