@@ -301,7 +301,7 @@ void run() {
             continue;
         }
         if (finishing) break;
-        auto next = std::find_if(wanted.begin(), wanted.end(), buildable);
+        auto next = nextBuild(wanted, [](ImageId const& id) { return !images.contains(id); }, buildable);
         if (next != wanted.end()) {
             auto id = *next;
             unsigned started = generation;

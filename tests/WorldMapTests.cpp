@@ -92,6 +92,16 @@ void regions() {
     check(copyChunk(live, {-1, 2}, back) && back[0].color == grass, "what was scanned since wins over the file");
 }
 void images() {
+    {
+        // L-215: never-built images come before rebuilds of stale ones.
+        std::vector<int> wanted{1, 2, 3, 4};
+        auto stale = [](int id) { return id <= 2; };
+        auto missingNone = [](int) { return false; };
+        check(*nextBuild(wanted, [](int id) { return id == 4; }, stale) == 4
+                  && *nextBuild(wanted, missingNone, stale) == 1
+                  && nextBuild(wanted, missingNone, [](int) { return false; }) == wanted.end(),
+              "an image never built is made before stale ones are rebuilt");
+    }
     RegionData region;
     auto stone = packColor(100, 100, 100);
     mergeChunk(region, {0, 0}, chunkOf(stone, 64));

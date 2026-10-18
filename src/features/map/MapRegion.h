@@ -231,4 +231,15 @@ inline std::optional<MapLayer> layerOfFolder(std::string_view folder) {
     }
     return std::nullopt;
 }
+// The next wanted image the worker builds: one never built comes before a
+// rebuild. Moving while the map is open keeps the images around the player
+// stale - every recorded chunk makes its region's images, at every scale,
+// due for a rebuild - and rebuilding those first left images never built,
+// shown black, waiting until the player stopped (L-215, in game 2026-10-18).
+// A stale image still shows its last version meanwhile.
+template <class Id, class Missing, class Buildable>
+typename std::vector<Id>::const_iterator nextBuild(std::vector<Id> const& wanted, Missing&& missing, Buildable&& buildable) {
+    auto first = std::find_if(wanted.begin(), wanted.end(), missing);
+    return first != wanted.end() ? first : std::find_if(wanted.begin(), wanted.end(), buildable);
+}
 }

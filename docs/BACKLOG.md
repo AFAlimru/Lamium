@@ -599,6 +599,20 @@ seconds; (2) a child setting choosing "always" (old) or "only inside
 terrain" (current). Proposed: try (1) first, add (2) if preferences still
 split. Not decided. [CAMERA.md](CAMERA.md)
 
+### L-215 World map stays black at other scales while the player moves
+Kind: Bug. Maintainer 2026-10-18 (in game, flying with the map open): at a
+coarser scale, areas already recorded stayed black and were not drawn until
+the player stopped. Cause (from the code): the one image worker builds the
+first wanted image that is due; moving keeps the images around the player
+stale (each recorded chunk makes its region's images at every scale due a
+rebuild every 1.5 s), so images never built waited behind those rebuilds.
+Fix (`l215-map-coarse-refresh`): a never-built wanted image comes before
+any rebuild (`nextBuild`, tested); stale images keep showing their last
+version meanwhile. Not checked in game.
+Check in game: fly with the world map open and change the scale (500 to
+2000 blocks): recorded areas appear within a moment at every scale.
+[MAP.md](MAP.md)
+
 ### L-196 Review license notices, source access and provenance classification
 Kind: Research, then Ready for changes supported by the findings.
 Imported at the maintainer's request on 2026-10-15 from the current-tree
