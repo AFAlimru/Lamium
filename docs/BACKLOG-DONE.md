@@ -10,6 +10,27 @@ Runtime status is in [VALIDATION.md](VALIDATION.md), the evidence in
 
 ## Bugs
 
+### L-217 Target View names the block above the aimed one
+Kind: Bug. Maintainer report 2026-10-18: with another block directly above
+the target, looking at the target's upper part sometimes shows the upper
+block's coordinates.
+Cause (not reproduced here): the card takes the cell from one
+`BlockSource::clip` call along the view ray and trusts its `mBlock`. Fix:
+the card also clips each solid cell the ray passes before that hit against
+the full ray and keeps the nearest hit (`information/TargetPick.h`, pure and
+tested), so a cell reported behind the face the ray reaches first loses.
+Check in game: stack two blocks, aim at the lower one's upper edge from
+several angles and distances; the card shows the lower block's name and
+coordinates, also in Freelook and FreeCamera.
+Checked 2026-10-18 (`1b578e4`): still wrong. The maintainer's screenshots
+(stone on stone, aiming just under the seam) put the
+card's ray origin a few hundredths above the game's own pick, so near a
+block's edge the card's ray, not the game's clip, reaches the upper block.
+Second fix: from the body the card uses the game's own hit (the outlined
+block) whenever it is within the card's distance; its own ray only reaches
+past it and serves Freelook and FreeCamera.
+Maintainer checked the second fix in game 2026-10-18 (`c4884e5`): OK.
+
 ### L-215 World map stays black at other scales while the player moves
 Kind: Bug. Maintainer 2026-10-18 (in game, flying with the map open): at a
 coarser scale, areas already recorded stayed black and were not drawn until
@@ -1175,6 +1196,23 @@ result is only the converted text; Latin typing and Backspace unchanged.
 ---
 
 ## Ready
+
+### L-218 Info HUD lines have no descriptions
+Kind: Ready. Maintainer 2026-10-18: every Info HUD child row in the settings
+shows the parent's text. Give each `information.*` / `hud.info.*` row under
+Info HUD its own `help.<option id>` in English, Japanese and Simplified
+Chinese, saying what the line shows and where its value comes from (body or
+FreeCamera camera).
+Status: written 2026-10-18 for all 28 rows (Info HUD switch excluded: it
+uses `help.infoHud`); maintainer OK in game
+2026-10-18.
+
+### L-220 Calculator leaves the settings sidebar
+Kind: Ready. Maintainer 2026-10-18: the calculator does not belong in the
+sidebar's pinned tools. It stays openable from the settings screen: its row
+gets an Open button in the switch column; its key still opens it from
+gameplay. Checked in game 2026-10-18 (sidebar, Open button); maintainer the
+same day: the row belongs in General, moved there; checked OK (`c4884e5`).
 
 ### L-208 Connected Textures: edges where glass turns a corner
 Kind: Ready. User suggestion 2026-10-17; maintainer 2026-10-17: try the display option.

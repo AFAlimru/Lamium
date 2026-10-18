@@ -12,6 +12,21 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-217 target card block, L-218 Info HUD help, L-220 calculator row (2026-10-18)
+
+Builds from `l217-info-hud-fixes`, LIP instance, Minecraft 1.26.51.01,
+LeviLamina Client 26.51.7, Windows x64, local world, maintainer.
+`1b578e4` (DLL `e7861a9bfdf6a244757195f6c891e228366d21d3ba3bd35d15fe22975c5d81b6`):
+Info HUD rows show their own descriptions (OK); the calculator is gone from
+the sidebar and opens from its row (OK, but wanted under General); the
+target card still named the upper of two stacked stone blocks when aiming
+just under the seam while the game outlined the lower one (screenshots:
+528, 64, -460 against 528, 63, -460 a pitch degree apart).
+`c4884e5` (DLL `9769c5339217837e29067c0b301bb2b4ceb15cacd491b9acf2d7477b7291f503`):
+the card follows the outlined block at the seam, and the calculator row
+is under General: both OK. Not checked: the card in Freelook and
+FreeCamera, Simplified Chinese text.
+
 ## L-215 world map images at every scale while moving (2026-10-18)
 
 Builds from `l215-map-coarse-refresh`, the last `f281fa1` (main plus the
