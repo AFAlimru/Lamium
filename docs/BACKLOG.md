@@ -428,6 +428,19 @@ found later are handled as bugs.
 
 ## Bugs
 
+### L-217 Target View names the block above the aimed one
+Kind: Bug. Maintainer report 2026-10-18: with another block directly above
+the target, looking at the target's upper part sometimes shows the upper
+block's coordinates.
+Cause (not reproduced here): the card takes the cell from one
+`BlockSource::clip` call along the view ray and trusts its `mBlock`. Fix:
+the card also clips each solid cell the ray passes before that hit against
+the full ray and keeps the nearest hit (`information/TargetPick.h`, pure and
+tested), so a cell reported behind the face the ray reaches first loses.
+Check in game: stack two blocks, aim at the lower one's upper edge from
+several angles and distances; the card shows the lower block's name and
+coordinates, also in Freelook and FreeCamera.
+
 
 ### L-207 FreeCamera halves the frame rate
 Kind: Bug / Research. User report 2026-10-17; maintainer asked the reporter
@@ -573,6 +586,28 @@ find where the game draws translucent terrain relative to the camera's
 chunk, or draw the faces with a material that does not write depth.
 
 ## Feature work and research
+
+### L-218 Info HUD lines have no descriptions
+Kind: Ready. Maintainer 2026-10-18: every Info HUD child row in the settings
+shows the parent's text. Give each `information.*` / `hud.info.*` row under
+Info HUD its own `help.<option id>` in English, Japanese and Simplified
+Chinese, saying what the line shows and where its value comes from (body or
+FreeCamera camera).
+
+### L-219 Info HUD coordinate lines and the aimed block's position
+Kind: Design. Maintainer 2026-10-18: the "Coordinates" (exact position) and
+"Block" (the block the player stands in, whole numbers as the game's own
+position line shows) rows explain little, and "Block" is the wrong name.
+Also wanted: an Info HUD line with the aimed block's coordinates that works
+without Target View. Names and descriptions are the maintainer's choice;
+existing settings keys keep their meaning, a new key is tolerated when
+missing.
+
+### L-220 Calculator leaves the settings sidebar
+Kind: Ready. Maintainer 2026-10-18: the calculator does not belong in the
+sidebar's pinned tools. It stays openable from the settings screen: its row
+(Interface) gets an Open button in the switch column; its key still opens it
+from gameplay.
 
 ### L-206 World map recording range is a fixed radius instead of the view distance
 Kind: Ready. User report 2026-10-17; maintainer 2026-10-17: fix it, then
