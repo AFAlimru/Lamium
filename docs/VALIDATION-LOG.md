@@ -12,6 +12,17 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-215 world map images at every scale while moving (2026-10-18)
+
+Builds from `l215-map-coarse-refresh`, the last `f281fa1` (main plus the
+branch; DLL `d3d76e69e2212833ae843f4c5c13a8f31a0eb9b767b88064e3dd840a7f69e974`),
+LIP instance, Minecraft 1.26.51.01, LeviLamina Client 26.51.7, Windows x64,
+local world, maintainer. Earlier builds of the branch still showed recorded
+areas black at coarse scales (never-built images waiting, quarters cleared
+or kept stale). With `f281fa1`, flying with the map open and zooming in and
+out showed no unnatural gaps; only places the client never loaded stayed
+dark. The "World map image" trace logged no line in that session.
+
 ## L-214 FreeCamera underground view hold and its setting (2026-10-18)
 
 Builds from `l214-spectator-hold`: `d703378` (3 s hold, DLL
