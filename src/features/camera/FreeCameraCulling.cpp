@@ -26,6 +26,7 @@ std::atomic<DWORD> rendererThread{0};
 std::uintptr_t cullerTarget = 0;
 bool renderInstalled = false, cullerInstalled = false;
 std::atomic<bool> appliedLogged{false};
+CullerCheck cullerCheck; // Renderer thread only.
 
 void unavailable(char const* reason, capabilities::Reason kind = capabilities::Reason::NativeContract) noexcept {
     capabilities::fail(capability,kind,reason);
@@ -77,10 +78,12 @@ LL_TYPE_INSTANCE_HOOK(TerrainCullerRequest, ll::memory::HookPriority::Normal, Le
     origin(static_cast<LevelCullerType>(selected));
     if (!own || !enabled() || native != 3) return;
     // Observe the unmodified call first; never guess an ABI from the slot alone.
-    if (static_cast<std::uint8_t>(static_cast<LevelCullerType const&>(mLastCullerType)) != selected) {
+    bool retained = static_cast<std::uint8_t>(static_cast<LevelCullerType const&>(mLastCullerType)) == selected;
+    if (cullerCheck.failed(retained)) {
         unavailable("native culler update did not retain its requested type");
         return;
     }
+    if (!retained) return;
     capabilities::ready(capability);
     if (selected != native && !appliedLogged.exchange(true)) {
         try { Runtime::instance().self().getLogger().info("FreeCamera terrain: native request 3 -> 5 retained"); }
@@ -133,6 +136,7 @@ void startTerrainCulling() noexcept {
     if (renderInstalled || cullerInstalled) { unavailable("previous terrain hooks could not be removed"); return; }
     capabilities::begin(capability);
     appliedLogged = false;
+    cullerCheck = {};
     try {
         if (capabilities::registry().status(capability).compatibility != capabilities::Reason::None) {
             versionSensitiveAllowed(capability); return;

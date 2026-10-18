@@ -17,6 +17,13 @@ void freeCameraCullingTests() {
     check(terrainCuller(3, spectatorTerrainWanted(true, true)) == 5
               && terrainCuller(3, spectatorTerrainWanted(true, false)) == 3,
         "the native request follows the camera being inside terrain");
+    lamium::camera::CullerCheck culler;
+    bool transient = false;
+    for (int i = 0; i < 5; ++i) transient = transient || culler.failed(false);
+    transient = transient || culler.failed(true);
+    for (int i = 0; i < lamium::camera::CullerCheck::limit - 1; ++i) transient = transient || culler.failed(false);
+    check(!transient, "a few updates that keep the previous type do not fail the check");
+    check(culler.failed(false), "a run of updates that never keep the type fails it");
     unsigned rebuilds = 0;
     std::uint8_t last = 255;
     auto frame = [&](bool free) {
