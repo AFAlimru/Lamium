@@ -428,6 +428,15 @@ found later are handled as bugs.
 
 ## Bugs
 
+### L-221 Chat sample shows through the HUD layout editor's lines list
+Kind: Bug. Maintainer screenshot 2026-10-18 (`a5edf9a`): with the Info HUD
+selected and its lines list open over the chat preview, the sample chat
+text reads through the list and through the "Reset this element" button.
+Cause not confirmed: the toolbar, its popovers and the action bar were
+92-94 % opaque and the buttons 90 %. They are opaque now. If the text still
+shows, the next suspect is text drawn after the editor's fills in the same
+frame. Check in game: open the lines list over the chat preview.
+
 ### L-207 FreeCamera halves the frame rate
 Kind: Bug / Research. User report 2026-10-17; maintainer asked the reporter
 for other observed factors the same day.
@@ -591,7 +600,12 @@ with nothing aimed at or an entity. Checked in game 2026-10-18 (`cdd2bcd`):
 names and values OK; the maintainer asked to revisit the order, and took the
 proposed grouping (DESIGN "Info lines") for the settings rows and the
 default HUD order. A saved order is not rewritten; a line missing from it
-now goes after its default neighbor instead of the end. Not checked in game.
+now goes after its default neighbor instead of the end. In game
+(`a5edf9a`) the settings rows still showed the saved HUD order: they had
+always followed it, and "Reset this element" does not reset the line order
+(only the whole-layout reset does). Maintainer 2026-10-18: the settings
+rows keep the grouped catalog order, independent of the HUD order. Not
+checked in game.
 
 ### L-206 World map recording range is a fixed radius instead of the view distance
 Kind: Ready. User report 2026-10-17; maintainer 2026-10-17: fix it, then

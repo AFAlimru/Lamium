@@ -94,7 +94,7 @@ void moveTo(HudElementId id, float x, float y, Box const& box) {
 }
 void button(MinecraftUIRenderContext& context, Box box, std::string text, bool hot, Rgb edge = palette::keyEdge,
             bool dropdown = false) {
-    fill(context, box.x, box.y, box.w, box.h, palette::keyFill, .9f);
+    fill(context, box.x, box.y, box.w, box.h, palette::keyFill);
     if (hot) fill(context, box.x, box.y, box.w, box.h, palette::white, .08f);
     frame(context, box.x, box.y, box.w, box.h, edge);
     float textW = dropdown ? box.w - 9 : box.w;
@@ -107,6 +107,8 @@ void triangle(MinecraftUIRenderContext& context, float x, float y, bool up, Rgb 
 }
 
 // ---- Toolbar ----
+// The toolbar, its popovers and the action bar are opaque: element previews
+// (the chat sample) showed through them (L-221).
 constexpr float barHeight = 15, itemHeight = 11, pad = 2, gap = 3;
 Box drawToolbar(MinecraftUIRenderContext& context, Settings const& value, Box element, float px, float py) {
     auto id = *selected;
@@ -130,7 +132,7 @@ Box drawToolbar(MinecraftUIRenderContext& context, Settings const& value, Box el
     if (!spot || element.overlaps(Box{spot->x, spot->y, width, barHeight}))
         spot = toolbarSpot(element, width, barHeight, screenW, screenH);
     Box bar{spot->x, spot->y, width, barHeight};
-    panel(context, bar.x, bar.y, bar.w, bar.h, .92f);
+    panel(context, bar.x, bar.y, bar.w, bar.h, 1.f);
     frame(context, bar.x, bar.y, bar.w, bar.h, palette::white, .14f);
     float x = bar.x + pad, y = bar.y + (barHeight - itemHeight) / 2;
     auto add = [&](float w, Command command) {
@@ -144,7 +146,7 @@ Box drawToolbar(MinecraftUIRenderContext& context, Settings const& value, Box el
     if (!positionOnly) {
         // Scale: arrows at both ends of one field.
         Box scaleBox{x, y, scaleW, itemHeight};
-        fill(context, scaleBox.x, scaleBox.y, scaleBox.w, scaleBox.h, palette::keyFill, .9f);
+        fill(context, scaleBox.x, scaleBox.y, scaleBox.w, scaleBox.h, palette::keyFill);
         frame(context, scaleBox.x, scaleBox.y, scaleBox.w, scaleBox.h, palette::keyEdge);
         controls.push_back({{scaleBox.x, y, 10, itemHeight}, Command::ScaleDown});
         controls.push_back({{scaleBox.x + scaleW - 10, y, 10, itemHeight}, Command::ScaleUp});
@@ -178,7 +180,7 @@ Box drawToolbar(MinecraftUIRenderContext& context, Settings const& value, Box el
         float h = 6 + 3 * cellH + 2 * cellGap + 4 + 12;
         auto at = popoverSpot(*spot, barHeight, w, h, screenW, screenH);
         popoverBox = Box{at.x, at.y, w, h};
-        panel(context, at.x, at.y, w, h, .94f);
+        panel(context, at.x, at.y, w, h, 1.f);
         frame(context, at.x, at.y, w, h, palette::white, .14f);
         for (int i = 0; i < 9; ++i) {
             Box cell{at.x + 6 + (i % 3) * (cellW + cellGap), at.y + 6 + (i / 3) * (cellH + cellGap), cellW, cellH};
@@ -198,7 +200,7 @@ Box drawToolbar(MinecraftUIRenderContext& context, Settings const& value, Box el
         float h = visible * rowH + 6;
         if (!spot->below || at.y < spot->y) at.y = at.y + at.h - h; // Hug the toolbar when opening upward.
         popoverBox = Box{at.x, at.y, w, h};
-        panel(context, at.x, at.y, w, h, .94f);
+        panel(context, at.x, at.y, w, h, 1.f);
         frame(context, at.x, at.y, w, h, palette::white, .14f);
         for (int i = 0; i < visible; ++i) {
             auto const& line = order[linesFirst + i];
@@ -241,7 +243,7 @@ void drawActions(MinecraftUIRenderContext& context, std::optional<Box> toolbar, 
     };
     Box bar = placeAt(screenW - w - hudInset);
     if (blocked(bar)) bar = placeAt(hudInset);
-    panel(context, bar.x, bar.y, bar.w, bar.h, .92f);
+    panel(context, bar.x, bar.y, bar.w, bar.h, 1.f);
     frame(context, bar.x, bar.y, bar.w, bar.h, palette::white, .14f);
     float y = bar.y + (barHeight - itemHeight) / 2;
     Box resetBox{bar.x + pad, y, resetW, itemHeight};
