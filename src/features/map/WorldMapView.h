@@ -41,6 +41,22 @@ struct TileKey {
 inline constexpr int maxLod = 8;
 inline constexpr int tileBlocks(int lod) { return regionBlocks << lod; }
 inline constexpr TileKey parentTile(TileKey tile) { return {tile.lod + 1, floorDiv(tile.x, 2), floorDiv(tile.z, 2)}; }
+// The tile of level `lod` (not finer than `tile`) holding `tile`.
+inline constexpr TileKey ancestorAt(TileKey tile, int lod) {
+    int up = std::max(0, lod - tile.lod);
+    return {tile.lod + up, tile.x >> up, tile.z >> up};
+}
+// Zooming out (L-211): finer images already on the GPU stand in for tiles of
+// level `lod` not shown yet. Indexes into `onGpu`, coarser first so finer
+// ones draw on top.
+inline std::vector<size_t> finerStandIns(int lod, std::vector<TileKey> const& missing, std::vector<TileKey> const& onGpu) {
+    std::vector<size_t> result;
+    for (size_t i = 0; i < onGpu.size(); ++i)
+        if (onGpu[i].lod < lod && std::find(missing.begin(), missing.end(), ancestorAt(onGpu[i], lod)) != missing.end())
+            result.push_back(i);
+    std::stable_sort(result.begin(), result.end(), [&](size_t a, size_t b) { return onGpu[a].lod > onGpu[b].lod; });
+    return result;
+}
 // Which saved regions exist: coarse images skip empty space without
 // touching the disk, and the bounds say how far the explored map reaches.
 class ExploredIndex {
