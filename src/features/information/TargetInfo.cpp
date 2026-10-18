@@ -293,9 +293,14 @@ std::optional<TargetInfo> collectTargetInfo(IClientInstance& client, bool includ
     auto* player = client.getLocalPlayer();
     if (!player) return {};
     Pick pick;
-    if (ray) pick = pickAlong(*player, *ray);
+    auto const& latest = client.getLatestHitResult();
+    bool gameHit = latest.mType == HitResultType::Tile || latest.mType == HitResultType::Entity;
+    if (gameHit && ray && !ray->detached) {
+        double dx = latest.mPos.x - ray->x, dy = latest.mPos.y - ray->y, dz = latest.mPos.z - ray->z;
+        gameHit = std::sqrt(dx * dx + dy * dy + dz * dz) <= ray->reach;
+    }
+    if (ray && (ray->detached || !gameHit)) pick = pickAlong(*player, *ray);
     else {
-        auto const& latest = client.getLatestHitResult();
         pick.type = latest.mType;
         pick.block = latest.mBlock;
         if (latest.mType == HitResultType::Entity) pick.entity = latest.getEntity();

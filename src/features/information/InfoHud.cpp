@@ -1413,7 +1413,7 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
         auto* player = context.mClient.getLocalPlayer();
         if (!player) return std::nullopt;
         if (auto view = CameraSessions::instance().detachedViewRay(context.mClient))
-            return ViewRay{view->x, view->y, view->z, view->dx, view->dy, view->dz, reach};
+            return ViewRay{view->x, view->y, view->z, view->dx, view->dy, view->dz, reach, true};
         auto eye = player->getEyePos();
         auto direction = player->getViewVector();
         return ViewRay{eye.x, eye.y, eye.z, direction.x, direction.y, direction.z, reach};

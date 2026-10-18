@@ -440,6 +440,13 @@ tested), so a cell reported behind the face the ray reaches first loses.
 Check in game: stack two blocks, aim at the lower one's upper edge from
 several angles and distances; the card shows the lower block's name and
 coordinates, also in Freelook and FreeCamera.
+Checked 2026-10-18 (`1b578e4`): still wrong. The maintainer's screenshots
+(stone on stone, aiming just under the seam) put the
+card's ray origin a few hundredths above the game's own pick, so near a
+block's edge the card's ray, not the game's clip, reaches the upper block.
+Second fix: from the body the card uses the game's own hit (the outlined
+block) whenever it is within the card's distance; its own ray only reaches
+past it and serves Freelook and FreeCamera.
 
 
 ### L-207 FreeCamera halves the frame rate
@@ -608,8 +615,9 @@ missing.
 ### L-220 Calculator leaves the settings sidebar
 Kind: Ready. Maintainer 2026-10-18: the calculator does not belong in the
 sidebar's pinned tools. It stays openable from the settings screen: its row
-(Information) gets an Open button in the switch column; its key still opens it
-from gameplay.
+gets an Open button in the switch column; its key still opens it from
+gameplay. Checked in game 2026-10-18 (sidebar, Open button); maintainer the
+same day: the row belongs in General, moved there.
 
 ### L-206 World map recording range is a fixed radius instead of the view distance
 Kind: Ready. User report 2026-10-17; maintainer 2026-10-17: fix it, then
