@@ -146,7 +146,7 @@ struct Diagnostics {
     double composeSeconds = 0, uploadSeconds = 0, scanSeconds = 0;
     void log(std::string const& text) {
         // Bounded: the log is for the first runs of an experimental feature.
-        if (lines >= 40) return;
+        if (lines >= 120) return;
         ++lines;
         try { Runtime::instance().self().getLogger().info("Minimap: {}", text); } catch (...) {}
     }

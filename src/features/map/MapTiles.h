@@ -101,12 +101,10 @@ struct ScanCell {
     int layer = 0;
     double at = 0;
 };
-// How a due chunk is picked: Near ones (due within four chunks) and Fresh
-// ones (never seen, or scanned at another cave layer) take turns, each
-// nearest first, so neither the area around the player nor the rest of the
-// range can hold the budget; then Retry ones, incomplete far chunks, longest
-// waiting first; then Stale ones, complete chunks out to `staleRadius`,
-// nearest first. `next` lowers to when a waiting chunk becomes due.
+// What a due chunk is: Near (due within four chunks), Fresh (never seen, or
+// scanned at another cave layer), Retry (incomplete beyond four chunks) or
+// Stale (complete, out to `staleRadius`). `next` lowers to when a waiting
+// chunk becomes due.
 enum class Due { Not, Near, Fresh, Retry, Stale };
 inline Due dueOf(ScanCell const& cell, int ring, double now, int layer, int tolerance, int staleRadius, double& next) {
     if (cell.seen == Seen::Never || std::abs(cell.layer - layer) > tolerance) return Due::Fresh;
@@ -121,12 +119,19 @@ inline Due dueOf(ScanCell const& cell, int ring, double now, int layer, int tole
 }
 // Per scan path (display surface, display caves, recording), the state of
 // every chunk in range around the player, in a grid that moves with the
-// player (L-210). Every call picks the nearest due chunks from scratch, so
-// moving never leaves a chunk behind the way a resumable ring walk did
-// (one-chunk arcs and wedges left unrecorded inside the view distance), and
-// what the path has seen does not depend on the display cache, which evicts
-// far tiles (L-206 review). The grid is dense, so a pass over even the
-// widest recording range (97 chunks) costs array reads, not tile lookups.
+// player (L-210), so moving never leaves a chunk behind the way a resumable
+// ring walk did (one-chunk arcs and wedges unrecorded inside the view
+// distance), and what the path has seen does not depend on the display
+// cache, which evicts far tiles (L-206 review).
+//
+// Each call looks at a bounded number of cells, so the widest recording
+// range (97 chunks, 30,000 cells) does not eat the frame budget before any
+// chunk is scanned: the near cells, never-seen cells from the first one not
+// yet seen (nearest first), and a window of the rest that moves on each call
+// for retries and stale rescans. The kinds take turns - never-seen chunks
+// every other one - and the turn carries over between calls, so even a
+// one-chunk budget gives each a share (in game, near chunks that kept coming
+// due held the whole budget).
 class ScanGrid {
 public:
     // Points the grid at `center`; chunks still in range keep their state.
@@ -150,12 +155,15 @@ public:
             std::stable_sort(order_.begin(), order_.end(), [](ChunkKey a, ChunkKey b) {
                 return a.x * a.x + a.z * a.z < b.x * b.x + b.z * b.z;
             });
+            nearCount_ = 0;
+            while (nearCount_ < order_.size() && ringOf(order_[nearCount_]) <= nearScanRadius + 1) ++nearCount_;
+            window_ = 0;
         }
         cells_ = std::move(cells);
         center_ = center;
         radius_ = radius;
         round_ = round;
-        quietUntil_ = -1e300;
+        freshFrom_ = 0;
     }
     ScanCell const* find(ChunkKey key) const {
         auto i = index(key);
@@ -167,49 +175,43 @@ public:
             int tries = seen != Seen::Complete && cell.seen == seen ? std::min(cell.tries + 1, 8) : 0;
             cell = {seen, static_cast<std::uint8_t>(tries), layer, now};
         }
-        quietUntil_ = -1e300;
     }
     void clear() { *this = {}; }
-    // Up to `limit` due chunks in the order dueOf describes. A pass that
-    // finds nothing remembers when the next chunk becomes due and skips
-    // until then, unless the grid moves, a chunk is seen or the layer changes.
+    // Up to `limit` due chunks, the kinds (near, never seen, the window's
+    // retries and stale rescans) taking turns.
     std::vector<ChunkKey> due(double now, int layer, int tolerance, int staleRadius, size_t limit) {
         if (layer != layer_) {
             layer_ = layer;
-            quietUntil_ = -1e300;
+            freshFrom_ = 0;
         }
-        std::vector<ChunkKey> out, near, fresh, stale;
-        if (now < quietUntil_) return out;
-        std::vector<std::pair<double, ChunkKey>> retry;
+        std::array<std::vector<ChunkKey>, 3> lists; // Near, fresh, rest.
         double next = 1e300;
-        for (auto offset : order_) {
-            ChunkKey key{center_.x + offset.x, center_.z + offset.z};
-            auto const& cell = *find(key);
-            switch (dueOf(cell, std::max(std::abs(offset.x), std::abs(offset.z)), now, layer, tolerance, staleRadius, next)) {
-            case Due::Near: near.push_back(key); break;
-            case Due::Fresh:
-                if (fresh.size() < limit) fresh.push_back(key);
-                break;
-            case Due::Retry: retry.push_back({cell.at, key}); break;
-            case Due::Stale:
-                if (stale.size() < limit) stale.push_back(key);
-                break;
-            case Due::Not: break;
-            }
-            // Near cells all come early in the order; the rest only fills.
-            if (fresh.size() >= limit && std::max(std::abs(offset.x), std::abs(offset.z)) > nearScanRadius + 1) break;
+        auto key = [&](size_t i) { return ChunkKey{center_.x + order_[i].x, center_.z + order_[i].z}; };
+        auto kind = [&](size_t i) { return dueOf(cells_[*index(key(i))], ringOf(order_[i]), now, layer, tolerance, staleRadius, next); };
+        for (size_t i = 0; i < nearCount_; ++i)
+            if (kind(i) == Due::Near && lists[0].size() < limit) lists[0].push_back(key(i));
+        // Cells before freshFrom_ have all been seen; it only moves back when
+        // the grid moves or the layer changes.
+        while (freshFrom_ < order_.size() && kind(freshFrom_) != Due::Fresh) ++freshFrom_;
+        for (size_t i = freshFrom_, looked = 0; i < order_.size() && lists[1].size() < limit && looked < scanWindowCells; ++i, ++looked)
+            if (kind(i) == Due::Fresh) lists[1].push_back(key(i));
+        for (size_t looked = 0; looked < std::min(scanWindowCells, order_.size()) && lists[2].size() < limit; ++looked) {
+            window_ = (window_ + 1) % order_.size();
+            auto k = kind(window_);
+            if (k == Due::Retry || k == Due::Stale) lists[2].push_back(key(window_));
         }
-        for (size_t i = 0; out.size() < limit && (i < near.size() || i < fresh.size()); ++i) {
-            if (i < near.size()) out.push_back(near[i]);
-            if (i < fresh.size() && out.size() < limit) out.push_back(fresh[i]);
+        // Never-seen chunks get every other turn, near and the rest share the
+        // others; a kind with nothing due passes its turn on.
+        static constexpr std::array<size_t, 4> pattern{1, 0, 1, 2};
+        std::vector<ChunkKey> out;
+        std::array<size_t, 3> taken{};
+        for (size_t step = turn_++, idle = 0; out.size() < limit && idle < pattern.size(); ++step) {
+            size_t kind = pattern[step % pattern.size()];
+            if (taken[kind] < lists[kind].size()) {
+                out.push_back(lists[kind][taken[kind]++]);
+                idle = 0;
+            } else ++idle;
         }
-        if (out.empty() && retry.empty() && stale.empty()) quietUntil_ = next;
-        size_t room = std::min(limit - out.size(), retry.size());
-        std::partial_sort(retry.begin(), retry.begin() + static_cast<std::ptrdiff_t>(room), retry.end(),
-                          [](auto const& a, auto const& b) { return a.first < b.first; });
-        for (size_t i = 0; i < room; ++i) out.push_back(retry[i].second);
-        for (auto key : stale)
-            if (out.size() < limit) out.push_back(key);
         return out;
     }
     ChunkKey center() const { return center_; }
@@ -229,8 +231,11 @@ public:
         }
         return out;
     }
+    // Cells a call looks at for never-seen chunks and for its moving window.
+    static constexpr size_t scanWindowCells = 2048;
 
 private:
+    static int ringOf(ChunkKey offset) { return std::max(std::abs(offset.x), std::abs(offset.z)); }
     std::optional<size_t> index(ChunkKey key) const {
         int dx = key.x - center_.x, dz = key.z - center_.z;
         if (radius_ < 0 || std::abs(dx) > radius_ || std::abs(dz) > radius_) return std::nullopt;
@@ -241,7 +246,10 @@ private:
     bool round_ = false;
     std::vector<ScanCell> cells_;
     std::vector<ChunkKey> order_; // Offsets in range, nearest first.
-    double quietUntil_ = -1e300;
+    size_t nearCount_ = 0;        // The leading offsets that can be near.
+    size_t freshFrom_ = 0;        // No never-seen cell before this.
+    size_t window_ = 0;           // Where the retry window stopped.
+    size_t turn_ = 0;             // Where the turn pattern starts this call.
 };
 inline constexpr size_t scanChunksPerCall = 64;
 // One call of a scan path: the due chunks, nearest first, until the time

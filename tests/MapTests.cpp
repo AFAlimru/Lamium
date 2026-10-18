@@ -107,47 +107,52 @@ void scanning() {
     check(rescanAfter(6, Seen::Missing) > rescanAfter(2, Seen::Missing)
               && rescanAfter(9, Seen::Complete) > rescanAfter(2, Seen::Complete),
           "far missing chunks retry less often, far complete ones rescan rarely");
+    // Near rescans, never-seen chunks and far rescans take turns, the first
+    // kind rotating per call; complete chunks beyond the stale radius wait
+    // for the next visit.
     ScanGrid wide;
     seeAll(wide, dueNow(wide, {0, 0}, 8, 0), Seen::Complete, 0);
     wide.saw({8, 8}, Seen::Never, 0, 0);
-    auto staleFar = dueNow(wide, {0, 0}, 8, 100, false, 0, 1 << 20, 6);
-    bool withinStale = true;
-    for (auto key : staleFar)
-        if (std::max(std::abs(key.x), std::abs(key.z)) > 6 && !(key == ChunkKey{8, 8})) withinStale = false;
-    check(withinStale && staleFar.front() == ChunkKey{0, 0}, "complete chunks beyond the stale radius are not rescanned");
-    auto ring1 = std::find(staleFar.begin(), staleFar.end(), ChunkKey{1, 0}) - staleFar.begin();
-    auto unseen = std::find(staleFar.begin(), staleFar.end(), ChunkKey{8, 8}) - staleFar.begin();
-    auto ring5 = std::find(staleFar.begin(), staleFar.end(), ChunkKey{5, 0}) - staleFar.begin();
-    check(unseen == 1 && ring1 > unseen && ring5 < static_cast<long long>(staleFar.size()) && unseen < ring5,
-          "unseen chunks take turns with stale near ones, before stale far ones");
+    bool withinStale = true, turns = true;
+    for (int call = 0; call < 3; ++call) {
+        auto list = wide.due(100, 0, 1 << 20, 6, 1000);
+        for (auto key : list)
+            if (std::max(std::abs(key.x), std::abs(key.z)) > 6 && !(key == ChunkKey{8, 8})) withinStale = false;
+        auto ringOf = [](ChunkKey k) { return std::max(std::abs(k.x), std::abs(k.z)); };
+        // The first three picks are one of each kind.
+        int nearKinds = 0, freshKinds = 0, farKinds = 0;
+        for (size_t i = 0; i < 3 && i < list.size(); ++i) {
+            if (list[i] == ChunkKey{8, 8}) ++freshKinds;
+            else if (ringOf(list[i]) <= 4) ++nearKinds;
+            else ++farKinds;
+        }
+        if (nearKinds != 1 || freshKinds != 1 || farKinds != 1) turns = false;
+    }
+    check(withinStale, "complete chunks beyond the stale radius are not rescanned");
+    check(turns, "near rescans, never-seen chunks and far rescans take turns");
 
-    // The edge of what the client loads (L-210, seen in game): hundreds of
-    // partial chunks there must not keep the scan from the chunks beyond.
-    ScanGrid edge;
-    auto everything = dueNow(edge, {0, 0}, 20, 0);
-    for (auto key : everything) {
-        double d = std::sqrt(double(key.x * key.x + key.z * key.z));
-        if (d <= 8) edge.saw(key, Seen::Complete, 0, 0);
-        else if (d <= 10) edge.saw(key, Seen::Partial, 0, 0);
+    // A one-chunk budget (in game: picking chunks among 30,000 cells) still
+    // gives every kind its share, even with near chunks always due.
+    ScanGrid shares;
+    for (auto key : dueNow(shares, {0, 0}, 40, 0, true)) {
+        int ring = std::max(std::abs(key.x), std::abs(key.z));
+        shares.saw(key, ring > 30 ? Seen::Partial : Seen::Complete, 0, -10);
+        if (ring >= 20 && ring <= 25) shares.saw(key, Seen::Never, 0, 0);
     }
-    auto next = edge.due(10, 0, 1 << 20, 16, 100000);
-    size_t lastNever = 0, firstPartial = next.size();
-    for (size_t i = 0; i < next.size(); ++i) {
-        auto seen = edge.find(next[i])->seen;
-        if (seen == Seen::Never) lastNever = i;
-        if (seen == Seen::Partial && firstPartial == next.size()) firstPartial = i;
+    int nearScans = 0, freshScans = 0, farScans = 0;
+    double at = 0;
+    for (int call = 0; call < 600; ++call, at += 1.0 / 60) {
+        scanBatch(shares, {0, 0}, 40, true, at, 0, 1 << 20, 16, [&](ChunkKey key) -> std::optional<Seen> {
+            auto cell = shares.find(key);
+            int ring = std::max(std::abs(key.x), std::abs(key.z));
+            if (cell->seen == Seen::Never) ++freshScans;
+            else if (ring <= 4) ++nearScans;
+            else ++farScans;
+            return ring <= 4 || ring > 30 ? Seen::Partial : Seen::Complete;
+        }, [] { return true; });
     }
-    check(lastNever > 0 && firstPartial < next.size() && lastNever < firstPartial,
-          "chunks never looked at come before retries of partial ones");
-    ScanGrid retries;
-    seeAll(retries, dueNow(retries, {0, 0}, 12, 0), Seen::Complete, 0);
-    retries.saw({10, 0}, Seen::Partial, 0, 5);
-    retries.saw({0, 11}, Seen::Missing, 0, 1);
-    retries.saw({7, 0}, Seen::Partial, 0, 3);
-    auto order = retries.due(30, 0, 1 << 20, 0, 1000);
-    auto place = [&](ChunkKey key) { return std::find(order.begin(), order.end(), key) - order.begin(); };
-    check(place({0, 11}) < place({7, 0}) && place({7, 0}) < place({10, 0}) && place({10, 0}) < static_cast<long long>(order.size()),
-          "far retries go longest waiting first");
+    check(freshScans >= 250 && nearScans >= 100 && farScans >= 50, "every kind gets turns with one chunk a call");
+
     ScanGrid backoff;
     seeAll(backoff, dueNow(backoff, {0, 0}, 12, 0), Seen::Complete, 0);
     for (double at : {0.0, 10.0, 20.0}) backoff.saw({10, 0}, Seen::Partial, 0, at);
@@ -181,13 +186,6 @@ void scanning() {
     seeAll(caves, dueNow(caves, {0, 0}, 1, 0, false, 64, 0), Seen::Complete, 0, 64);
     check(dueNow(caves, {0, 0}, 1, 0.5, false, 64, 0).empty() && dueNow(caves, {0, 0}, 1, 0.5, false, 65, 0).size() == 9,
           "a cave chunk scanned at another layer is due again");
-
-    // A quiet pass is remembered until something can be due.
-    ScanGrid quiet;
-    seeAll(quiet, dueNow(quiet, {0, 0}, 2, 0), Seen::Complete, 0);
-    check(dueNow(quiet, {0, 0}, 2, 0.1).empty() && dueNow(quiet, {0, 0}, 2, 0.9).empty()
-              && dueNow(quiet, {0, 0}, 2, 1.0).size() == 9,
-          "a quiet grid wakes when the first chunk is due");
 }
 void scheduledScanning() {
     // The time budget: one chunk per call, nearest first, and a chunk
@@ -219,8 +217,9 @@ void scheduledScanning() {
 
     // The range in game (L-210): at 96 chunks the client had chunks to about
     // 40, the edge stayed partial, and the chunks around the player stayed
-    // partial too (provisional tints). Three scans a frame must still look at
-    // the whole range within a couple of minutes.
+    // partial too (provisional tints). Three full scans a frame (the worst
+    // case: a missing chunk takes microseconds in game) must still look at
+    // the whole range within six minutes, while retries keep their share.
     ScanGrid game;
     int calls = 0;
     auto gameScan = [&](ChunkKey key) -> std::optional<Seen> {
@@ -228,11 +227,11 @@ void scheduledScanning() {
         return d > 40 ? Seen::Missing : d > 33 || d < 5 ? Seen::Partial : Seen::Complete;
     };
     double clock = 0;
-    for (; calls < 60 * 240 && (calls == 0 || game.counts().seen[0] > 0); ++calls, clock += 1.0 / 60) {
+    for (; calls < 60 * 360 && (calls == 0 || game.counts().seen[0] > 0); ++calls, clock += 1.0 / 60) {
         int left = 3;
         scanBatch(game, {0, 0}, 97, true, clock, 0, 1 << 20, 16, gameScan, [&] { return --left == 0; });
     }
-    check(game.counts().seen[0] == 0 && calls < 60 * 240, "partial chunks near the player and at the edge cannot starve the range");
+    check(game.counts().seen[0] == 0 && calls < 60 * 360, "partial chunks near the player and at the edge cannot starve the range");
     check(game.counts().reach == 40, "the reach is the farthest chunk the client had");
 
     // Moving through the world (L-210): the old resumable walk left arcs of

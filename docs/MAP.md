@@ -29,7 +29,16 @@ path), were retried every 0.5 s and held the budget the same way. Near
 rescans and never-seen chunks now take turns, and near incomplete chunks
 back off too (0.5 s doubling to 4 s). A pure test replays that range
 (client chunks to 40, partial edge and center, three scans a frame) and
-requires every cell to be looked at within four minutes of frames. A pass that finds
+requires every cell to be looked at within four minutes of frames.
+Third run: still slow until the view was turned. Picking among 30,000
+cells by a full pass each frame cost most of the 1 ms budget, so one chunk a
+frame was scanned and it was always a near one. Each call now looks at a
+bounded number of cells (near cells, never-seen cells from the first unseen
+one, a 2,048-cell window that moves on for retries and stale rescans), and
+the kinds take turns across calls (never-seen every other turn). The run
+also showed what stays dark is mostly what the client never loaded: the
+range filled after the view was turned, which suggests the client asks
+for terrain toward where the player looks (not confirmed). A pass that finds
 nothing skips until the next chunk is due. The 30 s diagnostics line counts
 the recording range by state, to tell unvisited chunks from blocks the
 client never received. A pure test walks a player through the world and
