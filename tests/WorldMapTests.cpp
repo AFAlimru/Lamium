@@ -101,6 +101,9 @@ void images() {
                   && *nextBuild(wanted, missingNone, stale) == 1
                   && nextBuild(wanted, missingNone, [](int) { return false; }) == wanted.end(),
               "an image never built is made before stale ones are rebuilt");
+        check(*nextBuild(wanted, [](int id) { return id == 4; }, stale, false) == 1
+                  && *nextBuild(wanted, [](int id) { return id == 4; }, [](int) { return false; }, false) == 4,
+              "on the other turn a stale image is rebuilt first, and a never-built one when none is stale");
         check(quarterAction(true, false, true, true) == Quarter::Keep && quarterAction(false, true, true, true) == Quarter::Draw,
               "unchanged quarters are kept, rebuilt ones drawn");
         check(quarterAction(false, false, true, true) == Quarter::KeepAndRetry,

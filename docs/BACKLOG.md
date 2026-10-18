@@ -605,7 +605,9 @@ yet), and the cleared image counted as fresh. Now a quarter with recorded
 data keeps its pixels and the image is rebuilt again later; only a quarter
 with nothing recorded is cleared (`quarterAction`, tested). The map screen
 also lets a coarser image stand in for a tile whose image came out empty.
-Not checked in game.
+Third report: the area right by the player lagged at 2000 blocks (stale
+images waited behind never-built ones); never-built and stale images now
+take turns. Not checked in game.
 Check in game: fly with the world map open and change the scale (500 to
 2000 blocks): recorded areas appear within a moment at every scale.
 [MAP.md](MAP.md)

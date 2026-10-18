@@ -76,6 +76,7 @@ std::optional<std::uint64_t> usageBytes;
 bool usageDirty = false;
 unsigned versions = 0;
 double clock = 0;
+bool missingTurn = true; // Worker only: never-built and stale images take turns (L-215).
 int logged = 0;
 ll::event::ListenerPtr exitListener;
 
@@ -315,8 +316,9 @@ void run() {
             continue;
         }
         if (finishing) break;
-        auto next = nextBuild(wanted, [](ImageId const& id) { return !images.contains(id); }, buildable);
+        auto next = nextBuild(wanted, [](ImageId const& id) { return !images.contains(id); }, buildable, missingTurn);
         if (next != wanted.end()) {
+            missingTurn = !missingTurn;
             auto id = *next;
             unsigned started = generation;
             lock.unlock();
