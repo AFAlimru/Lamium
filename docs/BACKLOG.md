@@ -436,7 +436,14 @@ ghost search on the game's line (L-222): an entity hit skipped the search
 altogether, and the walk could graze a real block's cell at the edge (the
 game's line does not hit it) and stop there. Fix: entity hits also search
 on the game's line, and on that line real block cells are passed over.
-Not checked in game.
+Checked 2026-10-19 (`507c605`): stacked cases fixed. Still: between a ghost
+and a real block set diagonally (touching at an edge), something else
+showed for a moment; between two ghosts set diagonally, slowly turning flipped black/white several times; any
+ghost edge made the card flicker. The rebuilt line used the frame's view
+direction, which runs a little off the game's own pick ray while the view
+moves. Second fix: the search uses the game's ray itself (the hit's start
+and direction) when it starts near the eye, falling back to the rebuilt
+line. Not checked in game.
 
 ### L-207 FreeCamera halves the frame rate
 Kind: Bug / Research. User report 2026-10-17; maintainer asked the reporter

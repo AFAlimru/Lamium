@@ -308,15 +308,29 @@ std::optional<TargetInfo> collectTargetInfo(IClientInstance& client, bool includ
     bool onGameLine = false;
     if (ray && (ray->detached || !gameHit)) pick = pickAlong(*player, *ray);
     else {
-        // Ghosts are searched on the game's own line: back from its hit along
-        // the view, up to just short of it. The eye ray runs a little off that
-        // line and at a block's edge met other cells (L-222). An entity hit
-        // counts too: a ghost in front of it is the target (L-224).
+        // Ghosts are searched on the game's own ray (its start and direction
+        // from the hit), up to just short of its hit. The eye ray and the
+        // frame's view run a little off that ray, which at a block's or a
+        // ghost's edge met other cells and flickered (L-222, L-224). An entity
+        // hit counts too: a ghost in front of it is the target.
         if (ray && gameDistance) {
-            double length = std::sqrt(ray->dx * ray->dx + ray->dy * ray->dy + ray->dz * ray->dz);
-            if (length > 0) {
-                double ux = ray->dx / length, uy = ray->dy / length, uz = ray->dz / length, d = *gameDistance;
-                ghostRay = ViewRay{latest.mPos.x - ux * d, latest.mPos.y - uy * d, latest.mPos.z - uz * d, ux, uy, uz, d - .05};
+            auto const& from = latest.mStartPos;
+            auto const& way = latest.mRayDir;
+            double length = std::sqrt(double(way.x) * way.x + double(way.y) * way.y + double(way.z) * way.z);
+            double ex = latest.mPos.x - from.x, ey = latest.mPos.y - from.y, ez = latest.mPos.z - from.z;
+            double d = std::sqrt(ex * ex + ey * ey + ez * ez);
+            double ox = from.x - ray->x, oy = from.y - ray->y, oz = from.z - ray->z;
+            // Trust the game's ray only when it starts near the eye.
+            if (length > 0 && std::isfinite(d) && d > 0 && ox * ox + oy * oy + oz * oz < 1) {
+                ghostRay = ViewRay{from.x, from.y, from.z, way.x / length, way.y / length, way.z / length, d - .05};
+                onGameLine = true;
+            }
+            // Otherwise: back from the game's hit along the frame's view.
+            double view = std::sqrt(ray->dx * ray->dx + ray->dy * ray->dy + ray->dz * ray->dz);
+            if (!onGameLine && view > 0) {
+                double ux = ray->dx / view, uy = ray->dy / view, uz = ray->dz / view, back = *gameDistance;
+                ghostRay = ViewRay{latest.mPos.x - ux * back, latest.mPos.y - uy * back, latest.mPos.z - uz * back,
+                                   ux, uy, uz, back - .05};
                 onGameLine = true;
             }
         }
