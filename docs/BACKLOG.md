@@ -436,13 +436,23 @@ environment draw.
 Rejected 2026-10-19: the L-207 culler gate. With the underground hold set
 to Always (the spectator culler for the whole session, as before L-207)
 the maintainer still saw only the sky.
-Open: whether the view goes blank as soon as the camera's own chunk is not
-loaded (something keyed to the camera's chunk, e.g. the renderer's visibility
-walk starting there) or only once the loaded area is past the camera's own
-render radius (the renderer's chunk grid centered on the camera, a vanilla
-limit). Ask the maintainer where it goes blank, then read the SDK's
-LevelRenderer/culler types before choosing a hook. Terrain beyond the
-loaded area stays out of scope (CAMERA.md). [CAMERA.md](CAMERA.md)
+Where (maintainer, by eye): about one chunk past the edge of the loaded
+area, all at once, while the loaded terrain is still well inside the
+camera's render radius. So something keyed to the camera's own position
+having no chunk, not the render radius.
+SDK (26.51.5 headers, 2026-10-19): the culler classes (`LevelCullerBase`,
+`LevelCullerDistanceField*`, `LevelCullerManhattan`, `LevelCullerNone`,
+`VisibilityExtimator`) are empty there, so the walk cannot be read.
+`LevelRendererCamera` has the camera-centered view area (`mViewArea`,
+`updateViewArea`/`setViewArea`, `mViewAreaDistance`), `mLastCameraPos`,
+`shouldCullThisFrame(lastNumRenderChunksVisibleFromCullingPoint)` and
+`_createCuller(type, ...)`. Candidates to test with a trace build, not
+decided: (a) when the camera's chunk is not loaded, request another culler
+type through the L-37 hook (types other than 3 and 5 are not mapped yet);
+(b) find what the "culling point" is and whether it can stay at the nearest
+loaded chunk. Each is a new game dependency (GAME-UPDATES.md) and needs the
+maintainer's go-ahead. Terrain beyond the loaded area stays out of scope
+(CAMERA.md). [CAMERA.md](CAMERA.md)
 
 ### L-207 FreeCamera halves the frame rate
 Kind: Bug / Research. User report 2026-10-17; maintainer asked the reporter
