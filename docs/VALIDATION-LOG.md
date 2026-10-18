@@ -12,6 +12,39 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-224 target card at ghost edges (2026-10-19)
+
+Same environment as L-222. `507c605` (DLL
+`6f31895e105bee9094bbc875688860fda55f406bc91536e6f5a100c2a725fe32`): stacked
+ghost and block fixed; with ghosts set diagonally (touching at an edge) to
+a real block or another ghost, slowly turning showed what was behind for a
+moment, flipped between the two ghosts several times, and ghost edges
+flickered (screenshots). `30b66ce` (DLL
+`050a0dd5094de4cdb6c0d7c4e0c0b475c7bc86661fdebf6e148c97b5671e9ec9`): one
+change between diagonal ghosts, nothing from behind, no flicker at edges.
+Maintainer: OK. Not checked: a ghost in front of an entity.
+
+## L-223 position labels (2026-10-19)
+
+`cdc02c5` (DLL `b6aea5601ae2df9363d83602e69d541ab04007be6eda788eb980ca2b4572a9a1`),
+same environment as L-222, English: Info HUD "Exact position", "Position",
+"Target block"; card row "Position"; Debug View still "XYZ" and "Block".
+Maintainer: OK. Same session: dragging across a ghost's edge sometimes
+showed what was behind the ghost (L-224).
+
+## L-222 target card ghosts at a block's edge (2026-10-19)
+
+Builds from `l222-ghost-target-seam`, LIP instance, Minecraft 1.26.51.01,
+LeviLamina Client 26.51.7, Windows x64, local world, maintainer.
+`b66feb0` (DLL `73a2dd39a3fb90ef7962fee1e2b0226c67f62fe35925454d9efec9471cfe752d`):
+a black wool ghost at 527, 63, -460 under a real block and in front of
+real stone; aimed just under the seam the card named the stone at 528
+(screenshots), elsewhere the ghost. `41ee214` (DLL
+`90b74e1710b64ded067a49ced408703855ebc87f42f26c938a44750ed8f9fed9`): OK.
+Same session: the block card in Freelook and FreeCamera OK; the HUD in
+English and Simplified Chinese read without problems apart from the mixed
+English position names (L-223).
+
 ## L-219 Info HUD coordinate lines and order, L-221 HUD layout lines list (2026-10-18)
 
 Builds from `l217-info-hud-fixes`, LIP instance, Minecraft 1.26.51.01,

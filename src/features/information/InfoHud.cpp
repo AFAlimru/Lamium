@@ -938,7 +938,7 @@ GameText debugGameText(DebugValues const& value) {
     }
     if (value.x && value.y && value.z) {
         text.coordinates = ui::translated("hudXYZ", *value.x, *value.y, *value.z);
-        text.blockChunk = ui::translated("hudBlock", static_cast<int>(std::floor(*value.x)),
+        text.blockChunk = ui::translated("debugBlock", static_cast<int>(std::floor(*value.x)),
                              static_cast<int>(std::floor(*value.y)), static_cast<int>(std::floor(*value.z)))
             + " | " + ui::translated("hudChunk", formatChunk(chunkPosition(*value.x, *value.z)));
     }
@@ -1079,7 +1079,7 @@ std::optional<std::string> infoLineText(std::string_view id, PlayerInfo const& i
     if (id == "coordinates") {
         if (info.position) {
             auto const& p = *info.position;
-            return ui::translated("hudXYZ", p.x, p.y, p.z);
+            return ui::translated("hudExactPosition", p.x, p.y, p.z);
         }
         return ui::translated("hudCoordinates", ui::translated("unavailable"));
     }

@@ -10,6 +10,39 @@ Runtime status is in [VALIDATION.md](VALIDATION.md), the evidence in
 
 ## Bugs
 
+### L-224 Target card shows what is behind a ghost at a ghost's edge
+Kind: Bug. Maintainer 2026-10-19 (`cdc02c5`): dragging the crosshair slowly
+across the border between a real block and a schematic ghost, the card
+sometimes names the block or entity behind the ghost. Two causes in the
+ghost search on the game's line (L-222): an entity hit skipped the search
+altogether, and the walk could graze a real block's cell at the edge (the
+game's line does not hit it) and stop there. Fix: entity hits also search
+on the game's line, and on that line real block cells are passed over.
+Checked 2026-10-19 (`507c605`): stacked cases fixed. Still: between a ghost
+and a real block set diagonally (touching at an edge), something else
+showed for a moment; between two ghosts set diagonally, slowly turning flipped black/white several times; any
+ghost edge made the card flicker. The rebuilt line used the frame's view
+direction, which runs a little off the game's own pick ray while the view
+moves. Second fix: the search uses the game's ray itself (the hit's start
+and direction) when it starts near the eye, falling back to the rebuilt
+line. Checked in game 2026-10-19 (`30b66ce`): OK.
+
+### L-222 Target card can show a ghost above the outlined block
+Kind: Bug. Found 2026-10-19 while following up L-217 (maintainer asked to
+fix the schematic side too). `GhostMarks.cpp`'s clip only decides whether a
+missing entity's name tag is hidden, from the render camera; it names no
+block and needed no change. The same mechanism as L-217 remained in the
+card's ghost search: it walks the eye ray, so at a block's edge it could
+enter the air cell above the outlined block and show a ghost there. From
+the body the search now stops just short of the game's own hit. Checked
+2026-10-19 (`b66feb0`): not enough. A black wool ghost (527, 63, -460) under
+a real (extra) block and in front of real stone: aimed just under the seam
+the card named the stone behind; the eye ray met the real block above the
+ghost and the search stopped there. Second fix: the search runs on the
+game's own line, back from its hit along the view, so the eye's offset no
+longer matters. Checked in game 2026-10-19 (`41ee214`): OK. Check: with a schematic ghost directly
+above a real block, aim just under the seam; the card names the real block.
+
 ### L-221 Chat sample shows through the HUD layout editor's lines list
 Kind: Bug. Maintainer screenshot 2026-10-18 (`a5edf9a`): with the Info HUD
 selected and its lines list open over the chat preview, the sample chat
@@ -1215,6 +1248,18 @@ result is only the converted text; Latin typing and Backspace unchanged.
 ---
 
 ## Ready
+
+### L-223 Position labels follow the game's own wording
+Kind: Ready. Maintainer 2026-10-19: English showed "XYZ", "Position" and
+"Block coordinates" side by side. Checked the game's 1.26.51 texts: its
+Show Coordinates line is `map.position` "Position: %s, %s, %s" / 位置 / 位置,
+the option is "Show coordinates" / 座標を表示 / 显示坐标; Java's debug screen
+uses "XYZ", "Block" and "Targeted Block". Decided (option A): the
+whole-number line is "Position" / 位置 / 位置, the decimal line "Exact
+position" / 正確な位置 / 精确位置, the target card row "Position" / 位置 /
+位置 (its switch "Show position"), "Target block" stays, Debug View keeps
+"XYZ" and gets its own "Block" key. Settings keys unchanged. Checked in
+game 2026-10-19 (`cdc02c5`): OK.
 
 ### L-218 Info HUD lines have no descriptions
 Kind: Ready. Maintainer 2026-10-18: every Info HUD child row in the settings

@@ -235,9 +235,13 @@ accent stripe.
 Contents:
 - **Info lines**: providers with an id, a label and a value; unavailable values
   say so. Each line has a switch and a position in a user-ordered list.
-  Defaults on: coordinates, facing, biome, FPS. Everything else starts off.
+  Defaults on: exact position, facing, biome, FPS. Everything else starts off.
+  Names follow the game's own position line (2026-10-19, L-223): "Position"
+  / 位置 is the whole-number block position, as Show Coordinates prints it;
+  "Exact position" / 正確な位置 has decimals; the target card's row is
+  "Position" too; Debug View keeps "XYZ" and "Block" (Java's debug screen).
   Default order, also the settings rows' order (2026-10-18, L-219): position
-  (coordinates, block coordinates, target block, scaled coordinates, chunk,
+  (exact position, position, target block, scaled coordinates, chunk,
   dimension, biome), view (facing, rotation, yaw, pitch), movement (speed,
   horizontal, vertical, sprinting), surroundings (light, weather, time,
   moon, difficulty), then FPS, frame interval, ping and real time. A saved

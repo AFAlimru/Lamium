@@ -850,7 +850,7 @@ LL_TYPE_INSTANCE_HOOK(GhostPass, ll::memory::HookPriority::Normal, LevelRenderer
 
 std::optional<Mismatch> mismatchAt(BlockSource& region, Point world) { return checkedCell(region, world, resolved); }
 std::optional<GhostAt> ghostAlong(BlockSource& region, int dimension, double x, double y, double z, double dx, double dy,
-                                  double dz, double reach) {
+                                  double dz, double reach, bool throughBlocks) {
     auto& runtime = Runtime::instance();
     if (!runtime.enabled() || !runtime.snapshot()->schematic.enabled) return std::nullopt;
     auto snapshot = session::snapshot();
@@ -859,7 +859,10 @@ std::optional<GhostAt> ghostAlong(BlockSource& region, int dimension, double x, 
         if (!region.getChunkAt(pos)) return std::nullopt;
         // A real block hides the ghosts behind it; one standing in its own
         // cell is the card's ordinary schematic line.
-        if (!region.getBlock(pos).isAir()) return std::nullopt;
+        if (!region.getBlock(pos).isAir()) {
+            if (throughBlocks) continue;
+            return std::nullopt;
+        }
         for (size_t i = 0; i < snapshot.placements.size() && i < resolved.size(); ++i) {
             auto const& shown = snapshot.placements[i];
             if (resolved[i].structure != shown.structure.get()) continue;
