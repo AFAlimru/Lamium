@@ -481,6 +481,24 @@ Scan scanChunk(IClientInstance& client, BlockSource& region, TileCache& cache, C
 // `round`: the range is the disc the client loads (recording), not the
 // square a view shows; `staleRadius`: how far complete chunks are rescanned
 // for changes - the recording takes a far chunk once per visit.
+// Whether a loaded chunk that was incomplete still waits for its blocks: the
+// surface of a few columns still reads as the client's stand-in. Cheap next to
+// a whole scan (L-210); anything else (no chunk, a texture not loaded yet, a
+// real block) says look properly.
+bool stillWaiting(IClientInstance& client, BlockSource& region, ChunkKey key) {
+    short minY = region.getMinHeight(), maxY = region.getMaxHeight();
+    BlockPos origin{key.x * 16, std::max<int>(minY, std::min<int>(0, maxY - 1)), key.z * 16};
+    if (!region.getChunkAt(origin)) return false;
+    for (auto [dx, dz] : std::array<std::pair<int, int>, 5>{{{8, 8}, {3, 3}, {12, 3}, {3, 12}, {12, 12}}}) {
+        auto top = region.getHeightmapPos(BlockPos{origin.x + dx, 0, origin.z + dz});
+        for (int y : {top.y, top.y + 1}) {
+            if (y < minY || y >= maxY) continue;
+            auto const* look = blockLook(client, region.getBlock(BlockPos{origin.x + dx, y, origin.z + dz}));
+            if (!look || !look->pending) return false;
+        }
+    }
+    return true;
+}
 void scan(IClientInstance& client, LocalPlayer& player, TileCache& cache, ScanGrid& grid, double centerX, double centerZ,
           bool cave, int layer, double blocks, bool rotate, double time, Saved saved, double budget = scanBudgetSeconds,
           bool round = false, int staleRadius = 1 << 20) {
@@ -492,6 +510,9 @@ void scan(IClientInstance& client, LocalPlayer& player, TileCache& cache, ScanGr
     int const radius = chunkRadius(static_cast<int>(blocks), rotate), tolerance = cave ? 0 : 1 << 20;
     state.diagnostics.chunks += scanBatch(grid, center, radius, round, time, layer, tolerance, staleRadius,
         [&](ChunkKey key) -> std::optional<Seen> {
+            // The surface view probes incomplete chunks before scanning them.
+            if (auto const* cell = grid.find(key); !cave && cell && probeFirst(*cell) && stillWaiting(client, region, key))
+                return cell->seen;
             if (scanChunk(client, region, cache, key, cave, layer, time, saved) == Scan::Waiting) return std::nullopt;
             auto const* tile = cache.find(key);
             return tile ? seenOf(*tile) : Seen::Missing;

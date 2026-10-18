@@ -160,17 +160,33 @@ void scanning() {
         auto list = backoff.due(now, 0, 1 << 20, 0, 1000);
         return std::find(list.begin(), list.end(), ChunkKey{10, 0}) != list.end();
     };
-    check(!waitsLonger(24) && waitsLonger(32.1), "a far chunk that stays partial is retried less often");
+    check(!waitsLonger(23) && waitsLonger(24.1), "a far chunk that stays partial is retried less often");
     backoff.saw({10, 0}, Seen::Complete, 0, 40);
     backoff.saw({10, 0}, Seen::Partial, 0, 50);
     check(waitsLonger(53.1), "a complete result resets the backoff");
+
+    // Retries of incomplete chunks probe first, with a whole scan every
+    // fourth time in a row, and stay frequent.
+    ScanGrid probing;
+    dueNow(probing, {0, 0}, 12, 0);
+    bool probes = true;
+    for (int i = 0; i < 8; ++i) {
+        probing.saw({10, 0}, Seen::Partial, 0, i);
+        bool expected = probing.find({10, 0})->tries % 4 != 3;
+        if (probeFirst(*probing.find({10, 0})) != expected) probes = false;
+    }
+    probing.saw({10, 0}, Seen::Complete, 0, 9);
+    check(probes && !probeFirst(*probing.find({10, 0})) && !probeFirst(ScanCell{}),
+          "incomplete retries probe first except every fourth; complete and unseen chunks are scanned");
+    check(rescanAfter(10, Seen::Partial, 8) <= 4.0 && rescanAfter(10, Seen::Missing, 0) <= 1.0,
+          "far incomplete chunks are retried within a few seconds");
 
     // A chunk that arrives makes its incomplete neighbors due at once, so a
     // patch the client sent fills together instead of as scattered specks.
     ScanGrid patch;
     seeAll(patch, dueNow(patch, {0, 0}, 20, 0), Seen::Partial, 0);
-    patch.saw({10, 0}, Seen::Complete, 0, 1);
-    auto soon = patch.due(1.1, 0, 1 << 20, 16, 1000);
+    patch.saw({10, 0}, Seen::Complete, 0, 0.5);
+    auto soon = patch.due(0.6, 0, 1 << 20, 16, 1000);
     bool neighbors = true;
     for (ChunkKey key : {ChunkKey{9, -1}, ChunkKey{11, 0}, ChunkKey{10, 1}})
         if (std::find(soon.begin(), soon.end(), key) == soon.end()) neighbors = false;

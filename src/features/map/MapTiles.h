@@ -82,17 +82,17 @@ inline Seen seenOf(Tile const& tile) {
 }
 // When a chunk should be scanned again: chunks near the player change most
 // (the player builds and digs there); incomplete chunks are retried soon,
-// since the client may send the rest any moment, and back off with each
-// incomplete result in a row (`tries`). Some never complete - the edge of
-// what the client loads, or columns whose biome tint the renderer never
-// readies - and each retry of a partial chunk scans all of it. In game
-// (L-210) 700 edge chunks retried every 3 s, and then 81 near ones every
-// 0.5 s, held the whole recording budget.
+// since the client may send the rest any moment, and back off a little with
+// each incomplete result in a row (`tries`). A retry first probes a few
+// columns (probeFirst) instead of scanning the whole chunk, so retries stay
+// cheap enough to be frequent: with whole scans they had to back off to
+// 24 s, and terrain that had arrived showed up as specks, the chunks inside
+// the range last (L-210, in game 2026-10-18).
 inline double rescanAfter(int ring, Seen seen, int tries = 0) {
     if (seen == Seen::Complete) return ring <= 1 ? 1.0 : ring <= 4 ? 4.0 : 15.0;
     int doubled = 1 << std::clamp(tries, 0, 3);
     if (ring <= 4) return 0.5 * doubled;
-    return 3.0 * doubled;
+    return std::min(4.0, 1.0 * doubled);
 }
 inline constexpr int nearScanRadius = 4;
 struct ScanCell {
@@ -101,6 +101,12 @@ struct ScanCell {
     int layer = 0;
     double at = 0;
 };
+// Whether a retry may probe first: incomplete chunks, except every fourth
+// retry in a row, which scans the whole chunk in case the probed columns
+// missed what arrived.
+inline bool probeFirst(ScanCell const& cell) {
+    return (cell.seen == Seen::Missing || cell.seen == Seen::Partial) && cell.tries % 4 != 3;
+}
 // What a due chunk is: Near (due within four chunks), Fresh (never seen, or
 // scanned at another cave layer), Retry (incomplete beyond four chunks) or
 // Stale (complete, out to `staleRadius`). `next` lowers to when a waiting
