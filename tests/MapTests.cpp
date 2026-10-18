@@ -118,8 +118,8 @@ void scanning() {
     auto ring1 = std::find(staleFar.begin(), staleFar.end(), ChunkKey{1, 0}) - staleFar.begin();
     auto unseen = std::find(staleFar.begin(), staleFar.end(), ChunkKey{8, 8}) - staleFar.begin();
     auto ring5 = std::find(staleFar.begin(), staleFar.end(), ChunkKey{5, 0}) - staleFar.begin();
-    check(ring1 < unseen && unseen < ring5 && ring5 < static_cast<long long>(staleFar.size()),
-          "unseen chunks come after stale near ones and before stale far ones");
+    check(unseen == 1 && ring1 > unseen && ring5 < static_cast<long long>(staleFar.size()) && unseen < ring5,
+          "unseen chunks take turns with stale near ones, before stale far ones");
 
     // The edge of what the client loads (L-210, seen in game): hundreds of
     // partial chunks there must not keep the scan from the chunks beyond.
@@ -216,6 +216,24 @@ void scheduledScanning() {
     done += scanBatch(grid, {0, 0}, 4, false, 0, 0, 0, 1 << 20, waiting, oneChunk);
     check(done == 1 && tries == 3 && firstTried == lastTried && grid.find(lastTried)->seen == Seen::Complete,
           "a chunk waiting for resources is tried again first");
+
+    // The range in game (L-210): at 96 chunks the client had chunks to about
+    // 40, the edge stayed partial, and the chunks around the player stayed
+    // partial too (provisional tints). Three scans a frame must still look at
+    // the whole range within a couple of minutes.
+    ScanGrid game;
+    int calls = 0;
+    auto gameScan = [&](ChunkKey key) -> std::optional<Seen> {
+        double d = std::sqrt(double(key.x * key.x + key.z * key.z));
+        return d > 40 ? Seen::Missing : d > 33 || d < 5 ? Seen::Partial : Seen::Complete;
+    };
+    double clock = 0;
+    for (; calls < 60 * 240 && (calls == 0 || game.counts().seen[0] > 0); ++calls, clock += 1.0 / 60) {
+        int left = 3;
+        scanBatch(game, {0, 0}, 97, true, clock, 0, 1 << 20, 16, gameScan, [&] { return --left == 0; });
+    }
+    check(game.counts().seen[0] == 0 && calls < 60 * 240, "partial chunks near the player and at the edge cannot starve the range");
+    check(game.counts().reach == 40, "the reach is the farthest chunk the client had");
 
     // Moving through the world (L-210): the old resumable walk left arcs of
     // chunks behind when the player moved during a pass. Stand, then walk

@@ -23,7 +23,13 @@ incomplete chunks retry longest-waiting first and back off (3 s doubling to
 24 s per incomplete result). First in-game run (2026-10-18, 96 chunks, new
 terrain): about 700 partial chunks at the edge of what the client had
 (~33-40 chunks out) were retried nearest first every 3 s, held the whole
-budget, and the 14,600 cells beyond were never looked at. A pass that finds
+budget, and the 14,600 cells beyond were never looked at. Second run: the
+81 chunks around the player stayed partial (likely the provisional-tint
+path), were retried every 0.5 s and held the budget the same way. Near
+rescans and never-seen chunks now take turns, and near incomplete chunks
+back off too (0.5 s doubling to 4 s). A pure test replays that range
+(client chunks to 40, partial edge and center, three scans a frame) and
+requires every cell to be looked at within four minutes of frames. A pass that finds
 nothing skips until the next chunk is due. The 30 s diagnostics line counts
 the recording range by state, to tell unvisited chunks from blocks the
 client never received. A pure test walks a player through the world and

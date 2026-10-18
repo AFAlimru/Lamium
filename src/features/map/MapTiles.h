@@ -81,16 +81,18 @@ inline Seen seenOf(Tile const& tile) {
     return tile.partial || tile.stored ? Seen::Partial : Seen::Complete;
 }
 // When a chunk should be scanned again: chunks near the player change most
-// (the player builds and digs there); incomplete chunks near the player are
-// retried soon, since the client may send the rest any moment. Far ones back
-// off with each incomplete result (`tries`): the edge of what the client
-// loads can hold thousands it fills slowly or never, and each retry of a
-// partial chunk scans all of it (L-210: 700 edge chunks retried every 3 s
-// held the whole budget and the range never grew past them).
+// (the player builds and digs there); incomplete chunks are retried soon,
+// since the client may send the rest any moment, and back off with each
+// incomplete result in a row (`tries`). Some never complete - the edge of
+// what the client loads, or columns whose biome tint the renderer never
+// readies - and each retry of a partial chunk scans all of it. In game
+// (L-210) 700 edge chunks retried every 3 s, and then 81 near ones every
+// 0.5 s, held the whole recording budget.
 inline double rescanAfter(int ring, Seen seen, int tries = 0) {
     if (seen == Seen::Complete) return ring <= 1 ? 1.0 : ring <= 4 ? 4.0 : 15.0;
-    if (ring <= 4) return 0.5;
-    return std::min(24.0, 3.0 * (1 << std::clamp(tries, 0, 3)));
+    int doubled = 1 << std::clamp(tries, 0, 3);
+    if (ring <= 4) return 0.5 * doubled;
+    return 3.0 * doubled;
 }
 inline constexpr int nearScanRadius = 4;
 struct ScanCell {
@@ -99,14 +101,15 @@ struct ScanCell {
     int layer = 0;
     double at = 0;
 };
-// How a due chunk is picked: Urgent ones nearest first - never seen,
-// scanned at another cave layer, or due near the player; then Retry ones,
-// incomplete far chunks, longest waiting first so a few cannot hold the
-// budget; then Stale ones, complete chunks out to `staleRadius`, nearest
-// first. `next` lowers to when a waiting chunk becomes due.
-enum class Due { Not, Urgent, Retry, Stale };
+// How a due chunk is picked: Near ones (due within four chunks) and Fresh
+// ones (never seen, or scanned at another cave layer) take turns, each
+// nearest first, so neither the area around the player nor the rest of the
+// range can hold the budget; then Retry ones, incomplete far chunks, longest
+// waiting first; then Stale ones, complete chunks out to `staleRadius`,
+// nearest first. `next` lowers to when a waiting chunk becomes due.
+enum class Due { Not, Near, Fresh, Retry, Stale };
 inline Due dueOf(ScanCell const& cell, int ring, double now, int layer, int tolerance, int staleRadius, double& next) {
-    if (cell.seen == Seen::Never || std::abs(cell.layer - layer) > tolerance) return Due::Urgent;
+    if (cell.seen == Seen::Never || std::abs(cell.layer - layer) > tolerance) return Due::Fresh;
     bool complete = cell.seen == Seen::Complete, near = ring <= nearScanRadius;
     if (complete && !near && ring > staleRadius) return Due::Not;
     double due = cell.at + rescanAfter(ring, cell.seen, cell.tries);
@@ -114,7 +117,7 @@ inline Due dueOf(ScanCell const& cell, int ring, double now, int layer, int tole
         next = std::min(next, due);
         return Due::Not;
     }
-    return near ? Due::Urgent : complete ? Due::Stale : Due::Retry;
+    return near ? Due::Near : complete ? Due::Stale : Due::Retry;
 }
 // Per scan path (display surface, display caves, recording), the state of
 // every chunk in range around the player, in a grid that moves with the
@@ -175,7 +178,7 @@ public:
             layer_ = layer;
             quietUntil_ = -1e300;
         }
-        std::vector<ChunkKey> out, stale;
+        std::vector<ChunkKey> out, near, fresh, stale;
         if (now < quietUntil_) return out;
         std::vector<std::pair<double, ChunkKey>> retry;
         double next = 1e300;
@@ -183,9 +186,9 @@ public:
             ChunkKey key{center_.x + offset.x, center_.z + offset.z};
             auto const& cell = *find(key);
             switch (dueOf(cell, std::max(std::abs(offset.x), std::abs(offset.z)), now, layer, tolerance, staleRadius, next)) {
-            case Due::Urgent:
-                out.push_back(key);
-                if (out.size() >= limit) return out;
+            case Due::Near: near.push_back(key); break;
+            case Due::Fresh:
+                if (fresh.size() < limit) fresh.push_back(key);
                 break;
             case Due::Retry: retry.push_back({cell.at, key}); break;
             case Due::Stale:
@@ -193,6 +196,12 @@ public:
                 break;
             case Due::Not: break;
             }
+            // Near cells all come early in the order; the rest only fills.
+            if (fresh.size() >= limit && std::max(std::abs(offset.x), std::abs(offset.z)) > nearScanRadius + 1) break;
+        }
+        for (size_t i = 0; out.size() < limit && (i < near.size() || i < fresh.size()); ++i) {
+            if (i < near.size()) out.push_back(near[i]);
+            if (i < fresh.size() && out.size() < limit) out.push_back(fresh[i]);
         }
         if (out.empty() && retry.empty() && stale.empty()) quietUntil_ = next;
         size_t room = std::min(limit - out.size(), retry.size());

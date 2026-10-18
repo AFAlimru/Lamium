@@ -631,7 +631,9 @@ Status: (a) fixed 2026-10-18 on `l210-map-scan-grid` (scan grid, see
 MAP.md). First game run: no arcs, but at 96 chunks the map stopped about
 33-40 chunks out while standing - edge retries starved the scan (fixed the
 same day: unseen first, retries oldest first with backoff); the log now
-also gives the reach and the reported view distance. (b) open: the 30 s diagnostics line now counts
+also gives the reach and the reported view distance. Second run: the near
+chunks stayed partial and starved the range the same way (fixed: near and
+never-seen chunks take turns, near retries back off). (b) open: the 30 s diagnostics line now counts
 the recording range as unseen / missing / partial / complete. Check whether
 partial edge chunks complete while standing still before deciding anything;
 forcing sections to load costs frame rate and is not a fix (maintainer).
