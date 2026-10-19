@@ -12,6 +12,70 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-216 maintainer smoke check; cave/Nether design feedback (2026-10-19)
+
+Build `6ff0610`, deployed DLL SHA-256
+`1fc5f25bd63af06526e0eba97c9405412368e71dcb3abf5b8799fd9119102f7a`,
+no trace/probe options. Same local deployment as the filesystem check below:
+Minecraft 1.26.51.01, LeviLamina Client 26.51.7, Windows x64, LamiumTest.
+The maintainer reported no abnormality in appearance, opening/zoom speed,
+Nether/cave display or saved-map retention after rejoining, and no
+conspicuous problem with the L-216 PR overall. This is a local smoke
+result, not measured frame times, a server regression or injected failure
+coverage. Older-build merges, future/damaged files and forced save failures
+remain separately unchecked in game.
+
+The same report questioned the cave/Nether terrain representation. Around
+Y67 (screenshot band Y64-79), gray terrain and dark areas dominate and
+expected lava lakes below are hard to see; around Y32 (band Y32-47), the
+visible footprint is smaller and mostly lava. Both screenshots show a
+500-block scale and "Loading 4". No cause for the footprint difference
+was established. This does not identify a new LMR2 regression; L-228
+records the open Design question. The usefulness and continuity of the
+cave/Nether view are not declared fully validated by this smoke result.
+Screenshot evidence is retained locally with the validation material;
+no replacement drawing behavior was selected or implemented.
+
+## L-216 LMR2 live migration: filesystem and log checks (2026-10-19)
+
+Build `6ff0610`, DLL SHA-256
+`1fc5f25bd63af06526e0eba97c9405412368e71dcb3abf5b8799fd9119102f7a`
+(build and deployed copies matched; no trace/probe options). Local
+LamiumTest world, Windows x64, Minecraft 1.26.51.01 (log: 1.26.51+0559ac5),
+LeviLamina Client 26.51.7. View distance was 50 chunks at join and changed
+to 96 during the run. The maintainer loaded and played the world; the agent
+checked files and logs outside the game without changing the live map.
+
+Before joining, a read-only snapshot captured all 1,563 Overworld `.lmr`
+files: 209,462,740 bytes (199.8 MiB), no `.lm2`, no skipped files. The store
+attached at 11:47:16 JST. By the 11:50:47 poll (about 3.5 minutes later),
+no `.lmr` remained and 1,601 `.lm2` files occupied 35,038,581 bytes
+(33.4 MiB, 83.3% smaller), including 38 newly recorded regions. The final
+11:52:41 inventory had 1,611 `.lm2` files, 35,247,577 bytes (33.6 MiB),
+and still no `.lmr`.
+
+An independent Python reader checked 1,603 `.lm2` files enumerated at the
+start of the final audit: container/table sizes, coordinates, stored CRCs,
+single dictionary-free zstd frames, palette indices/alpha, height planes,
+CHNK and OLDF. All 1,563 baseline regions were compared to the snapshot:
+their absorbed legacy size/time/CRC matched; 1,492 retained exactly the
+recorded colors/heights, and 71 had differences only in chunks carrying a
+new recording time (773,370 differing columns). No recorded column was
+lost, no baseline region was missing, and there were no unexpected
+differences, decode errors or skipped files. Regions unchanged with zero
+chunk times establish conversion beyond rescanned terrain. Log snapshots
+contained no warning/error lines or map refusal, damage, save/conversion
+failure or recording-stop messages. Private comparison archives, reports
+and log snapshots are retained locally under gitignored `build/validation`.
+
+This verifies file-side live migration, preservation of existing recorded
+columns and disk reduction in this world. It does not independently verify
+the colors produced by rescanning. The maintainer has not yet reported
+appearance, opening/zoom speed, frame times or persistence after rejoin.
+Nether/cave layers, other worlds/servers, an older release writing again,
+future/damaged files and forced save failures were not exercised in this
+runtime check; their automated coverage is separate.
+
 ## L-225 and L-226 map rescans (2026-10-19)
 
 Same environment as L-222. `9a565f0` (DLL

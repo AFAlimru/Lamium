@@ -125,6 +125,35 @@ Side panel lists (L-204, passed in game 2026-10-15): `map.worldMapList` picks th
 listed layer (`listKind`, `MapMarks.h`); `State::allAreas` keeps the
 placements and shapes before the layer switches for the list and details.
 
+## Cave and Nether representation review (L-228, 2026-10-19)
+
+Open Design feedback, not an agreed replacement for the current contract.
+The maintainer found no conspicuous L-216 regression in appearance,
+opening/zoom speed, Nether/cave display or retention after rejoining, but
+questioned whether the terrain the cave view selects is useful. Supplied
+screenshots show band Y64-79 dominated by gray terrain and dark gaps with
+expected lower lava lakes hard to see, and band Y32-47 with a smaller
+visible footprint dominated by lava. Both have a 500-block scale and
+"Loading 4". The footprint difference is observed; its cause is not yet
+isolated.
+
+Current source behavior (`MapCave.h`, `Minimap.cpp`): the held height has
+3-block slack and samples five blocks above through 24 below. Solid blocks
+at feet/head height form a dark wall; a column open through the window
+forms a dark drop; other floors use their block color with depth dimming.
+Unavailable stand-ins may also count as rock. Thus a deep lava surface
+can be outside the window at the higher height and appear in it lower
+down. That is a source-based explanation of a possible contributor, not
+proof of what each dark screenshot pixel represents.
+
+`MapRegion.h` stores Nether terrain separately per 16-block band, and
+`WorldMap.cpp` can follow the player's band. A different band can have a
+different recorded/received footprint. The screenshots' pending images
+also need to be ruled out before attributing the apparent size change.
+The useful terrain reference, continuity while changing height and how
+walls, deep space and unknown terrain should read remain undecided in
+BACKLOG L-228. LMR2's current migration contract is unchanged.
+
 ## World map zoom-out (L-187, 2026-10-14)
 
 Maintainer 2026-10-14: zoom out far enough that **everything explored fits on
@@ -149,8 +178,14 @@ time to build the first far view of a very large map, and memory/IO on it.
 
 Agreed with the maintainer 2026-10-19 and revised after the spec reviews of
 that day; the last one closed it (maintainer: no further spec reviews, the
-next step is building it). Not built yet. It replaces `LMR1` for writing; `LMR1` stays
-readable.
+next step is building it). Implemented for PR review on 2026-10-19. Live
+filesystem/log checks on `6ff0610` confirmed migration of LamiumTest's
+1,563 old regions, preserved recorded columns and reduced folder size;
+the maintainer's local appearance, opening/zoom, Nether/cave display and
+rejoin-retention smoke check found no abnormality attributed to L-216.
+Cave/Nether representation remains under Design review (L-228). Evidence
+and remaining scope: VALIDATION-LOG.md, L-216. It replaces `LMR1` for
+writing; `LMR1` stays readable.
 
 What is stored: the colors seen and the heights, as in `LMR1`. Blocks and
 biomes are not stored: a resource-pack change does not recolor the saved
@@ -266,6 +301,11 @@ carries its own per-chunk times: a newer reader then treats a chunk whose
 `CHNK` is missing, all kept sections are dropped (step 8), because nothing
 says which chunks are still theirs.
 
+If retaining these sections plus the current known sections would exceed
+64 entries (for example after adding `OLDF`), saving fails with a specific
+section-limit message before compression or replacement. Kept data is not
+dropped to make room; the existing `.lm2` and `.lmr` stay untouched.
+
 ### Column revision
 
 One constant beside the column color calculation, raised whenever a change
@@ -314,6 +354,10 @@ grid cell kind.
   `.lmr`.
 - Reading prefers `.lm2`; when it is missing or Damaged, `.lmr` is read with
   the `LMR1` decoder (every recorded chunk at time 0, revision 0).
+- An unreadable or undecodable `.lmr` not matched by `OLDF` is retained and
+  logged separately from `.lm2` damage. It does not mark a valid `.lm2`
+  damaged or schedule a save by itself, and cannot be deleted as absorbed
+  data. A later ordinary save can still persist the current `.lm2`.
 - A region read from `.lmr` is marked for saving once, at load.
 - Idle conversion (maintainer 2026-10-19: convert the whole map in spare
   time): when the worker has no save, load, listing or image build due, it
@@ -336,9 +380,11 @@ grid cell kind.
   longer matches, and the next load merges it (fill only).
 - A region stays marked for saving until its write succeeds, and is not
   queued again while a write is in flight. A change while it is in flight
-  keeps it marked. A failed write sets the time it was marked to now, so it
-  is retried after the save delay (10 s), not every frame; it is logged once
-  per region per session and leaves the `.lmr` alone.
+  keeps it marked. Every completion starts a fresh save delay (10 s) for
+  any pending changes, including a successful write with newer changes;
+  continuous edits therefore remain batched. A failure is logged once per
+  region per session and leaves the `.lmr` alone. World exit still flushes
+  pending changes without waiting for that delay.
 - An older Lamium does not list `.lm2`, so it cannot damage them (except by
   clearing the world's map, which removes the whole folder as asked); it
   records anew into `.lmr`. When a Loaded `.lm2` and an `.lmr` both exist:
@@ -357,15 +403,54 @@ grid cell kind.
   clock set back or forth cannot bring old colors over new ones; it can
   only make a chunk look older or newer than it is.
 
-### Code changes this needs
+### Implementation
+
+`MapRegion.h` owns chunk stamps, scan-mask merging and the retained LMR1
+codec. `MapRegionFormat.h` implements the LMR2 table, CRC, palette, height
+planes and reusable zstd contexts; `MapRegionFiles.h` shares the bounded
+file reads, migration and guarded atomic save between resident loads,
+non-resident image reads and idle conversion. The file table is checked
+before allocating bodies. Unreadable files also fail closed for saving.
+`MapStore.cpp` retains dirty snapshots until success and retries failed
+resident saves and idle conversions after 10 s. Idle conversion takes at
+most one non-resident candidate per 100 ms, after interactive work, and
+recounts folder usage at most once per 5 s. It reloads both files at the
+time of conversion; listing-time file facts never decide a merge.
+
+`Minimap.cpp` sends the produced/scanned masks and certifies unchanged
+chunks whose stored revision is old. Loaded-region revision reports mark
+the scan grids partial, including chunks outside the ordinary stale radius.
+Revision-only changes save metadata without invalidating images.
+
+Review follow-up (2026-10-19): surface and cave scans now share provisional
+tint marking at `blockColor`, so a cave floor using the stand-in biome tint
+is partial and cannot certify a chunk as current. Column revision 2 makes
+older chunks due for revalidation, including cave chunks the first build
+could falsely certify at revision 1. The regression tests cover the new
+save cadence, separate legacy status/retention, the 64-section preservation
+failure and cave provisional revision/time rules. These corrected runtime
+paths have not yet been checked in game; the recorded live audit and smoke
+results above belong to `6ff0610`.
+
+`MapRegionFormatTests.cpp` covers palette boundaries, malformed/future
+containers, unknown section retention, revision/time rules, migration,
+write refusal, failed atomic replacement and save retry state. Existing
+LMR1 tests remain. `scripts/Lmr2Fixture.py` independently writes the
+checked-in golden file and reads the C++ output. To repeat the latter after
+`xmake run LamiumTests`: `python scripts/Lmr2Fixture.py build/lmr2-cpp.lm2`
+(Python `zstandard` required). The fixture is regenerated with `--write`.
+Build/tests are not evidence of in-game behavior or migration speed.
+
+Implementation requirements retained from the agreed spec:
 
 - `readRegion` returns Loaded/Missing/Damaged/Refused with the region, the
   `CHNK` entries, `OLDF` and the kept sections; `Resident` and the save
   entry carry the same, plus the `.lmr` facts.
 - `queueSave` clears the mark only after a successful write, keeps an
-  in-flight flag, and on failure sets `dirtySince` to now.
-- `regionFileName`, `regionPath`, `regionOfFileName`, listing (with each
-  `.lmr`'s size and time), usage and clearing handle both extensions.
+  in-flight flag, and on every completion sets `dirtySince` to now.
+- `regionFileName`, `regionPath`, `regionOfFileName`, listing, usage and
+  clearing handle both extensions. Listing carries candidate keys only;
+  legacy size/time/CRC facts are collected at load and checked at deletion.
 - `MapStore.h` `record` takes the produced and scanned masks; the store
   reports chunks below the build's revision per loaded region.
 - `Minimap.cpp` `scanChunk` builds both masks (around `fillFromSaved` and

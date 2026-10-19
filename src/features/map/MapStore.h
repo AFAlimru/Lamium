@@ -22,7 +22,11 @@ void stop();
 // keeps regions around the player loaded, saves changed ones, forgets far ones.
 void frame(unsigned world, std::optional<std::filesystem::path> const& folder, MapLayer layer, double x, double z,
            double now);
-void record(MapLayer layer, ChunkKey chunk, std::array<Column, 256> const& columns);
+void record(MapLayer layer, ChunkKey chunk, std::array<Column, 256> const& columns,
+            ColumnMask const& produced, ColumnMask const& scanned);
+bool needsRevision(MapLayer layer, ChunkKey chunk);
+// The caller marks these as partial in each scan grid; reports are consumed once.
+std::vector<ChunkKey> takeRevisionReports(MapLayer layer);
 // A chunk from loaded regions; false when nothing is known there.
 bool cached(MapLayer layer, ChunkKey chunk, std::array<Column, 256>& out);
 std::optional<Column> column(MapLayer layer, int x, int z);

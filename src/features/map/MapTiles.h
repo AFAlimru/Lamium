@@ -212,6 +212,14 @@ public:
             }
     }
     void clear() { *this = {}; }
+    void outdated(ChunkKey key) {
+        auto i = index(key);
+        if (!i || cells_[*i].seen == Seen::Never) return;
+        cells_[*i].seen = Seen::Partial;
+        cells_[*i].at = -1e9;
+        cells_[*i].tries = 0;
+        if (hints_.size() < maxHints) hints_.push_back(key);
+    }
     // Up to `limit` due chunks, the kinds (near, never seen, the window's
     // retries and stale rescans) taking turns.
     std::vector<ChunkKey> due(double now, int layer, int tolerance, int staleRadius, size_t limit) {

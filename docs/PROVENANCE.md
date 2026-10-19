@@ -20,6 +20,7 @@ Used as separate programs, SDKs or libraries. Their code is not copied into
 | [LeviLamina](https://github.com/LiteLDev/LeviLamina) | Client mod loader, API and SDK headers; dynamically linked | LGPL-3.0 |
 | LeviLauncher | Installs and launches instances | GPL-3.0 (separate program) |
 | LeviBuildScript | Build-time packaging rule | External build tool |
+| [Zstandard v1.5.7](https://github.com/facebook/zstd/tree/v1.5.7) | Map region compression; statically linked xmake package | BSD-3-Clause option; notice in THIRD_PARTY_NOTICES.md |
 | SDK libraries | Header-only and support libraries | See [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md) |
 
 ## 2. Incorporated or derived source

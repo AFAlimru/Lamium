@@ -136,7 +136,8 @@ void images() {
           "each dimension and Nether layer has its folder");
     check(mapLayer(1, 70) == MapLayer{1, 4} && mapLayer(1, -1) == MapLayer{1, -1} && mapLayer(0, 70) == MapLayer{0, 0},
           "the Nether is layered by 16 blocks; other dimensions are not");
-    check(regionFileName({-3, 7}) == "r.-3.7.lmr", "region files are named by position");
+    check(regionFileName({-3, 7}) == "r.-3.7.lm2" && regionFileName({-3, 7}, true) == "r.-3.7.lmr",
+          "new and legacy region files are named by position");
     check(regionOfFileName("r.-3.7.lmr") == RegionKey{-3, 7} && !regionOfFileName("r.3.lmr") && !regionOfFileName("r.a.1.lmr")
               && !regionOfFileName("r.1.2.lmr.tmp") && !regionOfFileName("r.-.2.lmr") && !regionOfFileName("r.99999999999.0.lmr"),
           "region file names read back; other files are not regions");

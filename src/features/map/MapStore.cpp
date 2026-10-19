@@ -1,11 +1,11 @@
 #include "features/map/MapStore.h"
-#include "app/AtomicFile.h"
+#include "features/map/MapRegionFiles.h"
+#include "features/map/MapColors.h"
 #include "app/Runtime.h"
 #include "ll/api/event/EventBus.h"
 #include "ll/api/event/client/ClientExitLevelEvent.h"
 #include <condition_variable>
 #include <deque>
-#include <fstream>
 #include <map>
 #include <mutex>
 #include <set>
@@ -34,8 +34,9 @@ struct Resident {
     // fills only the others when it arrives.
     std::vector<bool> recorded = std::vector<bool>(regionColumns, false);
     bool ready = false; // The saved file has been merged (or there is none).
-    bool dirty = false;
-    double dirtySince = 0, used = 0;
+    bool refused = false;
+    RegionSaveState save;
+    double used = 0;
 };
 using Pixels = std::shared_ptr<std::vector<std::uint32_t> const>;
 struct Cached {
@@ -45,8 +46,11 @@ struct Cached {
     double builtAt = 0, used = 0;
 };
 struct Save {
+    RegionId id;
     std::filesystem::path path;
     std::shared_ptr<RegionData const> data;
+    unsigned generation;
+    std::uint64_t serial;
 };
 
 std::mutex mutex;
@@ -63,6 +67,12 @@ std::map<RegionId, Resident> residents;
 std::map<ImageId, Cached> images;
 std::deque<Save> saves;
 std::deque<RegionId> loads;
+struct Conversion { RegionId id; std::chrono::steady_clock::time_point after{}; };
+std::deque<Conversion> conversions;
+std::map<std::pair<int, int>, std::set<std::pair<int, int>>> revisionReports;
+std::set<RegionId> refusedLogged, damagedLogged, legacyLogged, saveFailedLogged; // Worker only, reset after joining.
+std::chrono::steady_clock::time_point nextConversion{};
+RegionCodec* workerCodec = nullptr; // Used only by the worker's image builder.
 std::vector<ImageId> wanted;
 // Saved and recorded regions per layer (dimension, band). Images wait for
 // the saved folder's listing so they never miss a region.
@@ -84,7 +94,7 @@ ll::event::ListenerPtr exitListener;
 // About 40 MB of images; tiles not wanted now go first, finest and oldest
 // first, since coarse ones are the costly ones to build again.
 constexpr size_t maxImages = 160;
-constexpr double saveDelay = 10, rebuildDelay = 1.5, forgetAfter = 20;
+constexpr double rebuildDelay = 1.5, forgetAfter = 20;
 constexpr int keepRegions = 2; // Around the player: the minimap reads them.
 
 void log(std::string const& text) {
@@ -104,16 +114,29 @@ void trace(ImageId const& id, std::string_view why) {
 std::filesystem::path regionPath(std::filesystem::path const& base, RegionId const& id) {
     return base / std::filesystem::u8path(layerFolder(id.layer)) / regionFileName(id.key);
 }
-std::optional<RegionData> readRegion(std::filesystem::path const& path) {
-    std::error_code error;
-    if (!std::filesystem::is_regular_file(path, error)) return std::nullopt;
-    std::ifstream file(path, std::ios::binary);
-    if (!file) return std::nullopt;
-    std::string bytes((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-    auto region = decodeRegion(bytes);
-    // A damaged file is treated as missing; the next save replaces it.
-    if (!region) log("ignored an unreadable region file " + path.filename().string());
-    return region;
+RegionRead readRegion(std::filesystem::path const& path, RegionId const& id) {
+    RegionRead result;
+    try { result = readRegionFiles(path, id.key, *workerCodec); }
+    catch (...) { result.status = RegionStatus::Refused; }
+    auto report = [&](std::set<RegionId>& once, char const* why, std::filesystem::path const& file) {
+        if (!once.insert(id).second) return;
+        try { Runtime::instance().self().getLogger().warn("World map: {} {}", why, file.string()); } catch (...) {}
+    };
+    if (result.status == RegionStatus::Refused) report(refusedLogged, "refused region; kept for this session only:", path);
+    if (result.damaged) report(damagedLogged, "damaged region; will replace on save:", path);
+    if (result.legacyStatus == RegionStatus::Damaged)
+        report(legacyLogged, "ignored damaged legacy region; kept unchanged:", legacyRegionPath(path));
+    if (result.legacyStatus == RegionStatus::Refused)
+        report(legacyLogged, "could not read legacy region; kept unchanged:", legacyRegionPath(path));
+    return result;
+}
+void reportRevisions(RegionId const& id, RegionData const& data) {
+    auto& reports = revisionReports[{id.layer.dimension, id.layer.band}];
+    std::array<bool, 256> recorded{};
+    for (size_t i = 0; i < data.colors.size(); ++i) if (data.colors[i]) recorded[chunkOfIndex(i)] = true;
+    for (size_t i = 0; i < 256; ++i)
+        if (recorded[i] && data.chunks[i].revision < columnRevision)
+            reports.insert({id.key.x * 16 + static_cast<int>(i % 16), id.key.z * 16 + static_cast<int>(i / 16)});
 }
 void invalidate(RegionId const& id) {
     for (int lod = 0; lod <= maxLod; ++lod) {
@@ -140,9 +163,8 @@ Resident& resident(RegionId const& id) {
     return at->second;
 }
 void queueSave(RegionId const& id, Resident& r) {
-    if (!root || !r.ready || !r.dirty) return;
-    saves.push_back({regionPath(*root, id), r.data});
-    r.dirty = false;
+    if (!root || !r.ready || r.refused || !r.save.begin()) return;
+    saves.push_back({id, regionPath(*root, id), r.data, generation, r.save.serial});
     wake.notify_one();
 }
 bool fresh(Cached const& cached) { return !cached.stale; }
@@ -193,7 +215,7 @@ Pixels build(ImageId const& id, unsigned started) {
         }
         std::optional<RegionData> read;
         if (!source && path) {
-            read = readRegion(*path);
+            read = readRegion(*path, {id.layer, {id.tile.x, id.tile.z}}).data;
             if (!read) {
                 trace(id, "no region file to read");
                 return nullptr;
@@ -290,15 +312,23 @@ std::uint64_t folderSize(std::filesystem::path const& folder) {
     return total;
 }
 void run() {
+    RegionCodec codec;
+    workerCodec = &codec;
+    std::chrono::steady_clock::time_point nextUsage{};
     std::unique_lock lock(mutex);
     for (;;) {
-        wake.wait(lock, [] {
+        wake.wait_for(lock, std::chrono::milliseconds(100), [&] {
             bool loadsWanted = !loads.empty() && (!finishing || std::any_of(loads.begin(), loads.end(), [](auto const& id) {
                 auto found = residents.find(id);
-                return found != residents.end() && found->second.dirty;
+                return found != residents.end() && found->second.save.dirty;
             }));
             bool builds = !finishing && !indexing && std::any_of(wanted.begin(), wanted.end(), buildable);
-            return removing || (indexing && !finishing) || !saves.empty() || loadsWanted || builds || (usageDirty && !finishing)
+            return removing || (indexing && !finishing) || !saves.empty() || loadsWanted || builds
+                || (usageDirty && !finishing && std::chrono::steady_clock::now() >= nextUsage)
+                || (!finishing && std::chrono::steady_clock::now() >= nextConversion
+                    && std::any_of(conversions.begin(), conversions.end(), [](auto const& entry) {
+                        return std::chrono::steady_clock::now() >= entry.after;
+                    }))
                 || (finishing && saves.empty() && !loadsWanted);
         });
         if (removing) {
@@ -316,6 +346,7 @@ void run() {
             unsigned started = generation;
             lock.unlock();
             std::vector<std::pair<MapLayer, RegionKey>> listed;
+            std::vector<RegionId> old;
             std::error_code error;
             if (folder)
                 for (auto it = std::filesystem::recursive_directory_iterator(*folder, error);
@@ -323,21 +354,36 @@ void run() {
                     if (!it->is_regular_file(error)) continue;
                     auto key = regionOfFileName(it->path().filename().string());
                     auto layer = layerOfFolder(it->path().parent_path().lexically_relative(*folder).generic_string());
-                    if (key && layer) listed.push_back({*layer, *key});
+                    if (key && layer) {
+                        listed.push_back({*layer, *key});
+                        if (it->path().extension() == ".lmr") old.push_back({*layer, *key});
+                    }
                 }
             lock.lock();
             if (started != generation) continue;
             for (auto const& [layer, key] : listed) indexOf(layer).add(key);
+            for (auto const& id : old) conversions.push_back({id});
             indexing = false;
             continue;
         }
         if (!saves.empty()) {
             auto save = std::move(saves.front());
             saves.pop_front();
+            if (save.generation != generation) continue;
             lock.unlock();
-            try { writeFileReplacing(save.path, encodeRegion(*save.data), "map region"); }
-            catch (std::exception const& error) { log(std::string("could not save a region: ") + error.what()); }
+            bool success = false;
+            try { writeRegionFiles(save.path, save.id.key, *save.data, codec); success = true; }
+            catch (std::exception const& error) {
+                if (saveFailedLogged.insert(save.id).second)
+                    try { Runtime::instance().self().getLogger().warn("World map: could not save {}: {}", save.path.string(), error.what()); } catch (...) {}
+            }
             lock.lock();
+            if (save.generation != generation) continue;
+            auto found = residents.find(save.id);
+            if (found != residents.end()) {
+                found->second.save.complete(save.serial, success, clock);
+                if (finishing && success) queueSave(save.id, found->second);
+            }
             usageDirty = true;
             continue;
         }
@@ -345,19 +391,22 @@ void run() {
             auto id = loads.front();
             loads.pop_front();
             auto found = residents.find(id);
-            if (found == residents.end() || (finishing && !found->second.dirty) || !root) continue;
+            if (found == residents.end() || (finishing && !found->second.save.dirty) || !root) continue;
             auto path = regionPath(*root, id);
             unsigned started = generation;
             lock.unlock();
-            auto disk = readRegion(path);
+            auto disk = readRegion(path, id);
             lock.lock();
             found = residents.find(id);
             if (started != generation || found == residents.end()) continue;
             auto& r = found->second;
-            if (disk) {
+            if (disk.data) {
                 if (r.data.use_count() > 1) r.data = std::make_shared<RegionData>(*r.data);
-                underlay(*r.data, r.recorded, *disk);
+                underlay(*r.data, r.recorded, *disk.data);
+                reportRevisions(id, *r.data);
             }
+            r.refused = disk.status == RegionStatus::Refused;
+            if (disk.needsSave) r.save.changed(clock);
             r.ready = true;
             invalidate(id);
             if (finishing) queueSave(id, r);
@@ -379,7 +428,7 @@ void run() {
             trimImages();
             continue;
         }
-        if (usageDirty) {
+        if (usageDirty && std::chrono::steady_clock::now() >= nextUsage) {
             usageDirty = false;
             auto folder = root;
             lock.unlock();
@@ -387,8 +436,42 @@ void run() {
             if (folder) bytes = folderSize(*folder);
             lock.lock();
             if (folder == root) usageBytes = bytes;
+            // Converting a large map must not recount the entire folder per file.
+            nextUsage = std::chrono::steady_clock::now() + std::chrono::seconds(5);
+            continue;
+        }
+        if (!conversions.empty() && root && std::chrono::steady_clock::now() >= nextConversion) {
+            auto next = std::find_if(conversions.begin(), conversions.end(), [](auto const& entry) {
+                return std::chrono::steady_clock::now() >= entry.after;
+            });
+            if (next == conversions.end()) continue;
+            auto id = next->id;
+            conversions.erase(next);
+            if (residents.contains(id)) continue;
+            auto path = regionPath(*root, id);
+            unsigned started = generation;
+            nextConversion = std::chrono::steady_clock::now() + std::chrono::milliseconds(100);
+            lock.unlock();
+            auto disk = readRegion(path, id);
+            lock.lock();
+            // Becoming resident while the files were read makes the resident load own migration.
+            if (started != generation || finishing || residents.contains(id)) continue;
+            if (!idleRegionEligible(false, disk.needsSave, disk.status) || !disk.data) continue;
+            lock.unlock();
+            bool success = false;
+            try { writeRegionFiles(path, id.key, *disk.data, codec); success = true; }
+            catch (std::exception const& error) {
+                if (saveFailedLogged.insert(id).second)
+                    try { Runtime::instance().self().getLogger().warn("World map: could not convert {}: {}", path.string(), error.what()); } catch (...) {}
+            }
+            lock.lock();
+            if (started == generation) {
+                usageDirty = true;
+                if (!success) conversions.push_back({id, std::chrono::steady_clock::now() + std::chrono::seconds(10)});
+            }
         }
     }
+    workerCodec = nullptr;
 }
 // Caller holds the lock. Saves what changed, then lets the worker end and
 // joins it; the lock is released while waiting.
@@ -415,6 +498,9 @@ void finish(std::unique_lock<std::mutex>& lock) {
     indexing = false;
     saves.clear();
     loads.clear();
+    conversions.clear();
+    revisionReports.clear();
+    refusedLogged.clear(); damagedLogged.clear(); legacyLogged.clear(); saveFailedLogged.clear();
     removing.reset();
     usageBytes.reset();
     usageDirty = false;
@@ -446,27 +532,43 @@ void frame(unsigned world, std::optional<std::filesystem::path> const& folder, M
         for (int dx = -keepRegions; dx <= keepRegions; ++dx) resident({layer, {center.x + dx, center.z + dz}});
     for (auto it = residents.begin(); it != residents.end();) {
         auto& [id, r] = *it;
-        if (r.dirty && now - r.dirtySince >= saveDelay) queueSave(id, r);
+        if (r.save.due(now)) queueSave(id, r);
         bool near = id.layer == layer && std::abs(id.key.x - center.x) <= keepRegions + 1
             && std::abs(id.key.z - center.z) <= keepRegions + 1;
         // Session-only regions are the only copy; they stay.
-        if (root && !near && r.ready && !r.dirty && now - r.used >= forgetAfter) it = residents.erase(it);
+        if (root && !near && r.ready && !r.refused && !r.save.dirty && !r.save.inFlight && now - r.used >= forgetAfter) it = residents.erase(it);
         else ++it;
     }
 }
-void record(MapLayer layer, ChunkKey chunk, std::array<Column, 256> const& columns) {
+void record(MapLayer layer, ChunkKey chunk, std::array<Column, 256> const& columns,
+            ColumnMask const& produced, ColumnMask const& scanned) {
     std::lock_guard lock(mutex);
     if (!attachedWorld || finishing) return;
     RegionId id{layer, regionOfChunk(chunk)};
     auto& r = resident(id);
     // The worker may be reading this region; it keeps its own copy.
     auto data = r.data.use_count() > 1 ? std::make_shared<RegionData>(*r.data) : r.data;
-    if (!mergeChunk(*data, chunk, columns, &r.recorded)) return;
+    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    auto changed = recordChunk(*data, chunk, columns, produced, scanned, columnRevision,
+                               static_cast<std::uint64_t>(ms), &r.recorded);
+    if (!changed.pixels && !changed.metadata) return;
     r.data = std::move(data);
-    if (!r.dirty) r.dirtySince = clock;
-    r.dirty = true;
+    r.save.changed(clock);
     indexOf(layer).add(id.key);
-    invalidate(id);
+    if (changed.pixels) invalidate(id);
+}
+bool needsRevision(MapLayer layer, ChunkKey chunk) {
+    std::lock_guard lock(mutex);
+    auto found = residents.find({layer, regionOfChunk(chunk)});
+    return found != residents.end() && found->second.data->chunks[chunkIndex(chunk)].revision < columnRevision;
+}
+std::vector<ChunkKey> takeRevisionReports(MapLayer layer) {
+    std::lock_guard lock(mutex);
+    auto& reports = revisionReports[{layer.dimension, layer.band}];
+    std::vector<ChunkKey> out;
+    for (auto [x, z] : reports) out.push_back({x, z});
+    reports.clear();
+    return out;
 }
 bool cached(MapLayer layer, ChunkKey chunk, std::array<Column, 256>& out) {
     std::lock_guard lock(mutex);
@@ -522,6 +624,8 @@ bool clear() {
     indexing = false;
     saves.clear();
     loads.clear();
+    conversions.clear();
+    revisionReports.clear();
     removing = root;
     usageBytes = 0;
     wake.notify_one();

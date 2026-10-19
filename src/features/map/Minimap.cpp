@@ -329,7 +329,7 @@ BlockLook const* blockLook(IClientInstance& client, Block const& block) {
 // colors and missed it (2026-10-07).
 // Set when the renderer's tint was not ready; the chunk is scanned again soon.
 bool tintNotReady = false;
-// The last surface column used the stand-in map tint.
+// The current column used the stand-in map tint.
 bool columnProvisional = false;
 std::uint32_t biomeTint(TintMethod tint, BlockSource& region, BlockPos const& pos, Block const& block,
                         std::uint32_t color) {
@@ -366,7 +366,10 @@ enum class Scan { Done, Waiting };
 // Set by the column scans when a block had not arrived; the column stays unknown.
 bool sawPending = false;
 std::uint32_t blockColor(BlockLook const& look, BlockSource& region, BlockPos const& pos, Block const& block) {
-    return look.color ? biomeTint(look.tint, region, pos, block, look.color) : mapColor(region, pos, block);
+    tintNotReady = false;
+    auto color = look.color ? biomeTint(look.tint, region, pos, block, look.color) : mapColor(region, pos, block);
+    if (color && tintNotReady) sawPending = columnProvisional = true;
+    return color;
 }
 // One surface column, from one above the heightmap position down (see
 // columnBlockWins): a covering block (snow layer, carpet) wins, blocks that
@@ -383,9 +386,7 @@ std::optional<Column> surfaceColumn(IClientInstance& client, BlockSource& region
         if (!look) return std::nullopt;
         if (look->pending) { sawPending = true; return Column{}; }
         if (!columnBlockWins(look->skip, look->cover, y, top.y)) continue;
-        tintNotReady = false;
         if (auto color = blockColor(*look, region, pos, block)) {
-            if (tintNotReady) sawPending = columnProvisional = true;
             return Column{color, static_cast<std::int16_t>(y)};
         }
     }
@@ -434,6 +435,7 @@ Scan scanChunk(IClientInstance& client, BlockSource& region, TileCache& cache, C
     short minY = region.getMinHeight(), maxY = region.getMaxHeight();
     BlockPos origin{key.x * 16, std::max<int>(minY, std::min<int>(layer, maxY - 1)), key.z * 16};
     std::array<bool, 256> provisional{};
+    ColumnMask produced{}, scanned{};
     if (region.getChunkAt(origin)) {
         for (int dz = 0; dz < 16; ++dz)
             for (int dx = 0; dx < 16; ++dx) {
@@ -448,12 +450,18 @@ Scan scanChunk(IClientInstance& client, BlockSource& region, TileCache& cache, C
                 // every other column is known, empty or not.
                 loaded = loaded || column->color;
             }
+        for (size_t i = 0; i < columns.size(); ++i) {
+            scanned[i] = columns[i].color != 0;
+            produced[i] = scanned[i] && !provisional[i];
+        }
         // Saved colors stand in for blocks not received yet and for the
         // stand-in tint, like outside the render distance (maintainer,
         // 2026-10-07); the stand-in tint shows only where nothing is saved.
         std::array<Column, 256> known{};
         if (sawPending && saved.on && store::cached(saved.layer, key, known)) {
             fillFromSaved(columns, provisional, known);
+            for (size_t i = 0; i < columns.size(); ++i)
+                if (provisional[i] && savedUsable(known[i])) scanned[i] = false;
             loaded = true;
         }
     } else if (saved.on) {
@@ -465,6 +473,9 @@ Scan scanChunk(IClientInstance& client, BlockSource& region, TileCache& cache, C
                       [](Column const& a, Column const& b) { return a.color == b.color && a.height == b.height; });
     auto& tile = cache.put(key);
     tile.scannedAt = time;
+    if (saved.on && loaded && !stored && (!same || store::needsRevision(saved.layer, key)
+                                        || !std::all_of(produced.begin(), produced.end(), [](bool value) { return value; })))
+        store::record(saved.layer, key, columns, produced, scanned);
     if (same) return Scan::Done;
     tile.columns = columns;
     tile.loaded = loaded;
@@ -472,7 +483,6 @@ Scan scanChunk(IClientInstance& client, BlockSource& region, TileCache& cache, C
     tile.partial = sawPending;
     tile.stored = stored;
     cache.changed(key);
-    if (saved.on && loaded && !stored) store::record(saved.layer, key, columns);
     ++state.revision;
     return Scan::Done;
 }
@@ -892,6 +902,11 @@ void record(IClientInstance& client, Settings::Map const& settings, bool scannin
         int layer = cave ? *state.layer : 0;
         Saved saved{true, mapLayer(view->dimension, layer)};
         store::frame(place.world, place.mapFolder, saved.layer, view->playerX, view->playerZ, time);
+        for (auto key : store::takeRevisionReports(saved.layer)) {
+            state.recordGrid.outdated(key);
+            state.surfaceGrid.outdated(key);
+            state.caveGrid.outdated(key);
+        }
         if (!scanning || !settings.worldMap) return;
         // Recording follows the view distance (L-206): what the client keeps
         // loaded around the player, from the old fixed range up to the game's

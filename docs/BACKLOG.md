@@ -86,8 +86,9 @@ L-item wins. Every entry names what the task is, not only its number.
      L-167 in-world language (chosen: native-path research in progress), L-168 trade
      finder, L-169's later parts (drops and the rest), L-170
      enchantment order planner, L-173 quick shapes and beacon range, L-163
-     a Lamium-drawn inventory screen. L-151 to L-154
-     stay later. This list approves no implementation and sets no release.
+     a Lamium-drawn inventory screen; L-228 cave/Nether map representation.
+     L-151 to L-154 stay later. This list approves no implementation and
+     sets no release.
    - Done since 0.2.0 (BACKLOG-DONE): L-155, L-157 to L-161, L-147, L-148,
      L-150, L-164 with L-133 and L-156, L-171 calculator, L-172 text
      fields, L-166 repeated villager trades (part 1), L-174 chat position,
@@ -164,7 +165,18 @@ every server gap before a release.
 
 ### Since 0.2.3 (unreleased)
 
-Nothing yet.
+L-216 LMR2 region files: live filesystem/log checks on `6ff0610` confirmed
+all 1,563 old LamiumTest regions migrated with no recorded-column loss,
+including regions not rescanned, and about 83% less disk use. Remaining:
+the older-build fill-only merge, refusal without overwrite, damaged-file
+recovery and the 10 s failed-save retry in game, broader server coverage
+and measured frame times. The maintainer's local appearance, opening/zoom,
+Nether/cave display and rejoin-retention smoke check found no abnormality
+attributed to L-216. Cave/Nether representation remains a Design concern
+(L-228). Evidence and scope: VALIDATION-LOG.md; implementation: MAP.md.
+Review follow-up: the corrected save batching, separate legacy warnings
+and cave provisional tint/revision-2 paths still need a focused live check;
+the reported smoke result above is for `6ff0610`.
 
 ### Shipped in 0.2.3 (smoke-tested; remaining gaps in VALIDATION.md)
 
@@ -613,46 +625,33 @@ Remaining: in-game recording coverage and frame times at 32/64/96 chunks,
 with the minimap off as well as on; near changes and movement during a wide
 pass. Build/tests alone do not establish these runtime results.
 
-### L-216 World map region file format for the long term
-Kind: Ready. Maintainer 2026-10-18: the saved map takes much more space than
-the world (LamiumTest: 166 MB of map in 1,369 region files, 36 MB of world
-`db`; 204 MB in 1,563 files against 44 MB on 2026-10-19). The current `LMR1`
-format is uncompressed runs of (length, color, height) per region; natural
-terrain changes color almost every column, so runs average about five
-columns. The maintainer wanted a new format designed once for the long term,
-without much more CPU.
-Spec agreed 2026-10-19 and closed after that day's spec reviews; no further
-spec reviews, the next step is building it (full contract: [MAP.md](MAP.md#region-file-format-lmr2-l-216-2026-10-19)):
-- Regions keep the colors seen, as now; no block or biome storage (no
-  recolor pass on a resource-pack change, no block-state conversions per
-  game version). Those can come later as optional sections.
-- `LMR2` files (`r.<x>.<z>.lm2`): a fixed magic, a format version and a
-  section table; each section has its codec, "required" and "keep" flags
-  and a CRC-32, with size limits checked before anything is allocated.
-  Reading ends Loaded, Missing, Damaged or Refused; a future or unknown
-  required format is Refused and never overwritten.
-- Sections in version 1: `CHNK` (per chunk: recorded time in ms and the
-  column revision), `COLR` (palette + indices), `HGHT` (wrapping height
-  deltas), `OLDF` (the `.lmr` absorbed).
-- A column revision constant is raised whenever the color or height
-  calculation changes; chunks below it are shown and rescanned when loaded.
-  Mixed scans and builds lower it, never raise it falsely.
-- zstd level 3 per section, the only codec; no setting.
-- Migration: `.lm2` is read first, then `.lmr`; regions read from `.lmr`
-  are resaved, and the worker converts the rest in spare time (maintainer
-  2026-10-19: the whole map, not only visited regions). Merging an older
-  release's `.lmr` only fills unrecorded columns.
-- Nether 16-block layers stay separate folders.
-Measured 2026-10-19 (150 of LamiumTest's regions, Python): palette + height
-deltas + zstd 3 averaged 22.7 KB per region (6.0x, about 35 MB for that
-world) at about an eighth of zlib 6's CPU for a similar size.
-Work (MAP.md "Code changes this needs"): the format and its tests in
-`MapRegion.h`, reading/listing/saving/idle conversion in `MapStore.cpp`,
-the produced-column mask and revision reports between `Minimap.cpp`, the
-store and the scan grid, zstd as an xmake package with its notices. Then in
-game: the map looks as before, the folder shrinks while playing, opening
-speed, a world recorded by the previous release merging without losing
-newer colors.
+### L-228 Reconsider what cave and Nether maps should show
+Kind: Design. Maintainer feedback 2026-10-19 after the L-216 smoke check:
+no conspicuous problem with that PR, but the cave/Nether view may not give
+the player a useful account of the terrain. At roughly Y67 (selected band
+Y64-79), the map is mostly gray with dark gaps, and expected lava lakes
+below are hard to see. Around Y32 (band Y32-47), the visible footprint
+becomes much smaller and the map is mostly lava. Both supplied screenshots
+show the same 500-block scale and "Loading 4"; they do not establish a zoom
+change or a completed image build.
+
+Current behavior: cave columns are sampled from five blocks above to 24
+below a held height; walls and drops are dark, and unavailable stand-ins
+can also be drawn as rock. The world map stores Nether bands separately
+every 16 blocks, and can follow the player's band automatically. These
+rules explain possible contributors, not a verified diagnosis of each
+pixel or of the smaller footprint. This feedback does not establish an
+LMR2 storage regression.
+
+Before implementing, agree what a useful cave/Nether map represents as
+height changes: the nearby floor and walls, the connected open space and
+its deeper floor/lava, or another chosen reference. Investigate the
+smaller footprint against per-band recording coverage, received terrain
+and pending images; distinguish unknown terrain, walls and deep drops.
+No replacement height window, layer model, colors, UI or implementation
+has been selected; no priority or release is chosen. Keep this design
+follow-up separate from L-216. Current behavior and evidence: MAP.md's
+"Cave and Nether representation review" and VALIDATION-LOG.md, 2026-10-19.
 
 ### L-196 Review license notices, source access and provenance classification
 Kind: Research, then Ready for changes supported by the findings.
