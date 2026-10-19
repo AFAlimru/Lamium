@@ -147,101 +147,197 @@ time to build the first far view of a very large map, and memory/IO on it.
 
 ## Region file format LMR2 (L-216, 2026-10-19)
 
-Agreed with the maintainer 2026-10-19; not built yet. It replaces `LMR1`
-for writing; `LMR1` stays readable.
+Agreed with the maintainer 2026-10-19 and revised after four spec reviews
+the same day; not built yet. It replaces `LMR1` for writing; `LMR1` stays
+readable.
 
 What is stored: the colors seen and the heights, as in `LMR1`. Blocks and
 biomes are not stored: a resource-pack change does not recolor the saved
 map, and no block-state conversion is needed when the game updates. If they
 are ever wanted they become optional sections.
 
+### Layout
+
 File: `r.<x>.<z>.lm2` in the same layer folders as now (`overworld`,
-`nether/y<N>` per 16-block layer, `end`). All numbers little-endian.
+`nether/y<N>` per 16-block layer, `end`). All numbers little-endian. The
+magic `LMR2` names the container and never changes; later formats raise the
+version.
 
 ```
-"LMR2" | u16 format version (1) | u16 flags (0) | i32 region x | i32 region z
-u16 section count, then per section:
-  4-char tag | u8 codec (0 none, 1 zstd) | u8 flags (bit 0: required, bit 1: keep)
+header (18 bytes): "LMR2" | u16 version (1) | u16 flags (0) | i32 region x | i32 region z | u16 section count
+table (18 bytes per section):
+  4-char tag (A-Z, 0-9) | u8 codec (0 none, 1 zstd) | u8 flags (bit 0 required, bit 1 keep)
   u32 raw size | u32 stored size | u32 CRC-32 of the stored bytes
-section bodies in table order
+bodies: in table order, right after the table, no padding, nothing after the last
 ```
 
-Reading:
-- Wrong magic, a short table, sizes past the end of the file, or a region
-  x/z that differs from the file name: the file counts as missing.
-- A newer format version, or an unknown tag or codec on a required section:
-  the region is not shown and never overwritten; what is recorded there
-  stays in memory for the session. An unknown optional section is skipped.
-- A CRC mismatch or a body that does not decode: that section counts as
-  missing. Without `COLR` or `HGHT` the region counts as missing (the next
-  save rewrites it); without `CHNK` its recorded chunks count as recorded at
-  time 0 under revision 0.
+CRC-32 is the IEEE/zlib variant (`"123456789"` gives `0xCBF43926`). zstd
+bodies are exactly one frame without a dictionary, with nothing after it;
+a content size in the frame, if present, equals the raw size; stored size
+is above 0. Codec 0 has raw size equal to stored size. One zstd context is
+kept per worker and reused.
 
-Writing unknown sections (review 2026-10-19: skipping alone would let an
-older reader's resave erase what a newer Lamium added): an unknown optional
-section with the keep flag is written back unchanged (codec, flags, bytes,
-CRC); one without it is dropped. A future section whose data belongs to
-columns or chunks sets keep only if it carries its own per-chunk times, so
-that a newer reader can treat chunks whose `CHNK` time is later than the
-section's own (rewritten by an older reader) as missing for that section.
+`required` is a forward-compatibility flag: a reader that does not know the
+section's tag or codec must not rewrite the file. It says nothing about
+which known sections must be present; that is listed per section below.
 
-Sections in version 1 (each compressed on its own with zstd level 3; there
-is no compression setting):
-- `CHNK` (required): 256 entries in chunk order (z rows of x): u64 recorded
-  time (Unix time in milliseconds when the chunk was last merged, 0 =
-  never) and u16 color revision (0 = unknown, e.g. migrated from `LMR1`).
-- `COLR` (required): u32 palette size (1 to 65,536), the palette as u32
-  RGBA, then one index per column in row-major order (z rows of x): u8 when
-  the palette has at most 256 entries, otherwise u16 written as a plane of
-  low bytes then a plane of high bytes. "Not recorded" (color 0) is an
-  ordinary palette value, not a reserved entry, so 65,536 distinct columns
-  still fit u16 indices.
-- `HGHT` (required): each column's height minus its west neighbour's (the
-  first column of a row: minus the north neighbour's; the first column:
-  minus 0), computed in 16-bit wrapping arithmetic: `d = int16(h - prev)`,
-  stored as `u16((d << 1) ^ (d >> 15))`; decoding inverts it and adds back
-  modulo 2^16. This is lossless over the whole i16 range (a step from
-  -32768 to 32767 wraps to -1). Written as a low-byte plane then a
-  high-byte plane. Heights are not limited to a fixed world range.
-- `OLDF` (optional, not kept): the `.lmr` this file absorbed, as u64 file
-  size and u64 modification time in Unix milliseconds; see migration.
+Sections in version 1 (zstd level 3; there is no compression setting):
+- `CHNK` (required flag set; may be absent): raw 2,560 bytes, 256 entries
+  of 10 bytes in chunk order `z * 16 + x`: u64 recorded time (Unix
+  milliseconds, 0 = never) and u16 column revision (0 = unknown).
+- `COLR` (required flag set; must be present): u32 palette size `p` (1 to
+  65,536), `p` u32 colors in `packColor` byte order (r lowest byte, alpha
+  highest), then one index per column in row-major order (z rows of x): u8
+  when `p <= 256`, otherwise u16 as a plane of low bytes then a plane of
+  high bytes. Raw size is exactly `4 + 4p + 65,536 * (p <= 256 ? 1 : 2)`.
+  Every index is below `p`. A color's alpha is 255, or the color is exactly
+  0 ("not recorded", an ordinary palette value, so 65,536 distinct columns
+  still fit u16 indices).
+- `HGHT` (required flag set; must be present): raw 131,072 bytes. Each
+  column's height as a difference from `prev = x > 0 ? h[z][x-1] : (z > 0 ?
+  h[z-1][0] : 0)` (the start of a row refers to the north column, not to the
+  end of the previous row), in 16-bit wrapping arithmetic on unsigned
+  values: `u = uint16(h) - uint16(prev)`, stored `z = uint16((u << 1) ^ (u
+  & 0x8000 ? 0xFFFF : 0))`; decoding `u = (z >> 1) ^ (z & 1 ? 0xFFFF : 0)`,
+  `h = int16(uint16(prev) + u)`. Lossless over the whole i16 range; heights
+  are not limited to a world range. Written as a low-byte plane then a
+  high-byte plane. Columns not recorded are written with height 0.
+- `OLDF` (optional, not kept): raw 20 bytes: the `.lmr` this file absorbed,
+  as u64 size, u64 modification time (`last_write_time` converted to the
+  system clock, truncated to Unix milliseconds) and u32 CRC-32 of the whole
+  `.lmr`.
 
-Color revision: one constant beside the column color calculation, raised
-whenever a change makes colors recorded before it wrong (such as the
-renderer-tint black of 2026-10-07). It is kept per chunk rather than per
-region because one region mixes chunks recorded by different builds. A
-chunk with an older revision is shown as saved and counts as due for a
-rescan when the client has it loaded; it is never discarded unseen.
-A merge stamps a chunk with the writing build's revision only when this
-scan produced every column the chunk has recorded, none of them filled from
-the saved map and none colored with the stand-in tint (provisional).
-Otherwise the chunk gets the lower of its stored revision and the writing
-build's, and a chunk new to the map gets 0, so it stays due for a rescan
-(reviews 2026-10-19). The lower value matters when builds mix: a chunk at
-revision 2 partly rewritten by a build at revision 1 drops to 1, so a
-revision 2 build sees the columns written by 1 as due again; a full rescan
-by the revision 1 build also leaves 1. The recorded time is set
-whenever a merge changes any of the chunk's columns.
+Size limits, checked before anything is allocated or decompressed: a file
+above 8 MiB is refused; at most 64 sections; known sections must have the
+raw size given above (`COLR` at most 393,220 before its palette size is
+read); an unknown kept section has a stored size of at most 1 MiB and the
+kept sections of a file at most 2 MiB together. Unknown sections are never
+decompressed.
 
-Migration and older releases (times compared in milliseconds; the system
-clock is trusted, and a clock set back can only make a later `.lmr` lose a
-tie, never damage a file):
-- Listing on join and the settings' size include both `.lm2` and `.lmr`.
-- Reading prefers `.lm2`; without one, `.lmr` is read with the `LMR1`
-  decoder (time 0, revision 0).
-- Saving always writes `.lm2` first (atomic replace as now), recording in
-  `OLDF` the `.lmr` it absorbed, and only then deletes that `.lmr`. No bulk
-  rewrite.
-- An older Lamium does not list `.lm2`, so it cannot damage them; it records
-  anew into `.lmr`. When both files exist:
-  - the `.lmr` matches the `.lm2`'s `OLDF` (same size and modification
-    time): it is what was left by a save interrupted before the delete. It
-    is deleted without merging.
-  - otherwise it was written after the switch by an older Lamium: a chunk
-    takes the `.lmr` columns it has only if the `.lmr` modification time is
-    later than that chunk's recorded time; on a tie the `.lm2` wins. Chunks
-    taken get the `.lmr` time and revision 0. The next save writes the
-    result with this `.lmr` in `OLDF`, then deletes it.
+### Reading
+
+The result is Loaded, Missing (no file), Damaged or Refused, checked in this
+order so that a future file is never taken for a damaged one:
+1. File above 8 MiB: Refused.
+2. Shorter than 4 bytes or a magic other than `LMR2`: Refused if it starts
+   with `LMR`, otherwise Damaged.
+3. A short header or version 0: Damaged. A version above 1, or header flags
+   other than 0: Refused.
+4. A table that does not fit, bodies that do not add up to the file size
+   exactly, a duplicate tag, more than 64 sections, or a tag outside A-Z
+   0-9: Damaged.
+5. Flag bits 2-7 set, or an unknown tag or codec on a section with the
+   required flag: Refused.
+6. Region x/z different from the file name: Damaged.
+7. Per known section: a size other than the expected one, a CRC mismatch,
+   a body that does not decode to exactly the raw size, an index out of
+   range or a color with another alpha: that section counts as missing.
+   Without `COLR` or `HGHT` the file is Damaged. Without `CHNK` every
+   recorded chunk counts as time 0, revision 0.
+8. Unknown optional sections: kept with the keep flag (stored bytes as
+   they are) if their CRC matches and `CHNK` was read; otherwise dropped.
+
+What each result does:
+- Refused: logged once, not shown, never written; that region's `.lmr` is
+  neither read nor deleted. What is recorded there stays in memory for the
+  session only. Clearing the world's map removes it with everything else.
+- Damaged: logged; the region is read from its `.lmr` if there is one, and
+  the next save replaces the `.lm2` and deletes the `.lmr` as below.
+- Loaded with no `.lmr`: used as is.
+
+### Unknown sections on a resave
+
+An unknown optional section with the keep flag is written back unchanged
+(codec, flags, stored bytes, CRC); one without it is dropped. A future
+section whose data belongs to columns or chunks sets keep only if it
+carries its own per-chunk times: a newer reader then treats a chunk whose
+`CHNK` time differs from the section's own as missing for that section
+(the chunk was rewritten by a reader that kept the section blindly). If
+`CHNK` is missing, all kept sections are dropped (step 8), because nothing
+says which chunks are still theirs.
+
+### Column revision
+
+One constant beside the column color calculation, raised whenever a change
+makes colors or heights recorded before it wrong (such as the
+renderer-tint black of 2026-10-07, or a different surface block choice
+like L-205's). Kept per chunk because one region mixes chunks recorded by
+different builds. A chunk below the running build's revision is shown as
+saved and is due for a rescan whenever the client has it loaded; it is
+never discarded unseen.
+
+`record` is given, with the columns, a mask of the columns this scan
+produced itself (not filled from the saved map, not colored with the
+stand-in tint). With "full" meaning every column the chunk has recorded
+after the merge is in that mask:
+
+| Scan result | Revision | Time |
+|---|---|---|
+| full, colors or heights changed | the build's | now |
+| full, nothing changed | max(stored, build's) | unchanged |
+| partial, filled from saved, or provisional | min(stored, build's); a chunk new to the map 0 | now if a produced column changed |
+| no column produced | unchanged | unchanged |
+
+A change of revision alone marks the region for saving but does not make
+its images stale; colors and heights changing does both. Because revision
+only moves once per chunk and build, this does not resave regions on every
+rescan. The unchanged-tile shortcut in `scanChunk` still calls `record` for
+a chunk whose stored revision is below the build's, so that the revision
+can rise. When the region's file arrives after the scan and `underlay`
+fills columns under scanned ones, each chunk that took disk columns gets
+min(its revision, the disk chunk's revision) and max of the two times.
+
+The scan grid learns stored revisions from the store (the store reports
+the chunks below the build's revision of each region it loads, and the grid
+treats them as partially seen), so such chunks become due without a new
+grid cell kind.
+
+### Migration and older releases
+
+- Listing on join, the settings' size and clearing include both `.lm2` and
+  `.lmr`.
+- Reading prefers `.lm2`; when it is missing or Damaged, `.lmr` is read with
+  the `LMR1` decoder (every recorded chunk at time 0, revision 0).
+- A region read from `.lmr` is marked for saving once, at load.
+- Idle conversion (maintainer 2026-10-19: convert the whole map in spare
+  time): when the worker has no save, load, listing or image build due, it
+  converts one listed region that has only an `.lmr` and is not resident:
+  read, write the `.lm2` with `OLDF`, delete the `.lmr`. At most one every
+  100 ms; dropped when the world or generation changes. Over time the whole
+  saved map is in `.lm2`.
+- Saving writes `.lm2` first (atomic replace as now), recording in `OLDF`
+  the `.lmr` it absorbed, and deletes that `.lmr` only after the write
+  succeeded. A region stays marked for saving until its write succeeds; a
+  failed write is retried after the save delay and leaves the `.lmr` alone.
+- An older Lamium does not list `.lm2`, so it cannot damage them (except by
+  clearing the world's map, which removes the whole folder as asked); it
+  records anew into `.lmr`. When a Loaded `.lm2` and an `.lmr` both exist:
+  - the `.lmr` matches `OLDF` (size, modification time and CRC): it was left
+    by a save interrupted before the delete. It is deleted without merging.
+  - otherwise it was written by an older Lamium after the switch. The merge
+    only fills: columns the `.lm2` has not recorded are taken from the
+    `.lmr`; recorded columns are never overwritten, whatever the times say.
+    A chunk that took columns, or whose recorded columns differ from the
+    `.lmr`'s, gets revision 0 (so it is rescanned when visited) and the
+    later of its time and the `.lmr` time. The region is then saved with
+    this `.lmr` in `OLDF`, which deletes it.
+  File times and the system clock never decide which colors win, so a
+  clock set back or forth cannot bring old colors over new ones; it can
+  only make a chunk look older or newer than it is.
+
+### Code changes this needs
+
+- `readRegion` returns Loaded/Missing/Damaged/Refused with the region, the
+  `CHNK` entries, `OLDF` and the kept sections; `Resident` and the save
+  entry carry the same, plus the `.lmr` facts.
+- `queueSave` clears the mark only after a successful write.
+- `regionFileName`, `regionPath`, `regionOfFileName`, listing, usage and
+  clearing handle both extensions.
+- zstd comes in as an xmake package (with its notice in
+  THIRD_PARTY_NOTICES.md and PROVENANCE's dependency table) and is linked
+  into `LamiumTests`, so the format is tested end to end.
+
+### Measurements
 
 Measured 2026-10-19 on 150 of LamiumTest's 1,563 regions (Python, so only
 the ratios carry over to C++): palette + height deltas + zstd 3 averaged
@@ -250,15 +346,42 @@ the ratios carry over to C++): palette + height deltas + zstd 3 averaged
 colors. zlib 6 on the same data was slightly smaller (20.9 KB) at about
 eight times the CPU.
 
-Tests: round trip with a small, a large (>256) and a full (65,536 distinct
-colors) palette; heights at -32768 next to 32767 and back; unknown optional
-section skipped, written back with keep and dropped without it; unknown
-required section and newer version leave the file untouched; a damaged
-section counts as missing; x/z mismatch; `LMR1` to `LMR2` migration, the
-interrupted-save leftover, the both-files merge rule including a tie in the
-same millisecond; a partial rescan keeps the older revision; revision 2,
-a partial rewrite by a revision 1 build, then back to revision 2 (the chunk
-is at 1 and due); older revisions selected for rescan.
+### Tests
+
+- Round trip with palettes of 1, 256, 257 and 65,536 colors; heights
+  -32768 next to 32767 and back; a row start referring to the north
+  column; unrecorded columns at height 0.
+- Malformed input: version 0, `LMR3`, `JUNK`, header flags, flag bits 2-7,
+  duplicate tag, trailing bytes, a table past the end, huge raw or stored
+  sizes, wrong known sizes, bad CRC, zstd with two frames or trailing
+  bytes, a raw size that does not match, palette size 0 and 65,537, an
+  index out of range, a color with alpha between 0 and 255, x/z mismatch.
+  Each gives the result listed above; Refused files are left untouched by a
+  save.
+- CRC-32 of `"123456789"`.
+- Unknown sections: optional skipped, written back with keep, dropped
+  without it, dropped with a bad CRC, dropped when `CHNK` is missing.
+- Revision and time per row of the table, including an unchanged full scan
+  (max), a partial rescan, saved fill, provisional, `underlay` after a scan
+  (min), and revision 2, a partial rewrite by a revision 1 build, then back
+  to revision 2 (the chunk is at 1 and due).
+- Migration: `.lmr` only (marked for saving, then `.lm2` with `OLDF`), the
+  interrupted-save leftover (deleted unmerged), an older build's `.lmr`
+  (fill only, differing chunks at revision 0), a Refused `.lm2` with an
+  `.lmr` (both untouched), a Damaged `.lm2` with an `.lmr` (read from the
+  `.lmr`, then replaced), a failed write retried, idle conversion skipping
+  resident and Refused regions.
+- A golden `.lm2` written by an independent Python encoder checked in with
+  its script, read by the C++ decoder, and a C++-written file read by the
+  script, to catch byte order, zigzag and plane mix-ups. The `LMR1` tests in
+  `WorldMapTests.cpp` stay.
+
+In game after the build: an existing world's map looks as before; regions
+turn into `.lm2` while playing and the map folder shrinks; opening and
+zooming out the world map is not slower; a map recorded by the previous
+release merges without losing newer colors; Nether layers and the cave view
+still work; a damaged or refused file placed by hand is logged and not
+overwritten; a failed save (read-only folder) is retried.
 
 ## Technical entry points
 
