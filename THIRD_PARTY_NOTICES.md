@@ -31,6 +31,12 @@ Settings serialization uses [nlohmann/json](https://github.com/nlohmann/json)
 v3.12.0, MIT, copyright 2013-2025 Niels Lohmann. Its license is included in
 [licenses/nlohmann-json-MIT.txt](licenses/nlohmann-json-MIT.txt).
 
+## Zstandard
+
+Map region compression uses [Zstandard](https://github.com/facebook/zstd/tree/v1.5.7)
+v1.5.7, statically linked under its BSD-3-Clause option. The upstream notice
+is included in [licenses/zstd-BSD-3-Clause.txt](licenses/zstd-BSD-3-Clause.txt).
+
 ## LeviLamina
 
 [LeviLamina](https://github.com/LiteLDev/LeviLamina) is a separately installed

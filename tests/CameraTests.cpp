@@ -141,6 +141,8 @@ int main() try {
     waypointTests();
     extern void worldMapTests();
     worldMapTests();
+    extern void mapRegionFormatTests();
+    mapRegionFormatTests();
     extern int runSortPlannerTests();
     check(runSortPlannerTests() == 0, "inventory planning and ordering suites");
     settingsStoreTests();

@@ -149,7 +149,8 @@ time to build the first far view of a very large map, and memory/IO on it.
 
 Agreed with the maintainer 2026-10-19 and revised after the spec reviews of
 that day; the last one closed it (maintainer: no further spec reviews, the
-next step is building it). Not built yet. It replaces `LMR1` for writing; `LMR1` stays
+next step is building it). Implemented for PR review on 2026-10-19; not checked
+in game. It replaces `LMR1` for writing; `LMR1` stays
 readable.
 
 What is stored: the colors seen and the heights, as in `LMR1`. Blocks and
@@ -357,7 +358,35 @@ grid cell kind.
   clock set back or forth cannot bring old colors over new ones; it can
   only make a chunk look older or newer than it is.
 
-### Code changes this needs
+### Implementation
+
+`MapRegion.h` owns chunk stamps, scan-mask merging and the retained LMR1
+codec. `MapRegionFormat.h` implements the LMR2 table, CRC, palette, height
+planes and reusable zstd contexts; `MapRegionFiles.h` shares the bounded
+file reads, migration and guarded atomic save between resident loads,
+non-resident image reads and idle conversion. The file table is checked
+before allocating bodies. Unreadable files also fail closed for saving.
+`MapStore.cpp` retains dirty snapshots until success and retries failed
+resident saves and idle conversions after 10 s. Idle conversion takes at
+most one non-resident candidate per 100 ms, after interactive work, and
+recounts folder usage at most once per 5 s. It reloads both files at the
+time of conversion; listing-time file facts never decide a merge.
+
+`Minimap.cpp` sends the produced/scanned masks and certifies unchanged
+chunks whose stored revision is old. Loaded-region revision reports mark
+the scan grids partial, including chunks outside the ordinary stale radius.
+Revision-only changes save metadata without invalidating images.
+
+`MapRegionFormatTests.cpp` covers palette boundaries, malformed/future
+containers, unknown section retention, revision/time rules, migration,
+write refusal, failed atomic replacement and save retry state. Existing
+LMR1 tests remain. `scripts/Lmr2Fixture.py` independently writes the
+checked-in golden file and reads the C++ output. To repeat the latter after
+`xmake run LamiumTests`: `python scripts/Lmr2Fixture.py build/lmr2-cpp.lm2`
+(Python `zstandard` required). The fixture is regenerated with `--write`.
+Build/tests are not evidence of in-game behavior or migration speed.
+
+Implementation requirements retained from the agreed spec:
 
 - `readRegion` returns Loaded/Missing/Damaged/Refused with the region, the
   `CHNK` entries, `OLDF` and the kept sections; `Resident` and the save

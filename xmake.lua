@@ -190,6 +190,7 @@ add_requires("levilamina-client-sdk 26.51.5", {configs = {shared = true}})
 
 add_requires("levibuildscript")
 add_requires("nlohmann_json v3.12.0")
+add_requires("zstd 1.5.7", {configs = {shared = false}})
 
 if not has_config("vs_runtime") then
     set_runtimes("MD")
@@ -247,7 +248,7 @@ target("Lamium")
         -- SystemInfo reads the registry and display adapter for Debug View.
         add_syslinks("advapi32", "user32", "shell32")
     end
-    add_packages("levilamina-client-sdk", "nlohmann_json")
+    add_packages("levilamina-client-sdk", "nlohmann_json", "zstd")
     set_kind("shared")
     set_languages("c++20")
     set_symbols("debug")
@@ -267,6 +268,7 @@ target("Lamium")
 -- default: `xmake build LamiumTests && xmake run LamiumTests`.
 target("LamiumTests")
     set_kind("binary")
+    set_rundir(os.projectdir())
     set_default(false)
     set_languages("c++20")
     add_includedirs("src")
@@ -279,7 +281,7 @@ target("LamiumTests")
     add_files("src/features/inventory/DeathLayoutStore.cpp")
     add_files("src/features/schematic/Nbt.cpp", "src/features/schematic/Structure.cpp", "src/features/schematic/PlacementStore.cpp")
     add_files("src/features/inventory/sort/**.cpp")
-    add_packages("nlohmann_json")
+    add_packages("nlohmann_json", "zstd")
     if is_plat("windows") then
         add_cxflags("/utf-8", "/W4")
         set_toolchains("clang-cl")

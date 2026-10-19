@@ -1269,6 +1269,56 @@ result is only the converted text; Latin typing and Backspace unchanged.
 
 ## Ready
 
+### L-216 World map region file format for the long term
+Kind: Ready. Maintainer 2026-10-18: the saved map takes much more space than
+the world (LamiumTest: 166 MB of map in 1,369 region files, 36 MB of world
+`db`; 204 MB in 1,563 files against 44 MB on 2026-10-19). The current `LMR1`
+format is uncompressed runs of (length, color, height) per region; natural
+terrain changes color almost every column, so runs average about five
+columns. The maintainer wanted a new format designed once for the long term,
+without much more CPU.
+Spec agreed 2026-10-19 and closed after that day's spec reviews; no further
+spec reviews, the next step is building it (full contract: [MAP.md](MAP.md#region-file-format-lmr2-l-216-2026-10-19)):
+- Regions keep the colors seen, as now; no block or biome storage (no
+  recolor pass on a resource-pack change, no block-state conversions per
+  game version). Those can come later as optional sections.
+- `LMR2` files (`r.<x>.<z>.lm2`): a fixed magic, a format version and a
+  section table; each section has its codec, "required" and "keep" flags
+  and a CRC-32, with size limits checked before anything is allocated.
+  Reading ends Loaded, Missing, Damaged or Refused; a future or unknown
+  required format is Refused and never overwritten.
+- Sections in version 1: `CHNK` (per chunk: recorded time in ms and the
+  column revision), `COLR` (palette + indices), `HGHT` (wrapping height
+  deltas), `OLDF` (the `.lmr` absorbed).
+- A column revision constant is raised whenever the color or height
+  calculation changes; chunks below it are shown and rescanned when loaded.
+  Mixed scans and builds lower it, never raise it falsely.
+- zstd level 3 per section, the only codec; no setting.
+- Migration: `.lm2` is read first, then `.lmr`; regions read from `.lmr`
+  are resaved, and the worker converts the rest in spare time (maintainer
+  2026-10-19: the whole map, not only visited regions). Merging an older
+  release's `.lmr` only fills unrecorded columns.
+- Nether 16-block layers stay separate folders.
+Measured 2026-10-19 (150 of LamiumTest's regions, Python): palette + height
+deltas + zstd 3 averaged 22.7 KB per region (6.0x, about 35 MB for that
+world) at about an eighth of zlib 6's CPU for a similar size.
+Work (MAP.md "Code changes this needs"): the format and its tests in
+`MapRegion.h`, reading/listing/saving/idle conversion in `MapStore.cpp`,
+the produced-column mask and revision reports between `Minimap.cpp`, the
+store and the scan grid, zstd as an xmake package with its notices. Then in
+game: the map looks as before, the folder shrinks while playing, opening
+speed, a world recorded by the previous release merging without losing
+newer colors.
+
+Implemented 2026-10-19 for PR review: the LMR2 codec and bounded file
+reader, shared fill-only migration, guarded saves with delayed retry,
+idle conversion, produced/scanned masks and revision reports. zstd v1.5.7
+is pinned, statically linked and shipped with its BSD notice. Local
+Lamium/LamiumTests/LamiumNativeTests builds, the Python/C++ fixture exchange,
+game inventory, capability, package and archive checks passed. No in-game
+validation or migration/performance measurement is claimed. Remaining
+runtime checks are in BACKLOG's pre-release checks and MAP.md.
+
 ### L-223 Position labels follow the game's own wording
 Kind: Ready. Maintainer 2026-10-19: English showed "XYZ", "Position" and
 "Block coordinates" side by side. Checked the game's 1.26.51 texts: its

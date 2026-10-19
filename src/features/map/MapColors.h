@@ -6,6 +6,8 @@
 #include <optional>
 
 namespace lamium::map {
+// Raise when the column color or height calculation invalidates saved values.
+inline constexpr std::uint16_t columnRevision = 1;
 // Block colors for the map (BACKLOG L-60): the average of the block's top
 // texture, times the biome tint the world uses for it. Pure.
 

@@ -27,9 +27,31 @@ inline constexpr int regionIndex(int blockX, int blockZ) {
     return floorMod(blockZ, regionBlocks) * regionBlocks + floorMod(blockX, regionBlocks);
 }
 
+struct ChunkStamp {
+    std::uint64_t time = 0;
+    std::uint16_t revision = 0;
+    bool operator==(ChunkStamp const&) const = default;
+};
+struct OldFile {
+    std::uint64_t size = 0, time = 0;
+    std::uint32_t crc = 0;
+    bool operator==(OldFile const&) const = default;
+};
+struct RegionSection {
+    std::string tag;
+    std::uint8_t codec = 0, flags = 0;
+    std::uint32_t rawSize = 0, crc = 0;
+    std::string bytes;
+};
+using ColumnMask = std::array<bool, 256>;
+inline size_t chunkIndex(ChunkKey key) { return static_cast<size_t>(floorMod(key.z, 16) * 16 + floorMod(key.x, 16)); }
+inline size_t chunkOfIndex(size_t i) { return (i / 256 / 16) * 16 + (i % 256 / 16); }
 struct RegionData {
     std::vector<std::uint32_t> colors = std::vector<std::uint32_t>(regionColumns, 0); // Alpha 0: not recorded.
     std::vector<std::int16_t> heights = std::vector<std::int16_t>(regionColumns, 0);
+    std::array<ChunkStamp, 256> chunks{};
+    std::optional<OldFile> oldFile;
+    std::vector<RegionSection> kept;
     bool empty() const {
         for (auto c : colors) if (c >> 24) return false;
         return true;
@@ -79,11 +101,71 @@ inline bool copyChunk(RegionData const& region, ChunkKey chunk, std::array<Colum
 // Fills columns that `recorded` does not mark from `disk`: what was saved
 // before this session under what the scan found since.
 inline void underlay(RegionData& region, std::vector<bool> const& recorded, RegionData const& disk) {
+    std::array<bool, 256> scanned{}, taken{};
+    for (size_t i = 0; i < static_cast<size_t>(regionColumns); ++i) {
+        scanned[chunkOfIndex(i)] = scanned[chunkOfIndex(i)] || recorded[i];
+        taken[chunkOfIndex(i)] = taken[chunkOfIndex(i)] || (!recorded[i] && disk.colors[i] != 0);
+    }
     for (size_t i = 0; i < static_cast<size_t>(regionColumns); ++i)
         if (!recorded[i]) {
             region.colors[i] = disk.colors[i];
             region.heights[i] = disk.heights[i];
         }
+    for (size_t i = 0; i < region.chunks.size(); ++i) {
+        if (!scanned[i]) region.chunks[i] = disk.chunks[i];
+        else if (taken[i]) {
+            region.chunks[i].revision = std::min(region.chunks[i].revision, disk.chunks[i].revision);
+            region.chunks[i].time = std::max(region.chunks[i].time, disk.chunks[i].time);
+        }
+    }
+    region.oldFile = disk.oldFile;
+    region.kept = disk.kept;
+}
+
+struct RecordChange { bool pixels = false, metadata = false; };
+inline RecordChange recordChunk(RegionData& region, ChunkKey chunk, std::array<Column, 256> const& columns,
+                                ColumnMask const& produced, ColumnMask const& scanned, std::uint16_t revision,
+                                std::uint64_t time, std::vector<bool>* recorded = nullptr) {
+    auto& stamp = region.chunks[chunkIndex(chunk)];
+    auto before = stamp;
+    bool any = false, full = true, changedScan = false;
+    for (int z = 0; z < 16; ++z)
+        for (int x = 0; x < 16; ++x) {
+            auto j = static_cast<size_t>(z * 16 + x);
+            auto i = static_cast<size_t>(regionIndex(chunk.x * 16 + x, chunk.z * 16 + z));
+            auto const& c = columns[j];
+            any = any || scanned[j];
+            if ((c.color || region.colors[i]) && !produced[j]) full = false;
+            if (scanned[j] && c.color) {
+                if (recorded) (*recorded)[i] = true;
+                changedScan = changedScan || region.colors[i] != c.color || region.heights[i] != c.height;
+            }
+        }
+    bool pixels = mergeChunk(region, chunk, columns);
+    if (any) {
+        stamp.revision = full ? (pixels ? revision : std::max(stamp.revision, revision))
+                              : std::min(stamp.revision, revision);
+        if (changedScan) stamp.time = time;
+    }
+    return {pixels, stamp != before};
+}
+// Older releases can fill holes, but cannot replace the newer file's columns.
+inline bool fillFromLegacy(RegionData& region, RegionData const& legacy) {
+    bool changed = false;
+    std::array<bool, 256> affected{};
+    for (size_t i = 0; i < region.colors.size(); ++i) {
+        if (!legacy.colors[i]) continue;
+        if (!region.colors[i]) {
+            region.colors[i] = legacy.colors[i];
+            region.heights[i] = legacy.heights[i];
+            affected[chunkOfIndex(i)] = changed = true;
+        } else if (region.colors[i] != legacy.colors[i] || region.heights[i] != legacy.heights[i])
+            affected[chunkOfIndex(i)] = true;
+    }
+    for (size_t i = 0; i < affected.size(); ++i) if (affected[i]) {
+        region.chunks[i] = {std::max(region.chunks[i].time, legacy.chunks[i].time), 0};
+    }
+    return changed;
 }
 
 // File format: "LMR1", then runs of equal columns, each a little-endian
@@ -186,8 +268,8 @@ inline std::string layerFolder(MapLayer layer) {
     if (layer.dimension == 2) return "end";
     return "dimension" + std::to_string(layer.dimension);
 }
-inline std::string regionFileName(RegionKey key) {
-    return "r." + std::to_string(key.x) + "." + std::to_string(key.z) + ".lmr";
+inline std::string regionFileName(RegionKey key, bool legacy = false) {
+    return "r." + std::to_string(key.x) + "." + std::to_string(key.z) + (legacy ? ".lmr" : ".lm2");
 }
 namespace detail {
 inline std::optional<int> parseInt(std::string_view text) {
@@ -207,7 +289,7 @@ inline std::optional<int> parseInt(std::string_view text) {
 }
 // The inverses, for listing what is saved; anything else is not a region.
 inline std::optional<RegionKey> regionOfFileName(std::string_view name) {
-    if (!name.starts_with("r.") || !name.ends_with(".lmr")) return std::nullopt;
+    if (!name.starts_with("r.") || (!name.ends_with(".lmr") && !name.ends_with(".lm2"))) return std::nullopt;
     name = name.substr(2, name.size() - 6);
     auto dot = name.find('.');
     if (dot == std::string_view::npos) return std::nullopt;
