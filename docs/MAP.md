@@ -149,9 +149,12 @@ time to build the first far view of a very large map, and memory/IO on it.
 
 Agreed with the maintainer 2026-10-19 and revised after the spec reviews of
 that day; the last one closed it (maintainer: no further spec reviews, the
-next step is building it). Implemented for PR review on 2026-10-19; not checked
-in game. It replaces `LMR1` for writing; `LMR1` stays
-readable.
+next step is building it). Implemented for PR review on 2026-10-19. Live
+filesystem/log checks on `6ff0610` confirmed migration of LamiumTest's
+1,563 old regions, preserved recorded columns and reduced folder size;
+appearance and opening speed still await the maintainer's check. Evidence
+and remaining scope: VALIDATION-LOG.md, L-216. It replaces `LMR1` for
+writing; `LMR1` stays readable.
 
 What is stored: the colors seen and the heights, as in `LMR1`. Blocks and
 biomes are not stored: a resource-pack change does not recolor the saved

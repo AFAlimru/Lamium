@@ -164,12 +164,13 @@ every server gap before a release.
 
 ### Since 0.2.3 (unreleased)
 
-L-216 LMR2 region files: confirm the existing map's appearance, idle
-conversion of unvisited regions and folder size, opening/far-zoom speed,
-fill-only merging after an older build records again, Nether layers/cave
-view, refusal without overwrite and damaged-file recovery, and the 10 s
-failed-save retry. Implementation and automated coverage: MAP.md. No
-in-game result has been reported for this change.
+L-216 LMR2 region files: live filesystem/log checks on `6ff0610` confirmed
+all 1,563 old LamiumTest regions migrated with no recorded-column loss,
+including regions not rescanned, and about 83% less disk use. Remaining:
+the maintainer's appearance and opening/far-zoom checks, save persistence
+after rejoin, older-build fill-only merge, Nether layers/cave view,
+refusal without overwrite, damaged-file recovery and the 10 s failed-save
+retry. Evidence and scope: VALIDATION-LOG.md; implementation: MAP.md.
 
 ### Shipped in 0.2.3 (smoke-tested; remaining gaps in VALIDATION.md)
 
