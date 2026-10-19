@@ -12,6 +12,24 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-228 height follow snap report (2026-10-20)
+
+Build `a5c8db3` (DLL SHA-256
+`4ce71d89d38f16c0d7f9a9a5268ff89c8542e128839671952a7ea4719241ba1d`),
+default release build. The maintainer reported the band/body checklist items
+1-3 passed, then found that while the map was open at Y64 or Y80, pressing
+`+` sometimes did not climb and returned to the player's height. Observed
+patterns: `64 -> 64 -> 64` and `78 -> 79 -> 80 -> 78`. The cause was the
+render loop following the raw eye height while the height controls used the
+stable cave band: a `+` that landed on the stable band enabled following and
+the next frame snapped back.
+
+Fix `07f0dc1` makes the render loop follow the same stable reference as the
+height controls; the pure `caveReferenceHeight` boundary cases are covered by
+`LamiumTests`. Built as DLL SHA-256
+`e1ec445a248e5b6314525feb8c5044f37b1d572ebfdd71588501372be5fbd44c`, not
+checked in game. No trace/probe options.
+
 ## L-228 per-band footprint explanation (2026-10-20)
 
 No new build or runtime measurement. The maintainer explained the earlier
