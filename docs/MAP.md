@@ -125,6 +125,35 @@ Side panel lists (L-204, passed in game 2026-10-15): `map.worldMapList` picks th
 listed layer (`listKind`, `MapMarks.h`); `State::allAreas` keeps the
 placements and shapes before the layer switches for the list and details.
 
+## Cave and Nether representation review (L-228, 2026-10-19)
+
+Open Design feedback, not an agreed replacement for the current contract.
+The maintainer found no conspicuous L-216 regression in appearance,
+opening/zoom speed, Nether/cave display or retention after rejoining, but
+questioned whether the terrain the cave view selects is useful. Supplied
+screenshots show band Y64-79 dominated by gray terrain and dark gaps with
+expected lower lava lakes hard to see, and band Y32-47 with a smaller
+visible footprint dominated by lava. Both have a 500-block scale and
+"Loading 4". The footprint difference is observed; its cause is not yet
+isolated.
+
+Current source behavior (`MapCave.h`, `Minimap.cpp`): the held height has
+3-block slack and samples five blocks above through 24 below. Solid blocks
+at feet/head height form a dark wall; a column open through the window
+forms a dark drop; other floors use their block color with depth dimming.
+Unavailable stand-ins may also count as rock. Thus a deep lava surface
+can be outside the window at the higher height and appear in it lower
+down. That is a source-based explanation of a possible contributor, not
+proof of what each dark screenshot pixel represents.
+
+`MapRegion.h` stores Nether terrain separately per 16-block band, and
+`WorldMap.cpp` can follow the player's band. A different band can have a
+different recorded/received footprint. The screenshots' pending images
+also need to be ruled out before attributing the apparent size change.
+The useful terrain reference, continuity while changing height and how
+walls, deep space and unknown terrain should read remain undecided in
+BACKLOG L-228. LMR2's current migration contract is unchanged.
+
 ## World map zoom-out (L-187, 2026-10-14)
 
 Maintainer 2026-10-14: zoom out far enough that **everything explored fits on
@@ -152,7 +181,9 @@ that day; the last one closed it (maintainer: no further spec reviews, the
 next step is building it). Implemented for PR review on 2026-10-19. Live
 filesystem/log checks on `6ff0610` confirmed migration of LamiumTest's
 1,563 old regions, preserved recorded columns and reduced folder size;
-appearance and opening speed still await the maintainer's check. Evidence
+the maintainer's local appearance, opening/zoom, Nether/cave display and
+rejoin-retention smoke check found no abnormality attributed to L-216.
+Cave/Nether representation remains under Design review (L-228). Evidence
 and remaining scope: VALIDATION-LOG.md, L-216. It replaces `LMR1` for
 writing; `LMR1` stays readable.
 

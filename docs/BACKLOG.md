@@ -86,7 +86,8 @@ L-item wins. Every entry names what the task is, not only its number.
      L-167 in-world language (chosen: native-path research in progress), L-168 trade
      finder, L-169's later parts (drops and the rest), L-170
      enchantment order planner, L-173 quick shapes and beacon range, L-163
-     a Lamium-drawn inventory screen. L-151 to L-154
+     a Lamium-drawn inventory screen; L-228 cave/Nether map representation.
+     L-151 to L-154
      stay later. This list approves no implementation and sets no release.
    - Done since 0.2.0 (BACKLOG-DONE): L-155, L-157 to L-161, L-147, L-148,
      L-150, L-164 with L-133 and L-156, L-171 calculator, L-172 text
@@ -167,10 +168,12 @@ every server gap before a release.
 L-216 LMR2 region files: live filesystem/log checks on `6ff0610` confirmed
 all 1,563 old LamiumTest regions migrated with no recorded-column loss,
 including regions not rescanned, and about 83% less disk use. Remaining:
-the maintainer's appearance and opening/far-zoom checks, save persistence
-after rejoin, older-build fill-only merge, Nether layers/cave view,
-refusal without overwrite, damaged-file recovery and the 10 s failed-save
-retry. Evidence and scope: VALIDATION-LOG.md; implementation: MAP.md.
+the older-build fill-only merge, refusal without overwrite, damaged-file
+recovery and the 10 s failed-save retry in game, broader server coverage
+and measured frame times. The maintainer's local appearance, opening/zoom,
+Nether/cave display and rejoin-retention smoke check found no abnormality
+attributed to L-216. Cave/Nether representation remains a Design concern
+(L-228). Evidence and scope: VALIDATION-LOG.md; implementation: MAP.md.
 
 ### Shipped in 0.2.3 (smoke-tested; remaining gaps in VALIDATION.md)
 
@@ -618,6 +621,34 @@ one-chunk budgets and resource waits. Details: MAP.md, L-206 current notes.
 Remaining: in-game recording coverage and frame times at 32/64/96 chunks,
 with the minimap off as well as on; near changes and movement during a wide
 pass. Build/tests alone do not establish these runtime results.
+
+### L-228 Reconsider what cave and Nether maps should show
+Kind: Design. Maintainer feedback 2026-10-19 after the L-216 smoke check:
+no conspicuous problem with that PR, but the cave/Nether view may not give
+the player a useful account of the terrain. At roughly Y67 (selected band
+Y64-79), the map is mostly gray with dark gaps, and expected lava lakes
+below are hard to see. Around Y32 (band Y32-47), the visible footprint
+becomes much smaller and the map is mostly lava. Both supplied screenshots
+show the same 500-block scale and "Loading 4"; they do not establish a zoom
+change or a completed image build.
+
+Current behavior: cave columns are sampled from five blocks above to 24
+below a held height; walls and drops are dark, and unavailable stand-ins
+can also be drawn as rock. The world map stores Nether bands separately
+every 16 blocks, and can follow the player's band automatically. These
+rules explain possible contributors, not a verified diagnosis of each
+pixel or of the smaller footprint. This feedback does not establish an
+LMR2 storage regression.
+
+Before implementing, agree what a useful cave/Nether map represents as
+height changes: the nearby floor and walls, the connected open space and
+its deeper floor/lava, or another chosen reference. Investigate the
+smaller footprint against per-band recording coverage, received terrain
+and pending images; distinguish unknown terrain, walls and deep drops.
+No replacement height window, layer model, colors, UI or implementation
+has been selected; no priority or release is chosen. Keep this design
+follow-up separate from L-216. Current behavior and evidence: MAP.md's
+"Cave and Nether representation review" and VALIDATION-LOG.md, 2026-10-19.
 
 ### L-196 Review license notices, source access and provenance classification
 Kind: Research, then Ready for changes supported by the findings.

@@ -12,6 +12,30 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-216 maintainer smoke check; cave/Nether design feedback (2026-10-19)
+
+Build `6ff0610`, deployed DLL SHA-256
+`1fc5f25bd63af06526e0eba97c9405412368e71dcb3abf5b8799fd9119102f7a`,
+no trace/probe options. Same local deployment as the filesystem check below:
+Minecraft 1.26.51.01, LeviLamina Client 26.51.7, Windows x64, LamiumTest.
+The maintainer reported no abnormality in appearance, opening/zoom speed,
+Nether/cave display or saved-map retention after rejoining, and no
+conspicuous problem with the L-216 PR overall. This is a local smoke
+result, not measured frame times, a server regression or injected failure
+coverage. Older-build merges, future/damaged files and forced save failures
+remain separately unchecked in game.
+
+The same report questioned the cave/Nether terrain representation. Around
+Y67 (screenshot band Y64-79), gray terrain and dark areas dominate and
+expected lava lakes below are hard to see; around Y32 (band Y32-47), the
+visible footprint is smaller and mostly lava. Both screenshots show a
+500-block scale and "Loading 4". No cause for the footprint difference
+was established. This does not identify a new LMR2 regression; L-228
+records the open Design question. The usefulness and continuity of the
+cave/Nether view are not declared fully validated by this smoke result.
+Screenshot evidence is retained locally with the validation material;
+no replacement drawing behavior was selected or implemented.
+
 ## L-216 LMR2 live migration: filesystem and log checks (2026-10-19)
 
 Build `6ff0610`, DLL SHA-256
