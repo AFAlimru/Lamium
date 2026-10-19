@@ -47,6 +47,7 @@
 #include <chrono>
 #include <cmath>
 #include <format>
+#include <limits>
 
 namespace lamium::map {
 std::vector<Dot> collectDots(IClientInstance& client, double centerX, double centerZ, double reach, double playerY,
@@ -84,6 +85,7 @@ ResourceLocation const& slotLocation(int index) {
 }
 struct Slot {
     std::optional<std::pair<MapLayer, TileKey>> tile;
+    int focus = std::numeric_limits<int>::min(); // Cave layer image variant.
     unsigned version = 0;
     bool uploaded = false;
     double used = 0;
@@ -112,7 +114,9 @@ void unload(IClientInstance& client, ResourceLocation const& location) {
 }
 
 enum class Target {
-    None, Overworld, Nether, End, BandDown, BandUp, Center, Waypoints, Close, Menu,
+    None, Overworld, Nether, End,
+    CaveButton, CavePanel, CaveToggle, BroadToggle, HeightDown, HeightUp, HeightField, MatchHeight,
+    Center, Waypoints, Close, Menu,
     LayerWaypoints, LayerSchematics, LayerShapes, // The layer switches (L-146).
     // The side panel: its background, header buttons, list and editor.
     Panel, PanelAdd, PanelClose, Row, RowVisible, Name, Step, Coordinate, MoveHere, Swatch, Keep, Delete, OpenScreen,
@@ -153,7 +157,13 @@ struct State {
     bool open = false;
     IClientInstance* client = nullptr;
     WorldView view;
-    int dimension = 0, band = 4;
+    int dimension = 0;
+    // The cave/surface state button and its panel (L-228).
+    bool cave = false, broad = false, following = true, cavePanel = false;
+    int height = 64;
+    bool editingHeight = false;
+    ui::NumberInput heightInput;
+    struct Rect { float x = 0, y = 0, w = 0, h = 0; } caveButton;
     struct Drag {
         float x, y;
         double centerX, centerZ;
@@ -217,29 +227,87 @@ void center() {
         state.view.centerZ = at->second;
     }
 }
-bool netherAuto() { return Runtime::instance().preferences().map.worldMapNetherAuto; }
-int shownBand() {
+int heightMin(int dimension) { return dimension == 1 ? 0 : -64; }
+int heightMax(int dimension) { return dimension == 1 ? 127 : 319; }
+int clampHeight(int dimension, int y) { return std::clamp(y, heightMin(dimension), heightMax(dimension)); }
+bool playerCave(PlayerSpot const& spot) {
+    return spot.dimension == 1 || (spot.dimension == 0 && map::automaticView() == ViewMode::Cave);
+}
+bool canMatchHeight() {
     auto spot = playerSpot();
-    if (state.dimension == 1 && netherAuto() && spot && spot->dimension == 1)
-        return std::clamp(floorDiv(blockFloor(spot->y), bandHeight), 0, netherBands - 1);
-    return state.band;
+    return spot && state.cave && spot->dimension == state.dimension && playerCave(*spot);
 }
-MapLayer shownLayer() { return state.dimension == 1 ? MapLayer{1, shownBand()} : MapLayer{state.dimension, 0}; }
-void setNetherAuto(bool on) {
-    auto value = Runtime::instance().preferences();
-    if (value.map.worldMapNetherAuto == on) return;
-    value.map.worldMapNetherAuto = on;
-    if (!Runtime::instance().save(value)) log("could not save the Nether layer setting");
+MapLayer shownLayer() {
+    if (state.dimension == 1) return caveLayer(1, state.height);
+    if (state.dimension == 0 && state.cave) return caveLayer(0, state.height);
+    return surfaceLayer(state.dimension);
 }
-void say(std::string text) {
-    state.notice = std::move(text);
-    state.noticeAt = now();
+std::optional<int> focusHeight() {
+    return state.cave && !state.broad ? std::optional<int>(state.height) : std::nullopt;
+}
+std::string stateText() {
+    if (!state.cave) return ui::translated("worldMap.surface");
+    auto detail = ui::translated(state.broad ? "worldMap.broadShort" : "worldMap.layerShort");
+    return ui::translated("worldMap.caveState", ui::translated("worldMap.cave"), detail, state.height);
+}
+void toggleCave() {
+    if (state.dimension == 2) return;
+    state.cave = !state.cave;
+    state.cavePanel = true;
+    if (!state.cave) {
+        state.broad = false;
+        state.following = false;
+        return;
+    }
+    auto spot = playerSpot();
+    if (spot && spot->dimension == state.dimension) state.height = clampHeight(state.dimension, blockFloor(spot->y));
+    state.broad = state.dimension == 1;
+    state.following = canMatchHeight();
+}
+void adjustHeight(int delta) {
+    if (!state.cave) return;
+    state.height = clampHeight(state.dimension, state.height + delta);
+    state.following = false;
+}
+void matchHeight() {
+    if (!canMatchHeight()) return;
+    auto spot = playerSpot();
+    if (!spot) return;
+    state.height = clampHeight(state.dimension, blockFloor(spot->y));
+    state.following = true;
+}
+void returnToPlayer() {
+    auto spot = playerSpot();
+    if (!spot) return;
+    state.dimension = spot->dimension;
+    state.cave = playerCave(*spot);
+    state.broad = state.dimension == 1;
+    state.height = clampHeight(state.dimension, blockFloor(spot->y));
+    state.following = true;
+    state.cavePanel = false;
+    center();
 }
 void showDimension(int dimension) {
     if (state.dimension == dimension) return;
     state.dimension = dimension;
     state.menu.reset();
+    state.cavePanel = false;
+    auto spot = playerSpot();
+    if (spot && spot->dimension == dimension) {
+        state.height = clampHeight(dimension, blockFloor(spot->y));
+        state.cave = playerCave(*spot);
+        state.following = state.cave;
+    } else {
+        state.cave = dimension == 1;
+        state.height = clampHeight(dimension, state.height);
+        state.following = false;
+    }
+    state.broad = dimension == 1;
     center();
+}
+void say(std::string text) {
+    state.notice = std::move(text);
+    state.noticeAt = now();
 }
 
 void act(Target target) {
@@ -247,15 +315,24 @@ void act(Target target) {
     case Target::Overworld: showDimension(0); break;
     case Target::Nether: showDimension(1); break;
     case Target::End: showDimension(2); break;
-    case Target::BandDown:
-    case Target::BandUp:
-        state.band = std::clamp(shownBand() + (target == Target::BandUp ? 1 : -1), 0, netherBands - 1);
-        setNetherAuto(false);
+    case Target::CaveButton:
+        state.cavePanel = !state.cavePanel;
+        state.kindMenu = false;
         break;
-    case Target::Center:
-        center();
-        if (state.dimension == 1) setNetherAuto(true);
+    case Target::CaveToggle: toggleCave(); break;
+    case Target::BroadToggle:
+        if (state.cave) state.broad = !state.broad;
         break;
+    case Target::HeightDown: adjustHeight(-1); break;
+    case Target::HeightUp: adjustHeight(1); break;
+    case Target::HeightField:
+        state.editingHeight = true;
+        state.editingName = false;
+        state.editingAxis = -1;
+        state.heightInput.begin(static_cast<float>(state.height));
+        break;
+    case Target::MatchHeight: matchHeight(); break;
+    case Target::Center: returnToPlayer(); break;
     default: break;
     }
 }
@@ -286,6 +363,14 @@ void setPanelOpen(bool open) {
     if (!Runtime::instance().save(value)) log("could not save the side panel state");
 }
 bool changeSelected(std::function<void(Waypoint&)> const& apply);
+void commitHeight() {
+    if (!std::exchange(state.editingHeight, false)) return;
+    auto value = state.heightInput.parsedPrecise(static_cast<float>(heightMin(state.dimension)),
+                                                 static_cast<float>(heightMax(state.dimension)), true);
+    if (!value) return; // Incomplete or out of range: the height stays.
+    state.height = static_cast<int>(*value);
+    state.following = false;
+}
 void commitCoordinate() {
     int axis = std::exchange(state.editingAxis, -1);
     if (axis < 0) return;
@@ -295,6 +380,7 @@ void commitCoordinate() {
 }
 // Ends whatever is being typed in the side panel, keeping it.
 void commitName() {
+    commitHeight();
     commitCoordinate();
     if (!std::exchange(state.editingName, false)) return;
     auto text = state.name.value();
@@ -690,7 +776,9 @@ void drawTiles(MinecraftUIRenderContext& context, glm::vec2 size, double pixelsP
     auto& view = state.view;
     int lod = lodFor(view.scale(), pixelsPerUnit);
     auto tiles = visibleTiles(view, lod);
-    store::want(layer, tiles);
+    auto focus = focusHeight();
+    int const focusKey = focus.value_or(std::numeric_limits<int>::min());
+    store::want(layer, tiles, focus);
     double time = now();
     int budget = time - state.openedAt < 1 ? uploadsWhileOpening : uploadsPerFrame;
     ++tileFrame;
@@ -702,7 +790,8 @@ void drawTiles(MinecraftUIRenderContext& context, glm::vec2 size, double pixelsP
     auto findSlot = [&](TileKey tile) -> int {
         for (int i = 0; i < slotCount; ++i)
             if (slots[static_cast<size_t>(i)].tile && slots[static_cast<size_t>(i)].tile->first == layer
-                && slots[static_cast<size_t>(i)].tile->second == tile) return i;
+                && slots[static_cast<size_t>(i)].tile->second == tile
+                && slots[static_cast<size_t>(i)].focus == focusKey) return i;
         return -1;
     };
     auto rectOf = [&](TileKey tile) {
@@ -724,7 +813,8 @@ void drawTiles(MinecraftUIRenderContext& context, glm::vec2 size, double pixelsP
         std::vector<TileKey> keys;
         at.clear();
         for (int i = 0; i < slotCount; ++i)
-            if (auto const& slot = slots[static_cast<size_t>(i)]; ready(i) && slot.tile && slot.tile->first == layer) {
+            if (auto const& slot = slots[static_cast<size_t>(i)]; ready(i) && slot.tile && slot.tile->first == layer
+                && slot.focus == focusKey) {
                 keys.push_back(slot.tile->second);
                 at.push_back(i);
             }
@@ -740,7 +830,7 @@ void drawTiles(MinecraftUIRenderContext& context, glm::vec2 size, double pixelsP
     for (auto i : finerStandIns(lod, missing, gpuTiles)) standing[static_cast<size_t>(gpuSlots[i])] = true;
     missing.clear();
     for (auto tile : tiles) {
-        auto image = store::image(layer, tile);
+        auto image = store::image(layer, tile, focus);
         // An image with nothing in it is not uploaded, but a coarser image
         // may still stand in for it (L-215).
         bool hollow = image && !image->pixels;
@@ -763,7 +853,8 @@ void drawTiles(MinecraftUIRenderContext& context, glm::vec2 size, double pixelsP
                 auto& slot = slots[static_cast<size_t>(index)];
                 --budget;
                 try {
-                    bool moved = !slot.tile || slot.tile->first != layer || slot.tile->second != tile;
+                    bool moved = !slot.tile || slot.tile->first != layer || slot.tile->second != tile
+                        || slot.focus != focusKey;
                     if (upload(client, slotLocation(index), *image->pixels, regionBlocks, slot.uploaded)) {
                         if (moved) slot.readyAt = tileFrame + 3;
                         // Newest now, so it is not taken again before it shows.
@@ -771,6 +862,7 @@ void drawTiles(MinecraftUIRenderContext& context, glm::vec2 size, double pixelsP
                         usedNow[static_cast<size_t>(index)] = true;
                         slot.uploaded = true;
                         slot.tile = std::pair{layer, tile};
+                        slot.focus = focusKey;
                         slot.version = image->version;
                     } else slot = Slot{};
                 } catch (...) { slot = Slot{}; }
@@ -938,7 +1030,7 @@ void layerSymbol(MinecraftUIRenderContext& context, int kind, float x, float cy,
     if (kind == 0) diamond(context, x + 4, cy, 7, rgb(waypointColors[0]), alpha);
     else footprintIcon(context, x, cy, rgb(kind == 1 ? placementColor : shapeSymbolColor), alpha);
 }
-void drawBars(MinecraftUIRenderContext& context, glm::vec2 size, MapLayer layer, size_t pending, bool recording) {
+void drawBars(MinecraftUIRenderContext& context, glm::vec2 size, size_t pending, bool recording) {
     auto spot = playerSpot();
     float inset = ui::boxTextInset();
     auto widthOf = [&](std::string const& text) { return ui::textWidth(context, text) + 8; };
@@ -954,28 +1046,33 @@ void drawBars(MinecraftUIRenderContext& context, glm::vec2 size, MapLayer layer,
     }
     auto centerText = ui::translated("worldMap.center"), waypointsText = ui::translated("worldMap.list");
     float closeW = 13, rightW = widthOf(centerText) + 3 + widthOf(waypointsText) + 3 + closeW + 3;
-    auto layerText = ui::translated("worldMap.layer", layer.band * bandHeight, layer.band * bandHeight + bandHeight - 1);
-    float layerW = state.dimension == 1 ? 10 + ui::textWidth(context, layerText) + 10 + 10 + 8 : 0;
+    auto terrainText = stateText();
+    float terrainW = state.dimension == 2 ? 0 : widthOf(terrainText);
     // Layer switches (L-146): the mark's own symbol and the layer's name.
     constexpr std::array<std::pair<Target, std::string_view>, 3> switches{{
         {Target::LayerWaypoints, "nav.waypoints"}, {Target::LayerSchematics, "nav.schematics"}, {Target::LayerShapes, "nav.shapes"}}};
     auto shownLayers = layers();
     std::array<bool, 3> switchOn{shownLayers.waypoints, shownLayers.schematics, shownLayers.shapes};
     std::array<std::string, 3> switchTexts;
-    float switchesW = 1;
+    float namedW = 1;
     for (size_t i = 0; i < 3; ++i) {
         switchTexts[i] = ui::translated(switches[i].second);
-        switchesW += 12 + widthOf(switchTexts[i]) - 1;
+        namedW += 12 + widthOf(switchTexts[i]) - 1;
     }
     float brandW = ui::textWidth(context, "Lamium") + 6;
-    // Too narrow for the named switches: their symbols alone, named in the
-    // bottom bar on hover; narrower still, the Nether layer and the named
-    // switches move to a second row.
     constexpr float iconW = 15;
-    auto fits = [&](float width) { return 4 + brandW + dimsW + layerW + width + 8 + rightW + 4 <= size.x; };
-    bool const compact = !fits(switchesW) && fits(1 + 3 * (iconW - 1));
-    if (compact) switchesW = 1 + 3 * (iconW - 1);
-    bool oneRow = fits(switchesW);
+    float const iconsW = 1 + 3 * (iconW - 1);
+    auto fits = [&](float width) { return 4 + brandW + dimsW + terrainW + 8 + width + 8 + rightW + 4 <= size.x; };
+    bool const namedFits = fits(namedW), iconFits = fits(iconsW);
+    bool compact = !namedFits;
+    bool oneRow = namedFits || iconFits;
+    float switchesW = namedFits ? namedW : iconsW;
+    if (!oneRow) {
+        // The switches alone move to a second row; keep their names if they
+        // fit there, otherwise use the symbols.
+        compact = 4 + namedW > size.x;
+        switchesW = compact ? iconsW : namedW;
+    }
     state.top = oneRow ? rowHeight : 2 * rowHeight;
     ui::fill(context, 0, 0, size.x, state.top, ui::palette::panel, .85f);
     ui::fill(context, 0, state.top - 1, size.x, 1, ui::palette::white, .14f);
@@ -997,25 +1094,17 @@ void drawBars(MinecraftUIRenderContext& context, glm::vec2 size, MapLayer layer,
                 hovering(bx, y, widthOf(text), buttonHeight));
         }
     x += 8;
-    if (!oneRow) { x = 4; y = rowHeight + 2; }
-    if (state.dimension == 1) {
-        float w = 10;
-        ui::fill(context, x, y, w, buttonHeight, ui::palette::keyFill);
-        ui::frame(context, x, y, w, buttonHeight, ui::palette::keyEdge);
-        ui::arrow(context, x + 3, y + 2.5f, true, hovering(x, y, w, buttonHeight) ? ui::palette::text : ui::palette::dim);
-        state.hits.push_back({x, y, w, buttonHeight, Target::BandDown});
-        x += w;
-        float tw = ui::textWidth(context, layerText) + 10;
-        ui::frame(context, x - 1, y, tw + 2, buttonHeight, ui::palette::keyEdge);
-        // Accent while the layer follows the player's height.
-        bool following = netherAuto() && spot && spot->dimension == 1;
-        ui::label(context, x, y + inset, tw, layerText, following ? ui::palette::accent : ui::palette::text, ui::Align::Center);
-        x += tw;
-        ui::fill(context, x, y, w, buttonHeight, ui::palette::keyFill);
-        ui::frame(context, x, y, w, buttonHeight, ui::palette::keyEdge);
-        ui::arrow(context, x + 3, y + 2.5f, false, hovering(x, y, w, buttonHeight) ? ui::palette::text : ui::palette::dim);
-        state.hits.push_back({x, y, w, buttonHeight, Target::BandUp});
-        x += w + 8;
+    if (state.dimension != 2) {
+        // The one terrain control: its panel opens directly under it.
+        float w = widthOf(terrainText);
+        bool over = hovering(x, y, w, buttonHeight);
+        ui::fill(context, x, y, w, buttonHeight, state.cavePanel ? ui::palette::accentDeep : over ? Rgb{.23f, .23f, .24f} : ui::palette::keyFill, .9f);
+        ui::frame(context, x, y, w, buttonHeight, state.cavePanel ? ui::palette::accent : ui::palette::keyEdge);
+        ui::label(context, x, y + inset, w, terrainText, ui::palette::text, ui::Align::Center);
+        state.hits.push_back({x, y, w, buttonHeight, Target::CaveButton});
+        state.caveButton = {x, y, w, buttonHeight};
+    } else {
+        state.caveButton = {};
     }
     float right = size.x - 4 - closeW;
     {
@@ -1033,6 +1122,7 @@ void drawBars(MinecraftUIRenderContext& context, glm::vec2 size, MapLayer layer,
     right -= 3 + widthOf(centerText);
     button(context, right, 2, centerText, Target::Center, false, hovering(right, 2, widthOf(centerText), buttonHeight));
     if (oneRow) { x = right - 8 - switchesW; y = 2; }
+    else { x = 4; y = rowHeight + 2; }
     std::array<float, 3> switchX{};
     for (size_t i = 0; i < 3; ++i) {
         switchX[i] = x;
@@ -1066,7 +1156,7 @@ void drawBars(MinecraftUIRenderContext& context, glm::vec2 size, MapLayer layer,
     std::string where;
     if (state.pointer.y > state.top && state.pointer.y < top) {
         int wx = blockFloor(state.view.worldX(state.pointer.x)), wz = blockFloor(state.view.worldZ(state.pointer.y));
-        auto column = store::column(layer, wx, wz);
+        auto column = store::column(shownLayer(), wx, wz);
         where = column ? std::format("X {}  Y {}  Z {}", wx, column->height, wz) : std::format("X {}  Z {}", wx, wz);
         std::string biome;
         if (spot && spot->dimension == state.dimension)
@@ -1106,6 +1196,83 @@ void drawBars(MinecraftUIRenderContext& context, glm::vec2 size, MapLayer layer,
         auto loading = ui::translated("worldMap.loading", pending);
         float w = ui::textWidth(context, loading);
         if (end - w >= start) ui::label(context, end - w, textY, w + 2, loading, ui::palette::dim);
+    }
+}
+
+void drawCavePanel(MinecraftUIRenderContext& context, glm::vec2 size) {
+    if (!state.cavePanel || state.dimension == 2) return;
+    constexpr float w = 212;
+    float h = state.cave ? 96 : 52;
+    float available = size.x - state.panelWidth - 3;
+    float left = std::clamp(state.caveButton.x, 3.f, std::max(3.f, available - w));
+    float top = std::max(state.caveButton.y + state.caveButton.h + 1, state.top + 1);
+    if (top + h > size.y - bottomHeight) top = std::max(state.top + 1.f, size.y - bottomHeight - h);
+    ui::fill(context, left, top, w, h, ui::palette::panel, .985f);
+    ui::frame(context, left, top, w, h, ui::palette::white, .14f);
+    // The panel background swallows clicks between its rows.
+    state.hits.push_back({left, top, w, h, Target::CavePanel});
+    float inset = ui::boxTextInset(), x = left + 5, y = top + 4;
+    ui::label(context, x, y, w - 10, ui::translated("worldMap.cavePanel"), ui::palette::faint);
+    y += 10;
+    auto labelAt = [&](float rowY, std::string const& text) {
+        ui::label(context, x, rowY + 2, 52, text, ui::palette::dim);
+    };
+    labelAt(y, ui::translated("worldMap.cave"));
+    if (state.dimension == 1) {
+        ui::label(context, x + 54, y + 2, w - 64, ui::translated("worldMap.alwaysCave"), ui::palette::faint);
+    } else {
+        float tx = x + 54, ty = y + 4;
+        ui::toggleSwitch(context, tx, ty, state.cave);
+        state.hits.push_back({tx, ty, ui::switchWidth, ui::switchHeight, Target::CaveToggle});
+        ui::label(context, x + 76, y + 2, w - 86,
+                  ui::translated(state.cave ? "worldMap.caveOn" : "worldMap.surfaceOn"), ui::palette::faint);
+    }
+    y += 18;
+    if (state.cave) {
+        labelAt(y, ui::translated("worldMap.broadToggle"));
+        float tx = x + 54, ty = y + 4;
+        ui::toggleSwitch(context, tx, ty, state.broad);
+        state.hits.push_back({tx, ty, ui::switchWidth, ui::switchHeight, Target::BroadToggle});
+        ui::label(context, x + 76, y + 2, w - 86,
+                  ui::translated(state.broad ? "worldMap.broadOn" : "worldMap.layerOn"), ui::palette::faint);
+        y += 18;
+        ui::fill(context, x, y, w - 10, 1, ui::palette::white, .14f);
+        y += 4;
+        labelAt(y, ui::translated("worldMap.height"));
+        float bx = x + 54, by = y + 1;
+        auto tiny = [&](float tx, char const* text, Target target) {
+            bool over = hovering(tx, by, 14, buttonHeight);
+            ui::fill(context, tx, by, 14, buttonHeight, over ? Rgb{.23f, .23f, .24f} : ui::palette::keyFill, .9f);
+            ui::frame(context, tx, by, 14, buttonHeight, ui::palette::keyEdge);
+            ui::label(context, tx, by + inset, 14, text, ui::palette::text, ui::Align::Center);
+            state.hits.push_back({tx, by, 14, buttonHeight, target});
+        };
+        tiny(bx, "-", Target::HeightDown);
+        float fx = bx + 16, fw = 44, fh = 13, fy = y;
+        ui::fill(context, fx, fy, fw, fh, ui::palette::keyFill);
+        ui::frame(context, fx, fy, fw, fh, state.editingHeight ? ui::palette::accent : ui::palette::keyEdge);
+        if (state.editingHeight) {
+            ui::drawEditField(context, fx, fy, fh, fw, state.heightInput, ui::Align::Center);
+            state.namePosition = {fx + 3, fy + 2};
+        } else {
+            ui::label(context, fx, fy + 1 + inset, fw, std::to_string(state.height), ui::palette::text, ui::Align::Center);
+            state.hits.push_back({fx, fy, fw, fh, Target::HeightField});
+        }
+        tiny(bx + 62, "+", Target::HeightUp);
+        auto tracking = ui::translated(state.following ? "worldMap.followingY" : "worldMap.fixedY", state.height);
+        ui::label(context, x + 132, y + 2, w - 142, tracking, ui::palette::faint, ui::Align::Right);
+        y += 18;
+        bool enabled = canMatchHeight() && !state.following;
+        bool over = enabled && hovering(x, y, w - 10, 15);
+        auto text = !canMatchHeight() ? ui::translated("worldMap.matchUnavailable")
+            : state.following ? ui::translated("worldMap.matchingHeight", state.height)
+                              : ui::translated("worldMap.matchHeight");
+        ui::fill(context, x, y, w - 10, 15, enabled ? (over ? ui::palette::accent : ui::palette::accentDeep) : ui::palette::keyFill, .9f);
+        ui::frame(context, x, y, w - 10, 15, enabled ? ui::palette::accent : ui::palette::keyEdge);
+        ui::label(context, x, y + 2 + inset, w - 10, text, enabled ? ui::palette::text : ui::palette::faint, ui::Align::Center);
+        if (enabled) state.hits.push_back({x, y, w - 10, 15, Target::MatchHeight});
+    } else {
+        ui::label(context, x, y + 2, w - 10, ui::translated("worldMap.caveOffHint"), ui::palette::faint);
     }
 }
 
@@ -1420,13 +1587,24 @@ void open(IClientInstance& client, bool resume) {
     state.notice.clear();
     state.editingName = false;
     state.editingAxis = -1;
+    state.editingHeight = false;
+    state.cavePanel = false;
     state.openedAt = now();
     if (resume) return;
     state.selected.reset();
     state.deleteArmed = false;
     if (auto spot = playerSpot()) {
         state.dimension = spot->dimension;
-        if (spot->dimension == 1) state.band = std::clamp(floorDiv(blockFloor(spot->y), bandHeight), 0, netherBands - 1);
+        state.cave = playerCave(*spot);
+        state.broad = state.dimension == 1;
+        state.height = clampHeight(state.dimension, blockFloor(spot->y));
+        state.following = true;
+    } else {
+        state.dimension = 0;
+        state.cave = false;
+        state.broad = false;
+        state.height = 64;
+        state.following = true;
     }
     center();
 }
@@ -1444,9 +1622,32 @@ void close() {
     state.menu.reset();
     commitName();
 }
+bool cavePanelTarget(Target target) {
+    switch (target) {
+    case Target::CavePanel:
+    case Target::CaveToggle:
+    case Target::BroadToggle:
+    case Target::HeightDown:
+    case Target::HeightUp:
+    case Target::HeightField:
+    case Target::MatchHeight: return true;
+    default: return false;
+    }
+}
 Request press(float x, float y, bool right) {
     Request request;
     auto const* hit = hitAt(x, y);
+    if (state.editingHeight && !(hit && hit->target == Target::HeightField)) commitName();
+    // The cave panel sits above the map; its controls consume the press.
+    if (hit && (hit->target == Target::CaveButton || cavePanelTarget(hit->target))) {
+        if (!right) act(hit->target);
+        return request;
+    }
+    if (state.cavePanel) {
+        state.cavePanel = false;
+        // A map press only closes the panel; a bar or side-panel press goes on.
+        if (!hit || hit->target == Target::None) return request;
+    }
     // The side panel's layer menu: any press closes it, the header toggles it.
     bool const kindWasOpen = std::exchange(state.kindMenu, false);
     if (hit && hit->target == Target::PanelKind) {
@@ -1511,9 +1712,10 @@ void wheel(int direction) {
     // zoom about the pointer as last drawn.
     state.view.zoomAt(p.x, p.y, direction);
 }
-bool editingName() { return state.open && (state.editingName || state.editingAxis >= 0); }
+bool editingName() { return state.open && (state.editingName || state.editingAxis >= 0 || state.editingHeight); }
 ui::TextEdit* nameField() {
     if (!editingName()) return nullptr;
+    if (state.editingHeight) return &state.heightInput;
     return state.editingAxis >= 0 ? static_cast<ui::TextEdit*>(&state.coordinate) : &state.name;
 }
 void typeText(std::string const& text) { if (auto* field = nameField()) field->type(text); }
@@ -1522,16 +1724,22 @@ void selectAllName() { if (auto* field = nameField()) field->selectAll(); }
 glm::vec2 namePosition() { return state.namePosition; }
 Request key(int key, bool openKey) {
     Request request;
+    if (state.editingHeight) {
+        if (key == 0x0d || key == 0x09) commitName();
+        else if (key == 0x1b) state.editingHeight = false;
+        return request;
+    }
     if (state.editingName || state.editingAxis >= 0) {
         if (key == 0x0d || key == 0x09) commitName();
         else if (key == 0x1b) { state.editingName = false; state.editingAxis = -1; }
         return request;
     }
     if (key == 0x1b) {
-        if (state.menu) state.menu.reset();
+        if (state.cavePanel) state.cavePanel = false;
+        else if (state.menu) state.menu.reset();
         else request.kind = Request::Kind::Close;
     } else if (key == 0x20) {
-        center();
+        returnToPlayer();
     } else if (openKey) {
         request.kind = Request::Kind::Close;
     }
@@ -1545,6 +1753,9 @@ void render(MinecraftUIRenderContext& context, glm::vec2 size, glm::vec2 pointer
     // hidden. With the feature off, only the saved map is shown.
     map::record(client, settings, settings.worldMap);
     state.pointer = pointer;
+    if (state.following && state.cave)
+        if (auto spot = playerSpot(); spot && spot->dimension == state.dimension)
+            state.height = clampHeight(state.dimension, blockFloor(spot->y));
     auto& view = state.view;
     view.width = size.x;
     view.height = size.y;
@@ -1579,9 +1790,11 @@ void render(MinecraftUIRenderContext& context, glm::vec2 size, glm::vec2 pointer
         ui::fill(context, (size.x - w) / 2, size.y / 2 - 7, w, 14, ui::palette::panel, .8f);
         ui::label(context, (size.x - w) / 2, size.y / 2 - 4, w, text, ui::palette::dim, ui::Align::Center);
     }
-    drawBars(context, size, layer, pending, settings.worldMap);
+    drawBars(context, size, pending, settings.worldMap);
     context.flushText(0, std::nullopt);
     drawPanel(context, size);
+    context.flushText(0, std::nullopt);
+    drawCavePanel(context, size);
     context.flushText(0, std::nullopt);
     drawKindMenu(context);
     context.flushText(0, std::nullopt);

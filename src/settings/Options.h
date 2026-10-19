@@ -460,7 +460,6 @@ inline constexpr auto options = std::to_array<Option>({
     toggle<&Settings::map, &Settings::Map::waypointsDeath>("map.waypointsDeath", "waypoints", "mapWaypointsDeath"),
     toggle<&Settings::map, &Settings::Map::waypointsCrossScale>("map.waypointsCrossScale", "waypoints", "mapWaypointsCrossScale"),
     toggle<&Settings::map, &Settings::Map::worldMap>("map.worldMap", "worldMap", "worldMap"),
-    toggle<&Settings::map, &Settings::Map::worldMapNetherAuto>("map.worldMapNetherAuto", "worldMap", "worldMapNetherAuto"),
     toggle<&Settings::map, &Settings::Map::worldMapNames>("map.worldMapNames", "worldMap", "worldMapNames"),
     toggle<&Settings::map, &Settings::Map::seedLink>("map.seedLink", "worldMap", "mapSeedLink"),
     toggle<&Settings::schematic, &Settings::Schematic::enabled>("schematic.enabled", "schematic", "schematicShown"),

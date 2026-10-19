@@ -161,7 +161,7 @@ struct Settings {
         bool waypointsDeath = true; // Record the last death point.
         bool waypointsCrossScale = false; // Overworld ones in the Nether at 1/8, Nether ones at 8x.
         bool worldMap = false; // Recording and the world map screen.
-        bool worldMapNetherAuto = true; // The Nether layer shown follows the player's height.
+        bool worldMapNetherAuto = true; // Kept for settings compatibility; the map now opens at the player's height.
         bool seedLink = true; // World map menu: open an external seed map here, copy the seed.
         bool worldMapNames = false; // Every mark's name; off: under the pointer, selected or with a menu.
         bool worldMapPanel = true; // The world map's waypoint side panel is open; changed on the map.

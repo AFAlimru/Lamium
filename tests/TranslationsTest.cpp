@@ -77,6 +77,11 @@ void translationTests() {
                 rendered = std::vformat(pattern, std::make_format_args(remaining, maximum));
                 check(rendered.find("123 / 1561") != std::string::npos);
             }
+            else if (entry.key == "worldMap.caveState")
+                rendered = std::vformat(pattern, std::make_format_args(key, key, remaining));
+            else if (entry.key == "worldMap.matchingHeight" || entry.key == "worldMap.fixedY"
+                || entry.key == "worldMap.followingY")
+                rendered = std::vformat(pattern, std::make_format_args(remaining));
             else if (entry.key == "shape.x" || entry.key == "shape.y" || entry.key == "shape.z"
                 || entry.key == "magnification" || entry.key == "hitboxDistance" || entry.key == "freeCameraSpeed" || entry.key == "edgeMargin"
                 || entry.key == "mapSize" || entry.key == "mapWaypointDistance" || entry.key == "schematicOutlineDistance")
