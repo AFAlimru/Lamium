@@ -161,7 +161,7 @@ File: `r.<x>.<z>.lm2` in the same layer folders as now (`overworld`,
 ```
 "LMR2" | u16 format version (1) | u16 flags (0) | i32 region x | i32 region z
 u16 section count, then per section:
-  4-char tag | u8 codec (0 none, 1 zstd) | u8 flags (bit 0: required)
+  4-char tag | u8 codec (0 none, 1 zstd) | u8 flags (bit 0: required, bit 1: keep)
   u32 raw size | u32 stored size | u32 CRC-32 of the stored bytes
 section bodies in table order
 ```
@@ -177,19 +177,34 @@ Reading:
   save rewrites it); without `CHNK` its recorded chunks count as recorded at
   time 0 under revision 0.
 
-Sections in version 1 (all required, each compressed on its own with zstd
-level 3; there is no compression setting):
-- `CHNK`: 256 entries in chunk order (z rows of x): u32 recorded time (Unix
-  time in minutes when the chunk was last merged, 0 = never) and u16 color
-  revision (0 = unknown, e.g. migrated from `LMR1`).
-- `COLR`: u32 palette size, the palette as u32 RGBA (entry 0 is always 0,
-  "not recorded"), then one index per column in row-major order (z rows of
-  x): u8 when the palette has at most 256 entries, otherwise u16 written as
-  a plane of low bytes then a plane of high bytes.
-- `HGHT`: each column's i16 height minus its west neighbour's (the first
-  column of a row: minus the north neighbour's; the first column: minus
-  0), zigzag-encoded as u16, written as a low-byte plane then a high-byte
-  plane. Heights are not limited to a fixed world range.
+Writing unknown sections (review 2026-10-19: skipping alone would let an
+older reader's resave erase what a newer Lamium added): an unknown optional
+section with the keep flag is written back unchanged (codec, flags, bytes,
+CRC); one without it is dropped. A future section whose data belongs to
+columns or chunks sets keep only if it carries its own per-chunk times, so
+that a newer reader can treat chunks whose `CHNK` time is later than the
+section's own (rewritten by an older reader) as missing for that section.
+
+Sections in version 1 (each compressed on its own with zstd level 3; there
+is no compression setting):
+- `CHNK` (required): 256 entries in chunk order (z rows of x): u64 recorded
+  time (Unix time in milliseconds when the chunk was last merged, 0 =
+  never) and u16 color revision (0 = unknown, e.g. migrated from `LMR1`).
+- `COLR` (required): u32 palette size (1 to 65,536), the palette as u32
+  RGBA, then one index per column in row-major order (z rows of x): u8 when
+  the palette has at most 256 entries, otherwise u16 written as a plane of
+  low bytes then a plane of high bytes. "Not recorded" (color 0) is an
+  ordinary palette value, not a reserved entry, so 65,536 distinct columns
+  still fit u16 indices.
+- `HGHT` (required): each column's height minus its west neighbour's (the
+  first column of a row: minus the north neighbour's; the first column:
+  minus 0), computed in 16-bit wrapping arithmetic: `d = int16(h - prev)`,
+  stored as `u16((d << 1) ^ (d >> 15))`; decoding inverts it and adds back
+  modulo 2^16. This is lossless over the whole i16 range (a step from
+  -32768 to 32767 wraps to -1). Written as a low-byte plane then a
+  high-byte plane. Heights are not limited to a fixed world range.
+- `OLDF` (optional, not kept): the `.lmr` this file absorbed, as u64 file
+  size and u64 modification time in Unix milliseconds; see migration.
 
 Color revision: one constant beside the column color calculation, raised
 whenever a change makes colors recorded before it wrong (such as the
@@ -197,17 +212,32 @@ renderer-tint black of 2026-10-07). It is kept per chunk rather than per
 region because one region mixes chunks recorded by different builds. A
 chunk with an older revision is shown as saved and counts as due for a
 rescan when the client has it loaded; it is never discarded unseen.
+A merge stamps a chunk with the current revision only when this scan
+produced every column the chunk has recorded, none of them filled from the
+saved map and none colored with the stand-in tint (provisional). Otherwise
+the chunk keeps its stored revision, and a chunk new to the map gets 0, so
+it stays due for a rescan (review 2026-10-19). The recorded time is set
+whenever a merge changes any of the chunk's columns.
 
-Migration and older releases:
+Migration and older releases (times compared in milliseconds; the system
+clock is trusted, and a clock set back can only make a later `.lmr` lose a
+tie, never damage a file):
 - Listing on join and the settings' size include both `.lm2` and `.lmr`.
 - Reading prefers `.lm2`; without one, `.lmr` is read with the `LMR1`
   decoder (time 0, revision 0).
-- Saving always writes `.lm2` (atomic replace as now), then deletes that
-  region's `.lmr`. No bulk rewrite.
+- Saving always writes `.lm2` first (atomic replace as now), recording in
+  `OLDF` the `.lmr` it absorbed, and only then deletes that `.lmr`. No bulk
+  rewrite.
 - An older Lamium does not list `.lm2`, so it cannot damage them; it records
-  anew into `.lmr`. When both files exist, a chunk takes the `.lmr` columns
-  it has if the `.lmr` file is newer than that chunk's recorded time, else
-  the `.lm2` ones; the next save writes the result and deletes the `.lmr`.
+  anew into `.lmr`. When both files exist:
+  - the `.lmr` matches the `.lm2`'s `OLDF` (same size and modification
+    time): it is what was left by a save interrupted before the delete. It
+    is deleted without merging.
+  - otherwise it was written after the switch by an older Lamium: a chunk
+    takes the `.lmr` columns it has only if the `.lmr` modification time is
+    later than that chunk's recorded time; on a tie the `.lm2` wins. Chunks
+    taken get the `.lmr` time and revision 0. The next save writes the
+    result with this `.lmr` in `OLDF`, then deletes it.
 
 Measured 2026-10-19 on 150 of LamiumTest's 1,563 regions (Python, so only
 the ratios carry over to C++): palette + height deltas + zstd 3 averaged
@@ -216,11 +246,14 @@ the ratios carry over to C++): palette + height deltas + zstd 3 averaged
 colors. zlib 6 on the same data was slightly smaller (20.9 KB) at about
 eight times the CPU.
 
-Tests: round trip with a small and a large (>256) palette; unknown optional
-section skipped; unknown required section and newer version leave the file
-untouched; a damaged section counts as missing; x/z mismatch; `LMR1` to
-`LMR2` migration and the both-files merge rule; older revisions selected for
-rescan.
+Tests: round trip with a small, a large (>256) and a full (65,536 distinct
+colors) palette; heights at -32768 next to 32767 and back; unknown optional
+section skipped, written back with keep and dropped without it; unknown
+required section and newer version leave the file untouched; a damaged
+section counts as missing; x/z mismatch; `LMR1` to `LMR2` migration, the
+interrupted-save leftover, the both-files merge rule including a tie in the
+same millisecond; a partial rescan keeps the older revision; older
+revisions selected for rescan.
 
 ## Technical entry points
 

@@ -627,7 +627,8 @@ Spec agreed 2026-10-19 (full contract: [MAP.md](MAP.md#region-file-format-lmr2-l
   game version). Those can come later as optional sections.
 - `LMR2` files (`r.<x>.<z>.lm2`): a header with a format version and a
   section table; each section has its codec, a "required" flag and a
-  CRC-32. Unknown sections are skipped; a damaged section counts as missing.
+  CRC-32. Unknown sections are skipped, and written back on a resave only
+  when marked to keep; a damaged section counts as missing.
 - Sections in version 1: `CHNK` (per chunk: recorded time and the color
   revision), `COLR` (palette + indices), `HGHT` (height deltas).
 - A color revision constant is raised whenever the column color calculation
