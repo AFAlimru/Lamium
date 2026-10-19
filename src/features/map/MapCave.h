@@ -60,9 +60,17 @@ inline int stableLayer(int current, int playerY, bool fresh) {
     return current;
 }
 // Blocks examined per column around the layer: enough above for the head of
-// a player standing up to the slack higher, and a deep window below.
-inline constexpr int caveAbove = caveLayerSlack + 2, caveBelow = 24;
+// a player standing up to the slack higher, and a deep window below so the
+// floor or lava under a bridge is still part of the occupied cavern (L-228).
+// The read stops at the first floor; only drops read the whole window.
+inline constexpr int caveAbove = caveLayerSlack + 2, caveBelow = 48;
 inline constexpr std::uint32_t caveWall = packColor(34, 34, 38), caveDeep = packColor(18, 18, 22);
+// The world map's layer view dims a floor farther than this from the
+// selected reference; broad view keeps every floor.
+inline constexpr int caveFocusSlack = 8;
+inline bool caveAtSelectedHeight(int floorY, int focusY) {
+    return std::abs(floorY - focusY) <= caveFocusSlack;
+}
 // A column's solid blocks from y = top downward (index 0 is top). Rock at
 // the player's feet and head is a wall. Otherwise the floor is the first
 // solid block below open space; open all the way down is a drop.
@@ -70,19 +78,25 @@ struct CaveHit {
     enum class Kind { Wall, Floor, Drop } kind;
     int y;
 };
+// Lazy form: the caller reads one block per call and can stop as soon as the
+// floor is found. This keeps the deeper window cheap near ordinary floors.
+template <class SolidAt>
+CaveHit caveFloorFrom(SolidAt&& solidAt, int top, int playerY, int bottom) {
+    if (solidAt(playerY) && solidAt(playerY + 1)) return {CaveHit::Kind::Wall, top};
+    bool open = false, anyOpen = false;
+    for (int y = top; y >= bottom; --y) {
+        if (!solidAt(y)) { open = anyOpen = true; continue; }
+        if (open) return {CaveHit::Kind::Floor, y};
+    }
+    if (!anyOpen) return {CaveHit::Kind::Wall, top};
+    return {CaveHit::Kind::Drop, bottom};
+}
 inline CaveHit caveFloor(std::span<bool const> solid, int top, int playerY) {
     auto solidAt = [&](int y) {
         int i = top - y;
         return i >= 0 && i < static_cast<int>(solid.size()) && solid[static_cast<size_t>(i)];
     };
-    if (solidAt(playerY) && solidAt(playerY + 1)) return {CaveHit::Kind::Wall, top};
-    bool open = false;
-    for (size_t i = 0; i < solid.size(); ++i) {
-        if (!solid[i]) { open = true; continue; }
-        if (open) return {CaveHit::Kind::Floor, top - static_cast<int>(i)};
-    }
-    if (!open) return {CaveHit::Kind::Wall, top};
-    return {CaveHit::Kind::Drop, top - static_cast<int>(solid.size())};
+    return caveFloorFrom(solidAt, top, playerY, top - static_cast<int>(solid.size()) + 1);
 }
 // Floors near the player's height are bright, lower or higher ones dimmer;
 // the block under the feet is at full brightness.

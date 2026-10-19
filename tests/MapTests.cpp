@@ -441,6 +441,19 @@ void cave() {
     check(caveFloor(std::array<bool, 5>{}, 66, 64).kind == CaveHit::Kind::Drop
           && caveColumn(caveFloor(std::array<bool, 5>{}, 66, 64), 64, stone).color == caveDeep,
           "open all the way is a drop");
+    // A lava lake 37 blocks under the player is still part of the cavern the
+    // broad view shows; the layer view marks it as another height instead.
+    std::array<bool, 54> cavern{};
+    cavern[70 - 31] = true;
+    auto lava = caveColumn(caveFloor(cavern, 70, 68), 68, packColor(200, 80, 20));
+    check(lava.height == 31 && channel(lava.color, 0) > 80,
+          "a floor deep in the same open space is still drawn, not turned into a drop");
+    check(!caveAtSelectedHeight(31, 68) && caveAtSelectedHeight(62, 68) && caveAtSelectedHeight(76, 68),
+          "the layer view keeps floors near the selected height only");
+    int reads = 0;
+    auto first = caveFloorFrom([&](int y) { ++reads; return y == 67; }, 70, 68, 17);
+    check(first.kind == CaveHit::Kind::Floor && first.y == 67 && reads < 12,
+          "the cave read stops at the first floor instead of reading the whole deep window");
     TileCache cache;
     auto& tile = cache.put({0, 0});
     tile.loaded = true;

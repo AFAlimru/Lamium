@@ -397,21 +397,23 @@ std::optional<Column> surfaceColumn(IClientInstance& client, BlockSource& region
     sawPending = true;
     return Column{};
 }
-// One cave column around the player's height `layer`.
+// One cave column around the player's height `layer`. The read stops at the
+// first floor above the deep window's bottom; a tile that still needs block
+// data returns null so the scan waits.
 std::optional<Column> caveColumnAt(IClientInstance& client, BlockSource& region, int x, int z, int layer, short minY,
                                    short maxY) {
-    std::array<bool, caveAbove + caveBelow + 1> solid{};
-    int top = layer + caveAbove;
-    for (size_t i = 0; i < solid.size(); ++i) {
-        int y = top - static_cast<int>(i);
-        if (y < minY || y >= maxY) continue;
+    int top = std::min<int>(maxY - 1, layer + caveAbove), bottom = std::max<int>(minY, layer - caveBelow);
+    bool failed = false;
+    auto solidAt = [&](int y) {
+        if (failed || y < minY || y >= maxY) return false;
         auto const* look = blockLook(client, region.getBlock(BlockPos{x, y, z}));
-        if (!look) return std::nullopt;
+        if (!look) { failed = true; return false; }
         // Stand-ins the client never asked for are mostly hidden rock: draw
         // them as rock without a color rather than leaving holes.
-        solid[i] = look->pending || (!look->skip && look->cover);
-    }
-    auto hit = caveFloor(solid, top, layer);
+        return look->pending || (!look->skip && look->cover);
+    };
+    auto hit = caveFloorFrom(solidAt, top, layer, bottom);
+    if (failed) return std::nullopt;
     std::uint32_t color = 0;
     if (hit.kind == CaveHit::Kind::Floor) {
         BlockPos pos{x, hit.y, z};
