@@ -76,7 +76,12 @@ it) while doing so.
   as the source of the L-37 hypothesis; its source is not opened.
 - Java mods: MaLiLib, Tweakeroo, MiniHUD, Litematica, Item Scroller, Client
   Sort and similar inventory sorters, Quark, Inventory Profiles Next, Mouse
-  Wheelie, Jade / WAILA, AppleSkin, Xaero's Minimap and World Map.
+  Wheelie, Jade / WAILA, AppleSkin.
+- A public Java minimap/world-map mod, identified only in the maintainer's
+  external research notes: its publicly described split between broad
+  Nether viewing and height-focused cave viewing is the source of the L-228
+  question. Its source is not opened; no code, strings, assets or UI layout
+  are used.
 - Continuity (Java): its design as described publicly is the source of the
   L-96 layering idea (connection rules apart from texture methods, a
   47-tile method later) and of L-164's question (one quad per face with a

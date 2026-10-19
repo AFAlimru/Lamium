@@ -586,6 +586,47 @@ exactly one switch, one mode and one set of keys:
   until the edit ends. The footer keeps the action's description and the
   "press, then release to assign | Esc: cancel" line.
 
+## Cave and Nether terrain reference (Decided direction 2026-10-19, L-228)
+
+- Represent the cavern the player occupies: include the current ledge/path
+  and the deeper floor or lava within that open space. Large Overworld
+  caves share this goal with the Nether. Narrow caves should communicate
+  their floors, walls and forks.
+- Moving up or down within the same space should preserve the recognizable
+  terrain outline. Separate vertically stacked spaces must remain
+  distinguishable; height differences should be readable.
+- Where a bridge or ledge overlaps a lower floor, prefer the floor the
+  player currently occupies. On a bridge, preserve its path and show the
+  deeper floor/lava in the surrounding open parts; below it, prefer the
+  lower floor. The exact visual treatment and selection/transition
+  algorithm remain open.
+- Unknown terrain, walls and deep drops must read differently. The existing
+  received/recorded-terrain boundary and bounded-work requirements apply.
+- Persist explored Overworld cave terrain in 16-block bands for later
+  world-map viewing, including after leaving and rejoining. Retain the
+  surface map alongside it. Vertically overlapping spaces within one band
+  are not distinguished in v1; separate bands are.
+- The world map's cave controls were decided 2026-10-19 (D,
+  [demos/cave-map-simple.html](demos/cave-map-simple.html)):
+  - The top bar has one terrain state button (`地表` / `洞窟 広 Y68` /
+    `洞窟 層 Y68`). Its panel opens directly under that button. It does not
+    close the waypoint list; when space is tight it shifts left instead.
+  - The panel has three rows: cave on/off, broad on/off, and height with
+    `-` / a directly editable number / `+`. A separate action button,
+    `自分の高さに合わせる`, returns the height to the player.
+  - The map opens at the player's height. Changing the height fixes it;
+    the action button returns to the player's height. There is no follow
+    toggle, slider, recorded-height list or three-way mode.
+  - Standard: the Nether starts broad, an Overworld cave starts in the
+    selected layer. The minimap stays broad and follows the player.
+  - The map does not switch between cave and surface while it is open; the
+    initial choice is made when it opens.
+- Layer switches keep their names while they fit; they become symbols only
+  when the bar is too narrow.
+- This is a decided direction with implementation in progress, not a
+  validated replacement. MAP.md keeps the current behavior and the
+  implementation record.
+
 ## World map layer switches (Decided 2026-10-15, L-146)
 
 - The world map's top bar has three joined switches, Waypoints, Schematics

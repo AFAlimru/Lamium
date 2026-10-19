@@ -626,7 +626,8 @@ with the minimap off as well as on; near changes and movement during a wide
 pass. Build/tests alone do not establish these runtime results.
 
 ### L-228 Reconsider what cave and Nether maps should show
-Kind: Design. Maintainer feedback 2026-10-19 after the L-216 smoke check:
+Kind: Ready (strong model), implementation in progress. Maintainer feedback
+2026-10-19 after the L-216 smoke check:
 no conspicuous problem with that PR, but the cave/Nether view may not give
 the player a useful account of the terrain. At roughly Y67 (selected band
 Y64-79), the map is mostly gray with dark gaps, and expected lava lakes
@@ -643,15 +644,59 @@ rules explain possible contributors, not a verified diagnosis of each
 pixel or of the smaller footprint. This feedback does not establish an
 LMR2 storage regression.
 
-Before implementing, agree what a useful cave/Nether map represents as
-height changes: the nearby floor and walls, the connected open space and
-its deeper floor/lava, or another chosen reference. Investigate the
-smaller footprint against per-band recording coverage, received terrain
-and pending images; distinguish unknown terrain, walls and deep drops.
-No replacement height window, layer model, colors, UI or implementation
-has been selected; no priority or release is chosen. Keep this design
-follow-up separate from L-216. Current behavior and evidence: MAP.md's
-"Cave and Nether representation review" and VALIDATION-LOG.md, 2026-10-19.
+Direction agreed with the maintainer 2026-10-19: represent the cavern the
+player occupies, including the current ledge/path and the deeper floor or
+lava within that open space. This applies to large Overworld caves as well
+as the Nether; narrow caves must still communicate floors, walls and forks.
+Moving up or down within the same space should preserve the recognizable
+terrain outline, while separate vertically stacked spaces remain
+distinguishable. Height differences should be readable, and unknown terrain,
+walls and deep drops must be distinguishable. Use only received or recorded
+terrain, within the existing client-only and bounded-work requirements.
+
+Overlap priority agreed the same day: where a bridge or ledge overlaps a
+lower floor, prefer the floor the player currently occupies. On a bridge,
+preserve its path and show the deeper floor/lava in the surrounding open
+parts; below it, prefer the lower floor. The exact visual treatment and
+selection/transition algorithm remain open.
+
+Scope extended by the maintainer the same day: persist explored Overworld
+cave terrain and make it available for later world-map viewing, including
+after leaving and rejoining. Retain the surface map alongside it. The
+design must support revisiting vertically overlapping cave spaces without
+erasing the surface or conflating those cave spaces. The current build
+records the Overworld surface only; this is new scope, not validated
+behavior.
+
+Interaction review, decided 2026-10-19: the reduced D control model in
+[demos/cave-map-simple.html](demos/cave-map-simple.html) was accepted after
+the A/B/C mockups were rejected as too complex. The world map's top bar has
+one terrain state button; its panel opens directly under the button (it does
+not close the waypoint list; it shifts left when space is tight). The panel
+has cave on/off, broad on/off, height with `-`/input/`+`, and a
+`自分の高さに合わせる` action. The map opens at the player's height; changing
+the height fixes it; the action returns to the player's height. The slider,
+recorded-height list, three-way mode and follow toggle were dropped. Layer
+switches keep their names while they fit and become symbols only when the
+bar is too narrow. The Nether starts broad, an Overworld cave starts in the
+selected layer, and the minimap stays broad and follows the player. The map
+does not switch cave/surface while open.
+
+Storage and representation agreed for v1: record explored Overworld cave
+terrain in 16-block bands alongside the retained surface map, using the
+existing LMR2 folders (a new `overworld/y<Y>` family). Vertically
+overlapping spaces inside one band are not distinguished; separate bands
+are. The cave scan uses a deeper downward window for the occupied floor and
+the lower floor/lava, with a bounded per-column read; the world map's layer
+view dims floors outside the selected height, while broad view keeps them.
+
+Implementation started 2026-10-19 on branch `l228-cave-map`. Remaining:
+finish the representation/storage/UI code and tests, then the in-game check.
+The smaller footprint still needs investigation against per-band recording
+coverage, received terrain and pending images. No release is chosen. Keep
+this follow-up separate from L-216. Direction: DESIGN.md, "Cave and Nether
+terrain reference"; current behavior and evidence: MAP.md's "Cave and Nether
+representation review" and VALIDATION-LOG.md, 2026-10-19.
 
 ### L-196 Review license notices, source access and provenance classification
 Kind: Research, then Ready for changes supported by the findings.

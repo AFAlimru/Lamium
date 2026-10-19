@@ -1,0 +1,391 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lamium Cave and Nether Map Review</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Noto+Sans+JP:wght@400;500;700&display=swap">
+<style>
+:root{
+  color-scheme:dark;
+  --ground:#15181a;--ground-2:#1c2124;--line:#2c3337;--ink:#e6ebe8;--ink-2:#a6b0ab;--ink-3:#77827c;
+  --accent:#6cc349;--accent-deep:#3c8527;
+  --mc-panel:16,17,19;--mc-edge:rgba(255,255,255,.14);--mc-hover:rgba(255,255,255,.07);
+  --mc-text:#fff;--mc-dim:#b4b8b6;--mc-faint:#7f8583;--mc-key:#2b2c2d;--mc-key-edge:#5a5b5c;
+  --mc-on:#3c8527;--mc-on-edge:#6cc349;--mc-warn:#ffc24a;
+  --mc-font:"DotGothic16","MS Gothic","Osaka-Mono",monospace;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);font:15px/1.65 "Noto Sans JP",system-ui,sans-serif}
+.wrap{max-width:1120px;margin:0 auto;padding:28px 16px 64px;display:grid;gap:24px}
+h1{font:700 26px/1.35 "Noto Sans JP",sans-serif;margin:0;text-wrap:balance}
+h2{font:700 18px/1.4 "Noto Sans JP",sans-serif;margin:0 0 8px}
+h3{font:700 15px/1.4 "Noto Sans JP",sans-serif;margin:0}
+p{margin:0}.lede{margin-top:8px;max-width:78ch;color:var(--ink-2)}
+.eyebrow{font:500 12px/1.4 "Noto Sans JP",sans-serif;letter-spacing:.08em;color:var(--accent);margin-bottom:10px}
+.controls{display:flex;flex-wrap:wrap;gap:12px 24px;align-items:start}
+.cgroup{display:grid;gap:5px}.cgroup>span{font-size:12px;color:var(--ink-2)}
+.seg{display:flex;flex-wrap:wrap;gap:0}
+.seg button,.pagebtn{font:13px/1.4 "Noto Sans JP",sans-serif;color:var(--ink-2);background:var(--ground-2);border:1px solid var(--line);padding:6px 11px;cursor:pointer}
+.seg button+button{margin-left:-1px}
+.seg button[aria-pressed=true]{position:relative;color:#fff;background:var(--accent-deep);border-color:var(--accent)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.scenario-note{font-size:13px;color:var(--ink-2);min-height:22px}
+.stage-outer{width:100%;border:1px solid var(--line);background:#0b0c0d}
+.stage-fit{width:100%;position:relative;overflow:hidden}
+.stage{position:absolute;left:0;top:0;transform-origin:0 0;font:9px/1.25 var(--mc-font);color:var(--mc-text);overflow:hidden;user-select:none;background:#0b0c0d}
+.stage canvas{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelated;touch-action:none;cursor:grab}
+.stage canvas.dragging{cursor:grabbing}
+.topbar{position:absolute;top:0;left:0;right:0;z-index:3;background:rgba(var(--mc-panel),.94);border-bottom:1px solid var(--mc-edge)}
+.gbar{display:flex;align-items:center;gap:3px;height:16px;padding:0 4px;white-space:nowrap}
+.gbar>*,.group{flex:none}.sp{flex:1 1 0;min-width:0}.gbar>.sp{flex:1 1 0}
+.group{display:flex;align-items:center}.group .b+.b{margin-left:-1px}
+.b{font:9px/11px var(--mc-font);height:11px;white-space:nowrap;border:0;border-radius:0;padding:0 4px;color:var(--mc-dim);background:var(--mc-key);box-shadow:inset 0 0 0 1px var(--mc-key-edge);cursor:pointer}
+.b:hover{color:#fff;background:#3b3c3d}.b.on,.b[aria-pressed=true]{color:#fff;background:var(--mc-on);box-shadow:inset 0 0 0 1px var(--mc-on-edge)}
+.b:disabled{cursor:default;opacity:.4}.b.close{width:12px;padding:0;font-size:11px}
+.terrain-controls{display:flex;gap:5px;align-items:center}.height{display:flex;align-items:center;position:relative;height:13px;box-shadow:inset 0 0 0 1px var(--mc-key-edge);background:var(--mc-key)}
+.height .b{width:12px;padding:0;text-align:center;height:13px;line-height:13px}.height.following{color:var(--mc-on-edge)}
+.height .choose{min-width:66px;width:auto;padding:0 6px;color:inherit;background:transparent;box-shadow:none}
+.popover{position:absolute;z-index:6;width:180px;padding:5px;background:rgba(var(--mc-panel),.98);box-shadow:inset 0 0 0 1px var(--mc-key-edge);display:grid;gap:3px}
+.popover .title{padding:1px 4px;color:var(--mc-faint);font-size:8px}
+.popover button{display:flex;justify-content:space-between;gap:10px;width:100%;font:9px/18px var(--mc-font);color:var(--mc-dim);background:none;border:0;padding:0 4px;text-align:left;cursor:pointer}
+.popover button:hover,.popover button[aria-pressed=true]{background:var(--mc-hover);color:#fff}
+.popover .desc{color:var(--mc-faint);font-size:8px}.popover button[aria-pressed=true]{box-shadow:inset 2px 0 var(--mc-on-edge)}
+.popover button:disabled{opacity:.45;cursor:default}.popover .fieldrow{display:flex;align-items:center;gap:6px;padding:0 4px}
+.popover input[type=number]{width:50px;background:var(--mc-key);color:#fff;border:1px solid var(--mc-key-edge);border-radius:0;font:10px var(--mc-font);padding:1px 3px;height:17px}
+.popover input[type=range]{width:100%;margin:2px 0;accent-color:var(--mc-on-edge);height:12px}
+.popover .rule{height:1px;background:var(--mc-edge)}.popover .hint{padding:0 4px;color:var(--mc-faint);font-size:8px;line-height:1.5}
+.panel{position:absolute;right:0;bottom:15px;width:166px;z-index:2;background:rgba(var(--mc-panel),.94);border-left:1px solid var(--mc-edge);display:flex;flex-direction:column}
+.panel-head{height:21px;padding:0 5px;display:flex;align-items:center;gap:4px;border-bottom:1px solid var(--mc-edge)}
+.panel-list{display:grid;align-content:start}.panel-row{display:flex;align-items:center;gap:5px;height:19px;padding:0 6px;border:0;font:9px var(--mc-font);background:transparent;color:var(--mc-dim);text-align:left;cursor:pointer}
+.panel-row:hover{background:var(--mc-hover)}.panel-row:nth-child(even){background:rgba(255,255,255,.025)}
+.panel-row.on{background:rgba(108,195,73,.16);box-shadow:inset 2px 0 var(--mc-on-edge);color:#fff}
+.diamond{display:inline-block;width:6px;height:6px;transform:rotate(45deg);margin:0 3px;background:#ffc24a}
+.panel-detail{margin-top:auto;min-height:55px;padding:6px;border-top:1px solid var(--mc-edge);display:grid;gap:4px;align-content:start;color:var(--mc-dim);font-size:8px}
+.panel-detail b{font-weight:400;color:#fff;font-size:9px}.panel-empty{padding:8px 6px;color:var(--mc-faint);font-size:8px}
+.bottom{position:absolute;bottom:0;left:0;right:0;z-index:3;height:15px;display:flex;gap:7px;align-items:center;padding:0 5px;background:rgba(var(--mc-panel),.94);border-top:1px solid var(--mc-edge);font-size:8px;color:var(--mc-dim);white-space:nowrap}
+.scale{display:flex;align-items:center;gap:4px}.scale i{height:4px;border:1px solid #fff;border-top:0;display:block}
+.follow{color:var(--mc-on-edge)}.empty{position:absolute;z-index:1;left:5%;right:calc(5% + var(--panel-space));top:45%;text-align:center;color:var(--mc-dim);pointer-events:none}
+.empty .empty-message{display:inline-block;padding:6px 8px;background:rgba(var(--mc-panel),.9);box-shadow:inset 0 0 0 1px var(--mc-edge);font-size:10px;line-height:1.8}
+.empty{pointer-events:auto}.empty .suggestions{display:flex;gap:4px;justify-content:center;margin-top:5px}.empty .b{height:15px;line-height:15px}
+.closed{position:absolute;inset:0;z-index:9;display:grid;place-content:center;gap:10px;text-align:center;background:rgba(11,12,13,.96)}
+.closed .b{justify-self:center}.legend{display:flex;flex-wrap:wrap;gap:8px 20px;font-size:12px;color:var(--ink-2)}
+.legend span{display:flex;align-items:center;gap:6px}.swatch{width:14px;height:14px;display:inline-block}
+.unknown{background:repeating-linear-gradient(135deg,#0b0c0d 0 4px,#272a2e 4px 5px)}
+.wall{background:#34363c}.drop{background:repeating-linear-gradient(90deg,#171324 0 4px,#494454 4px 5px)}
+.other-height{background:radial-gradient(#77776c .7px,transparent .8px) 0 0/4px 4px,#252a29}
+.view-note{font-size:13px;color:var(--ink-2)}.mini-preview{display:flex;gap:16px;align-items:center;flex-wrap:wrap}.mini-preview canvas{width:154px;height:154px;image-rendering:pixelated;border:1px solid var(--mc-key-edge)}
+.mini-preview p{flex:1;min-width:180px;font-size:13px;color:var(--ink-2)}.mini-preview output{display:block;color:var(--ink);margin-bottom:6px}
+.cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.note{border:1px solid var(--line);background:var(--ground-2);padding:14px 16px;display:grid;gap:8px;align-content:start}
+.note ul,.ask ol{margin:0;padding-left:1.3em;display:grid;gap:6px;color:var(--ink-2);font-size:13.5px}
+.note b,.ask b{color:var(--ink)}.ask{border:1px solid var(--accent-deep);padding:16px 18px;display:grid;gap:8px}
+.minor{font-size:12px;color:var(--ink-3)}a{color:var(--accent)}
+@media(max-width:700px){.cards{grid-template-columns:1fr}.wrap{padding:18px 12px 40px;gap:18px}h1{font-size:22px}.seg button{font-size:12px;padding:6px 8px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">BACKLOG L-228 · ネザー・洞窟表示 · 操作の確認用モック</div>
+    <h1>今いる足場と、空洞の底が分かる地図</h1>
+    <p class="lede">普段の探索、上下に重なる足場の確認、保存した洞窟の見返しを続けて試すモックです。洞窟は<b>広く見る／高さを絞る</b>を切り替え、高さは入力・スライダー・記録済み候補から選べます。<b>新しい操作と色は確認中です。</b>地形は架空の説明用データで、ゲームの描画・保存処理の実装結果ではありません。</p>
+  </header>
+  <section aria-label="モックの条件">
+    <div class="controls">
+      <div class="cgroup"><span>場面（モック専用）</span><div class="seg" id="scenes">
+        <button data-scene="nether" aria-pressed="true">ネザーの大空洞</button><button data-scene="cave" aria-pressed="false">地上の大洞窟</button><button data-scene="saved" aria-pressed="false">保存した洞窟を見る</button>
+      </div></div>
+    </div>
+    <div class="controls" style="margin-top:12px">
+      <div class="cgroup"><span>プレイヤーを動かす（モック専用）</span><div class="seg" id="positions"></div></div>
+      <div class="cgroup"><span>UI の大きさ</span><div class="seg" id="sizes">
+        <button data-size="673" aria-pressed="true">75%</button><button data-size="505" aria-pressed="false">100%</button><button data-size="404" aria-pressed="false">125%</button>
+      </div></div>
+      <div class="cgroup"><span>やり直す</span><button class="pagebtn" id="reset">この場面を最初から</button></div>
+    </div>
+    <p class="scenario-note" id="scenario-note" aria-live="polite" style="margin-top:10px"></p>
+  </section>
+  <div class="stage-outer"><div class="stage-fit" id="fit"><div class="stage" id="stage">
+    <canvas id="map" aria-label="地形の模式図。ドラッグで移動、ホイールで拡大縮小"></canvas>
+    <div id="chrome"></div>
+  </div></div></div>
+  <div class="legend" aria-label="未取得・壁・落ち込みの区別の試案">
+    <span><i class="swatch unknown"></i>未取得（斜線）</span><span><i class="swatch wall"></i>壁</span><span><i class="swatch drop"></i>深い落ち込み</span><span><i class="swatch other-height"></i>別の高さ（高さを絞ると薄く表示）</span>
+  </div>
+  <p class="view-note" id="view-note" aria-live="polite"></p>
+  <div class="cards">
+    <section class="note"><h2>試してほしい流れ</h2><ul>
+      <li><b>ネザーで「広く見る」→ 橋の上から空洞の底へ</b>：溶岩湖と空洞の輪郭を保ち、重なるところでは現在の足場を優先します。</li>
+      <li><b>「高さを絞る」→ Y の欄を開く</b>：橋付近と下の床を切り替え。別の高さの床は点模様で薄く残し、地図の位置関係を保ちます。</li>
+      <li><b>手動で高さを選ぶ → プレイヤーを動かす</b>：ワールドマップの高さは固定。「自分の高さ」で高さだけ追従に戻せます。</li>
+      <li><b>保存した洞窟を見る → 地表 → 洞窟</b>：洞窟の高さを覚えて戻ります。「自分に戻る」は位置・ディメンション・自動表示・高さ追従を戻します。</li>
+      <li><b>地表にいるとき「洞窟」を開く</b>：現在の高さに洞窟の記録がなければ、近い高さの記録を固定表示。未記録の高さには候補への入口を残します。</li>
+    </ul></section>
+    <section class="note"><h2>ゲームへ戻ったときのミニマップ</h2><div class="mini-preview"><canvas id="mini" width="160" height="160" aria-label="現在地を追うミニマップの模式図"></canvas><p><output id="mini-status"></output>ワールドマップで過去の高さを選んでも、こちらは現在地を追う提案です。外側の「プレイヤーを動かす」で、両方の動きを比べられます。</p></div><ul>
+      <li><b>自動／地表／洞窟</b>：自動は現在地に合わせ、明示的な地表・洞窟の選択は閲覧中に保持します。</li>
+      <li><b>自分 Y…／固定 Y…</b>：色に加えて文字で追従状態を示します。ドラッグは高さの追従を止めません。</li>
+      <li><b>広く見る／高さを絞る</b>は、戻る操作でも維持します。表示している床が歩いて到達できることを保証する表示ではありません。</li>
+      <li>高さは<b>見たい空間や足場を選ぶ手がかり</b>です。記録候補、絞り方、描画範囲の数値から保存形式や空間判定方式は決まりません。</li>
+    </ul></section>
+  </div>
+  <section class="ask">
+    <h2>確認したいこと</h2>
+    <ol>
+      <li><b>普段は「広く見る」</b>で溶岩湖や空洞の形を把握できるか。「高さを絞る」にすると上下に重なる足場を読み取りやすいか。</li>
+      <li><b>高さの選択パネル</b>：入力・スライダー・記録済み候補を一緒に使える形は扱いやすいか。モックでは −／＋は 1 ブロック、Shift と一緒なら 8 ブロックです。</li>
+      <li><b>戻る操作</b>：「自分の高さ」は高さだけ、「自分に戻る」は位置・表示も戻す。この違いが読み取れるか。</li>
+      <li><b>過去の洞窟を見返す</b>：手動の高さと表示を保ち、ミニマップの現在地表示を変えない動きでよいか。</li>
+    </ol>
+    <p class="minor">合意済み：今いる足場を優先・同じ空洞内の連続性・地上洞窟も保存して再閲覧。未確定：このページの新しい操作、ミニマップとの連動、色、空間の選択と切り替え、保存の表現。再入場・保存は想定する場面で、モックがゲームのデータを読み書きすることはありません。</p>
+  </section>
+  <p class="minor">既存の形式：<a href="worldmap-review.html">ワールドマップの見直し</a> · <a href="minimap.html">ミニマップ</a> · <a href="README.md">モック一覧</a></p>
+</div>
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+const canvas = $('map'), stage = $('stage');
+const state = {scene:'nether',detail:'wide',width:673,dimension:1,mode:'surface',automatic:true,viewAutomatic:true,
+  y:68,playerY:68,playerX:0,playerZ:0,cx:0,cz:0,zoom:1,panel:true,popover:false,closed:false,
+  selected:null,marks:{waypoints:true,schematics:true,shapes:true}};
+let topHeight=16, drag=null, pointer=null, queued=false;
+const clamp=(n,a,b)=>Math.min(b,Math.max(a,n));
+const noise=(x,z)=>Math.sin(x*.09+Math.sin(z*.07)*2)*Math.cos(z*.055-x*.025);
+const rgb=(r,g,b,k=1)=>[r*k,g*k,b*k];
+function ownDimension(){return state.scene==='nether'?1:0;}
+function playerMode(){return ownDimension()===1||state.playerY<50?'cave':'surface';}
+function currentMode(){return state.dimension===1?'cave':state.dimension===2?'surface':state.viewAutomatic?(state.dimension===ownDimension()?playerMode():'surface'):state.mode;}
+function referenceY(){return state.automatic&&state.dimension===(state.scene==='nether'?1:0)?state.playerY:state.y;}
+function isFollowing(){return state.automatic&&state.dimension===(state.scene==='nether'?1:0)&&currentMode()==='cave';}
+function caveKind(dimension,y){
+  if(dimension===1)return y>=16&&y<=88?'nether':'empty';
+  return y>=-14&&y<=48?'cave':y>=-54&&y<=-22?'lower':'empty';
+}
+function kind(){return currentMode()==='surface'?(state.dimension===2?'end':'surface'):caveKind(state.dimension,referenceY());}
+function localOrigin(x=state.cx,z=state.cz){return state.scene==='saved'&&Math.hypot(x-320,z-160)<Math.hypot(x,z)?{x:320,z:160}:{x:0,z:0};}
+function recordedChoices(){
+  const choices=state.dimension===1?[{y:68,label:'橋の高さ'},{y:32,label:'空洞の底'}]:localOrigin().x===320?[{y:-38,label:'保存した地下の記録'}]:[{y:28,label:'橋の高さ'},{y:-7,label:'空洞の底'},{y:-38,label:'下層の洞窟'}];
+  return choices.filter(c=>sample(state.cx,state.cz,caveKind(state.dimension,c.y),c.y).tag!=='unknown');
+}
+function sample(x,z,type=kind(),reference=referenceY()){
+  const origin=localOrigin(x,z);x-=origin.x;z-=origin.z;
+  const n=noise(x,z),grain=((Math.floor(x)*13+Math.floor(z)*7)%9)/9;
+  const known=(x/226)**2+(z/145)**2<1&&!(x>126&&z<-55);
+  if(type==='empty'||!known)return {color:((Math.floor(x+z)%11+11)%11<1)?[37,40,44]:[11,12,13],tag:'unknown'};
+  if(type==='surface'){
+    const water=Math.abs(z-25-Math.sin(x*.022)*26)<18;
+    return {color:water?rgb(48,104,153,1+grain*.12):rgb(81+n*15,121+n*15,57+n*10,.85+grain*.13),height:water?62:70,tag:'floor'};
+  }
+  if(type==='end'){
+    const land=(x/135)**2+(z/87)**2<.72+n*.14;
+    return {color:land?rgb(178,176,123,.9+grain*.12):[18,18,22],height:land?62:0,tag:land?'floor':'drop'};
+  }
+  const lower=type==='lower',nether=type==='nether';
+  const cavity=(x/(lower?142:203))**2+(z/(lower?78:120))**2;
+  const tunnel=Math.abs(z-6-Math.sin(x*.025)*23)<9&&Math.abs(x)<218;
+  if(cavity>1+n*.1&&!tunnel)return {color:rgb(52,54,60,.85+grain*.2),tag:'wall'};
+  if(x>105&&x<139&&z>32&&z<62)return {color:(Math.floor(x)%5===0&&Math.floor(z)%6===0)?[73,68,84]:[23,19,36],tag:'drop'};
+  const floorY=lower?-39:nether?31:-8;
+  const bridge=Math.abs(z-2)<4.8&&x>-88&&x<86;
+  const highBank=((Math.abs(x)-112)/38)**2+((z+Math.sin(x*.06)*5)/25)**2<1;
+  const upper=reference>=(nether?68:28);
+  if((bridge&&upper)||(highBank&&reference>=(nether?52:15))){
+    return {color:bridge?rgb(164,131,85,.94+grain*.12):nether?rgb(132,63,49,.9+grain*.1):rgb(119,123,119,.9+grain*.1),height:bridge?(nether?67:27):Math.min(reference-1,nether?67:27),tag:'floor'};
+  }
+  const island=(x/27)**2+(z/20)**2<1;
+  const liquid=!island&&(nether?(Math.sin(x*.025)+Math.cos(z*.04)+n*.4>.22):(!lower&&(x-48)**2/2200+(z+25)**2/350<1));
+  const depth=Math.abs(reference-floorY);
+  const shade=clamp(1-depth*.006,.54,1)*(.9+grain*.1);
+  if(liquid)return {color:nether?rgb(235,100+n*9,18,Math.max(.77,shade)):rgb(55,117,139,shade),height:floorY,tag:'floor'};
+  let color=nether?rgb(107+n*15,65+n*8,51,shade):lower?rgb(82+n*6,86+n*8,96,shade):rgb(116+n*10,125+n*12,115,shade);
+  if(!nether&&!lower&&z>30&&x<-20)color=rgb(87+n*8,120+n*12,73,shade);
+  return {color,height:floorY,tag:'floor'};
+}
+function displaySample(x,z){
+  const hit=sample(x,z);
+  // Authored examples of retaining context while emphasizing a nearby floor.
+  if(currentMode()==='cave'&&state.detail==='focused'&&hit.tag==='floor'&&Math.abs(hit.height-(referenceY()-1))>6){
+    const dotted=((x%5+5)%5===0)&&((z%5+5)%5===0),base=dotted?66:24;
+    return {...hit,color:hit.color.map(c=>base+c*.17),tag:'other'};
+  }
+  return hit;
+}
+function geometry(){
+  const panel=state.panel?166:0,w=state.width,h=Math.round(w*9/16),scale=state.zoom*w/673*1.15;
+  return {w,h,scale,mx:(w-panel)/2,my:(topHeight+h-15)/2,panel};
+}
+function project(x,z){const g=geometry();return {x:g.mx+(x-state.cx)*g.scale,z:g.my+(z-state.cz)*g.scale};}
+function coordinates(x,y){const g=geometry();return {x:state.cx+(x-g.mx)/g.scale,z:state.cz+(y-g.my)/g.scale};}
+function points(){
+  const o=localOrigin(),items=kind()==='surface'?[[40,-70,'村'],[-90,55,'洞窟の入口']]:kind()==='lower'?[[0,0,'下層の記録'],[85,24,'坑道']]:[[0,-10,'橋'],[55,56,state.dimension===1?'溶岩湖':'空洞の底']];
+  return items.map(([x,z,name])=>({x:x+o.x,z:z+o.z,name}));
+}
+function draw(){
+  const g=geometry();canvas.width=g.w;canvas.height=g.h;
+  const ctx=canvas.getContext('2d'),image=ctx.createImageData(g.w,g.h);
+  for(let z=0;z<g.h;z++)for(let x=0;x<g.w;x++){
+    const p=coordinates(x,z),c=displaySample(Math.floor(p.x),Math.floor(p.z)).color,i=(z*g.w+x)*4;
+    image.data[i]=c[0];image.data[i+1]=c[1];image.data[i+2]=c[2];image.data[i+3]=255;
+  }
+  ctx.putImageData(image,0,0);
+  ctx.save();ctx.beginPath();ctx.rect(0,topHeight,g.w-g.panel,g.h-topHeight-15);ctx.clip();
+  const origin=localOrigin();
+  if(kind()!=='empty'){
+    ctx.font='9px "DotGothic16",monospace';ctx.textAlign='center';
+    if(state.marks.waypoints)for(const [i,point] of points().entries()){
+      const p=project(point.x,point.z),label=point.name;
+      if(state.selected===i){ctx.strokeStyle='#fff';ctx.lineWidth=1;ctx.strokeRect(p.x-4,p.z-4,8,8);}
+      ctx.fillStyle='#ffc24a';ctx.fillRect(p.x-2,p.z-2,4,4);
+      const width=ctx.measureText(label).width;ctx.fillStyle='rgba(16,17,19,.85)';ctx.fillRect(p.x-width/2-3,p.z+5,width+6,13);
+      ctx.fillStyle='#fff';ctx.fillText(label,p.x,p.z+15);
+    }
+    if(state.marks.shapes){const p=project(-60+origin.x,42+origin.z);ctx.strokeStyle='#c5b341';ctx.lineWidth=1;ctx.strokeRect(p.x,p.z,24*g.scale,18*g.scale);}
+    if(state.marks.schematics){const p=project(95+origin.x,-50+origin.z);ctx.strokeStyle='#38b7b3';ctx.lineWidth=1;ctx.strokeRect(p.x,p.z,17*g.scale,12*g.scale);}
+  }
+  if(state.dimension===(state.scene==='nether'?1:0)){
+    const p=project(state.playerX,state.playerZ),same=currentMode()==='surface'?state.playerY>50:Math.abs(referenceY()-state.playerY)<13;
+    ctx.save();ctx.translate(p.x,p.z);ctx.globalAlpha=same?1:.5;ctx.beginPath();ctx.moveTo(0,-6);ctx.lineTo(4,5);ctx.lineTo(0,2);ctx.lineTo(-4,5);ctx.closePath();ctx.fillStyle='#fff';ctx.strokeStyle='#000';ctx.lineWidth=1.5;ctx.fill();ctx.stroke();ctx.restore();
+  }
+  ctx.restore();updateFooter();drawMini();
+}
+function drawMini(){
+  const mini=$('mini'),ctx=mini.getContext('2d'),w=mini.width,image=ctx.createImageData(w,w);
+  const type=playerMode()==='surface'?'surface':caveKind(ownDimension(),state.playerY);
+  for(let z=0;z<w;z++)for(let x=0;x<w;x++){
+    const hit=sample(Math.floor(state.playerX+(x-w/2)/1.2),Math.floor(state.playerZ+(z-w/2)/1.2),type,state.playerY),i=(z*w+x)*4;
+    image.data[i]=hit.color[0];image.data[i+1]=hit.color[1];image.data[i+2]=hit.color[2];image.data[i+3]=255;
+  }
+  ctx.putImageData(image,0,0);ctx.beginPath();ctx.moveTo(w/2,w/2-7);ctx.lineTo(w/2+5,w/2+6);ctx.lineTo(w/2,w/2+2);ctx.lineTo(w/2-5,w/2+6);ctx.closePath();ctx.fillStyle='#fff';ctx.strokeStyle='#000';ctx.lineWidth=2;ctx.fill();ctx.stroke();
+  const status=`現在地：${playerMode()==='cave'?'洞窟':'地表'} Y ${state.playerY}`;if($('mini-status').textContent!==status)$('mini-status').textContent=status;
+}
+function footer(){return `<div class="bottom"><span id="coords"></span><span class="sp"></span><span id="tracking"></span><span class="scale"><i id="scale-line"></i><span>50 ブロック</span></span></div>`;}
+function updateFooter(){
+  const at=pointer||{x:state.cx,z:state.cz},terrain=displaySample(Math.floor(at.x),Math.floor(at.z));
+  $('coords').textContent=`X ${Math.floor(at.x)}  Z ${Math.floor(at.z)}${terrain.height===undefined?'':`  床 Y ${terrain.height}${terrain.tag==='other'?'（別の高さ）':''}`}`;
+  const following=isFollowing();$('tracking').textContent=currentMode()==='surface'?`${state.viewAutomatic?'自動・':''}地表`:`${state.detail==='wide'?'広く見る':'高さを絞る'}・${following?'自分':'固定'} Y ${referenceY()}`;
+  $('tracking').className=following?'follow':'';$('scale-line').style.width=`${50*geometry().scale}px`;
+  const note=currentMode()==='surface'?'地表を表示中。洞窟に切り替えても、地表の記録は残ります。':state.detail==='wide'?'広く見る：現在の足場と空洞の底を描き、高さが変わっても同じ空間の地形を把握できる表示。':'高さを絞る：選んだ高さ付近の足場を強調し、別の高さの床は点模様で薄く残す表示。';if($('view-note').textContent!==note)$('view-note').textContent=note;
+}
+function terrainControls(){
+  const mode=currentMode(),following=isFollowing();
+  let html=state.dimension===0?`<div class="group" aria-label="地表と洞窟の表示">${[['auto','自動'],['surface','地表'],['cave','洞窟']].map(([id,label])=>`<button class="b" data-mode="${id}" aria-pressed="${id==='auto'?state.viewAutomatic:!state.viewAutomatic&&mode===id}">${label}</button>`).join('')}</div>`:'';
+  if(mode==='cave')html+=`<div class="group" aria-label="洞窟の見方"><button class="b" data-detail="wide" aria-pressed="${state.detail==='wide'}">広く見る</button><button class="b" data-detail="focused" aria-pressed="${state.detail==='focused'}">高さを絞る</button></div><div class="height ${following?'following':''}"><button class="b" data-step="-1" aria-label="表示の高さを下げる" title="1 ブロック下へ。Shift と一緒なら 8 ブロック。">−</button><button class="b choose" data-act="heights" aria-expanded="${state.popover}" aria-label="表示する洞窟の高さを選ぶ">${following?'自分':'固定'} Y ${referenceY()} ▾</button><button class="b" data-step="1" aria-label="表示の高さを上げる" title="1 ブロック上へ。Shift と一緒なら 8 ブロック。">＋</button></div>`;
+  return `<div class="terrain-controls" id="terrain-controls">${html}</div>`;
+}
+function panelHtml(){
+  if(!state.panel)return '';
+  const rows=points();
+  return `<aside class="panel" id="panel" aria-label="ウェイポイント一覧"><div class="panel-head">ウェイポイント <span style="color:var(--mc-faint)">${rows.length}</span><span class="sp"></span><button class="b" data-act="panel" aria-label="一覧を閉じる">›</button></div><div class="panel-list">${rows.map((r,i)=>`<button class="panel-row ${state.selected===i?'on':''}" data-point="${i}"><i class="diamond"></i><span class="point-name">${r.name}</span><span class="sp"></span><span class="point-distance" style="color:var(--mc-faint)">${Math.round(Math.hypot(r.x-state.playerX,r.z-state.playerZ))} m</span></button>`).join('')}</div><div class="panel-detail"><b>${state.selected===null?'印を選ぶと詳細を表示':rows[state.selected].name}</b><span>${state.selected===null?'クリック：印を選択':'この例では、印の選択で高さを変更しません。'}</span><span style="color:var(--mc-faint)">ドラッグ：地図を移動<br>ホイール：拡大縮小</span></div></aside>`;
+}
+function emptyHtml(){
+  if(kind()!=='empty')return '';
+  const choices=recordedChoices();
+  return `<div class="empty"><div class="empty-message">この高さの洞窟は未記録です<br><small>${choices.length?'地図の中心付近の記録':'この付近の記録はありません'}</small><div class="suggestions">${choices.map(c=>`<button class="b" data-recorded="${c.y}">Y ${c.y}</button>`).join('')}</div></div></div>`;
+}
+function canFollow(){return state.dimension===ownDimension()&&playerMode()==='cave';}
+function heightMenuHtml(){
+  const min=state.dimension===1?0:-64;
+  return `<div class="title">表示する洞窟の高さ</div><button data-act="follow" aria-pressed="${isFollowing()}" ${canFollow()?'':'disabled'}>自分の高さ<span>${isFollowing()?'追従中':'追従に戻す'}</span></button>${canFollow()?'':`<div class="hint">${state.dimension!==ownDimension()?'現在地は別のディメンションです。':'現在地は地表です。'}</div>`}<div class="rule"></div><div class="fieldrow"><label for="reference-y">Y</label><input id="reference-y" aria-label="表示する洞窟の基準高さ" type="number" min="${min}" max="127" value="${referenceY()}"><span class="desc">手動で固定</span></div><input id="height-range" aria-label="洞窟の高さをスライダーで選ぶ" type="range" min="${min}" max="127" value="${referenceY()}"><div class="title">中心付近の記録</div><div>${recordedChoices().map(c=>`<button data-recorded="${c.y}" aria-pressed="${!isFollowing()&&referenceY()===c.y}"><span>Y ${c.y}</span><span class="desc">${c.label}</span></button>`).join('')}</div>`;
+}
+function render(){
+  const g=geometry();stage.style.width=`${g.w}px`;stage.style.height=`${g.h}px`;stage.style.setProperty('--panel-space',`${g.panel}px`);
+  const dimensions=['地上','ネザー','エンド'].map((label,i)=>`<button class="b" data-dim="${i}" aria-pressed="${state.dimension===i}">${i===(state.scene==='nether'?1:0)?'* ':''}${label}</button>`).join('');
+  const marks=[['waypoints','◆ ウェイポイント'],['schematics','□ 設計図'],['shapes','□ 形状']].map(([id,label])=>`<button class="b" data-mark="${id}" aria-label="${label}" title="${label}" aria-pressed="${state.marks[id]}">${label}</button>`).join('');
+  $('chrome').innerHTML=`<div class="topbar" id="topbar"><div class="gbar" id="primary"><span>Lamium</span><div class="group" aria-label="ディメンション">${dimensions}</div>${terrainControls()}<span class="sp"></span><div class="group" id="mark-controls" aria-label="印の表示">${marks}</div><button class="b" data-act="center">自分に戻る</button><button class="b" data-act="panel" aria-pressed="${state.panel}">一覧</button><button class="b close" data-act="close" aria-label="地図を閉じる">×</button></div><div class="gbar" id="secondary" style="display:none"></div></div>${panelHtml()}${footer()}${emptyHtml()}${state.closed?'<div class="closed"><span>地図を閉じました</span><button class="b" data-act="open">ワールドマップを開く (M)</button></div>':''}`;
+  const primary=$('primary');
+  if(primary.scrollWidth>state.width)document.querySelectorAll('[data-mark]').forEach(b=>{b.textContent=b.getAttribute('aria-label').split(' ')[0];});
+  if(primary.scrollWidth>state.width){
+    const secondary=$('secondary');secondary.style.display='flex';secondary.append($('terrain-controls'));
+  }
+  topHeight=$('topbar').offsetHeight;if($('panel'))$('panel').style.top=`${topHeight}px`;
+  if(state.popover){
+    const anchor=$('terrain-controls').querySelector('.height');
+    if(anchor){
+      const pop=document.createElement('div');pop.className='popover';pop.id='height-menu';pop.setAttribute('aria-label','洞窟の高さの選択');pop.setAttribute('role','dialog');pop.innerHTML=heightMenuHtml();
+      if(!recordedChoices().length)pop.insertAdjacentHTML('beforeend','<div class="hint">この付近の記録はありません。</div>');
+      pop.style.top=`${topHeight+1}px`;pop.style.left=`${clamp(anchor.offsetLeft,3,state.width-183)}px`;$('chrome').append(pop);
+      if(pop.offsetHeight+topHeight>g.h-17)pop.style.top=`${Math.max(topHeight,g.h-17-pop.offsetHeight)}px`;
+    }
+  }
+  fit();draw();
+}
+function fit(){const k=$('fit').clientWidth/state.width;stage.style.transform=`scale(${k})`;$('fit').style.height=`${Math.round(state.width*9/16)*k}px`;}
+function manualHeight(y,keepInput=false){
+  if(!Number.isFinite(y))return;state.y=clamp(Math.round(y),state.dimension===1?0:-64,127);state.automatic=false;state.viewAutomatic=false;state.mode='cave';pointer=null;
+  if(!keepInput){render();return;}
+  // Committing on blur must keep the button receiving that click alive.
+  if($('reference-y'))$('reference-y').value=state.y;if($('height-range'))$('height-range').value=state.y;
+  const trigger=document.querySelector('[data-act=heights]');trigger.textContent=`固定 Y ${state.y} ▾`;trigger.closest('.height').classList.remove('following');
+  document.querySelectorAll('[data-mode]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.mode==='cave'));
+  document.querySelector('[data-act=follow]')?.setAttribute('aria-pressed',false);
+  const followText=document.querySelector('[data-act=follow] span');if(followText)followText.textContent='追従に戻す';
+  document.querySelectorAll('#height-menu [data-recorded]').forEach(b=>b.setAttribute('aria-pressed',+b.dataset.recorded===state.y));
+  const rows=points();document.querySelectorAll('[data-point]').forEach(b=>{const point=rows[+b.dataset.point];b.querySelector('.point-name').textContent=point.name;b.querySelector('.point-distance').textContent=`${Math.round(Math.hypot(point.x-state.playerX,point.z-state.playerZ))} m`;});
+  if(state.selected!==null&&document.querySelector('.panel-detail b'))document.querySelector('.panel-detail b').textContent=rows[state.selected].name;
+  const empty=$('chrome').querySelector('.empty');
+  if(kind()!=='empty')empty?.remove();else if(!empty)$('chrome').insertAdjacentHTML('beforeend',emptyHtml());
+  draw();
+}
+function center(){
+  state.dimension=state.scene==='nether'?1:0;state.mode=state.playerY<50?'cave':'surface';state.cx=state.playerX;state.cz=state.playerZ;state.y=state.playerY;state.automatic=true;state.viewAutomatic=true;state.popover=false;render();
+}
+function resetScene(scene){
+  Object.assign(state,{scene,detail:'wide',dimension:scene==='nether'?1:0,mode:scene==='nether'?'surface':'cave',automatic:scene!=='saved',viewAutomatic:scene!=='saved',y:scene==='nether'?68:scene==='saved'?-38:28,playerY:scene==='nether'?68:scene==='saved'?72:28,playerX:0,playerZ:0,cx:scene==='saved'?320:0,cz:scene==='saved'?160:0,zoom:1,popover:false,closed:false,selected:null});pointer=null;
+  document.querySelectorAll('[data-scene]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.scene===scene));
+  const positions=scene==='nether'?[[68,'橋の上'],[60,'同じ空洞の崖道'],[32,'空洞の底']]:scene==='saved'?[[72,'地表'],[28,'近くの洞窟']]:[[28,'橋の上'],[24,'橋を少し下りる'],[-7,'空洞の底'],[-38,'別の地下空間']];
+  $('positions').innerHTML=positions.map(([y,label])=>`<button data-player-y="${y}" aria-pressed="${state.playerY===y}">${label} Y ${y}</button>`).join('');
+  updateScenario();render();
+}
+function updateScenario(){
+  const intro=state.scene==='nether'?'プレイヤーはネザーの同じ大空洞内を移動。溶岩湖は Y 31 付近です。':state.scene==='cave'?'プレイヤーは地上の大洞窟を移動。底は Y −8 付近。Y −38 の部屋は岩で隔てられた別の空間です。':'プレイヤーは別の場所の地表 Y 72。保存した遠方の洞窟（X 320 / Z 160）を見ています。';
+  $('scenario-note').textContent=intro;
+}
+$('scenes').addEventListener('click',e=>{const b=e.target.closest('[data-scene]');if(b)resetScene(b.dataset.scene);});
+$('positions').addEventListener('click',e=>{const b=e.target.closest('[data-player-y]');if(!b)return;state.playerY=+b.dataset.playerY;state.playerX=(state.scene==='nether'&&state.playerY===60)||(state.scene==='cave'&&state.playerY===24)?-100:0;document.querySelectorAll('[data-player-y]').forEach(x=>x.setAttribute('aria-pressed',x===b));if(state.automatic)state.y=state.playerY;if(state.viewAutomatic)state.mode=state.scene!=='nether'&&state.playerY>50?'surface':'cave';render();});
+$('sizes').addEventListener('click',e=>{const b=e.target.closest('[data-size]');if(!b)return;state.width=+b.dataset.size;document.querySelectorAll('[data-size]').forEach(x=>x.setAttribute('aria-pressed',x===b));render();});
+$('reset').addEventListener('click',()=>resetScene(state.scene));
+$('chrome').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  if(b.dataset.dim!==undefined){if(state.automatic)state.y=referenceY();state.dimension=+b.dataset.dim;state.popover=false;render();}
+  else if(b.dataset.mode){
+    state.popover=false;
+    if(b.dataset.mode==='auto'){state.viewAutomatic=true;state.automatic=true;}
+    else{state.mode=b.dataset.mode;state.viewAutomatic=false;if(state.mode==='cave'&&kind()==='empty'){const choices=recordedChoices().sort((a,b)=>Math.abs(a.y-referenceY())-Math.abs(b.y-referenceY()));state.y=choices[0]?.y??referenceY();state.automatic=false;}}
+    render();
+  }
+  else if(b.dataset.detail){state.detail=b.dataset.detail;state.popover=false;render();}
+  else if(b.dataset.step)manualHeight(referenceY()+(e.shiftKey?8:1)*+b.dataset.step);
+  else if(b.dataset.recorded){state.popover=false;manualHeight(+b.dataset.recorded);}
+  else if(b.dataset.mark){state.marks[b.dataset.mark]=!state.marks[b.dataset.mark];render();}
+  else if(b.dataset.point!==undefined){const point=points()[+b.dataset.point];state.selected=+b.dataset.point;state.cx=point.x;state.cz=point.z;render();}
+  else if(b.dataset.act){
+    switch(b.dataset.act){
+      case 'center':center();break;
+      case 'panel':state.panel=!state.panel;state.popover=false;render();break;
+      case 'heights':state.popover=!state.popover;render();break;
+      case 'follow':if(canFollow()){state.automatic=true;state.y=state.playerY;state.popover=false;render();}break;
+      case 'close':state.closed=true;state.popover=false;render();break;
+      case 'open':state.closed=false;render();break;
+    }
+  }
+});
+function commitHeight(e){if(e.target.id==='reference-y'){if(e.target.value.trim()===''){e.target.value=referenceY();return;}const y=Number(e.target.value);if(y!==referenceY())manualHeight(y,true);}}
+$('chrome').addEventListener('change',commitHeight);
+$('chrome').addEventListener('focusout',commitHeight);
+$('chrome').addEventListener('input',e=>{if(e.target.id==='height-range')manualHeight(Number(e.target.value),true);});
+$('chrome').addEventListener('keydown',e=>{if(e.target.id==='reference-y'&&e.key==='Enter'){e.preventDefault();e.stopPropagation();if(e.target.value.trim()!==''){state.popover=false;manualHeight(Number(e.target.value));}}else if(e.target.matches('input')&&e.key==='Escape'){e.preventDefault();e.stopPropagation();state.popover=false;render();document.querySelector('[data-act=heights]')?.focus();}});
+function localPoint(e){const rect=canvas.getBoundingClientRect(),k=state.width/rect.width;return {x:(e.clientX-rect.left)*k,y:(e.clientY-rect.top)*k};}
+canvas.addEventListener('pointerdown',e=>{if(e.button!==0||state.closed)return;if(state.popover){state.popover=false;render();}const p=localPoint(e);drag={x:p.x,y:p.y,cx:state.cx,cz:state.cz};canvas.setPointerCapture(e.pointerId);canvas.classList.add('dragging');});
+canvas.addEventListener('pointermove',e=>{const p=localPoint(e);if(drag){const scale=geometry().scale;state.cx=drag.cx-(p.x-drag.x)/scale;state.cz=drag.cz-(p.y-drag.y)/scale;pointer=null;if(!queued){queued=true;requestAnimationFrame(()=>{queued=false;draw();});}}else{pointer=coordinates(p.x,p.y);updateFooter();}});
+canvas.addEventListener('pointerup',e=>{const p=localPoint(e);if(drag&&Math.hypot(p.x-drag.x,p.y-drag.y)<3&&state.marks.waypoints){const i=points().findIndex(point=>{const at=project(point.x,point.z);return Math.hypot(p.x-at.x,p.y-at.z)<8;});if(i>=0){state.selected=i;render();}}drag=null;canvas.classList.remove('dragging');});
+canvas.addEventListener('pointercancel',()=>{drag=null;canvas.classList.remove('dragging');});
+canvas.addEventListener('pointerleave',()=>{pointer=null;updateFooter();});
+canvas.addEventListener('wheel',e=>{e.preventDefault();const p=localPoint(e),before=coordinates(p.x,p.y);state.zoom=clamp(state.zoom*(e.deltaY<0?1.25:.8),.45,3);const after=coordinates(p.x,p.y);state.cx+=before.x-after.x;state.cz+=before.z-after.z;state.popover=false;render();},{passive:false});
+document.addEventListener('keydown',e=>{if(e.target.matches('input'))return;if(e.key==='Escape'){if(state.popover)state.popover=false;else state.closed=!state.closed;render();}else if(e.key.toLowerCase()==='m'){state.closed=!state.closed;render();}});
+document.addEventListener('click',e=>{if(state.popover&&!e.target.closest('#height-menu,.height')){state.popover=false;render();}});
+new ResizeObserver(fit).observe($('fit'));document.fonts.ready.then(render);resetScene('nether');
+</script>
+</body>
+</html>

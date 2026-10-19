@@ -127,7 +127,8 @@ placements and shapes before the layer switches for the list and details.
 
 ## Cave and Nether representation review (L-228, 2026-10-19)
 
-Open Design feedback, not an agreed replacement for the current contract.
+Product direction agreed; detailed behavior and implementation remain Design.
+The following observations describe the existing implementation.
 The maintainer found no conspicuous L-216 regression in appearance,
 opening/zoom speed, Nether/cave display or retention after rejoining, but
 questioned whether the terrain the cave view selects is useful. Supplied
@@ -150,9 +151,82 @@ proof of what each dark screenshot pixel represents.
 `WorldMap.cpp` can follow the player's band. A different band can have a
 different recorded/received footprint. The screenshots' pending images
 also need to be ruled out before attributing the apparent size change.
-The useful terrain reference, continuity while changing height and how
-walls, deep space and unknown terrain should read remain undecided in
-BACKLOG L-228. LMR2's current migration contract is unchanged.
+These storage bands group scans whose reference height can vary within a
+band; they are not fixed cross-sections at a canonical height.
+The current Overworld recording path saves the surface; its cave view is
+transient minimap data, not a saved cave map for later world-map browsing.
+
+Agreed direction (maintainer 2026-10-19): the map should represent the
+cavern the player occupies, showing the current ledge/path and the deeper
+floor or lava within that open space. Large Overworld caves share this
+goal with the Nether; narrow caves should still communicate floors, walls
+and forks. Moving up or down within one space should preserve its
+recognizable terrain outline, while separate vertically stacked spaces
+remain distinguishable. Height differences should be readable; unknown
+terrain, walls and deep drops should read differently. Only received or
+recorded terrain may contribute, under bounded scan/upload work.
+
+Overlap priority agreed the same day: prefer the floor the player currently
+occupies where a bridge/ledge and a lower floor overlap. On a bridge, its
+path takes priority while the surrounding open parts show the deeper floor
+or lava. Below it, the lower floor takes priority. The exact visual
+treatment and selection/transition algorithm remain open.
+
+Scope extended by the maintainer the same day: persist explored Overworld
+cave terrain so it can be revisited on the world map, including after
+leaving and rejoining. Retain the surface map alongside cave terrain.
+Vertically overlapping cave spaces must remain distinguishable when
+recording and browsing; the representation and selection controls are not
+yet chosen. This extends the original surface-only Overworld recording
+scope; it is not implemented or checked in game.
+
+Design scenarios to preserve when specifying and implementing L-228:
+
+| Scenario | Required result |
+|---|---|
+| Move between high and low ledges in one large cavern | Retain its recognizable floor/lava outline while keeping the occupied path readable. |
+| Stand on a bridge, then go underneath | Prioritize the occupied floor in the overlap; show deeper terrain in the surrounding open parts. |
+| Visit separate cave rooms at the same X/Z and different heights | Keep the rooms distinguishable and retain their recorded terrain for later viewing. |
+| Leave and rejoin, then review an explored cave | Its recorded terrain remains available, alongside the surface map. |
+| Encounter terrain the client has not received | Distinguish unknown terrain from a wall or a known deep drop; use applicable recorded data where available. |
+
+Interaction decision (D, 2026-10-19): the reduced control model in
+[demos/cave-map-simple.html](demos/cave-map-simple.html) was accepted after
+the A/B/C mockups were rejected as too complex.
+
+- The top bar has one terrain state button (`地表` / `洞窟 広 Y68` /
+  `洞窟 層 Y68`). Its panel opens directly under that button. It does not
+  close the waypoint list; when the list leaves too little room, the panel
+  shifts left instead.
+- The panel has three rows: cave on/off, broad on/off, and height with `-` /
+  a directly editable number / `+`. A separate action button,
+  `自分の高さに合わせる`, returns the height to the player.
+- The map opens at the player's height. Changing the height fixes it; the
+  action button returns to the player's height. There is no follow toggle,
+  slider, recorded-height list or three-way mode.
+- Standard: the Nether starts broad, an Overworld cave starts in the
+  selected layer. The minimap stays broad and follows the player.
+- The map does not switch between cave and surface while it is open; the
+  initial choice is made when it opens.
+- Layer switches keep their names while they fit; they become symbols only
+  when the bar is too narrow.
+
+Implementation plan for v1: record explored Overworld cave terrain in
+16-block bands alongside the retained surface map, using new
+`overworld/y<Y>` folders under the existing LMR2 layout. Vertically
+overlapping spaces inside one band are not distinguished; separate bands
+are. Cave columns use a deeper downward read to find the occupied floor and
+the lower floor/lava; the world map's layer view dims floors outside the
+selected height, while broad view keeps them. The recording budget is shared
+between the surface and cave layers by taking turns. Unknown terrain, walls
+and deep drops keep distinct reads.
+
+This does not select a connectivity algorithm or claim that a displayed
+floor is walkably reachable. Scan bounds, the exact temporary window, colors
+and the smaller-footprint cause remain implementation/validation details, not
+new user-visible choices. DESIGN.md records the product direction and
+BACKLOG L-228 owns the work status. The current LMR2 migration contract is
+unchanged.
 
 ## World map zoom-out (L-187, 2026-10-14)
 

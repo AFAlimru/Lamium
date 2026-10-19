@@ -1,0 +1,559 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lamium Cave Map Layout Review</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Noto+Sans+JP:wght@400;500;700&display=swap">
+<style>
+:root{
+  color-scheme:dark;
+  --ground:#15181a;--ground-2:#1c2124;--line:#2c3337;--ink:#e6ebe8;--ink-2:#a6b0ab;--ink-3:#77827c;
+  --accent:#6cc349;--accent-deep:#3c8527;
+  --mc-panel:16,17,19;--mc-edge:rgba(255,255,255,.14);--mc-hover:rgba(255,255,255,.07);
+  --mc-text:#fff;--mc-dim:#b4b8b6;--mc-faint:#7f8583;--mc-key:#2b2c2d;--mc-key-edge:#5a5b5c;
+  --mc-on:#3c8527;--mc-on-edge:#6cc349;
+  --mc-font:"DotGothic16","MS Gothic","Osaka-Mono",monospace;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);font:15px/1.65 "Noto Sans JP",system-ui,sans-serif}
+.wrap{max-width:1120px;margin:0 auto;padding:28px 16px 64px;display:grid;gap:22px}
+h1{font:700 26px/1.35 "Noto Sans JP",sans-serif;margin:0;text-wrap:balance}
+h2{font:700 17px/1.4 "Noto Sans JP",sans-serif;margin:0}
+h3{font:700 14px/1.4 "Noto Sans JP",sans-serif;margin:0}
+p{margin:0}.lede{margin-top:8px;max-width:80ch;color:var(--ink-2)}
+.eyebrow{font:500 12px/1.4 "Noto Sans JP",sans-serif;letter-spacing:.08em;color:var(--accent);margin-bottom:10px}
+.controls{display:flex;flex-wrap:wrap;gap:10px 22px;align-items:end}
+.cgroup{display:grid;gap:5px}.cgroup>span{font-size:12px;color:var(--ink-2)}
+.seg{display:flex;flex-wrap:wrap;gap:0}
+.seg button{font:13px/1.4 "Noto Sans JP",sans-serif;color:var(--ink-2);background:var(--ground-2);border:1px solid var(--line);padding:6px 11px;cursor:pointer}
+.seg button+button{margin-left:-1px}
+.seg button[aria-pressed=true]{position:relative;color:#fff;background:var(--accent-deep);border-color:var(--accent)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.legend{display:flex;flex-wrap:wrap;gap:8px 20px;font-size:12px;color:var(--ink-2)}
+.legend span{display:flex;align-items:center;gap:6px}.swatch{width:14px;height:14px;display:inline-block}
+.unknown{background:repeating-linear-gradient(135deg,#0b0c0d 0 4px,#272a2e 4px 5px)}
+.wall{background:#34363c}.drop{background:#171324}.other{background:radial-gradient(#77776c .7px,transparent .8px) 0 0/4px 4px,#252a29}
+.variant{display:grid;gap:8px;border-top:1px solid var(--line);padding-top:18px}
+.vhead{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.vhead h2{flex:none}.badge{font:600 11px/1.4 "Noto Sans JP",sans-serif;padding:3px 8px;border:1px solid var(--line);background:var(--ground-2);color:var(--ink-2)}
+.badge.good{color:#b8ef9b;border-color:#3c8527;background:rgba(60,133,39,.16)}
+.badge.warn{color:#ffd98a;border-color:#8a6a24;background:rgba(255,194,74,.1)}
+.badge.bad{color:#ffb3a8;border-color:#8a3b33;background:rgba(224,74,60,.12)}
+.vnote{font-size:12.5px;color:var(--ink-3);max-width:90ch}
+.stage-fit{position:relative;width:100%;max-width:900px;margin:2px auto 0;overflow:hidden;background:#0b0c0d;border:1px solid var(--line)}
+.stage{position:absolute;left:0;top:0;transform-origin:0 0;overflow:hidden;background:#0b0c0d;font:9px/1.25 var(--mc-font);color:var(--mc-text);user-select:none;
+  --row:15px;--btn:11px;--font:9px;--pad:3px}
+.stage.bigbar{--row:17px;--btn:13px;--font:10px;--pad:4px}
+.stage canvas{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelated}
+.chrome{position:absolute;inset:0}
+.topbar{position:absolute;top:0;left:0;right:0;z-index:3;background:rgba(var(--mc-panel),.95);border-bottom:1px solid var(--mc-edge)}
+.gbar{display:flex;align-items:center;gap:2px;min-height:var(--row);padding:0 var(--pad);white-space:nowrap;font-size:var(--font)}
+.gbar>*,.group{flex:none}
+.gbar.wrap{flex-wrap:wrap;align-content:center}
+.brand{color:var(--mc-text);padding:0 1px}
+.group{display:flex;align-items:center}.group .b+.b{margin-left:-1px}
+.b{font:var(--font)/var(--btn) var(--mc-font);height:var(--btn);white-space:nowrap;border:0;border-radius:0;padding:0 4px;color:var(--mc-dim);background:var(--mc-key);box-shadow:inset 0 0 0 1px var(--mc-key-edge);cursor:pointer}
+.b:hover{color:#fff;background:#3b3c3d}
+.b.on,.b[aria-pressed=true]{color:#fff;background:var(--mc-on);box-shadow:inset 0 0 0 1px var(--mc-on-edge)}
+.b.state{color:var(--mc-on-edge);box-shadow:inset 0 0 0 1px var(--mc-on-edge);background:#25301f}
+.b.close{width:13px;padding:0;text-align:center}
+.sp{flex:1 1 0;min-width:2px}
+.b.short{width:20px;padding:0;text-align:center}
+.heightrow{display:flex;align-items:center}.heightrow .b{width:14px;padding:0;text-align:center}
+.heightval{min-width:52px;text-align:center;padding:0 3px;color:var(--mc-text);background:var(--mc-key);box-shadow:inset 0 0 0 1px var(--mc-key-edge);height:var(--btn);font:var(--font)/var(--btn) var(--mc-font);border:0}
+.heightval.follow{color:var(--mc-on-edge)}
+.bottom{position:absolute;bottom:0;left:0;right:0;z-index:3;height:14px;display:flex;gap:6px;align-items:center;padding:0 5px;background:rgba(var(--mc-panel),.94);border-top:1px solid var(--mc-edge);font-size:8px;color:var(--mc-dim);white-space:nowrap}
+.scale{display:flex;align-items:center;gap:4px}.scale i{height:4px;width:36px;border:1px solid #fff;border-top:0;display:block}
+.popover{position:absolute;z-index:8;width:208px;max-height:calc(100% - 18px);overflow:auto;padding:4px;background:rgba(var(--mc-panel),.985);box-shadow:inset 0 0 0 1px var(--mc-key-edge);display:grid;gap:3px;font-size:9px}
+.pop-title{padding:1px 4px;color:var(--mc-faint);font-size:8px}
+.pop-seg{display:flex}.pop-seg .b{flex:1;text-align:center;padding:0 2px}
+.pop-row{display:flex;align-items:center;gap:4px;padding:0 3px}
+.pop-row label{color:var(--mc-dim);font-size:8px}
+.pop-row input[type=number]{width:54px;height:16px;background:var(--mc-key);color:#fff;border:1px solid var(--mc-key-edge);border-radius:0;font:9px var(--mc-font);padding:1px 3px}
+.pop-row input[type=range]{width:100%;margin:1px 0;accent-color:var(--mc-on-edge);height:12px}
+.pop-hint{padding:0 4px;color:var(--mc-faint);font-size:8px;line-height:1.45}
+.pop-rec{display:flex;justify-content:space-between;width:100%;text-align:left;padding:0 5px}
+.pop-rec[aria-pressed=true]{box-shadow:inset 2px 0 var(--mc-on-edge);color:#fff}
+.mini-legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:11px;color:var(--ink-3)}
+.cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.note{border:1px solid var(--line);background:var(--ground-2);padding:14px 16px;display:grid;gap:8px;align-content:start}
+.note ul,.ask ol{margin:0;padding-left:1.3em;display:grid;gap:6px;color:var(--ink-2);font-size:13.5px}
+.note b,.ask b{color:var(--ink)}.ask{border:1px solid var(--accent-deep);padding:16px 18px;display:grid;gap:8px}
+.minor{font-size:12px;color:var(--ink-3)}a{color:var(--accent)}
+@media(max-width:700px){.cards{grid-template-columns:1fr}.wrap{padding:18px 12px 40px;gap:18px}h1{font-size:22px}.seg button{font-size:12px;padding:6px 8px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">BACKLOG L-228 · 洞窟マップ · UI レイアウト比較</div>
+    <h1>上バーの置き方を 3 案で比べる</h1>
+    <p class="lede">UI 100%（約 505 単位）と 125%（約 404 単位）で、操作が 1 行に収まるか、状態が読めるかを見るためのモックです。地形は説明用の架空データで、ゲームの描画・保存の実装結果ではありません。<b>標準表示は「ネザー＝広く、Overworld 洞窟＝層」</b>を初期値にしています。ここでの「層」は「高さを絞る（レイヤー表示）」の短縮です。</p>
+  </header>
+
+  <section aria-label="モックの条件">
+    <div class="controls">
+      <div class="cgroup"><span>画面の幅（GUI 単位）</span><div class="seg" id="widths">
+        <button data-width="673" aria-pressed="true">UI 75%（約 673）</button>
+        <button data-width="505" aria-pressed="false">UI 100%（約 505）</button>
+        <button data-width="404" aria-pressed="false">UI 125%（約 404）</button>
+      </div></div>
+      <div class="cgroup"><span>場面</span><div class="seg" id="scenes">
+        <button data-scene="cave" aria-pressed="true">地上の大洞窟</button>
+        <button data-scene="nether" aria-pressed="false">ネザー</button>
+        <button data-scene="surface" aria-pressed="false">地上（地表）</button>
+      </div></div>
+      <div class="cgroup"><span>表示の標準</span><div class="seg" id="standards">
+        <button data-standard="split" aria-pressed="true">ネザー広く／洞窟は層</button>
+        <button data-standard="wide" aria-pressed="false">両方とも広く</button>
+      </div></div>
+      <div class="cgroup"><span>バーの大きさ</span><div class="seg" id="barsizes">
+        <button data-bar="normal" aria-pressed="true">現行 15/11</button>
+        <button data-bar="big" aria-pressed="false">少し大きく 17/13</button>
+      </div></div>
+    </div>
+    <div class="legend" style="margin-top:12px">
+      <span><i class="swatch unknown"></i>未取得</span><span><i class="swatch wall"></i>壁</span><span><i class="swatch drop"></i>深い落ち込み</span><span><i class="swatch other"></i>別の高さ（層表示で薄く残す）</span>
+    </div>
+    <p class="mini-legend" style="margin-top:8px">バッジ：<b>1行・収まる</b>＝その幅で上バーが 1 行／<b>2行</b>＝2 行目を使う／<b>はみ出し</b>＝右端が切れる。<b>アイコン化</b>はレイヤー3つを記号だけにした状態。</p>
+  </section>
+
+  <div id="variants"></div>
+
+  <section class="cards">
+    <section class="note"><h2>各案の意図</h2><ul>
+      <li><b>A 状態ボタン＋ポップオーバー</b>：上バーは「自動 洞窟 層 Y68 ▾」の 1 つだけ。モード・広く/層・高さ・記録候補を中にまとめる。幅をほぼ増やさず、125% でも 1 行を守りやすい。</li>
+      <li><b>B 2 行目に常設</b>：モード・広く/層・高さを 2 行目に並べる。発見しやすいが、125% では 3 行目に折り返すか、右端が切れる。</li>
+      <li><b>C 短縮ラベルで 1 行</b>：「自／地／洞」「広／層」の 1 文字とアイコンで 1 行を狙う。慣れれば速いが、初見では意味が取りにくい。</li>
+    </ul></section>
+    <section class="note"><h2>見てほしいこと</h2><ul>
+      <li>100% と 125% で、状態ボタンの文字が読めるか。特に「自動」「固定」「層」「広」の区別。</li>
+      <li>ポップオーバーを開いたとき、高さの数値・スライダー・記録候補が一緒に使えるか。</li>
+      <li>2 行目常設（B）の地図の狭さと、1 行（A/C）の窮屈さのどちらが許容できるか。</li>
+      <li>バーを 17/13 にすると、100% で読みやすくなるか。125% で逆に窮屈にならないか。</li>
+    </ul></section>
+  </section>
+
+  <section class="ask">
+    <h2>確認したいこと</h2>
+    <ol>
+      <li><b>レイアウト</b>：A／B／C のどれを採用するか。A を推奨、次点 C。B は 125% で 3 行になりやすい。</li>
+      <li><b>バーの大きさ</b>：現行 15/11 のままか、17/13 に上げるか。上げると 125% では少し窮屈になる。</li>
+      <li><b>ネザーの層操作</b>：今の「◀ Y64〜79 ▶」を A の状態ボタンに統合してよいか。残す場合は、広く/層の切替をどこに置くか。</li>
+      <li><b>標準表示</b>：ネザー＝広く、Overworld 洞窟＝層、でよいか。ミニマップは前回どおり「広く」で現在地追従のまま。</li>
+    </ol>
+    <p class="minor">このページの数値・色・ラベルは提案です。ゲーム内の文字幅はブラウザより約 1 割広いため、実装時は実測して折り返しを決めます。</p>
+  </section>
+
+  <p class="minor">既存のモック：<a href="cave-map.html">洞窟・ネザー表示の動作モック</a> · <a href="worldmap-review.html">ワールドマップの見直し</a> · <a href="README.md">モック一覧</a></p>
+</div>
+
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+const clamp = (n, a, b) => Math.min(b, Math.max(a, n));
+const rowOf = stage => stage.classList.contains('bigbar') ? 17 : 15;
+const btnOf = stage => stage.classList.contains('bigbar') ? 13 : 11;
+
+const SCENES = {
+  cave:    { dim: 0, playerY: 68, title: '地上の大洞窟', records: [68, 32, -7] },
+  nether:  { dim: 1, playerY: 68, title: 'ネザーの大空洞', records: [68, 32] },
+  surface: { dim: 0, playerY: 72, title: '地上（地表）', records: [] }
+};
+const state = {
+  width: 673, scene: 'cave', standard: 'split', mode: 'auto', detail: 'layer',
+  y: 68, following: true, bar: 'normal',
+  popover: { A: false, B: false, C: false }, compact: { A: false, B: false, C: false }
+};
+const scene = () => SCENES[state.scene];
+const dimension = () => scene().dim;
+function effective() {
+  if (state.scene === 'nether') return 'nether';
+  if (state.scene === 'surface') return 'surface';
+  return state.mode === 'surface' ? 'surface' : 'cave';
+}
+const isCave = () => effective() === 'cave' || effective() === 'nether';
+function standardDetail() {
+  if (state.scene === 'nether') return 'wide';
+  if (state.scene === 'cave') return state.standard === 'split' ? 'layer' : 'wide';
+  return 'layer';
+}
+function resetView() {
+  state.mode = state.scene === 'nether' ? 'cave' : state.scene === 'surface' ? 'surface' : 'auto';
+  state.detail = standardDetail();
+  state.y = scene().playerY;
+  state.following = true;
+  state.popover = { A: false, B: false, C: false };
+}
+function nearestRecord() {
+  const records = scene().records;
+  if (!records.length) return scene().playerY;
+  return records.reduce((best, y) => Math.abs(y - scene().playerY) < Math.abs(best - scene().playerY) ? y : best, records[0]);
+}
+function stateText() {
+  const eff = effective();
+  const auto = state.mode === 'auto' && state.scene !== 'nether';
+  if (eff === 'surface') return (auto ? '自動 ' : '') + '地表';
+  const detail = state.detail === 'wide' ? '広' : '層';
+  return (auto ? '自動 ' : '') + '洞窟 ' + detail + ' Y' + state.y;
+}
+function fixedText() { return state.following ? '自分 Y' + state.y : '固定 Y' + state.y; }
+
+const layouts = ['A', 'B', 'C'];
+const captions = {
+  A: '上バーは状態ボタン 1 つ。押すとモード・広く/層・高さ・記録候補が開く。',
+  B: '1 行目は今のバー、2 行目に地形操作を常設。狭い画面では 3 行目に折り返す。',
+  C: '1 文字ラベルとアイコンで 1 行を狙う。高さの数字を押すとスライダーと記録候補が開く。'
+};
+$('variants').innerHTML = layouts.map(id => `
+  <article class="variant" data-layout="${id}">
+    <div class="vhead"><h2>${id}. ${id === 'A' ? '状態ボタン＋ポップオーバー' : id === 'B' ? '2 行目に常設' : '短縮ラベルで 1 行'}</h2><span class="badge" id="badge-${id}">—</span></div>
+    <div class="stage-fit" id="fit-${id}"><div class="stage" id="stage-${id}"><canvas id="canvas-${id}"></canvas><div class="chrome" id="chrome-${id}"></div></div></div>
+    <p class="vnote">${captions[id]}</p>
+  </article>`).join('');
+
+function dimsHtml() {
+  const active = state.scene === 'nether' ? 1 : state.scene === 'surface' || state.scene === 'cave' ? 0 : 2;
+  return `<span class="group">${['地上', 'ネザー', 'エンド'].map((label, i) =>
+    `<button class="b ${active === i ? 'on' : ''}" ${i === 2 ? 'title="このモックでは省略"' : `data-scene="${i === 0 ? 'cave' : i === 1 ? 'nether' : 'surface'}"`}>${active === i ? '* ' : ''}${label}</button>`).join('')}</span>`;
+}
+function switchesHtml(compact) {
+  const items = [['◆', 'ウェイポイント'], ['□', '設計図'], ['△', '形状']];
+  return `<span class="group">${items.map(([icon, label]) =>
+    `<button class="b ${compact ? 'short' : ''}" title="${label}" aria-pressed="true">${compact ? icon : icon + ' ' + label}</button>`).join('')}</span>`;
+}
+function rightHtml(includeSwitches, compact) {
+  return (includeSwitches ? switchesHtml(compact) : '') +
+    `<button class="b" data-act="center">自分に戻る</button><button class="b" data-act="panel">一覧</button><button class="b close" data-act="close">×</button>`;
+}
+function modeButtons() {
+  const items = [['auto', '自動'], ['surface', '地表'], ['cave', '洞窟']];
+  return `<div class="pop-seg">${items.map(([id, label]) =>
+    `<button class="b" data-mode="${id}" aria-pressed="${state.mode === id}">${label}</button>`).join('')}</div>`;
+}
+function detailButtons() {
+  return `<div class="pop-seg"><button class="b" data-detail="wide" aria-pressed="${state.detail === 'wide'}">広く見る</button><button class="b" data-detail="layer" aria-pressed="${state.detail === 'layer'}">層で見る</button></div>`;
+}
+function recordsHtml() {
+  const records = scene().records;
+  if (!records.length) return `<div class="pop-hint">この付近の記録はありません。</div>`;
+  const listed = records.slice(0, 5);
+  return listed.map(y => `<button class="b pop-rec" data-y="${y}" aria-pressed="${y === state.y}"><span>Y ${y}</span><span>${y === state.y ? '表示中' : ''}</span></button>`).join('') +
+    (records.length > listed.length ? `<div class="pop-hint">ほか ${records.length - listed.length} 件</div>` : '');
+}
+function heightHtml(withSlider = true) {
+  const min = dimension() === 1 ? 0 : -64, max = 127;
+  return `<div class="pop-title">高さ</div>
+    <div class="heightrow"><button class="b" data-step="-1" title="1 ブロック下。Shift で 8。">−</button>
+    <input class="heightval" data-height-input type="number" min="${min}" max="${max}" value="${state.y}" aria-label="洞窟の高さ">
+    <button class="b" data-step="1" title="1 ブロック上。Shift で 8。">＋</button>
+    <span class="pop-hint" style="padding-left:5px">${state.following ? '自分に追従' : '固定'}</span></div>
+    ${withSlider ? `<input data-height-range type="range" min="${min}" max="${max}" value="${state.y}" aria-label="洞窟の高さをスライダーで選ぶ">` : ''}
+    <button class="b pop-rec" data-act="follow" ${state.scene === 'surface' ? 'disabled' : ''}><span>自分の高さに戻す</span><span>${state.following ? '追従中' : ''}</span></button>`;
+}
+function popoverHtml(layout) {
+  if (!state.popover[layout]) return '';
+  const eff = effective();
+  const canMode = dimension() === 0;
+  const body = layout === 'B'
+    ? `${heightHtml()} <div class="pop-title">中心付近の記録</div>${recordsHtml()}`
+    : `${canMode ? `<div class="pop-title">表示</div>${modeButtons()}` : '<div class="pop-title">表示</div><div class="pop-hint">ネザーは常に洞窟表示です。</div>'}
+       ${isCave() ? `<div class="pop-title">洞窟の見方</div>${detailButtons()}<div class="pop-hint">${state.detail === 'wide' ? '空洞の底と溶岩まで見ます。' : '選んだ高さ付近の床を強調します。'}</div>${heightHtml()}<div class="pop-title">中心付近の記録</div>${recordsHtml()}` : '<div class="pop-hint">洞窟に切り替えると高さと見方を選べます。</div>'}`;
+  return `<div class="popover" data-pop="${layout}">${body}</div>`;
+}
+function topHtml(layout) {
+  const compact = state.compact[layout];
+  if (layout === 'A') {
+    return `<div class="topbar"><div class="gbar primary">
+      <span class="brand">Lamium</span>${dimsHtml()}
+      <button class="b state" data-act="popover">${stateText()} ▾</button>
+      <span class="sp"></span>${rightHtml(true, compact)}
+    </div></div>`;
+  }
+  if (layout === 'B') {
+    const mode = dimension() === 0
+      ? `<span class="group">${[['auto', '自動'], ['surface', '地表'], ['cave', '洞窟']].map(([id, label]) => `<button class="b" data-mode="${id}" aria-pressed="${state.mode === id}">${label}</button>`).join('')}</span>`
+      : '';
+    return `<div class="topbar">
+      <div class="gbar primary"><span class="brand">Lamium</span>${dimsHtml()}<span class="sp"></span>${rightHtml(true, compact)}</div>
+      <div class="gbar secondary wrap">
+        ${mode}
+        ${isCave() ? `<span class="group"><button class="b" data-detail="wide" aria-pressed="${state.detail === 'wide'}">広く見る</button><button class="b" data-detail="layer" aria-pressed="${state.detail === 'layer'}">層で見る</button></span>
+        <span class="group heightrow"><button class="b" data-step="-1">−</button><input class="heightval ${state.following ? 'follow' : ''}" data-height-input type="number" min="${dimension() === 1 ? 0 : -64}" max="127" value="${state.y}"><button class="b" data-step="1">＋</button></span>
+        <button class="b" data-act="popover">記録・スライダー ▾</button>` : '<span class="pop-hint">地表表示中。洞窟に切り替えると高さを選べます。</span>'}
+        <span class="sp"></span>
+      </div>
+    </div>`;
+  }
+  const shortMode = dimension() === 0
+    ? `<span class="group">${[['auto', '自', '自動'], ['surface', '地', '地表'], ['cave', '洞', '洞窟']].map(([id, label, title]) => `<button class="b short" data-mode="${id}" title="${title}" aria-pressed="${state.mode === id}">${label}</button>`).join('')}</span>`
+    : '';
+  return `<div class="topbar"><div class="gbar primary">
+    <span class="brand">Lamium</span>${dimsHtml()}${shortMode}
+    ${isCave() ? `<span class="group"><button class="b short" data-detail="wide" title="広く見る" aria-pressed="${state.detail === 'wide'}">広</button><button class="b short" data-detail="layer" title="層で見る" aria-pressed="${state.detail === 'layer'}">層</button></span>
+      <span class="group heightrow"><button class="b" data-step="-1">−</button><button class="b heightval ${state.following ? 'follow' : ''}" data-act="popover">${state.y}</button><button class="b" data-step="1">＋</button></span>` : ''}
+    <span class="sp"></span>${rightHtml(true, true)}
+  </div></div>`;
+}
+function bottomHtml() {
+  const eff = effective();
+  const label = eff === 'surface' ? '地表' : (state.detail === 'wide' ? '広く見る' : '層で見る') + '・' + (state.following ? '自分' : '固定') + ' Y' + state.y;
+  return `<div class="bottom"><span>X ${eff === 'surface' ? 40 : 12}　Z ${eff === 'surface' ? -70 : -8}</span><span class="sp"></span><span>${label}</span><span class="scale"><i></i>50 ブロック</span></div>`;
+}
+function renderVariant(layout) {
+  const stage = $('stage-' + layout), chrome = $('chrome-' + layout), canvas = $('canvas-' + layout);
+  stage.style.width = state.width + 'px';
+  stage.style.height = Math.round(state.width * 9 / 16) + 'px';
+  stage.classList.toggle('bigbar', state.bar === 'big');
+  canvas.width = state.width; canvas.height = Math.round(state.width * 9 / 16);
+  drawMap(canvas, layout);
+  chrome.innerHTML = topHtml(layout) + bottomHtml() + popoverHtml(layout);
+  const pop = chrome.querySelector('.popover');
+  if (pop) {
+    const opener = chrome.querySelector('[data-act="popover"]');
+    if (opener) {
+      const topbar = chrome.querySelector('.topbar');
+      const barBottom = topbar ? topbar.offsetHeight : rowOf(stage);
+      let left = clamp(opener.offsetLeft, 3, state.width - 211);
+      let top = barBottom + 1;
+      if (top + pop.offsetHeight > canvas.height - 15) top = Math.max(1, canvas.height - 15 - pop.offsetHeight);
+      pop.style.left = left + 'px'; pop.style.top = top + 'px';
+    }
+  }
+  fitStage(layout);
+  postRender(layout);
+}
+function fitStage(layout) {
+  const fit = $('fit-' + layout), stage = $('stage-' + layout);
+  const scale = Math.min(1.9, fit.clientWidth / state.width);
+  stage.style.transform = `scale(${scale})`;
+  stage.style.left = Math.max(0, (fit.clientWidth - state.width * scale) / 2) + 'px';
+  fit.style.height = Math.round(state.width * 9 / 16 * scale) + 'px';
+}
+function measure(layout) {
+  const stage = $('stage-' + layout), chrome = $('chrome-' + layout);
+  const primary = chrome.querySelector('.gbar.primary');
+  const secondary = chrome.querySelector('.gbar.secondary');
+  const row = rowOf(stage);
+  const overPrimary = primary ? primary.scrollWidth > state.width + 1 : false;
+  const overSecondary = secondary ? secondary.scrollWidth > state.width + 1 : false;
+  const rows = Math.max(1, Math.round((chrome.querySelector('.topbar').offsetHeight || row) / row));
+  return { overflow: overPrimary || overSecondary, rows };
+}
+function postRender(layout) {
+  const result = measure(layout);
+  const canCompact = layout === 'A' || layout === 'C';
+  if (result.overflow && canCompact && !state.compact[layout]) {
+    state.compact[layout] = true;
+    renderVariant(layout);
+    return;
+  }
+  const badge = $('badge-' + layout);
+  if (result.overflow) { badge.textContent = 'はみ出し'; badge.className = 'badge bad'; }
+  else if (result.rows > 1) { badge.textContent = result.rows + ' 行' + (state.compact[layout] ? '・アイコン化' : ''); badge.className = 'badge warn'; }
+  else { badge.textContent = '1 行・収まる' + (state.compact[layout] ? '・アイコン化' : ''); badge.className = 'badge good'; }
+}
+function renderAll() {
+  for (const layout of layouts) renderVariant(layout);
+}
+function drawAll() {
+  for (const layout of layouts) {
+    const canvas = $('canvas-' + layout);
+    drawMap(canvas, layout);
+  }
+}
+function redrawMap(layout) {
+  const canvas = $('canvas-' + layout);
+  if (canvas) drawMap(canvas, layout);
+}
+
+/* ---------- Terrain illustration ---------- */
+function noise(x, z) { return Math.sin(x * .021 + Math.sin(z * .017) * 2) * Math.cos(z * .019 - x * .013); }
+function caveHeight(x, z) {
+  if (x > 118 && x < 190 && z > 22 && z < 92) return -7; // lava lake
+  if (z > -4 && z < 10 && x > -110 && x < 30) return 27; // bridge
+  if (Math.hypot((x - 70) / 34, (z - 48) / 22) < 1) return -8;
+  return -8 + noise(x, z) * 5;
+}
+function isWall(x, z) {
+  return Math.abs(Math.sin(x * .008) * Math.cos(z * .009)) > .70 && !(x > 118 && x < 190 && z > 22 && z < 92);
+}
+function caveColor(x, z) {
+  if (isWall(x, z)) return '#34363c';
+  const h = caveHeight(x, z);
+  const lava = x > 118 && x < 190 && z > 22 && z < 92;
+  const bridge = z > -4 && z < 10 && x > -110 && x < 30;
+  if (lava) return `rgb(${220 + Math.round(noise(x, z) * 10)},${92 + Math.round(noise(x, z) * 8)},18)`;
+  if (bridge) return '#a48355';
+  const k = clamp(.72 + (h - state.y) * .006, .55, .95);
+  return `rgb(${Math.round(116 * k)},${Math.round(125 * k)},${Math.round(115 * k)})`;
+}
+function surfaceColor(x, z) {
+  if (Math.abs(z - 25 - Math.sin(x * .022) * 26) < 18) return '#306899';
+  const n = noise(x, z);
+  return `rgb(${Math.round(81 + n * 15)},${Math.round(121 + n * 15)},${Math.round(57 + n * 10)})`;
+}
+function drawMap(canvas, layout) {
+  const w = canvas.width, h = canvas.height, ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#0b0c0d'; ctx.fillRect(0, 0, w, h);
+  const cell = 4, scale = 2.1;
+  const eff = effective();
+  for (let py = 0; py < h; py += cell)
+    for (let px = 0; px < w; px += cell) {
+      const wx = (px - w / 2) / scale, wz = (py - h / 2) / scale;
+      const far = eff !== 'surface' && state.detail === 'layer' && !isWall(wx, wz)
+        && Math.abs(caveHeight(wx, wz) - state.y) > 8;
+      if (far) {
+        ctx.fillStyle = '#1e2125';
+        ctx.fillRect(px, py, cell, cell);
+        if ((Math.floor(wx / 2) + Math.floor(wz / 2)) % 2 === 0) {
+          ctx.fillStyle = '#3b4045';
+          ctx.fillRect(px + 1, py + 1, 1, 1);
+        }
+      } else {
+        ctx.fillStyle = eff === 'surface' ? surfaceColor(wx, wz) : caveColor(wx, wz);
+        ctx.fillRect(px, py, cell, cell);
+      }
+    }
+  // Player arrow.
+  const cx = w / 2, cy = h / 2;
+  ctx.save(); ctx.translate(cx, cy);
+  ctx.beginPath(); ctx.moveTo(0, -7); ctx.lineTo(5, 6); ctx.lineTo(0, 3); ctx.lineTo(-5, 6); ctx.closePath();
+  ctx.fillStyle = '#fff'; ctx.strokeStyle = '#000'; ctx.lineWidth = 2; ctx.fill(); ctx.stroke(); ctx.restore();
+  // A little context: waypoint and schematic frames.
+  ctx.strokeStyle = 'rgba(255,194,74,.9)'; ctx.lineWidth = 2;
+  ctx.strokeRect(cx - 150, cy - 54, 8, 8);
+  ctx.strokeStyle = 'rgba(56,183,179,.9)'; ctx.strokeRect(cx + 100, cy + 30, 34, 24);
+}
+
+/* ---------- Input ---------- */
+function setY(y, render = true) {
+  y = clamp(Math.round(Number(y) || 0), dimension() === 1 ? 0 : -64, 127);
+  state.y = y; state.following = false;
+  if (effective() === 'surface') state.mode = 'cave';
+  if (render) renderAll(); else { updateYLabels(); drawAll(); }
+}
+function updateYLabels() {
+  document.querySelectorAll('[data-height-input]').forEach(input => { input.value = state.y; });
+  document.querySelectorAll('[data-height-range]').forEach(input => { input.value = state.y; });
+  document.querySelectorAll('[data-act="popover"]').forEach(button => {
+    if (button.classList.contains('state')) button.textContent = stateText() + ' ▾';
+    else if (button.classList.contains('heightval')) button.textContent = state.y;
+  });
+  document.querySelectorAll('.heightval').forEach(el => { if (el.tagName === 'INPUT') el.value = state.y; });
+  document.querySelectorAll('.pop-rec').forEach(button => {
+    if (button.dataset.y !== undefined) button.setAttribute('aria-pressed', String(Number(button.dataset.y) === state.y));
+  });
+  document.querySelectorAll('.bottom span:nth-child(3)').forEach(span => {
+    const eff = effective();
+    span.textContent = eff === 'surface' ? '地表' : (state.detail === 'wide' ? '広く見る' : '層で見る') + '・' + (state.following ? '自分' : '固定') + ' Y' + state.y;
+  });
+}
+
+$('widths').addEventListener('click', e => {
+  const button = e.target.closest('[data-width]'); if (!button) return;
+  state.width = Number(button.dataset.width);
+  state.compact = { A: false, B: false, C: false };
+  document.querySelectorAll('#widths [data-width]').forEach(b => b.setAttribute('aria-pressed', String(b === button)));
+  renderAll();
+});
+$('scenes').addEventListener('click', e => {
+  const button = e.target.closest('[data-scene]'); if (!button) return;
+  state.scene = button.dataset.scene; resetView();
+  document.querySelectorAll('#scenes [data-scene]').forEach(b => b.setAttribute('aria-pressed', String(b === button)));
+  renderAll();
+});
+$('standards').addEventListener('click', e => {
+  const button = e.target.closest('[data-standard]'); if (!button) return;
+  state.standard = button.dataset.standard; resetView();
+  document.querySelectorAll('#standards [data-standard]').forEach(b => b.setAttribute('aria-pressed', String(b === button)));
+  renderAll();
+});
+$('barsizes').addEventListener('click', e => {
+  const button = e.target.closest('[data-bar]'); if (!button) return;
+  state.bar = button.dataset.bar;
+  document.querySelectorAll('#barsizes [data-bar]').forEach(b => b.setAttribute('aria-pressed', String(b === button)));
+  state.compact = { A: false, B: false, C: false };
+  renderAll();
+});
+document.addEventListener('click', e => {
+  const article = e.target.closest('.variant');
+  if (!article) { return; }
+  const layout = article.dataset.layout;
+  const action = e.target.closest('[data-act]');
+  if (action) {
+    const act = action.dataset.act;
+    if (act === 'popover') {
+      state.popover[layout] = !state.popover[layout];
+      renderVariant(layout);
+      return;
+    }
+    if (act === 'center') { resetView(); renderAll(); return; }
+    if (act === 'follow') {
+      if (state.scene === 'surface') return;
+      state.following = true; state.y = scene().playerY; state.mode = state.scene === 'nether' ? 'cave' : 'cave';
+      renderAll(); return;
+    }
+    return;
+  }
+  const mode = e.target.closest('[data-mode]');
+  if (mode) {
+    state.mode = mode.dataset.mode;
+    if (state.mode === 'auto') { state.following = true; state.y = scene().playerY; }
+    if (state.mode === 'cave') {
+      if (state.scene === 'surface') { state.y = nearestRecord(); state.following = false; }
+      else state.following = true;
+    }
+    renderAll(); return;
+  }
+  const detail = e.target.closest('[data-detail]');
+  if (detail) { state.detail = detail.dataset.detail; renderAll(); return; }
+  const step = e.target.closest('[data-step]');
+  if (step) { setY(state.y + Number(step.dataset.step) * (e.shiftKey ? 8 : 1)); return; }
+  const record = e.target.closest('[data-y]');
+  if (record) { setY(Number(record.dataset.y)); return; }
+});
+document.addEventListener('input', e => {
+  if (e.target.matches('[data-height-range]')) { setY(e.target.value, false); }
+});
+document.addEventListener('change', e => {
+  if (e.target.matches('[data-height-input]')) { setY(e.target.value); }
+  if (e.target.matches('[data-height-range]')) { setY(e.target.value); }
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    state.popover = { A: false, B: false, C: false };
+    renderAll();
+  }
+  if (e.key === 'Enter' && e.target.matches('[data-height-input]')) { e.preventDefault(); setY(e.target.value); }
+});
+document.addEventListener('click', e => {
+  if (e.target.closest('.popover') || e.target.closest('[data-act="popover"]')) return;
+  if (state.popover.A || state.popover.B || state.popover.C) {
+    state.popover = { A: false, B: false, C: false };
+    renderAll();
+  }
+}, true);
+function syncControls() {
+  document.querySelectorAll('#widths [data-width]').forEach(b => b.setAttribute('aria-pressed', String(Number(b.dataset.width) === state.width)));
+  document.querySelectorAll('#scenes [data-scene]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.scene === state.scene)));
+  document.querySelectorAll('#standards [data-standard]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.standard === state.standard)));
+  document.querySelectorAll('#barsizes [data-bar]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.bar === state.bar)));
+}
+window.addEventListener('resize', () => { for (const layout of layouts) fitStage(layout); });
+document.fonts.ready.then(renderAll);
+const params = new URLSearchParams(location.search);
+if (['673', '505', '404'].includes(params.get('width'))) state.width = Number(params.get('width'));
+if (params.get('scene') in SCENES) state.scene = params.get('scene');
+if (['split', 'wide'].includes(params.get('standard'))) state.standard = params.get('standard');
+if (['normal', 'big'].includes(params.get('bar'))) state.bar = params.get('bar');
+resetView();
+if (params.get('open') && layouts.includes(params.get('open'))) state.popover[params.get('open')] = true;
+syncControls();
+renderAll();
+</script>
+</body>
+</html>
