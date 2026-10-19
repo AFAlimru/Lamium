@@ -637,6 +637,13 @@ becomes much smaller and the map is mostly lava. Both supplied screenshots
 show the same 500-block scale and "Loading 4"; they do not establish a zoom
 change or a completed image build.
 
+Maintainer explanation 2026-10-20: the higher band had been recorded with a
+larger render distance; the lower trip used a smaller render distance. Each
+16-block band records only the chunks received at that time, so the same X/Z
+can have a much smaller recorded footprint at another Y. The 500-block scale
+is zoom, not coverage, and pending images can add temporary gaps. This is
+expected under per-band recording, not a code defect.
+
 Current behavior: cave columns are sampled from five blocks above to 24
 below a held height; walls and drops are dark, and unavailable stand-ins
 can also be drawn as rock. The world map stores Nether bands separately
@@ -708,11 +715,12 @@ reference in one change instead of separate PRs. Build, `LamiumTests` and
 `LamiumNativeTests` pass. The final in-game checklist passed on `7e0e2f9`
 (2026-10-20): green camera arrow, no return-to-camera action, automatic
 follow resume at the reference height, and UI Profile 50/75/100. Remaining:
-measured frame times, the smaller-footprint cause against per-band recording
-coverage, received terrain and pending images, and broader server coverage.
-No release is chosen. Keep this follow-up separate from L-216. Direction:
-DESIGN.md, "Cave and Nether terrain reference"; current behavior and evidence:
-MAP.md's "Cave and Nether
+measured frame times, broader server coverage, and a live check of pending
+images/per-band coverage if the footprint difference recurs. The earlier
+Y32/Y67 difference is explained by per-band recording and render distance,
+not a code defect. No release is chosen. Keep this follow-up separate from
+L-216. Direction: DESIGN.md, "Cave and Nether terrain reference"; current
+behavior and evidence: MAP.md's "Cave and Nether
 representation review" and VALIDATION-LOG.md, 2026-10-19.
 
 ### L-196 Review license notices, source access and provenance classification

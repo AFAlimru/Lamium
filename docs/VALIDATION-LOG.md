@@ -12,6 +12,16 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-228 per-band footprint explanation (2026-10-20)
+
+No new build or runtime measurement. The maintainer explained the earlier
+Y32/Y67 footprint difference: the higher band had been recorded with a
+larger render distance and the lower trip with a smaller one. Each 16-block
+band records only the chunks received at that time, so the same X/Z can have
+a different recorded footprint at another Y. The 500-block scale is zoom,
+not coverage. This is expected under per-band recording, not a code defect.
+Measured frame times and broader server coverage remain unchecked.
+
 ## L-228 final checklist (2026-10-20)
 
 Build `7e0e2f9`, docs `3a1c855`, deployed DLL SHA-256

@@ -156,8 +156,11 @@ questioned whether the terrain the cave view selects is useful. Supplied
 screenshots show band Y64-79 dominated by gray terrain and dark gaps with
 expected lower lava lakes hard to see, and band Y32-47 with a smaller
 visible footprint dominated by lava. Both have a 500-block scale and
-"Loading 4". The footprint difference is observed; its cause is not yet
-isolated.
+"Loading 4". The difference is explained by per-band recording coverage and
+the render distance in effect at that time, not by a code defect (maintainer,
+2026-10-20). The same X/Z at different Y is a different 16-block band and
+need not have the same recorded footprint; the 500-block scale is zoom, not
+coverage. Pending images can add temporary gaps.
 
 Previous source behavior (`MapCave.h`, `Minimap.cpp` before L-228): the held
 height had 3-block slack and sampled five blocks above through 24 below.
@@ -170,8 +173,8 @@ not proof of what each dark screenshot pixel represents.
 
 `MapRegion.h` stores cave terrain separately per 16-block band: the Nether
 and now the Overworld. A different band can have a different
-recorded/received footprint. The screenshots' pending images also need to
-be ruled out before attributing the apparent size change. These storage
+recorded/received footprint, which explains the earlier apparent size
+change; pending images can add temporary gaps. These storage
 bands group scans whose reference height can vary within a band; they are
 not fixed cross-sections at a canonical height. Before L-228 the Overworld
 recording path saved the surface only; its cave view was transient minimap
@@ -272,10 +275,11 @@ vertically stacked spaces inside one 16-block band remain limitations of the
 band model.
 
 This does not select a connectivity algorithm or claim that a displayed
-floor is walkably reachable. The in-game check, the smaller-footprint cause
-and broader server/pack coverage remain. DESIGN.md records the product
-direction and BACKLOG L-228 owns the work status. The current LMR2
-migration contract is unchanged.
+floor is walkably reachable. The final checklist passed; broader
+server/pack coverage remains. The earlier footprint difference is explained
+by per-band recording coverage and render distance, not a defect.
+DESIGN.md records the product direction and BACKLOG L-228 owns the work
+status. The current LMR2 migration contract is unchanged.
 
 ## World map zoom-out (L-187, 2026-10-14)
 
