@@ -693,15 +693,20 @@ view dims floors outside the selected height, while broad view keeps them.
 
 Implementation on branch `l228-cave-map` (2026-10-19): `a7ad024` deepens
 the cave read and marks layer heights, `7bed82e` adds the Overworld cave
-bands, alternating recording and focused images, and `cfe2c43` replaces the
-Nether band control with the D state button and panel. Build and
-`LamiumTests` pass. Remaining: the in-game check (Nether/cave usefulness,
-surface retention, rejoin, 100/125 % layout, recording and frame times), then
-merge. The smaller footprint still needs investigation against per-band
-recording coverage, received terrain and pending images. No release is
-chosen. Keep this follow-up separate from L-216. Direction: DESIGN.md, "Cave
-and Nether terrain reference"; current behavior and evidence: MAP.md's "Cave
-and Nether representation review" and VALIDATION-LOG.md, 2026-10-19.
+bands, alternating recording and focused images, `cfe2c43` replaces the
+Nether band control with the D state button and panel, and `bf4f325`
+addresses the first in-game feedback and review findings (96-block cave
+read, gentler depth dimming, FreeCamera-based opening/height, stand-in and
+unknown hatching, wall/drop patterns, translucent panel, saved-region wait,
+column revision 3, and the map-image invalidation races). Build,
+`LamiumTests` and `LamiumNativeTests` pass. Remaining: the in-game check
+(Nether/cave usefulness, surface retention, rejoin, UI Profile 50/75/100,
+recording and frame times), then merge. The smaller footprint still needs
+investigation against per-band recording coverage, received terrain and
+pending images. No release is chosen. Keep this follow-up separate from
+L-216. Direction: DESIGN.md, "Cave and Nether terrain reference"; current
+behavior and evidence: MAP.md's "Cave and Nether representation review" and
+VALIDATION-LOG.md, 2026-10-19.
 
 ### L-196 Review license notices, source access and provenance classification
 Kind: Research, then Ready for changes supported by the findings.
