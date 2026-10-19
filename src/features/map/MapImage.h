@@ -172,7 +172,8 @@ inline void drawOutline(std::vector<std::uint32_t>& pixels, int n, std::array<Po
             if (line > 0) pixel = over(pixel, channel(color, 0), channel(color, 1), channel(color, 2), line);
         }
 }
-inline void drawArrow(std::vector<std::uint32_t>& pixels, int n, double cx, double cy, double angle, double size) {
+inline void drawArrow(std::vector<std::uint32_t>& pixels, int n, double cx, double cy, double angle, double size,
+                      std::uint32_t fill = 0xFFFFFFFF) {
     double unit = size / 16.0, outline = 1.5 * unit;
     double c = std::cos(angle), s = std::sin(angle);
     std::array<Point, 4> shape{};
@@ -193,8 +194,9 @@ inline void drawArrow(std::vector<std::uint32_t>& pixels, int n, double cx, doub
             auto& pixel = pixels[static_cast<size_t>(y) * n + x];
             // Coverage over one pixel keeps the edges smooth at small sizes.
             if (inside) {
-                float fill = static_cast<float>(std::clamp(edge - outline / 2 + .5, 0.0, 1.0));
-                pixel = over(over(pixel, 0, 0, 0, 1), 255, 255, 255, fill);
+                float coverage = static_cast<float>(std::clamp(edge - outline / 2 + .5, 0.0, 1.0));
+                pixel = over(over(pixel, 0, 0, 0, 1), channel(fill, 0), channel(fill, 1), channel(fill, 2),
+                             coverage * channel(fill, 3) / 255.f);
             } else {
                 float ring = static_cast<float>(std::clamp(outline / 2 + .5 - edge, 0.0, 1.0));
                 if (ring > 0) pixel = over(pixel, 0, 0, 0, ring);

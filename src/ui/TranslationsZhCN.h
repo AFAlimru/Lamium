@@ -767,7 +767,6 @@ inline constexpr auto simplifiedChinese = std::to_array<Text>({
     {"worldMap.cameraY", "相机 Y{}"},
     {"worldMap.matchCameraHeight", "匹配相机高度"},
     {"worldMap.matchingCameraHeight", "已匹配相机 Y{}"},
-    {"worldMap.returnCamera", "返回相机"},
     {"worldMap.caveOffHint", "打开洞穴后才能选择高度。"},
     {"worldMap.alwaysCave", "下界始终为洞穴"},
     {"worldMap.caveOn", "显示洞穴"},

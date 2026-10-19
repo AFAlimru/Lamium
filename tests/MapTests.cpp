@@ -378,6 +378,11 @@ void image() {
     std::vector<std::uint32_t> right(64 * 64, 0);
     drawArrow(right, 64, 32, 32, northUpArrowAngle(-90), 16);
     check(right[32 * 64 + 38] != 0 && right[32 * 64 + 26] == 0, "facing east points right");
+    std::vector<std::uint32_t> green(64 * 64, 0);
+    drawArrow(green, 64, 32, 32, 0, 16, packColor(108, 195, 73));
+    auto greenPixel = green[32 * 64 + 32];
+    check(channel(greenPixel, 1) > channel(greenPixel, 0) && channel(greenPixel, 3) > 200,
+          "the camera arrow uses the requested green fill");
     check(near(northUpArrowAngle(180), 0, 1e-9) && near(std::abs(northUpArrowAngle(0)), 3.14159265358979, 1e-9),
           "north is up, south down");
 

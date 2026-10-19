@@ -775,7 +775,6 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"worldMap.cameraY", "Camera Y{}", "カメラ Y{}"},
     {"worldMap.matchCameraHeight", "Match camera height", "カメラの高さに合わせる"},
     {"worldMap.matchingCameraHeight", "Matching camera Y{}", "カメラ Y{} に合わせています"},
-    {"worldMap.returnCamera", "Return to camera", "カメラに戻る"},
     {"worldMap.caveOffHint", "Turn on the cave to choose a height.", "洞窟をオンにすると高さを選べます。"},
     {"worldMap.alwaysCave", "Always cave in the Nether", "ネザーは常に洞窟"},
     {"worldMap.caveOn", "Show the cave", "洞窟を見る"},

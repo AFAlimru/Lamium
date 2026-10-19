@@ -18,8 +18,9 @@ waypoint list open and shifts left when space is tight. It offers cave
 on/off, broad on/off, a `-`/input/`+` height and a `自分の高さに合わせる`
 action. The map opens at the player's height (the FreeCamera eye when it
 owns the view); changing it fixes the height. "Center on me" returns to the
-body; a green camera arrow and "Return to camera" return to the camera. The
-Nether starts broad and an Overworld cave starts in the selected layer.
+body; a green camera arrow marks the camera (display only; close and reopen
+to return). The Nether starts broad and an Overworld cave starts in the
+selected layer.
 The layer view dims floors more than 8 blocks from the selected height to a
 solid dark color; broad view keeps them. `MapCave.h` reads up to 128 blocks
 below and stops at the first floor. `worldMapNetherAuto` is no longer shown
@@ -253,9 +254,11 @@ Feedback follow-up (2026-10-19, not checked in game): the cave read is now
 128 blocks deep with gentler depth dimming, so the Nether roof at Y110 and
 Y127 still shows the lava sea. The cave panel and heights follow the
 FreeCamera eye while it owns the view (`freeCameraPose`); "Center on me"
-returns to the body and a green camera arrow plus "Return to camera" centers
-the camera again. The display uses three states only: floor, wall and
-no-floor. Layer view dims far floors to a solid dark color instead of a
+returns to the body and a green camera arrow marks the camera without a
+click action. Closing and reopening the map returns to the camera. A manual
+height edit that lands on the reference height resumes following instead of
+offering a redundant match action. The display uses three states only: floor,
+wall and no-floor. Layer view dims far floors to a solid dark color instead of a
 checker or dots; wall/drop patterns, the stand-in color and the unknown hatch
 were removed. A cave scan that used stand-ins waits for its saved region to
 merge before recording so saved terrain is not masked after rejoining.

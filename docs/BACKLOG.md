@@ -698,16 +698,18 @@ the D state button and panel, `bf4f325` addresses the first in-game feedback
 and review findings, and `9675129` settles the display model (128-block cave
 read, solid dim for far layer floors, three reads only: floor/wall/no-floor,
 column revision 4) and adds the FreeCamera reference (camera for opening and
-height matching, body for "Center on me", camera arrow and return action).
+height matching, body for "Center on me", green camera arrow). A manual
+height edit that lands on the reference height resumes following. The camera
+arrow is display-only; closing and reopening the map returns to the camera.
 The owner extended this branch to cover the cave map and the FreeCamera map
 reference in one change instead of separate PRs. Build, `LamiumTests` and
 `LamiumNativeTests` pass. Remaining: the in-game check (Nether/cave
 usefulness, surface retention, rejoin, UI Profile 50/75/100, camera marker
-and return, recording and frame times), then merge. The smaller footprint
-still needs investigation against per-band recording coverage, received
-terrain and pending images. No release is chosen. Keep this follow-up
-separate from L-216. Direction: DESIGN.md, "Cave and Nether terrain
-reference"; current behavior and evidence: MAP.md's "Cave and Nether
+and height resume, recording and frame times), then merge. The smaller
+footprint still needs investigation against per-band recording coverage,
+received terrain and pending images. No release is chosen. Keep this
+follow-up separate from L-216. Direction: DESIGN.md, "Cave and Nether
+terrain reference"; current behavior and evidence: MAP.md's "Cave and Nether
 representation review" and VALIDATION-LOG.md, 2026-10-19.
 
 ### L-196 Review license notices, source access and provenance classification

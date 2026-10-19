@@ -76,12 +76,14 @@ constexpr int slotCount = 96;
 // Uploads per frame; the first frames after opening may upload more.
 constexpr int uploadsPerFrame = 6, uploadsWhileOpening = 16;
 ResourceLocation const& slotLocation(int index) {
-    static std::array<ResourceLocation*, slotCount + 1> all{};
+    static std::array<ResourceLocation*, slotCount + 2> all{};
     auto& location = all[static_cast<size_t>(index)];
-    if (!location)
-        location = new ResourceLocation(Core::PathView(index == slotCount ? std::string("lamium/worldmap/arrow")
-                                                                         : std::format("lamium/worldmap/{}", index)),
-                                        ResourceFileSystem::Raw);
+    if (!location) {
+        auto name = index == slotCount ? std::string("lamium/worldmap/arrow")
+            : index == slotCount + 1 ? std::string("lamium/worldmap/camera_arrow")
+                                     : std::format("lamium/worldmap/{}", index);
+        location = new ResourceLocation(Core::PathView(name), ResourceFileSystem::Raw);
+    }
     return *location;
 }
 struct Slot {
@@ -116,7 +118,7 @@ void unload(IClientInstance& client, ResourceLocation const& location) {
 
 enum class Target {
     None, Overworld, Nether, End,
-    CaveButton, CavePanel, CaveToggle, BroadToggle, HeightDown, HeightUp, HeightField, MatchHeight, Camera,
+    CaveButton, CavePanel, CaveToggle, BroadToggle, HeightDown, HeightUp, HeightField, MatchHeight,
     Center, Waypoints, Close, Menu,
     LayerWaypoints, LayerSchematics, LayerShapes, // The layer switches (L-146).
     // The side panel: its background, header buttons, list and editor.
@@ -199,6 +201,8 @@ struct State {
     float listTop = 0, listBottom = 0;
     float arrowAngle = NAN;
     bool arrowUploaded = false;
+    float cameraArrowAngle = NAN;
+    bool cameraArrowUploaded = false;
 } state;
 
 struct PlayerSpot {
@@ -259,6 +263,17 @@ bool canMatchHeight() {
     auto spot = sourceSpot();
     return spot && state.cave && spot->dimension == state.dimension && playerCave(*spot);
 }
+std::optional<int> referenceHeight() {
+    auto spot = sourceSpot();
+    if (!state.cave || !spot || spot->dimension != state.dimension) return std::nullopt;
+    return clampHeight(state.dimension, blockFloor(spot->y));
+}
+// A manual edit that lands exactly on the reference height is a return to the
+// player/camera, not a fixed height that still offers a match action.
+void syncFollowing() {
+    auto reference = referenceHeight();
+    state.following = reference && *reference == state.height && canMatchHeight();
+}
 MapLayer shownLayer() {
     if (state.dimension == 1) return caveLayer(1, state.height);
     if (state.dimension == 0 && state.cave) return caveLayer(0, state.height);
@@ -284,12 +299,12 @@ void toggleCave() {
     auto spot = sourceSpot();
     if (spot && spot->dimension == state.dimension) state.height = clampHeight(state.dimension, blockFloor(spot->y));
     state.broad = state.dimension == 1;
-    state.following = canMatchHeight();
+    syncFollowing();
 }
 void adjustHeight(int delta) {
     if (!state.cave) return;
     state.height = clampHeight(state.dimension, state.height + delta);
-    state.following = false;
+    syncFollowing();
 }
 void matchHeight() {
     if (!canMatchHeight()) return;
@@ -302,18 +317,6 @@ void returnToPlayer() {
     auto spot = playerSpot();
     if (!spot) return;
     state.cameraReference = false;
-    state.dimension = spot->dimension;
-    state.cave = playerCave(*spot);
-    state.broad = state.dimension == 1;
-    state.height = clampHeight(state.dimension, blockFloor(spot->y));
-    state.following = true;
-    state.cavePanel = false;
-    center();
-}
-void returnToCamera() {
-    auto spot = freeCameraSpot();
-    if (!spot) return;
-    state.cameraReference = true;
     state.dimension = spot->dimension;
     state.cave = playerCave(*spot);
     state.broad = state.dimension == 1;
@@ -369,7 +372,6 @@ void act(Target target) {
         state.heightInput.begin(static_cast<float>(state.height));
         break;
     case Target::MatchHeight: matchHeight(); break;
-    case Target::Camera: returnToCamera(); break;
     case Target::Center: returnToPlayer(); break;
     default: break;
     }
@@ -406,10 +408,8 @@ void commitHeight() {
     auto value = state.heightInput.parsedPrecise(static_cast<float>(heightMin(state.dimension)),
                                                  static_cast<float>(heightMax(state.dimension)), true);
     if (!value) return; // Incomplete or out of range: the height stays.
-    if (static_cast<int>(*value) != state.height || !state.following) {
-        state.height = static_cast<int>(*value);
-        state.following = false;
-    }
+    state.height = static_cast<int>(*value);
+    syncFollowing();
 }
 void commitCoordinate() {
     int axis = std::exchange(state.editingAxis, -1);
@@ -1057,27 +1057,26 @@ void drawMarkers(MinecraftUIRenderContext& context, Settings::Map const& setting
         if (state.arrowUploaded && !ui::runtimeImage(context, slotLocation(slotCount), {x - 8, y - 8, 16, 16}))
             state.arrowUploaded = false;
     }
-    // FreeCamera: a green arrow from the camera's place, so its direction is
-    // readable and the marker is not mistaken for the white player arrow.
+    // FreeCamera: the same arrow shape in green, so its heading stays easy to
+    // read without inventing a second marker vocabulary (L-228).
     if (auto camera = freeCameraSpot(); camera && camera->dimension == state.dimension) {
-        float cx = static_cast<float>(view.screenX(camera->x)), cy = static_cast<float>(view.screenY(camera->z));
-        if (cx >= 0 && cx <= view.width - state.panelWidth && cy > state.top && cy < view.height - bottomHeight) {
-            auto forward = heading(camera->yaw);
-            double length = std::hypot(forward.x, forward.z);
-            if (!(length > 0)) length = 1;
-            float dx = static_cast<float>(forward.x / length), dz = static_cast<float>(forward.z / length);
-            // A short view line first, then the camera dot over it.
-            for (int step = 2; step <= 10; ++step) {
-                float lx = cx + dx * step, ly = cy + dz * step;
-                ui::fill(context, lx - 1, ly - 1, 3, 3, Rgb{0, 0, 0}, .75f);
-                ui::fill(context, lx, ly, 1, 1, ui::palette::accent);
+        constexpr int side = 32;
+        float x = static_cast<float>(view.screenX(camera->x)), y = static_cast<float>(view.screenY(camera->z));
+        if (x >= 0 && x <= view.width - state.panelWidth && y > state.top && y < view.height - bottomHeight) {
+            float angle = static_cast<float>(northUpArrowAngle(camera->yaw));
+            if (!state.cameraArrowUploaded || !(std::abs(angle - state.cameraArrowAngle) < .01f)) {
+                std::vector<std::uint32_t> pixels(side * side, 0);
+                drawArrow(pixels, side, side / 2.0, side / 2.0, angle, 22, packColor(108, 195, 73));
+                try {
+                    if (upload(context.mClient, slotLocation(slotCount + 1), pixels, side, state.cameraArrowUploaded)) {
+                        state.cameraArrowUploaded = true;
+                        state.cameraArrowAngle = angle;
+                    } else state.cameraArrowUploaded = false;
+                } catch (...) { state.cameraArrowUploaded = false; }
             }
-            ui::fill(context, cx + dx * 11 - 1.5f, cy + dz * 11 - 1.5f, 4, 4, Rgb{0, 0, 0}, .8f);
-            ui::fill(context, cx + dx * 11 - .5f, cy + dz * 11 - .5f, 2, 2, ui::palette::accent);
-            ui::fill(context, cx - 4, cy - 4, 8, 8, Rgb{0, 0, 0}, .85f);
-            ui::fill(context, cx - 3, cy - 3, 6, 6, ui::palette::accent);
-            ui::fill(context, cx - 1, cy - 1, 2, 2, ui::palette::white);
-            state.hits.push_back({cx - 6, cy - 6, 13, 13, Target::Camera});
+            if (state.cameraArrowUploaded
+                && !ui::runtimeImage(context, slotLocation(slotCount + 1), {x - 8, y - 8, 16, 16}))
+                state.cameraArrowUploaded = false;
         }
     }
 }
@@ -1266,7 +1265,7 @@ void drawCavePanel(MinecraftUIRenderContext& context, glm::vec2 size) {
     if (!state.cavePanel || state.dimension == 2) return;
     constexpr float w = 212;
     bool const camera = cameraAvailable();
-    float h = state.cave ? (camera ? 114 : 96) : 52;
+    float h = state.cave ? 96 : 52;
     float available = size.x - state.panelWidth - 3;
     float left = std::clamp(state.caveButton.x, 3.f, std::max(3.f, available - w));
     float top = std::max(state.caveButton.y + state.caveButton.h + 1, state.top + 1);
@@ -1345,15 +1344,6 @@ void drawCavePanel(MinecraftUIRenderContext& context, glm::vec2 size) {
         ui::frame(context, x, y, w - 10, 15, enabled ? ui::palette::accent : ui::palette::keyEdge);
         ui::label(context, x, y + 2 + inset, w - 10, text, enabled ? ui::palette::text : ui::palette::faint, ui::Align::Center);
         if (enabled) state.hits.push_back({x, y, w - 10, 15, Target::MatchHeight});
-        if (camera) {
-            y += 18;
-            bool overCamera = hovering(x, y, w - 10, 15);
-            ui::fill(context, x, y, w - 10, 15, overCamera ? ui::palette::accent : ui::palette::accentDeep, .9f);
-            ui::frame(context, x, y, w - 10, 15, ui::palette::accent);
-            ui::label(context, x, y + 2 + inset, w - 10, ui::translated("worldMap.returnCamera"), ui::palette::text,
-                      ui::Align::Center);
-            state.hits.push_back({x, y, w - 10, 15, Target::Camera});
-        }
     } else {
         ui::label(context, x, y + 2, w - 10, ui::translated("worldMap.caveOffHint"), ui::palette::faint);
     }
@@ -1697,9 +1687,11 @@ void close() {
         for (int i = 0; i < slotCount; ++i)
             if (slots[static_cast<size_t>(i)].uploaded) unload(*state.client, slotLocation(i));
         if (state.arrowUploaded) unload(*state.client, slotLocation(slotCount));
+        if (state.cameraArrowUploaded) unload(*state.client, slotLocation(slotCount + 1));
     }
     slots = {};
     state.arrowUploaded = false;
+    state.cameraArrowUploaded = false;
     state.open = false;
     state.client = nullptr;
     state.drag.reset();
