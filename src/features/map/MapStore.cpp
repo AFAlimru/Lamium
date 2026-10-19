@@ -1,13 +1,11 @@
 #include "features/map/MapStore.h"
 #include "features/map/MapRegionFiles.h"
 #include "features/map/MapColors.h"
-#include "app/AtomicFile.h"
 #include "app/Runtime.h"
 #include "ll/api/event/EventBus.h"
 #include "ll/api/event/client/ClientExitLevelEvent.h"
 #include <condition_variable>
 #include <deque>
-#include <fstream>
 #include <map>
 #include <mutex>
 #include <set>
@@ -72,7 +70,7 @@ std::deque<RegionId> loads;
 struct Conversion { RegionId id; std::chrono::steady_clock::time_point after{}; };
 std::deque<Conversion> conversions;
 std::map<std::pair<int, int>, std::set<std::pair<int, int>>> revisionReports;
-std::set<RegionId> refusedLogged, damagedLogged, saveFailedLogged; // Worker only, reset after joining.
+std::set<RegionId> refusedLogged, damagedLogged, legacyLogged, saveFailedLogged; // Worker only, reset after joining.
 std::chrono::steady_clock::time_point nextConversion{};
 RegionCodec* workerCodec = nullptr; // Used only by the worker's image builder.
 std::vector<ImageId> wanted;
@@ -120,12 +118,16 @@ RegionRead readRegion(std::filesystem::path const& path, RegionId const& id) {
     RegionRead result;
     try { result = readRegionFiles(path, id.key, *workerCodec); }
     catch (...) { result.status = RegionStatus::Refused; }
-    auto report = [&](std::set<RegionId>& once, char const* why) {
+    auto report = [&](std::set<RegionId>& once, char const* why, std::filesystem::path const& file) {
         if (!once.insert(id).second) return;
-        try { Runtime::instance().self().getLogger().warn("World map: {} {}", why, path.string()); } catch (...) {}
+        try { Runtime::instance().self().getLogger().warn("World map: {} {}", why, file.string()); } catch (...) {}
     };
-    if (result.status == RegionStatus::Refused) report(refusedLogged, "refused region; kept for this session only:");
-    if (result.damaged) report(damagedLogged, "damaged region; will replace on save:");
+    if (result.status == RegionStatus::Refused) report(refusedLogged, "refused region; kept for this session only:", path);
+    if (result.damaged) report(damagedLogged, "damaged region; will replace on save:", path);
+    if (result.legacyStatus == RegionStatus::Damaged)
+        report(legacyLogged, "ignored damaged legacy region; kept unchanged:", legacyRegionPath(path));
+    if (result.legacyStatus == RegionStatus::Refused)
+        report(legacyLogged, "could not read legacy region; kept unchanged:", legacyRegionPath(path));
     return result;
 }
 void reportRevisions(RegionId const& id, RegionData const& data) {
@@ -498,7 +500,7 @@ void finish(std::unique_lock<std::mutex>& lock) {
     loads.clear();
     conversions.clear();
     revisionReports.clear();
-    refusedLogged.clear(); damagedLogged.clear(); saveFailedLogged.clear();
+    refusedLogged.clear(); damagedLogged.clear(); legacyLogged.clear(); saveFailedLogged.clear();
     removing.reset();
     usageBytes.reset();
     usageDirty = false;

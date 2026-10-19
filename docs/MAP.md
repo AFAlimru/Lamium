@@ -301,6 +301,11 @@ carries its own per-chunk times: a newer reader then treats a chunk whose
 `CHNK` is missing, all kept sections are dropped (step 8), because nothing
 says which chunks are still theirs.
 
+If retaining these sections plus the current known sections would exceed
+64 entries (for example after adding `OLDF`), saving fails with a specific
+section-limit message before compression or replacement. Kept data is not
+dropped to make room; the existing `.lm2` and `.lmr` stay untouched.
+
 ### Column revision
 
 One constant beside the column color calculation, raised whenever a change
@@ -349,6 +354,10 @@ grid cell kind.
   `.lmr`.
 - Reading prefers `.lm2`; when it is missing or Damaged, `.lmr` is read with
   the `LMR1` decoder (every recorded chunk at time 0, revision 0).
+- An unreadable or undecodable `.lmr` not matched by `OLDF` is retained and
+  logged separately from `.lm2` damage. It does not mark a valid `.lm2`
+  damaged or schedule a save by itself, and cannot be deleted as absorbed
+  data. A later ordinary save can still persist the current `.lm2`.
 - A region read from `.lmr` is marked for saving once, at load.
 - Idle conversion (maintainer 2026-10-19: convert the whole map in spare
   time): when the worker has no save, load, listing or image build due, it
@@ -371,9 +380,11 @@ grid cell kind.
   longer matches, and the next load merges it (fill only).
 - A region stays marked for saving until its write succeeds, and is not
   queued again while a write is in flight. A change while it is in flight
-  keeps it marked. A failed write sets the time it was marked to now, so it
-  is retried after the save delay (10 s), not every frame; it is logged once
-  per region per session and leaves the `.lmr` alone.
+  keeps it marked. Every completion starts a fresh save delay (10 s) for
+  any pending changes, including a successful write with newer changes;
+  continuous edits therefore remain batched. A failure is logged once per
+  region per session and leaves the `.lmr` alone. World exit still flushes
+  pending changes without waiting for that delay.
 - An older Lamium does not list `.lm2`, so it cannot damage them (except by
   clearing the world's map, which removes the whole folder as asked); it
   records anew into `.lmr`. When a Loaded `.lm2` and an `.lmr` both exist:
@@ -411,6 +422,16 @@ chunks whose stored revision is old. Loaded-region revision reports mark
 the scan grids partial, including chunks outside the ordinary stale radius.
 Revision-only changes save metadata without invalidating images.
 
+Review follow-up (2026-10-19): surface and cave scans now share provisional
+tint marking at `blockColor`, so a cave floor using the stand-in biome tint
+is partial and cannot certify a chunk as current. Column revision 2 makes
+older chunks due for revalidation, including cave chunks the first build
+could falsely certify at revision 1. The regression tests cover the new
+save cadence, separate legacy status/retention, the 64-section preservation
+failure and cave provisional revision/time rules. These corrected runtime
+paths have not yet been checked in game; the recorded live audit and smoke
+results above belong to `6ff0610`.
+
 `MapRegionFormatTests.cpp` covers palette boundaries, malformed/future
 containers, unknown section retention, revision/time rules, migration,
 write refusal, failed atomic replacement and save retry state. Existing
@@ -426,9 +447,10 @@ Implementation requirements retained from the agreed spec:
   `CHNK` entries, `OLDF` and the kept sections; `Resident` and the save
   entry carry the same, plus the `.lmr` facts.
 - `queueSave` clears the mark only after a successful write, keeps an
-  in-flight flag, and on failure sets `dirtySince` to now.
-- `regionFileName`, `regionPath`, `regionOfFileName`, listing (with each
-  `.lmr`'s size and time), usage and clearing handle both extensions.
+  in-flight flag, and on every completion sets `dirtySince` to now.
+- `regionFileName`, `regionPath`, `regionOfFileName`, listing, usage and
+  clearing handle both extensions. Listing carries candidate keys only;
+  legacy size/time/CRC facts are collected at load and checked at deletion.
 - `MapStore.h` `record` takes the produced and scanned masks; the store
   reports chunks below the build's revision per loaded region.
 - `Minimap.cpp` `scanChunk` builds both masks (around `fillFromSaved` and

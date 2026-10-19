@@ -1319,6 +1319,18 @@ game inventory, capability, package and archive checks passed. No in-game
 validation or migration/performance measurement is claimed. Remaining
 runtime checks are in BACKLOG's pre-release checks and MAP.md.
 
+Validation follow-up (2026-10-19, after the implementation checkpoint
+above): on `6ff0610`, the live filesystem audit migrated all 1,563 old
+LamiumTest regions without recorded-column loss and reduced disk use by
+about 83%. The maintainer subsequently found no conspicuous issue in
+appearance, opening/zoom speed, Nether/cave display or retention after
+rejoin. Evidence and limits: VALIDATION-LOG.md. Measured frame times,
+older-build merges, runtime refusal/damage/save-failure paths and broader
+server/layer coverage remain open; cave/Nether usefulness is Design L-228.
+The review corrections to batching, legacy diagnostics and provisional
+cave tint (column revision 2) have automated coverage but await a focused
+live check. Current pending checks are in BACKLOG and MAP.md.
+
 ### L-223 Position labels follow the game's own wording
 Kind: Ready. Maintainer 2026-10-19: English showed "XYZ", "Position" and
 "Block coordinates" side by side. Checked the game's 1.26.51 texts: its

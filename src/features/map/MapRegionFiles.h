@@ -67,6 +67,7 @@ inline RegionRead readRegionFiles(std::filesystem::path const& path, RegionKey k
     if (result.status == RegionStatus::Refused) return result;
     result.damaged = result.status == RegionStatus::Damaged;
     auto old = readRegionBytes(legacyRegionPath(path));
+    result.legacyStatus = old.status;
     if (old.status != RegionStatus::Loaded) return result;
     // A matching OLDF can be cleaned up even if its contents are not decoded.
     if (result.data && result.data->oldFile == old.facts) {
@@ -74,7 +75,7 @@ inline RegionRead readRegionFiles(std::filesystem::path const& path, RegionKey k
         return result;
     }
     auto legacy = decodeRegion(old.bytes);
-    if (!legacy) { result.damaged = true; return result; }
+    if (!legacy) { result.legacyStatus = RegionStatus::Damaged; return result; }
     if (result.data) fillFromLegacy(*result.data, *legacy);
     else result.data = std::move(legacy);
     result.data->oldFile = old.facts;
@@ -108,7 +109,7 @@ struct RegionSaveState {
     void complete(std::uint64_t saved, bool success, double now) {
         inFlight = false;
         if (success && saved == serial) dirty = false;
-        if (!success) dirtySince = now;
+        dirtySince = now;
     }
 };
 inline bool idleRegionEligible(bool resident, bool hasLegacy, RegionStatus status) {

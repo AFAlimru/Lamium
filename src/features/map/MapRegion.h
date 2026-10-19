@@ -150,22 +150,20 @@ inline RecordChange recordChunk(RegionData& region, ChunkKey chunk, std::array<C
     return {pixels, stamp != before};
 }
 // Older releases can fill holes, but cannot replace the newer file's columns.
-inline bool fillFromLegacy(RegionData& region, RegionData const& legacy) {
-    bool changed = false;
+inline void fillFromLegacy(RegionData& region, RegionData const& legacy) {
     std::array<bool, 256> affected{};
     for (size_t i = 0; i < region.colors.size(); ++i) {
         if (!legacy.colors[i]) continue;
         if (!region.colors[i]) {
             region.colors[i] = legacy.colors[i];
             region.heights[i] = legacy.heights[i];
-            affected[chunkOfIndex(i)] = changed = true;
+            affected[chunkOfIndex(i)] = true;
         } else if (region.colors[i] != legacy.colors[i] || region.heights[i] != legacy.heights[i])
             affected[chunkOfIndex(i)] = true;
     }
     for (size_t i = 0; i < affected.size(); ++i) if (affected[i]) {
         region.chunks[i] = {std::max(region.chunks[i].time, legacy.chunks[i].time), 0};
     }
-    return changed;
 }
 
 // File format: "LMR1", then runs of equal columns, each a little-endian

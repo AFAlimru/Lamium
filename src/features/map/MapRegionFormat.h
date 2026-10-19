@@ -68,6 +68,7 @@ public:
 enum class RegionStatus { Loaded, Missing, Damaged, Refused };
 struct RegionRead {
     RegionStatus status = RegionStatus::Missing;
+    RegionStatus legacyStatus = RegionStatus::Missing;
     std::optional<RegionData> data;
     bool needsSave = false;
     bool damaged = false;
@@ -182,6 +183,9 @@ inline RegionRead decodeRegion2(std::string_view bytes, RegionKey key, RegionCod
 }
 inline std::string encodeRegion2(RegionData const& region, RegionKey key, RegionCodec& codec) {
     using namespace regionFormat;
+    auto count = 3 + (region.oldFile ? 1 : 0)
+        + std::count_if(region.kept.begin(), region.kept.end(), [](auto const& s) { return s.flags & 2; });
+    if (count > 64) throw std::runtime_error("Cannot preserve kept map sections within the 64-section limit");
     std::vector<RegionSection> sections;
     auto add = [&](std::string tag, std::string raw, bool compressed = true) {
         auto bytes = compressed ? codec.compress(raw) : raw;
@@ -230,7 +234,7 @@ inline std::string encodeRegion2(RegionData const& region, RegionKey key, Region
         put(out, s.bytes.size(), 4); put(out, s.crc, 4);
     }
     for (auto const& s : sections) out += s.bytes;
-    if (sections.size() > 64 || out.size() > maxRegionBytes) throw std::runtime_error("Map region exceeds format limits");
+    if (out.size() > maxRegionBytes) throw std::runtime_error("Map region exceeds the 8 MiB file limit");
     return out;
 }
 }

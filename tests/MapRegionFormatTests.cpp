@@ -1,5 +1,6 @@
 #include "features/map/MapRegionFiles.h"
 #include "features/map/MapColors.h"
+#include "features/map/MapCave.h"
 #include <chrono>
 #include <fstream>
 void check(bool, char const*);
@@ -222,6 +223,19 @@ void revisions() {
           "underlay lowers mixed chunk revision, keeps scanned columns and untouched disk stamps");
     recordChunk(live, {0, 0}, columns, all, all, 2, 1000);
     check(live.chunks[0] == ChunkStamp{1000, 2}, "full scan after underlay certifies the chunk");
+    RegionData cave;
+    std::array<Column, 256> caveColumns{};
+    caveColumns.fill(caveColumn({CaveHit::Kind::Floor, 31}, 32, packColor(30, 60, 90)));
+    recordChunk(cave, {0, 0}, caveColumns, all, all, 1, 1100);
+    caveColumns[0] = caveColumn({CaveHit::Kind::Floor, 31}, 32, packColor(40, 70, 100));
+    auto caveProduced = all;
+    caveProduced[0] = false;
+    recordChunk(cave, {0, 0}, caveColumns, caveProduced, all, columnRevision, 1200);
+    check(cave.chunks[0].revision < columnRevision && cave.chunks[0].time == 1200,
+          "cave fallback tint updates time while an older falsely certified chunk remains due");
+    recordChunk(cave, {0, 0}, caveColumns, all, all, columnRevision, 1300);
+    check(cave.chunks[0] == ChunkStamp{1200, columnRevision},
+          "a ready unchanged cave scan certifies the current revision without changing time");
     ScanGrid grid; grid.follow({0, 0}, 30, false); grid.saw({25, 0}, Seen::Complete, 0, 0);
     grid.outdated({25, 0});
     auto due = grid.due(1, 0, 100, 16, 64);
@@ -307,16 +321,81 @@ void migration(RegionCodec& codec) {
     bool failed = false;
     try { writeRegionFiles(blocked, key, current, codec); } catch (...) { failed = true; }
     check(failed && std::filesystem::exists(legacyRegionPath(blocked)), "failed write leaves legacy file untouched");
+    auto invalidPath = folder / "invalid-legacy" / regionFileName(key);
+    auto invalidOld = legacyRegionPath(invalidPath);
+    auto invalidBytes = std::string("LMR1invalid");
+    write(invalidPath, encodeRegion2(current, key, codec));
+    write(invalidOld, invalidBytes);
+    auto invalid = readRegionFiles(invalidPath, key, codec);
+    check(invalid.status == RegionStatus::Loaded && !invalid.damaged && !invalid.needsSave
+              && invalid.legacyStatus == RegionStatus::Damaged && invalid.data->colors == current.colors
+              && invalid.data->oldFile == current.oldFile,
+          "damaged legacy file does not mark a valid LMR2 damaged or schedule its replacement");
+    writeRegionFiles(invalidPath, key, *invalid.data, codec);
+    check(read(invalidOld) == invalidBytes, "unabsorbed damaged legacy data is kept unchanged after a save");
+    write(invalidPath, "JUNK");
+    invalid = readRegionFiles(invalidPath, key, codec);
+    check(invalid.status == RegionStatus::Damaged && invalid.damaged && !invalid.data
+              && invalid.legacyStatus == RegionStatus::Damaged && !invalid.needsSave,
+          "damage in both formats is reported separately without scheduling an empty replacement");
+    auto missingPath = folder / "legacy-only" / regionFileName(key);
+    write(legacyRegionPath(missingPath), invalidBytes);
+    invalid = readRegionFiles(missingPath, key, codec);
+    check(invalid.status == RegionStatus::Missing && !invalid.damaged && !invalid.data
+              && invalid.legacyStatus == RegionStatus::Damaged && !invalid.needsSave,
+          "damaged legacy-only data stays distinct from an absent LMR2");
+    auto unreadablePath = folder / "unreadable-legacy" / regionFileName(key);
+    write(unreadablePath, encodeRegion2(current, key, codec));
+    std::filesystem::create_directory(legacyRegionPath(unreadablePath));
+    invalid = readRegionFiles(unreadablePath, key, codec);
+    check(invalid.status == RegionStatus::Loaded && !invalid.damaged && !invalid.needsSave
+              && invalid.legacyStatus == RegionStatus::Refused,
+          "unreadable legacy path does not invalidate a readable LMR2");
+    auto capacityPath = folder / "section-capacity" / regionFileName(key);
+    RegionData capacity;
+    capacity.kept.assign(61, RegionSection{"TEST", 0, 2, 1, regionCrc("x"), "x"});
+    auto capacityBytes = encodeRegion2(capacity, key, codec);
+    check(get(capacityBytes, 16, 2) == 64 && decodeRegion2(capacityBytes, key, codec).data->kept.size() == 61,
+          "a valid 64-section container preserves all 61 unknown kept sections");
+    write(capacityPath, capacityBytes);
+    auto capacityOld = legacyRegionPath(capacityPath);
+    auto capacityLegacy = encodeRegion(legacy);
+    write(capacityOld, capacityLegacy);
+    auto capacityLoad = readRegionFiles(capacityPath, key, codec);
+    check(capacityLoad.needsSave && capacityLoad.data->kept.size() == 61 && capacityLoad.data->oldFile,
+          "legacy merge retains kept data even when OLDF would require a 65th section");
+    std::string capacityError;
+    try { writeRegionFiles(capacityPath, key, *capacityLoad.data, codec); }
+    catch (std::exception const& error) { capacityError = error.what(); }
+    check(capacityError.find("kept map sections") != std::string::npos && capacityError.find("64-section limit") != std::string::npos
+              && read(capacityPath) == capacityBytes && read(capacityOld) == capacityLegacy,
+          "section overflow explains preservation failure and leaves both files untouched");
     RegionSaveState state;
     state.changed(0);
     check(!state.due(9) && state.due(10) && state.begin() && !state.begin(), "save waits ten seconds and has one snapshot in flight");
     auto serial = state.serial;
     state.changed(11); state.complete(serial, true, 12);
-    check(state.dirty && !state.inFlight, "changes during write stay dirty");
+    check(state.dirty && !state.inFlight && !state.due(21.99) && state.due(22),
+          "changes during a successful write stay dirty and wait a fresh save delay");
     state.begin(); serial = state.serial; state.complete(serial, false, 12);
     check(state.dirty && !state.due(21.99) && state.due(22), "failed save retries after delay, never every frame");
     state.begin(); state.complete(state.serial, true, 23);
     check(!state.dirty, "successful unchanged snapshot clears the dirty mark");
+    RegionSaveState batching;
+    batching.changed(0); batching.begin(); serial = batching.serial;
+    batching.changed(1); batching.complete(serial, true, 10);
+    check(!batching.due(10) && batching.due(20), "successful in-flight changes do not cause immediate re-saves");
+    for (int second = 11; second < 20; ++second) {
+        batching.changed(second);
+        check(!batching.due(second), "continuous edits share the next batch instead of writing every second");
+    }
+    check(batching.due(20), "continuous edits do not postpone the next batch indefinitely");
+    batching.begin(); serial = batching.serial;
+    batching.changed(20.5); batching.complete(serial, true, 21);
+    check(!batching.due(30.99) && batching.due(31), "each newer in-flight batch starts its own save delay");
+    check(batching.begin(), "world exit can force pending changes to save before their delay");
+    batching.complete(batching.serial, true, 22);
+    check(!batching.dirty, "forced final save clears only the snapshot it persisted");
     check(regionOfFileName("r.-2.3.lm2") == key && regionOfFileName("r.-2.3.lmr") == key
               && layerOfFolder("nether/y-16") == MapLayer{1, -1}, "listing includes both formats and distinct Nether layers");
 }

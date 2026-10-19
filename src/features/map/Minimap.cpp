@@ -329,7 +329,7 @@ BlockLook const* blockLook(IClientInstance& client, Block const& block) {
 // colors and missed it (2026-10-07).
 // Set when the renderer's tint was not ready; the chunk is scanned again soon.
 bool tintNotReady = false;
-// The last surface column used the stand-in map tint.
+// The current column used the stand-in map tint.
 bool columnProvisional = false;
 std::uint32_t biomeTint(TintMethod tint, BlockSource& region, BlockPos const& pos, Block const& block,
                         std::uint32_t color) {
@@ -366,7 +366,10 @@ enum class Scan { Done, Waiting };
 // Set by the column scans when a block had not arrived; the column stays unknown.
 bool sawPending = false;
 std::uint32_t blockColor(BlockLook const& look, BlockSource& region, BlockPos const& pos, Block const& block) {
-    return look.color ? biomeTint(look.tint, region, pos, block, look.color) : mapColor(region, pos, block);
+    tintNotReady = false;
+    auto color = look.color ? biomeTint(look.tint, region, pos, block, look.color) : mapColor(region, pos, block);
+    if (color && tintNotReady) sawPending = columnProvisional = true;
+    return color;
 }
 // One surface column, from one above the heightmap position down (see
 // columnBlockWins): a covering block (snow layer, carpet) wins, blocks that
@@ -383,9 +386,7 @@ std::optional<Column> surfaceColumn(IClientInstance& client, BlockSource& region
         if (!look) return std::nullopt;
         if (look->pending) { sawPending = true; return Column{}; }
         if (!columnBlockWins(look->skip, look->cover, y, top.y)) continue;
-        tintNotReady = false;
         if (auto color = blockColor(*look, region, pos, block)) {
-            if (tintNotReady) sawPending = columnProvisional = true;
             return Column{color, static_cast<std::int16_t>(y)};
         }
     }

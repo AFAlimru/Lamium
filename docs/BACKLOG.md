@@ -87,8 +87,8 @@ L-item wins. Every entry names what the task is, not only its number.
      finder, L-169's later parts (drops and the rest), L-170
      enchantment order planner, L-173 quick shapes and beacon range, L-163
      a Lamium-drawn inventory screen; L-228 cave/Nether map representation.
-     L-151 to L-154
-     stay later. This list approves no implementation and sets no release.
+     L-151 to L-154 stay later. This list approves no implementation and
+     sets no release.
    - Done since 0.2.0 (BACKLOG-DONE): L-155, L-157 to L-161, L-147, L-148,
      L-150, L-164 with L-133 and L-156, L-171 calculator, L-172 text
      fields, L-166 repeated villager trades (part 1), L-174 chat position,
@@ -174,6 +174,9 @@ and measured frame times. The maintainer's local appearance, opening/zoom,
 Nether/cave display and rejoin-retention smoke check found no abnormality
 attributed to L-216. Cave/Nether representation remains a Design concern
 (L-228). Evidence and scope: VALIDATION-LOG.md; implementation: MAP.md.
+Review follow-up: the corrected save batching, separate legacy warnings
+and cave provisional tint/revision-2 paths still need a focused live check;
+the reported smoke result above is for `6ff0610`.
 
 ### Shipped in 0.2.3 (smoke-tested; remaining gaps in VALIDATION.md)
 
