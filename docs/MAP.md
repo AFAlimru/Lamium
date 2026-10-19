@@ -8,6 +8,22 @@ runtime coverage is in [VALIDATION.md](VALIDATION.md), with evidence in
 
 ## Current implementation
 
+Cave layers and the D controls (2026-10-19, L-228; branch `l228-cave-map`,
+not checked in game): the minimap keeps a broad cave view and records the
+Overworld surface plus, while the player is under a roof, a 16-block cave
+band in new `overworld/y<Y>` folders. The Nether keeps its bands. Surface and
+cave recording take turns on the existing budget. The world map's top bar
+has one terrain state button; its panel opens under the button, keeps the
+waypoint list open and shifts left when space is tight. It offers cave
+on/off, broad on/off, a `-`/input/`+` height and a `自分の高さに合わせる`
+action. The map opens at the player's height; changing it fixes the height.
+The Nether starts broad and an Overworld cave starts in the selected layer.
+The layer view dims floors more than 8 blocks from the selected height;
+broad view keeps them. `MapCave.h` reads up to 48 blocks below and stops at
+the first floor. `worldMapNetherAuto` is no longer shown in settings; its
+stored field remains for compatibility. See the L-228 review below for the
+build it replaces and the open in-game check.
+
 Scan grid (2026-10-18, L-210): the resumable ring walk of the L-206 review
 left one-chunk arcs and wedges unrecorded inside the view distance when the
 player moved during a pass (seen in the saved regions: whole chunks missing
@@ -127,8 +143,8 @@ placements and shapes before the layer switches for the list and details.
 
 ## Cave and Nether representation review (L-228, 2026-10-19)
 
-Product direction agreed; detailed behavior and implementation remain Design.
-The following observations describe the existing implementation.
+Implemented on branch `l228-cave-map`; not checked in game. The observations
+below describe the build the maintainer reviewed before this change.
 The maintainer found no conspicuous L-216 regression in appearance,
 opening/zoom speed, Nether/cave display or retention after rejoining, but
 questioned whether the terrain the cave view selects is useful. Supplied
@@ -138,23 +154,23 @@ visible footprint dominated by lava. Both have a 500-block scale and
 "Loading 4". The footprint difference is observed; its cause is not yet
 isolated.
 
-Current source behavior (`MapCave.h`, `Minimap.cpp`): the held height has
-3-block slack and samples five blocks above through 24 below. Solid blocks
-at feet/head height form a dark wall; a column open through the window
-forms a dark drop; other floors use their block color with depth dimming.
-Unavailable stand-ins may also count as rock. Thus a deep lava surface
-can be outside the window at the higher height and appear in it lower
-down. That is a source-based explanation of a possible contributor, not
-proof of what each dark screenshot pixel represents.
+Previous source behavior (`MapCave.h`, `Minimap.cpp` before L-228): the held
+height had 3-block slack and sampled five blocks above through 24 below.
+Solid blocks at feet/head height formed a dark wall; a column open through
+the window formed a dark drop; other floors used their block color with
+depth dimming. Unavailable stand-ins could also count as rock. Thus a deep
+lava surface could be outside the window at the higher height and appear in
+it lower down. That is a source-based explanation of a possible contributor,
+not proof of what each dark screenshot pixel represents.
 
-`MapRegion.h` stores Nether terrain separately per 16-block band, and
-`WorldMap.cpp` can follow the player's band. A different band can have a
-different recorded/received footprint. The screenshots' pending images
-also need to be ruled out before attributing the apparent size change.
-These storage bands group scans whose reference height can vary within a
-band; they are not fixed cross-sections at a canonical height.
-The current Overworld recording path saves the surface; its cave view is
-transient minimap data, not a saved cave map for later world-map browsing.
+`MapRegion.h` stores cave terrain separately per 16-block band: the Nether
+and now the Overworld. A different band can have a different
+recorded/received footprint. The screenshots' pending images also need to
+be ruled out before attributing the apparent size change. These storage
+bands group scans whose reference height can vary within a band; they are
+not fixed cross-sections at a canonical height. Before L-228 the Overworld
+recording path saved the surface only; its cave view was transient minimap
+data, not a saved cave map for later world-map browsing.
 
 Agreed direction (maintainer 2026-10-19): the map should represent the
 cavern the player occupies, showing the current ledge/path and the deeper
@@ -174,11 +190,10 @@ treatment and selection/transition algorithm remain open.
 
 Scope extended by the maintainer the same day: persist explored Overworld
 cave terrain so it can be revisited on the world map, including after
-leaving and rejoining. Retain the surface map alongside cave terrain.
-Vertically overlapping cave spaces must remain distinguishable when
-recording and browsing; the representation and selection controls are not
-yet chosen. This extends the original surface-only Overworld recording
-scope; it is not implemented or checked in game.
+leaving and rejoining, and retain the surface map alongside it. This is now
+recorded in 16-block cave bands; vertically overlapping spaces inside one
+band are not distinguished, separate bands are. It is implemented on the
+branch but not checked in game.
 
 Design scenarios to preserve when specifying and implementing L-228:
 
@@ -211,22 +226,31 @@ the A/B/C mockups were rejected as too complex.
 - Layer switches keep their names while they fit; they become symbols only
   when the bar is too narrow.
 
-Implementation plan for v1: record explored Overworld cave terrain in
-16-block bands alongside the retained surface map, using new
-`overworld/y<Y>` folders under the existing LMR2 layout. Vertically
-overlapping spaces inside one band are not distinguished; separate bands
-are. Cave columns use a deeper downward read to find the occupied floor and
-the lower floor/lava; the world map's layer view dims floors outside the
-selected height, while broad view keeps them. The recording budget is shared
-between the surface and cave layers by taking turns. Unknown terrain, walls
-and deep drops keep distinct reads.
+Implementation on branch `l228-cave-map` (not checked in game): explored
+Overworld cave terrain is recorded in 16-block bands alongside the retained
+surface map, using new `overworld/y<Y>` folders under the existing LMR2
+layout. Vertically overlapping spaces inside one band are not distinguished;
+separate bands are. `MapCave.h` reads a deeper 48-block window and stops at
+the first floor, so the occupied floor and lower floor/lava stay in the
+cavern without always paying for the full window. The world map's layer view
+dims floors farther than 8 blocks from the selected height and keeps walls
+and drops distinct; broad view keeps them. Surface and cave recording share
+the budget by taking turns. `worldMapNetherAuto` is no longer shown in
+settings (the map opens at the player's height); its stored field remains
+for settings compatibility.
+
+The world map's top bar state button and its panel follow the D decision:
+the panel opens under the button, does not close the waypoint list, and
+shifts left when the list leaves too little room. The panel's height field
+uses the shared number input; Enter or leaving the field applies it, and
+Esc discards it. Layer switches keep their names while they fit and use
+symbols only when the bar is too narrow.
 
 This does not select a connectivity algorithm or claim that a displayed
-floor is walkably reachable. Scan bounds, the exact temporary window, colors
-and the smaller-footprint cause remain implementation/validation details, not
-new user-visible choices. DESIGN.md records the product direction and
-BACKLOG L-228 owns the work status. The current LMR2 migration contract is
-unchanged.
+floor is walkably reachable. The in-game check, the smaller-footprint cause
+and broader server/pack coverage remain. DESIGN.md records the product
+direction and BACKLOG L-228 owns the work status. The current LMR2
+migration contract is unchanged.
 
 ## World map zoom-out (L-187, 2026-10-14)
 

@@ -626,7 +626,8 @@ with the minimap off as well as on; near changes and movement during a wide
 pass. Build/tests alone do not establish these runtime results.
 
 ### L-228 Reconsider what cave and Nether maps should show
-Kind: Ready (strong model), implementation in progress. Maintainer feedback
+Kind: Ready (strong model). Implemented on branch `l228-cave-map`, not
+checked in game. Maintainer feedback
 2026-10-19 after the L-216 smoke check:
 no conspicuous problem with that PR, but the cave/Nether view may not give
 the player a useful account of the terrain. At roughly Y67 (selected band
@@ -664,8 +665,8 @@ Scope extended by the maintainer the same day: persist explored Overworld
 cave terrain and make it available for later world-map viewing, including
 after leaving and rejoining. Retain the surface map alongside it. The
 design must support revisiting vertically overlapping cave spaces without
-erasing the surface or conflating those cave spaces. The current build
-records the Overworld surface only; this is new scope, not validated
+erasing the surface or conflating those cave spaces. Before L-228 the build
+recorded the Overworld surface only; this is new scope, not validated
 behavior.
 
 Interaction review, decided 2026-10-19: the reduced D control model in
@@ -690,13 +691,17 @@ are. The cave scan uses a deeper downward window for the occupied floor and
 the lower floor/lava, with a bounded per-column read; the world map's layer
 view dims floors outside the selected height, while broad view keeps them.
 
-Implementation started 2026-10-19 on branch `l228-cave-map`. Remaining:
-finish the representation/storage/UI code and tests, then the in-game check.
-The smaller footprint still needs investigation against per-band recording
-coverage, received terrain and pending images. No release is chosen. Keep
-this follow-up separate from L-216. Direction: DESIGN.md, "Cave and Nether
-terrain reference"; current behavior and evidence: MAP.md's "Cave and Nether
-representation review" and VALIDATION-LOG.md, 2026-10-19.
+Implementation on branch `l228-cave-map` (2026-10-19): `a7ad024` deepens
+the cave read and marks layer heights, `7bed82e` adds the Overworld cave
+bands, alternating recording and focused images, and `cfe2c43` replaces the
+Nether band control with the D state button and panel. Build and
+`LamiumTests` pass. Remaining: the in-game check (Nether/cave usefulness,
+surface retention, rejoin, 100/125 % layout, recording and frame times), then
+merge. The smaller footprint still needs investigation against per-band
+recording coverage, received terrain and pending images. No release is
+chosen. Keep this follow-up separate from L-216. Direction: DESIGN.md, "Cave
+and Nether terrain reference"; current behavior and evidence: MAP.md's "Cave
+and Nether representation review" and VALIDATION-LOG.md, 2026-10-19.
 
 ### L-196 Review license notices, source access and provenance classification
 Kind: Research, then Ready for changes supported by the findings.
