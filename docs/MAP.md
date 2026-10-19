@@ -212,11 +212,15 @@ renderer-tint black of 2026-10-07). It is kept per chunk rather than per
 region because one region mixes chunks recorded by different builds. A
 chunk with an older revision is shown as saved and counts as due for a
 rescan when the client has it loaded; it is never discarded unseen.
-A merge stamps a chunk with the current revision only when this scan
-produced every column the chunk has recorded, none of them filled from the
-saved map and none colored with the stand-in tint (provisional). Otherwise
-the chunk keeps its stored revision, and a chunk new to the map gets 0, so
-it stays due for a rescan (review 2026-10-19). The recorded time is set
+A merge stamps a chunk with the writing build's revision only when this
+scan produced every column the chunk has recorded, none of them filled from
+the saved map and none colored with the stand-in tint (provisional).
+Otherwise the chunk gets the lower of its stored revision and the writing
+build's, and a chunk new to the map gets 0, so it stays due for a rescan
+(reviews 2026-10-19). The lower value matters when builds mix: a chunk at
+revision 2 partly rewritten by a build at revision 1 drops to 1, so a
+revision 2 build sees the columns written by 1 as due again; a full rescan
+by the revision 1 build also leaves 1. The recorded time is set
 whenever a merge changes any of the chunk's columns.
 
 Migration and older releases (times compared in milliseconds; the system
@@ -252,8 +256,9 @@ section skipped, written back with keep and dropped without it; unknown
 required section and newer version leave the file untouched; a damaged
 section counts as missing; x/z mismatch; `LMR1` to `LMR2` migration, the
 interrupted-save leftover, the both-files merge rule including a tie in the
-same millisecond; a partial rescan keeps the older revision; older
-revisions selected for rescan.
+same millisecond; a partial rescan keeps the older revision; revision 2,
+a partial rewrite by a revision 1 build, then back to revision 2 (the chunk
+is at 1 and due); older revisions selected for rescan.
 
 ## Technical entry points
 
