@@ -709,20 +709,21 @@ height matching, body for "Center on me"). `7e0e2f9` draws the camera as the
 same green arrow, removes the return-to-camera action (reopen the map to
 return), and resumes following when a manual edit lands on the reference
 height. The camera arrow is display-only; closing and reopening the map
-returns to the camera. Review follow-up `c67054d` (2026-10-20, built, not
-checked in game) opens the map at the stable cave band used for recording and
-checks the body's own roof for body reference instead of the FreeCamera view.
-`07f0dc1` (2026-10-20, built, not checked in game) makes the render loop
-follow that same stable reference; before it, a `+` that reached the stable
-band enabled following and the next frame snapped back to the raw eye height
+returns to the camera. Review follow-up `c67054d` (2026-10-20, checked in
+game) opens the map at the stable cave band used for recording and checks
+the body's own roof for body reference instead of the FreeCamera view.
+`07f0dc1` (2026-10-20, checked in game) makes the render loop follow that
+same stable reference; before it, a `+` that reached the stable band enabled
+following and the next frame snapped back to the raw eye height
 (64 -> 64 -> 64, 78 -> 79 -> 80 -> 78).
 The owner extended this branch to cover the cave map and the FreeCamera map
 reference in one change instead of separate PRs. Build, `LamiumTests` and
 `LamiumNativeTests` pass. The final in-game checklist passed on `7e0e2f9`
 (2026-10-20): green camera arrow, no return-to-camera action, automatic
-follow resume at the reference height, and UI Profile 50/75/100. Remaining:
-measured frame times, broader server coverage, and an in-game check of the
-`c67054d` band/body fixes and the `07f0dc1` follow fix. The earlier Y32/Y67 difference is explained by
+follow resume at the reference height, and UI Profile 50/75/100. The
+`c67054d` band/body fixes and the `07f0dc1` follow fix also passed in game
+on 2026-10-20. Remaining: measured frame times and broader server coverage.
+The earlier Y32/Y67 difference is explained by
 per-band recording and render distance, not a code defect. No release is
 chosen. Keep this follow-up separate from L-216. Direction: DESIGN.md, "Cave
 and Nether terrain reference"; current behavior and evidence: MAP.md's "Cave

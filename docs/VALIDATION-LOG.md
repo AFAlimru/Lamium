@@ -12,6 +12,22 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-228 height follow fix verified (2026-10-20)
+
+Build `07f0dc1`, docs `15c8453`, deployed DLL SHA-256
+`e1ec445a248e5b6314525feb8c5044f37b1d572ebfdd71588501372be5fbd44c`,
+default release build (no trace/probe options). Local `1.26.51.01 LIP`
+deployment, Windows x64; the maintainer played the world and reported no
+problems with the height-follow fix or the earlier band/body fixes:
+
+- repeated `+` at Y64/Y80 no longer returns to the player's height;
+- the Y63 to Y64 opening band and body/camera cave reference checks pass;
+- the green camera arrow, matched-height resume and panel layout still work.
+
+This is a maintainer report, not an agent observation. Measured frame times,
+long sessions, servers and the remaining per-band/terrain coverage are still
+unchecked. The branch is merged locally and not pushed.
+
 ## L-228 height follow snap report (2026-10-20)
 
 Build `a5c8db3` (DLL SHA-256

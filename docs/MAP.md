@@ -271,11 +271,11 @@ wall and no-floor. Layer view dims far floors to a solid dark color instead of a
 checker or dots; wall/drop patterns, the stand-in color and the unknown hatch
 were removed. A cave scan that used stand-ins waits for its saved region to
 merge before recording so saved terrain is not masked after rejoining.
-Review follow-up (2026-10-20, built as `c67054d`, not checked in game): the
+Review follow-up (2026-10-20, checked in game as `c67054d`): the
 world map opens at the stable cave band used for recording, so a Y63 to Y64
 step does not open the empty Y64 band, and body reference checks the body's
 own roof instead of the FreeCamera automatic view.
-Follow-up `07f0dc1` (2026-10-20, built, not checked in game): the render loop
+Follow-up `07f0dc1` (2026-10-20, checked in game): the render loop
 uses the same stable reference as the height controls. A `+` that reached the
 stable band used to enable following and then snap back to the raw eye height
 (64 -> 64 -> 64, 78 -> 79 -> 80 -> 78).
