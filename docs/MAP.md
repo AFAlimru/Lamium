@@ -145,6 +145,83 @@ rebuilds one path down rather than every region under a far view. The image
 LRU keeps coarse levels longer and also trims during a build. Not measured:
 time to build the first far view of a very large map, and memory/IO on it.
 
+## Region file format LMR2 (L-216, 2026-10-19)
+
+Agreed with the maintainer 2026-10-19; not built yet. It replaces `LMR1`
+for writing; `LMR1` stays readable.
+
+What is stored: the colors seen and the heights, as in `LMR1`. Blocks and
+biomes are not stored: a resource-pack change does not recolor the saved
+map, and no block-state conversion is needed when the game updates. If they
+are ever wanted they become optional sections.
+
+File: `r.<x>.<z>.lm2` in the same layer folders as now (`overworld`,
+`nether/y<N>` per 16-block layer, `end`). All numbers little-endian.
+
+```
+"LMR2" | u16 format version (1) | u16 flags (0) | i32 region x | i32 region z
+u16 section count, then per section:
+  4-char tag | u8 codec (0 none, 1 zstd) | u8 flags (bit 0: required)
+  u32 raw size | u32 stored size | u32 CRC-32 of the stored bytes
+section bodies in table order
+```
+
+Reading:
+- Wrong magic, a short table, sizes past the end of the file, or a region
+  x/z that differs from the file name: the file counts as missing.
+- A newer format version, or an unknown tag or codec on a required section:
+  the region is not shown and never overwritten; what is recorded there
+  stays in memory for the session. An unknown optional section is skipped.
+- A CRC mismatch or a body that does not decode: that section counts as
+  missing. Without `COLR` or `HGHT` the region counts as missing (the next
+  save rewrites it); without `CHNK` its recorded chunks count as recorded at
+  time 0 under revision 0.
+
+Sections in version 1 (all required, each compressed on its own with zstd
+level 3; there is no compression setting):
+- `CHNK`: 256 entries in chunk order (z rows of x): u32 recorded time (Unix
+  time in minutes when the chunk was last merged, 0 = never) and u16 color
+  revision (0 = unknown, e.g. migrated from `LMR1`).
+- `COLR`: u32 palette size, the palette as u32 RGBA (entry 0 is always 0,
+  "not recorded"), then one index per column in row-major order (z rows of
+  x): u8 when the palette has at most 256 entries, otherwise u16 written as
+  a plane of low bytes then a plane of high bytes.
+- `HGHT`: each column's i16 height minus its west neighbour's (the first
+  column of a row: minus the north neighbour's; the first column: minus
+  0), zigzag-encoded as u16, written as a low-byte plane then a high-byte
+  plane. Heights are not limited to a fixed world range.
+
+Color revision: one constant beside the column color calculation, raised
+whenever a change makes colors recorded before it wrong (such as the
+renderer-tint black of 2026-10-07). It is kept per chunk rather than per
+region because one region mixes chunks recorded by different builds. A
+chunk with an older revision is shown as saved and counts as due for a
+rescan when the client has it loaded; it is never discarded unseen.
+
+Migration and older releases:
+- Listing on join and the settings' size include both `.lm2` and `.lmr`.
+- Reading prefers `.lm2`; without one, `.lmr` is read with the `LMR1`
+  decoder (time 0, revision 0).
+- Saving always writes `.lm2` (atomic replace as now), then deletes that
+  region's `.lmr`. No bulk rewrite.
+- An older Lamium does not list `.lm2`, so it cannot damage them; it records
+  anew into `.lmr`. When both files exist, a chunk takes the `.lmr` columns
+  it has if the `.lmr` file is newer than that chunk's recorded time, else
+  the `.lm2` ones; the next save writes the result and deletes the `.lmr`.
+
+Measured 2026-10-19 on 150 of LamiumTest's 1,563 regions (Python, so only
+the ratios carry over to C++): palette + height deltas + zstd 3 averaged
+22.7 KB per region against 136 KB in `LMR1` (6.0x), with colors about
+12.5 KB and heights about 10 KB of it; the median region has 288 distinct
+colors. zlib 6 on the same data was slightly smaller (20.9 KB) at about
+eight times the CPU.
+
+Tests: round trip with a small and a large (>256) palette; unknown optional
+section skipped; unknown required section and newer version leave the file
+untouched; a damaged section counts as missing; x/z mismatch; `LMR1` to
+`LMR2` migration and the both-files merge rule; older revisions selected for
+rescan.
+
 ## Technical entry points
 
 - `MapMarks.h`, `MapLayers.cpp`: mark keys, hit order and the footprint

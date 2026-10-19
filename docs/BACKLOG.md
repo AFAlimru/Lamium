@@ -614,29 +614,38 @@ with the minimap off as well as on; near changes and movement during a wide
 pass. Build/tests alone do not establish these runtime results.
 
 ### L-216 World map region file format for the long term
-Kind: Design. Maintainer 2026-10-18: the saved map takes much more space than
+Kind: Ready. Maintainer 2026-10-18: the saved map takes much more space than
 the world (LamiumTest: 166 MB of map in 1,369 region files, 36 MB of world
-`db`). The current `LMR1` format is uncompressed runs of (length, color,
-height) per region; natural terrain changes color almost every column, so
-runs average about five columns. zlib on the current files measured 5.3x
-(planar palette + height deltas + zlib 5.8x). The maintainer agrees to a new
-format but wants it designed once for the long term before switching, and
-would rather not add much CPU.
-Questions to settle first:
-- Versioning: a header with a format version and a section table, so later
-  additions are new sections that older readers skip, not new formats.
-- What a region may need later besides color and height: water depth or
-  surface block, biome, per-chunk "recorded at" time (freshness, merging
-  edits), a recorded-chunk bitmap (partial chunks), cave/Nether bands.
-- Compression: zlib (available as an xmake package, zlib licence) per
-  section; level and CPU budget on the worker; zstd as the alternative.
-- Integrity: a checksum per section so a damaged file degrades to "missing"
-  for that section only.
-- Downgrades: older Lamium reads new files as damaged and may overwrite them.
-  Option: release reading first, switch writing a release later; or write
-  under a new extension.
-- Migration: lazily, when a region is next saved; no bulk rewrite.
-[MAP.md](MAP.md)
+`db`; 204 MB in 1,563 files against 44 MB on 2026-10-19). The current `LMR1`
+format is uncompressed runs of (length, color, height) per region; natural
+terrain changes color almost every column, so runs average about five
+columns. The maintainer wanted a new format designed once for the long term,
+without much more CPU.
+Spec agreed 2026-10-19 (full contract: [MAP.md](MAP.md#region-file-format-lmr2-l-216-2026-10-19)):
+- Regions keep the colors seen, as now; no block or biome storage (no
+  recolor pass on a resource-pack change, no block-state conversions per
+  game version). Those can come later as optional sections.
+- `LMR2` files (`r.<x>.<z>.lm2`): a header with a format version and a
+  section table; each section has its codec, a "required" flag and a
+  CRC-32. Unknown sections are skipped; a damaged section counts as missing.
+- Sections in version 1: `CHNK` (per chunk: recorded time and the color
+  revision), `COLR` (palette + indices), `HGHT` (height deltas).
+- A color revision constant is raised whenever the column color calculation
+  changes; chunks recorded under an older revision are shown and rescanned
+  when loaded.
+- zstd level 3 per section, the only codec; no setting.
+- Migration as regions are saved: `.lm2` is read first, then `.lmr`; saving
+  writes `.lm2` and deletes that region's `.lmr`. No bulk rewrite. Older
+  Lamium does not see `.lm2` files and cannot damage them.
+- Nether 16-block layers stay separate folders.
+Measured 2026-10-19 (150 of LamiumTest's regions, Python): palette + height
+deltas + zstd 3 averaged 22.7 KB per region (6.0x, about 35 MB for that
+world) at about an eighth of zlib 6's CPU for a similar size.
+Work: the format and its tests in `MapRegion.h`, reading/listing/saving in
+`MapStore.cpp`, the rescan of older revisions in the scan grid, zstd as an
+xmake package with its notice in THIRD_PARTY_NOTICES.md. Then in game: the
+world's map size after it is resaved, opening speed, a world recorded by
+the previous release opening unchanged.
 
 ### L-196 Review license notices, source access and provenance classification
 Kind: Research, then Ready for changes supported by the findings.
