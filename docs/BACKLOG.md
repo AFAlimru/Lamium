@@ -384,6 +384,13 @@ will do, without making users bind or learn every directional action.
 Review menu hints, key-setting labels/help and the operation guide, including
 whether their text fits. Separate a missing capability (L-230's Y-axis
 movement) from an existing operation that needs a clearer explanation.
+Additional maintainer feedback, 2026-10-20: settings offers a direct Open
+button for the calculator (L-220), but no equivalent button for the schematic
+radial menu. Track this inconsistent access as an improvement candidate;
+the remedy is undecided. Review how settings exposes tool/screen openers
+alongside their bindings, including whether to add, remove or otherwise
+unify direct-open controls. Do not assume that adding a radial-menu button
+or removing the calculator button is already approved.
 Open: whether directional keys earn their UI weight for precise one-shot or
 macro use; whether the menu/wheel/repeat workflow should be the primary
 path; and which explanation belongs where. Preserve existing saved action
