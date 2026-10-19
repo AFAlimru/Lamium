@@ -8,7 +8,7 @@ runtime coverage is in [VALIDATION.md](VALIDATION.md), with evidence in
 
 ## Current implementation
 
-Cave layers and the D controls (2026-10-19, L-228; branch `l228-cave-map`,
+Cave layers and the D controls (2026-10-19, L-228; branch `feat/map-cave-freecamera`,
 not checked in game): the minimap keeps a broad cave view and records the
 Overworld surface plus, while the player is under a roof, a 16-block cave
 band in new `overworld/y<Y>` folders. The Nether keeps its bands. Surface and
@@ -16,13 +16,15 @@ cave recording take turns on the existing budget. The world map's top bar
 has one terrain state button; its panel opens under the button, keeps the
 waypoint list open and shifts left when space is tight. It offers cave
 on/off, broad on/off, a `-`/input/`+` height and a `自分の高さに合わせる`
-action. The map opens at the player's height; changing it fixes the height.
-The Nether starts broad and an Overworld cave starts in the selected layer.
-The layer view dims floors more than 8 blocks from the selected height;
-broad view keeps them. `MapCave.h` reads up to 96 blocks below and stops at
-the first floor. `worldMapNetherAuto` is no longer shown in settings; its
-stored field remains for compatibility. See the L-228 review below for the
-build it replaces and the open in-game check.
+action. The map opens at the player's height (the FreeCamera eye when it
+owns the view); changing it fixes the height. "Center on me" returns to the
+body; a green camera arrow and "Return to camera" return to the camera. The
+Nether starts broad and an Overworld cave starts in the selected layer.
+The layer view dims floors more than 8 blocks from the selected height to a
+solid dark color; broad view keeps them. `MapCave.h` reads up to 128 blocks
+below and stops at the first floor. `worldMapNetherAuto` is no longer shown
+in settings; its stored field remains for compatibility. See the L-228
+review below for the build it replaces and the open in-game check.
 
 Scan grid (2026-10-18, L-210): the resumable ring walk of the L-206 review
 left one-chunk arcs and wedges unrecorded inside the view distance when the
@@ -143,7 +145,7 @@ placements and shapes before the layer switches for the list and details.
 
 ## Cave and Nether representation review (L-228, 2026-10-19)
 
-Implemented on branch `l228-cave-map`; not checked in game. The observations
+Implemented on branch `feat/map-cave-freecamera`; not checked in game. The observations
 below describe the build the maintainer reviewed before this change.
 The maintainer found no conspicuous L-216 regression in appearance,
 opening/zoom speed, Nether/cave display or retention after rejoining, but
@@ -226,15 +228,15 @@ the A/B/C mockups were rejected as too complex.
 - Layer switches keep their names while they fit; they become symbols only
   when the bar is too narrow.
 
-Implementation on branch `l228-cave-map` (not checked in game): explored
+Implementation on branch `feat/map-cave-freecamera` (not checked in game): explored
 Overworld cave terrain is recorded in 16-block bands alongside the retained
 surface map, using new `overworld/y<Y>` folders under the existing LMR2
 layout. Vertically overlapping spaces inside one band are not distinguished;
-separate bands are. `MapCave.h` reads a deeper 96-block window and stops at
+separate bands are. `MapCave.h` reads a deeper 128-block window and stops at
 the first floor, so the occupied floor and lower floor/lava stay in the
 cavern without always paying for the full window. The world map's layer view
-dims floors farther than 8 blocks from the selected height and keeps walls
-and drops distinct; broad view keeps them. Surface and cave recording share
+dims floors farther than 8 blocks from the selected height to a solid dark
+color and keeps floors, walls and no-floor distinct; broad view keeps them. Surface and cave recording share
 the budget by taking turns. `worldMapNetherAuto` is no longer shown in
 settings (the map opens at the player's height); its stored field remains
 for settings compatibility.
@@ -248,16 +250,19 @@ symbols only when the bar is too narrow. The panel uses the same translucent
 panel fill as the other map panels.
 
 Feedback follow-up (2026-10-19, not checked in game): the cave read is now
-96 blocks deep with a gentler depth dimming so Y100 in the Nether still
-shows the lava sea, and the cave panel and heights follow the FreeCamera eye
-while it owns the view (`freeCameraPose`). Walls and drops get small display
-patterns; a client stand-in used as the floor or wall gets its own color;
-cave regions draw a faint hatch where columns are unrecorded. A cave scan
-that used stand-ins waits for its saved region to merge before recording so
-saved terrain is not masked after rejoining. Column revision 3 makes chunks
-recorded by the previous shallow window due again. Upper passages within a
-few blocks above the selected floor and vertically stacked spaces inside one
-16-block band remain limitations of the band model.
+128 blocks deep with gentler depth dimming, so the Nether roof at Y110 and
+Y127 still shows the lava sea. The cave panel and heights follow the
+FreeCamera eye while it owns the view (`freeCameraPose`); "Center on me"
+returns to the body and a green camera arrow plus "Return to camera" centers
+the camera again. The display uses three states only: floor, wall and
+no-floor. Layer view dims far floors to a solid dark color instead of a
+checker or dots; wall/drop patterns, the stand-in color and the unknown hatch
+were removed. A cave scan that used stand-ins waits for its saved region to
+merge before recording so saved terrain is not masked after rejoining.
+Column revision 4 makes chunks recorded by the previous shallow window due
+again. Upper passages within a few blocks above the selected floor and
+vertically stacked spaces inside one 16-block band remain limitations of the
+band model.
 
 This does not select a connectivity algorithm or claim that a displayed
 floor is walkably reachable. The in-game check, the smaller-footprint cause
@@ -543,11 +548,11 @@ failure and cave provisional revision/time rules. These corrected runtime
 paths have not yet been checked in game; the recorded live audit and smoke
 results above belong to `6ff0610`.
 
-L-228 (2026-10-19): column revision 3 makes chunks recorded with the earlier
+L-228 (2026-10-19): column revision 4 makes chunks recorded with the earlier
 shallow cave window due again; the saved cave colors then pick up the deeper
-read, the stand-in color and the display patterns. When a cave scan used
-client stand-ins and its saved region has not merged yet, the scan waits for
-the load instead of recording stand-in colors over saved terrain.
+read and the simpler three-state view. When a cave scan used client stand-ins
+and its saved region has not merged yet, the scan waits for the load instead
+of recording stand-ins over saved terrain.
 
 `MapRegionFormatTests.cpp` covers palette boundaries, malformed/future
 containers, unknown section retention, revision/time rules, migration,

@@ -600,8 +600,10 @@ exactly one switch, one mode and one set of keys:
   deeper floor/lava in the surrounding open parts; below it, prefer the
   lower floor. The exact visual treatment and selection/transition
   algorithm remain open.
-- Unknown terrain, walls and deep drops must read differently. The existing
-  received/recorded-terrain boundary and bounded-work requirements apply.
+- Unknown terrain, walls and deep drops must read differently from floors.
+  The existing received/recorded-terrain boundary and bounded-work
+  requirements apply. V1 uses three reads only: floor, wall and no-floor
+  (deep drops and unknown terrain share the dark no-floor state).
 - Persist explored Overworld cave terrain in 16-block bands for later
   world-map viewing, including after leaving and rejoining. Retain the
   surface map alongside it. Vertically overlapping spaces within one band
@@ -614,16 +616,23 @@ exactly one switch, one mode and one set of keys:
   - The panel has three rows: cave on/off, broad on/off, and height with
     `-` / a directly editable number / `+`. A separate action button,
     `自分の高さに合わせる`, returns the height to the player.
-  - The map opens at the player's height. Changing the height fixes it;
-    the action button returns to the player's height. There is no follow
-    toggle, slider, recorded-height list or three-way mode.
+  - The map opens at the player's height (the FreeCamera eye when it owns
+    the view). Changing the height fixes it; the action button returns to
+    the current reference height. There is no follow toggle, slider,
+    recorded-height list or three-way mode.
   - Standard: the Nether starts broad, an Overworld cave starts in the
     selected layer. The minimap stays broad and follows the player.
+  - The layer view keeps the selected height bright and dims farther floors
+    to a solid dark color; there is no checker or dot pattern.
+  - A FreeCamera reference is separate from the body: opening and height
+    matching use the camera, "Center on me" returns to the body, and a
+    green camera arrow plus "Return to camera" returns to the camera. The
+    panel names the active reference (`カメラ` / `本体`).
   - The map does not switch between cave and surface while it is open; the
     initial choice is made when it opens.
 - Layer switches keep their names while they fit; they become symbols only
   when the bar is too narrow.
-- This is a decided direction, implemented on branch `l228-cave-map` and
+- This is a decided direction, implemented on branch `feat/map-cave-freecamera` and
   awaiting the in-game check, not a validated replacement. MAP.md keeps the
   current behavior and the implementation record.
 

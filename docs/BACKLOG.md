@@ -626,7 +626,7 @@ with the minimap off as well as on; near changes and movement during a wide
 pass. Build/tests alone do not establish these runtime results.
 
 ### L-228 Reconsider what cave and Nether maps should show
-Kind: Ready (strong model). Implemented on branch `l228-cave-map`, not
+Kind: Ready (strong model). Implemented on branch `feat/map-cave-freecamera`, not
 checked in game. Maintainer feedback
 2026-10-19 after the L-216 smoke check:
 no conspicuous problem with that PR, but the cave/Nether view may not give
@@ -691,22 +691,24 @@ are. The cave scan uses a deeper downward window for the occupied floor and
 the lower floor/lava, with a bounded per-column read; the world map's layer
 view dims floors outside the selected height, while broad view keeps them.
 
-Implementation on branch `l228-cave-map` (2026-10-19): `a7ad024` deepens
-the cave read and marks layer heights, `7bed82e` adds the Overworld cave
-bands, alternating recording and focused images, `cfe2c43` replaces the
-Nether band control with the D state button and panel, and `bf4f325`
-addresses the first in-game feedback and review findings (96-block cave
-read, gentler depth dimming, FreeCamera-based opening/height, stand-in and
-unknown hatching, wall/drop patterns, translucent panel, saved-region wait,
-column revision 3, and the map-image invalidation races). Build,
-`LamiumTests` and `LamiumNativeTests` pass. Remaining: the in-game check
-(Nether/cave usefulness, surface retention, rejoin, UI Profile 50/75/100,
-recording and frame times), then merge. The smaller footprint still needs
-investigation against per-band recording coverage, received terrain and
-pending images. No release is chosen. Keep this follow-up separate from
-L-216. Direction: DESIGN.md, "Cave and Nether terrain reference"; current
-behavior and evidence: MAP.md's "Cave and Nether representation review" and
-VALIDATION-LOG.md, 2026-10-19.
+Implementation on branch `feat/map-cave-freecamera` (2026-10-19): `a7ad024`
+deepens the cave read, `7bed82e` adds the Overworld cave bands, alternating
+recording and focused images, `cfe2c43` replaces the Nether band control with
+the D state button and panel, `bf4f325` addresses the first in-game feedback
+and review findings, and `9675129` settles the display model (128-block cave
+read, solid dim for far layer floors, three reads only: floor/wall/no-floor,
+column revision 4) and adds the FreeCamera reference (camera for opening and
+height matching, body for "Center on me", camera arrow and return action).
+The owner extended this branch to cover the cave map and the FreeCamera map
+reference in one change instead of separate PRs. Build, `LamiumTests` and
+`LamiumNativeTests` pass. Remaining: the in-game check (Nether/cave
+usefulness, surface retention, rejoin, UI Profile 50/75/100, camera marker
+and return, recording and frame times), then merge. The smaller footprint
+still needs investigation against per-band recording coverage, received
+terrain and pending images. No release is chosen. Keep this follow-up
+separate from L-216. Direction: DESIGN.md, "Cave and Nether terrain
+reference"; current behavior and evidence: MAP.md's "Cave and Nether
+representation review" and VALIDATION-LOG.md, 2026-10-19.
 
 ### L-196 Review license notices, source access and provenance classification
 Kind: Research, then Ready for changes supported by the findings.
