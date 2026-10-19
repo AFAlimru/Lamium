@@ -626,8 +626,8 @@ with the minimap off as well as on; near changes and movement during a wide
 pass. Build/tests alone do not establish these runtime results.
 
 ### L-228 Reconsider what cave and Nether maps should show
-Kind: Ready (strong model). Implemented on branch `feat/map-cave-freecamera`, not
-checked in game. Maintainer feedback
+Kind: Ready (strong model). Implemented on branch `feat/map-cave-freecamera`;
+final checklist passed in game 2026-10-20 (`7e0e2f9`). Maintainer feedback
 2026-10-19 after the L-216 smoke check:
 no conspicuous problem with that PR, but the cave/Nether view may not give
 the player a useful account of the terrain. At roughly Y67 (selected band
