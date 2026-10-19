@@ -72,6 +72,7 @@ std::optional<unsigned> attachedWorld;
 std::optional<std::filesystem::path> root;
 std::map<RegionId, Resident> residents;
 std::map<ImageId, Cached> images;
+std::set<ImageId> building; // Images a worker is building now; invalidate must mark them dirty.
 std::deque<Save> saves;
 std::deque<RegionId> loads;
 struct Conversion { RegionId id; std::chrono::steady_clock::time_point after{}; };
@@ -146,14 +147,18 @@ void reportRevisions(RegionId const& id, RegionData const& data) {
             reports.insert({id.key.x * 16 + static_cast<int>(i % 16), id.key.z * 16 + static_cast<int>(i / 16)});
 }
 void invalidate(RegionId const& id) {
-    // Every cached image under this region, at every scale and cave focus.
-    for (auto& [image, cached] : images) {
-        if (!(image.layer == id.layer)) continue;
-        if ((image.tile.x >> image.tile.lod) != (id.key.x >> image.tile.lod)) continue;
-        if ((image.tile.z >> image.tile.lod) != (id.key.z >> image.tile.lod)) continue;
-        cached.stale = true;
-        dirty.insert(image);
-    }
+    auto matches = [&](ImageId const& image) {
+        return image.layer == id.layer && tileCoversRegion(image.tile, id.key);
+    };
+    // An image already built under this region, at every scale and focus.
+    for (auto& [image, cached] : images)
+        if (matches(image)) {
+            cached.stale = true;
+            dirty.insert(image);
+        }
+    // One still being built: it must not publish as fresh after the change.
+    for (auto const& image : building)
+        if (matches(image)) dirty.insert(image);
 }
 ExploredIndex& indexOf(MapLayer layer) { return explored[keyOf(layer)]; }
 bool known(ImageId const& id) {
@@ -198,9 +203,11 @@ std::pair<Pixels, unsigned> child(ImageId const& id, unsigned started) {
             found->second.used = clock;
             return {found->second.pixels, found->second.version};
         }
+        building.insert(id);
     }
     auto pixels = build(id, started);
     std::lock_guard lock(mutex);
+    building.erase(id);
     if (started != generation) return {nullptr, 0};
     auto version = ++versions;
     images[id] = Cached{pixels, version, false, clock, clock};
@@ -236,7 +243,8 @@ Pixels build(ImageId const& id, unsigned started) {
             return nullptr;
         }
         return std::make_shared<std::vector<std::uint32_t> const>(
-            shadeRegion(data, id.focus == std::numeric_limits<int>::min() ? std::nullopt : std::optional<int>(id.focus)));
+            shadeRegion(data, id.focus == std::numeric_limits<int>::min() ? std::nullopt : std::optional<int>(id.focus),
+                        id.layer.cave));
     }
     // Quarters whose child image did not change are kept from the last
     // image, so a change near the player rebuilds one path down, not the
@@ -428,11 +436,13 @@ void run() {
             missingTurn = !missingTurn;
             auto id = *next;
             unsigned started = generation;
+            building.insert(id);
             lock.unlock();
             Pixels pixels;
             try { pixels = build(id, started); }
             catch (std::exception const& error) { log(std::string("could not build an image: ") + error.what()); }
             lock.lock();
+            building.erase(id);
             if (started != generation) continue;
             images[id] = Cached{pixels, ++versions, false, clock, clock};
             trimImages();
@@ -502,6 +512,7 @@ void finish(std::unique_lock<std::mutex>& lock) {
     root.reset();
     residents.clear();
     images.clear();
+    building.clear();
     builtFrom.clear();
     explored.clear();
     dirty.clear();
@@ -587,6 +598,13 @@ bool cached(MapLayer layer, ChunkKey chunk, std::array<Column, 256>& out) {
     found->second.used = clock;
     return copyChunk(*found->second.data, chunk, out);
 }
+bool ensureReady(MapLayer layer, ChunkKey chunk) {
+    std::lock_guard lock(mutex);
+    if (!attachedWorld || finishing) return false;
+    auto& r = resident({layer, regionOfChunk(chunk)});
+    r.used = clock;
+    return r.ready;
+}
 std::optional<Column> column(MapLayer layer, int x, int z) {
     std::lock_guard lock(mutex);
     auto found = residents.find({layer, regionOfBlock(x, z)});
@@ -628,6 +646,7 @@ bool clear() {
     ++epochs;
     residents.clear();
     images.clear();
+    building.clear();
     builtFrom.clear();
     explored.clear();
     dirty.clear();

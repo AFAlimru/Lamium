@@ -10,6 +10,7 @@
 #include "features/map/WorldMapView.h"
 #include "features/map/SeedLink.h"
 #include "features/map/Teleport.h"
+#include "features/camera/CameraSessions.h"
 #include "app/Desktop.h"
 #include "ll/api/Versions.h"
 #include "mc/world/level/LevelSeed64.h"
@@ -213,6 +214,15 @@ std::optional<PlayerSpot> playerSpot() {
     return PlayerSpot{feet.x, feet.y, feet.z, std::isfinite(rotation.z) ? rotation.z : 0.f,
                       static_cast<int>(player->getDimensionId())};
 }
+// FreeCamera's eye while it owns the view; the cave map should open and
+// match at what the camera sees, not at the body left behind (L-228).
+std::optional<PlayerSpot> viewSpot() {
+    auto body = playerSpot();
+    if (!state.client) return body;
+    auto pose = CameraSessions::instance().freeCameraPose(*state.client);
+    if (!pose) return body;
+    return PlayerSpot{pose->x, pose->y, pose->z, pose->yaw, body ? body->dimension : 0};
+}
 // The player's place seen from another dimension: the Nether is 1/8 scale.
 std::optional<std::pair<double, double>> playerOn(int dimension) {
     auto spot = playerSpot();
@@ -222,6 +232,11 @@ std::optional<std::pair<double, double>> playerOn(int dimension) {
     return std::pair{spot->x * k, spot->z * k};
 }
 void center() {
+    if (auto spot = viewSpot(); spot && spot->dimension == state.dimension) {
+        state.view.centerX = spot->x;
+        state.view.centerZ = spot->z;
+        return;
+    }
     if (auto at = playerOn(state.dimension)) {
         state.view.centerX = at->first;
         state.view.centerZ = at->second;
@@ -234,7 +249,7 @@ bool playerCave(PlayerSpot const& spot) {
     return spot.dimension == 1 || (spot.dimension == 0 && map::automaticView() == ViewMode::Cave);
 }
 bool canMatchHeight() {
-    auto spot = playerSpot();
+    auto spot = viewSpot();
     return spot && state.cave && spot->dimension == state.dimension && playerCave(*spot);
 }
 MapLayer shownLayer() {
@@ -259,7 +274,7 @@ void toggleCave() {
         state.following = false;
         return;
     }
-    auto spot = playerSpot();
+    auto spot = viewSpot();
     if (spot && spot->dimension == state.dimension) state.height = clampHeight(state.dimension, blockFloor(spot->y));
     state.broad = state.dimension == 1;
     state.following = canMatchHeight();
@@ -271,13 +286,13 @@ void adjustHeight(int delta) {
 }
 void matchHeight() {
     if (!canMatchHeight()) return;
-    auto spot = playerSpot();
+    auto spot = viewSpot();
     if (!spot) return;
     state.height = clampHeight(state.dimension, blockFloor(spot->y));
     state.following = true;
 }
 void returnToPlayer() {
-    auto spot = playerSpot();
+    auto spot = viewSpot();
     if (!spot) return;
     state.dimension = spot->dimension;
     state.cave = playerCave(*spot);
@@ -292,7 +307,7 @@ void showDimension(int dimension) {
     state.dimension = dimension;
     state.menu.reset();
     state.cavePanel = false;
-    auto spot = playerSpot();
+    auto spot = viewSpot();
     if (spot && spot->dimension == dimension) {
         state.height = clampHeight(dimension, blockFloor(spot->y));
         state.cave = playerCave(*spot);
@@ -1209,7 +1224,7 @@ void drawCavePanel(MinecraftUIRenderContext& context, glm::vec2 size) {
     float left = std::clamp(state.caveButton.x, 3.f, std::max(3.f, available - w));
     float top = std::max(state.caveButton.y + state.caveButton.h + 1, state.top + 1);
     if (top + h > size.y - bottomHeight) top = std::max(state.top + 1.f, size.y - bottomHeight - h);
-    ui::fill(context, left, top, w, h, ui::palette::panel, .985f);
+    ui::fill(context, left, top, w, h, ui::palette::panel, .92f);
     ui::frame(context, left, top, w, h, ui::palette::white, .14f);
     // The panel background swallows clicks between its rows.
     state.hits.push_back({left, top, w, h, Target::CavePanel});
@@ -1595,7 +1610,7 @@ void open(IClientInstance& client, bool resume) {
     if (resume) return;
     state.selected.reset();
     state.deleteArmed = false;
-    if (auto spot = playerSpot()) {
+    if (auto spot = viewSpot()) {
         state.dimension = spot->dimension;
         state.cave = playerCave(*spot);
         state.broad = state.dimension == 1;
@@ -1639,7 +1654,12 @@ bool cavePanelTarget(Target target) {
 Request press(float x, float y, bool right) {
     Request request;
     auto const* hit = hitAt(x, y);
-    if (state.editingHeight && !(hit && hit->target == Target::HeightField)) commitName();
+    // Leaving a field for the cave panel or another control keeps its value;
+    // only a press on the field being edited keeps it in edit mode.
+    bool const heightField = hit && hit->target == Target::HeightField;
+    bool const sameSideField = hit && ((hit->target == Target::Name && state.editingName)
+        || (hit->target == Target::Coordinate && hit->item == state.editingAxis));
+    if ((state.editingHeight || state.editingName || state.editingAxis >= 0) && !heightField && !sameSideField) commitName();
     // The cave panel sits above the map; its controls consume the press.
     if (hit && (hit->target == Target::CaveButton || cavePanelTarget(hit->target))) {
         if (!right) act(hit->target);
@@ -1756,7 +1776,7 @@ void render(MinecraftUIRenderContext& context, glm::vec2 size, glm::vec2 pointer
     map::record(client, settings, settings.worldMap);
     state.pointer = pointer;
     if (state.following && state.cave)
-        if (auto spot = playerSpot(); spot && spot->dimension == state.dimension)
+        if (auto spot = viewSpot(); spot && spot->dimension == state.dimension)
             state.height = clampHeight(state.dimension, blockFloor(spot->y));
     auto& view = state.view;
     view.width = size.x;

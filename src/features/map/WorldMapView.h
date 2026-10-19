@@ -38,6 +38,11 @@ struct TileKey {
     int lod = 0, x = 0, z = 0;
     bool operator==(TileKey const&) const = default;
 };
+// The tile at `tile.lod` that contains a region. Tile coordinates are already
+// at that LOD, so only the region is shifted.
+inline bool tileCoversRegion(TileKey tile, RegionKey region) {
+    return tile.x == (region.x >> tile.lod) && tile.z == (region.z >> tile.lod);
+}
 inline constexpr int maxLod = 8;
 inline constexpr int tileBlocks(int lod) { return regionBlocks << lod; }
 inline constexpr TileKey parentTile(TileKey tile) { return {tile.lod + 1, floorDiv(tile.x, 2), floorDiv(tile.z, 2)}; }

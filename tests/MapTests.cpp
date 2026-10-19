@@ -454,6 +454,8 @@ void cave() {
     auto first = caveFloorFrom([&](int y) { ++reads; return y == 67; }, 70, 68, 17);
     check(first.kind == CaveHit::Kind::Floor && first.y == 67 && reads < 12,
           "the cave read stops at the first floor instead of reading the whole deep window");
+    check(caveColumn({CaveHit::Kind::Floor, 31}, 68, stone, true).color == caveStandIn,
+          "a floor the client has not received keeps its own stand-in color");
     TileCache cache;
     auto& tile = cache.put({0, 0});
     tile.loaded = true;

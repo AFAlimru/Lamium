@@ -1,4 +1,5 @@
 #pragma once
+#include "features/map/MapCave.h"
 #include "features/map/MapTiles.h"
 #include "features/map/MapView.h"
 #include <algorithm>
@@ -34,6 +35,16 @@ inline std::uint32_t over(std::uint32_t destination, int r, int g, int b, float 
     };
     return packColor(mix(r, 0), mix(g, 1), mix(b, 2), static_cast<int>(std::lround(oa * 255)));
 }
+// Cave walls and drops share very dark colors; a small pattern keeps them
+// apart from each other and from the unknown hatch (L-228 feedback).
+inline std::uint32_t cavePattern(std::uint32_t color, int worldX, int worldZ) {
+    if (color == caveWall) return shade(color, ((worldX + worldZ) & 1) ? .82f : 1.f);
+    if (color == caveDeep) {
+        auto tintedDeep = over(color, 28, 22, 46, .42f);
+        return shade(tintedDeep, (worldX & 3) == 0 ? .72f : 1.f);
+    }
+    return color;
+}
 
 // Rebuild a chunk's shaded colors. Neighbors outside the chunk come from
 // the cache; an unknown neighbor counts as level ground.
@@ -53,7 +64,7 @@ inline void shadeTile(TileCache const& cache, ChunkKey key, Tile& tile) {
             auto const* n = z ? known(&tile, index - 16) : known(north, 15 * 16 + x);
             auto const* w = x ? known(&tile, index - 1) : known(west, z * 16 + 15);
             float k = shadeFactor(c.height, n ? n->height : c.height, w ? w->height : c.height);
-            tile.shaded[static_cast<size_t>(index)] = shade(c.color, k);
+            tile.shaded[static_cast<size_t>(index)] = cavePattern(shade(c.color, k), key.x * 16 + x, key.z * 16 + z);
         }
     tile.shadedValid = true;
 }
@@ -83,8 +94,10 @@ struct Frame {
     double blocks = 128;
     ViewTransform view;
     bool round = false;
+    bool cave = false;
     std::uint32_t unknown = 0; // Fill where nothing is known yet.
 };
+inline constexpr std::uint32_t unknownCaveHatch = packColor(34, 36, 42, 150);
 inline bool insideShape(int px, int py, int pixels, bool round, double inset = 0) {
     if (!round) return px >= inset && py >= inset && px < pixels - inset && py < pixels - inset;
     double r = pixels / 2.0 - inset;
@@ -107,7 +120,9 @@ inline void composeTerrain(TileCache& cache, Frame const& frame, std::vector<std
             int bx = blockFloor(frame.centerX + start.x + step.x * px);
             int bz = blockFloor(frame.centerZ + start.z + step.z * px);
             auto color = reader.at(bx, bz);
-            out[static_cast<size_t>(py) * n + px] = color ? color : frame.unknown;
+            if (!color)
+                color = frame.cave && ((bx + bz) & 3) == 0 ? unknownCaveHatch : frame.unknown;
+            out[static_cast<size_t>(py) * n + px] = color;
         }
     }
 }

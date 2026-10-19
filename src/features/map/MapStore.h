@@ -29,6 +29,9 @@ bool needsRevision(MapLayer layer, ChunkKey chunk);
 std::vector<ChunkKey> takeRevisionReports(MapLayer layer);
 // A chunk from loaded regions; false when nothing is known there.
 bool cached(MapLayer layer, ChunkKey chunk, std::array<Column, 256>& out);
+// Creates the region if needed and reports whether its saved file has merged.
+// A scan with stand-ins waits for this so it cannot mask saved cave columns.
+bool ensureReady(MapLayer layer, ChunkKey chunk);
 std::optional<Column> column(MapLayer layer, int x, int z);
 
 // Built images: pixels null when nothing is recorded there. Version changes

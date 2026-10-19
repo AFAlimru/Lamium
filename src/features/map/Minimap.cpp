@@ -375,6 +375,9 @@ std::uint32_t mapColor(BlockSource& region, BlockPos const& pos, Block const& bl
 enum class Scan { Done, Waiting };
 // Set by the column scans when a block had not arrived; the column stays unknown.
 bool sawPending = false;
+// A cave column used a client stand-in as its floor or wall. It is recorded
+// with a stand-in color, but does not make the chunk retry forever (L-228).
+bool sawStandIn = false;
 std::uint32_t blockColor(BlockLook const& look, BlockSource& region, BlockPos const& pos, Block const& block) {
     tintNotReady = false;
     auto color = look.color ? biomeTint(look.tint, region, pos, block, look.color) : mapColor(region, pos, block);
@@ -425,13 +428,29 @@ std::optional<Column> caveColumnAt(IClientInstance& client, BlockSource& region,
     auto hit = caveFloorFrom(solidAt, top, layer, bottom);
     if (failed) return std::nullopt;
     std::uint32_t color = 0;
+    bool standIn = false;
     if (hit.kind == CaveHit::Kind::Floor) {
         BlockPos pos{x, hit.y, z};
         auto const& block = region.getBlock(pos);
-        if (auto const* look = blockLook(client, block); look && !look->pending)
-            color = blockColor(*look, region, pos, block);
+        if (auto const* look = blockLook(client, block); look) {
+            if (look->pending) standIn = true;
+            else color = blockColor(*look, region, pos, block);
+        }
+    } else if (hit.kind == CaveHit::Kind::Wall) {
+        auto pendingAt = [&](int y) {
+            if (y < minY || y >= maxY) return false;
+            auto const* look = blockLook(client, region.getBlock(BlockPos{x, y, z}));
+            return look && look->pending;
+        };
+        standIn = pendingAt(layer) || pendingAt(layer + 1);
     }
-    return caveColumn(hit, layer, color);
+    if (standIn) {
+        // Let saved colors stand in for this column; if there are none, the
+        // stand-in color is kept without marking the whole chunk partial.
+        columnProvisional = true;
+        sawStandIn = true;
+    }
+    return caveColumn(hit, layer, color, standIn);
 }
 // Where a scanned cache meets the saved world map: chunks it scans are
 // recorded there, and chunks the client has not loaded are filled from it.
@@ -444,6 +463,7 @@ Scan scanChunk(IClientInstance& client, BlockSource& region, TileCache& cache, C
     std::array<Column, 256> columns{};
     bool loaded = false, stored = false;
     sawPending = false;
+    sawStandIn = false;
     short minY = region.getMinHeight(), maxY = region.getMaxHeight();
     BlockPos origin{key.x * 16, std::max<int>(minY, std::min<int>(layer, maxY - 1)), key.z * 16};
     std::array<bool, 256> provisional{};
@@ -470,12 +490,16 @@ Scan scanChunk(IClientInstance& client, BlockSource& region, TileCache& cache, C
         // stand-in tint, like outside the render distance (maintainer,
         // 2026-10-07); the stand-in tint shows only where nothing is saved.
         std::array<Column, 256> known{};
-        if (sawPending && saved.on && store::cached(saved.layer, key, known)) {
+        if ((sawPending || sawStandIn) && saved.on && store::cached(saved.layer, key, known)) {
             fillFromSaved(columns, provisional, known);
             for (size_t i = 0; i < columns.size(); ++i)
                 if (provisional[i] && savedUsable(known[i])) scanned[i] = false;
             loaded = true;
         }
+        // Do not record stand-in colors over a saved region that has not
+        // merged yet: that masked cave terrain until the next rescan (L-228
+        // rejoin feedback). The chunk is retried after the load.
+        if ((sawPending || sawStandIn) && saved.on && !store::ensureReady(saved.layer, key)) return Scan::Waiting;
     } else if (saved.on) {
         stored = loaded = store::cached(saved.layer, key, columns);
     }
@@ -747,7 +771,7 @@ std::optional<ui::hud_editor::Box> drawMinimap(MinecraftUIRenderContext& context
         // Composing reads shaded colors only, so it can follow every frame.
         if (changed || moved) {
             auto start = now();
-            Frame frame{pixels, centerX, centerZ, blocks, transform, settings.round, unknownFill};
+            Frame frame{pixels, centerX, centerZ, blocks, transform, settings.round, cave, unknownFill};
             composeTerrain(cache, frame, state.terrain);
             state.diagnostics.composeSeconds += now() - start;
             ++state.diagnostics.composes;

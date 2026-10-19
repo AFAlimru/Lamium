@@ -135,6 +135,16 @@ void images() {
               < channel(broad[static_cast<size_t>(regionIndex(7, 5))], 0)
           && focused[static_cast<size_t>(regionIndex(5, 5))] == broad[static_cast<size_t>(regionIndex(5, 5))],
           "the layer view dims another height and keeps the selected one");
+    check(cavePattern(caveWall, 0, 0) != cavePattern(caveWall, 1, 0)
+              && cavePattern(caveDeep, 0, 0) != caveDeep,
+          "walls and drops get distinct textures");
+    RegionData hatching;
+    mergeChunk(hatching, {0, 0}, chunkOf(stone, 64));
+    hatching.colors[0] = 0;
+    auto clearCave = shadeRegion(hatching, std::nullopt, false);
+    auto hatchedCave = shadeRegion(hatching, std::nullopt, true);
+    check(clearCave[0] == 0 && channel(hatchedCave[0], 3) > 0 && channel(hatchedCave[0], 3) < 255,
+          "a cave region shows a faint hatch where nothing is recorded");
     std::vector<std::uint32_t> parent(regionColumns, 0);
     downsampleInto(parent, pixels, 3);
     check(parent[static_cast<size_t>(128 * 256 + 128)] != 0 && parent[0] == 0 && parent[static_cast<size_t>(128 * 256 + 140)] == 0,
@@ -150,6 +160,9 @@ void images() {
     check(mapLayer(1, 70, true) == MapLayer{1, 4, true} && mapLayer(1, -1, true) == MapLayer{1, -1, true}
               && mapLayer(0, 70, true) == MapLayer{0, 4, true} && mapLayer(0, 70, false) == MapLayer{0, 0, false},
           "cave layers are 16-block bands; surfaces are one layer");
+    check(tileCoversRegion({0, 4, -3}, {4, -3}) && tileCoversRegion({1, 2, -2}, {4, -3})
+              && !tileCoversRegion({1, 1, -2}, {4, -3}) && !tileCoversRegion({1, 2, -1}, {4, -3}),
+          "a tile at its own LOD covers the region without shifting the tile again");
     check(regionFileName({-3, 7}) == "r.-3.7.lm2" && regionFileName({-3, 7}, true) == "r.-3.7.lmr",
           "new and legacy region files are named by position");
     check(regionOfFileName("r.-3.7.lmr") == RegionKey{-3, 7} && !regionOfFileName("r.3.lmr") && !regionOfFileName("r.a.1.lmr")
