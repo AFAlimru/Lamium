@@ -633,9 +633,10 @@ exactly one switch, one mode and one set of keys:
     initial choice is made when it opens.
 - Layer switches keep their names while they fit; they become symbols only
   when the bar is too narrow.
-- This is a decided direction, implemented on branch `feat/map-cave-freecamera` and
-  awaiting the in-game check, not a validated replacement. MAP.md keeps the
-  current behavior and the implementation record.
+- This is a decided direction, implemented on branch
+  `feat/map-cave-freecamera`; the final checklist passed in game on
+  2026-10-20 (`7e0e2f9`). MAP.md keeps the current behavior and the
+  implementation record.
 
 ## World map layer switches (Decided 2026-10-15, L-146)
 

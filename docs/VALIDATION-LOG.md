@@ -12,6 +12,27 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-228 final checklist (2026-10-20)
+
+Build `7e0e2f9`, docs `3a1c855`, deployed DLL SHA-256
+`0cd4eed1852f17ce937c192bfd13a4db1b4d0151eeba3dd2eef4b40ccc2b413e`,
+default release build (no trace/probe options). Local `1.26.51.01 LIP`
+deployment, Windows x64; the maintainer played the world and reported the
+final checklist passed:
+
+- the FreeCamera marker is the same arrow shape in green, readable against
+  the white player arrow, with its heading visible;
+- the cave panel has no `Return to camera` button or click action; closing
+  and reopening the map returns to the camera;
+- after changing the height and using `+/-` back to the camera height, the
+  panel returns to `Matching camera Y62` and the match action is disabled;
+- the panel and top bar keep their layout at UI Profile 50/75/100.
+
+This is a maintainer report, not an agent observation. Measured frame times,
+long sessions, servers, the smaller-footprint cause and the remaining
+per-band/terrain coverage are still unchecked. The branch is not merged or
+pushed.
+
 ## L-216 maintainer smoke check; cave/Nether design feedback (2026-10-19)
 
 Build `6ff0610`, deployed DLL SHA-256

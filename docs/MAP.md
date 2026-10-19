@@ -8,8 +8,9 @@ runtime coverage is in [VALIDATION.md](VALIDATION.md), with evidence in
 
 ## Current implementation
 
-Cave layers and the D controls (2026-10-19, L-228; branch `feat/map-cave-freecamera`,
-not checked in game): the minimap keeps a broad cave view and records the
+Cave layers and the D controls (2026-10-19, L-228; branch
+`feat/map-cave-freecamera`, final checklist passed 2026-10-20 on `7e0e2f9`):
+the minimap keeps a broad cave view and records the
 Overworld surface plus, while the player is under a roof, a 16-block cave
 band in new `overworld/y<Y>` folders. The Nether keeps its bands. Surface and
 cave recording take turns on the existing budget. The world map's top bar
@@ -24,8 +25,8 @@ selected layer.
 The layer view dims floors more than 8 blocks from the selected height to a
 solid dark color; broad view keeps them. `MapCave.h` reads up to 128 blocks
 below and stops at the first floor. `worldMapNetherAuto` is no longer shown
-in settings; its stored field remains for compatibility. See the L-228
-review below for the build it replaces and the open in-game check.
+in settings; its stored field remains for compatibility. See the L-228 review below for the
+build it replaces and the checked final build.
 
 Scan grid (2026-10-18, L-210): the resumable ring walk of the L-206 review
 left one-chunk arcs and wedges unrecorded inside the view distance when the
@@ -146,8 +147,9 @@ placements and shapes before the layer switches for the list and details.
 
 ## Cave and Nether representation review (L-228, 2026-10-19)
 
-Implemented on branch `feat/map-cave-freecamera`; not checked in game. The observations
-below describe the build the maintainer reviewed before this change.
+Implemented on branch `feat/map-cave-freecamera`; the final checklist passed
+in game on 2026-10-20 (`7e0e2f9`). The observations below describe the build
+the maintainer reviewed before this change.
 The maintainer found no conspicuous L-216 regression in appearance,
 opening/zoom speed, Nether/cave display or retention after rejoining, but
 questioned whether the terrain the cave view selects is useful. Supplied
@@ -195,8 +197,8 @@ Scope extended by the maintainer the same day: persist explored Overworld
 cave terrain so it can be revisited on the world map, including after
 leaving and rejoining, and retain the surface map alongside it. This is now
 recorded in 16-block cave bands; vertically overlapping spaces inside one
-band are not distinguished, separate bands are. It is implemented on the
-branch but not checked in game.
+band are not distinguished, separate bands are. Implemented on the branch;
+the final checklist passed in game on 2026-10-20 (`7e0e2f9`).
 
 Design scenarios to preserve when specifying and implementing L-228:
 
@@ -229,7 +231,8 @@ the A/B/C mockups were rejected as too complex.
 - Layer switches keep their names while they fit; they become symbols only
   when the bar is too narrow.
 
-Implementation on branch `feat/map-cave-freecamera` (not checked in game): explored
+Implementation on branch `feat/map-cave-freecamera` (final checklist passed
+in game 2026-10-20 on `7e0e2f9`): explored
 Overworld cave terrain is recorded in 16-block bands alongside the retained
 surface map, using new `overworld/y<Y>` folders under the existing LMR2
 layout. Vertically overlapping spaces inside one band are not distinguished;
@@ -250,7 +253,8 @@ Esc discards it. Layer switches keep their names while they fit and use
 symbols only when the bar is too narrow. The panel uses the same translucent
 panel fill as the other map panels.
 
-Feedback follow-up (2026-10-19, not checked in game): the cave read is now
+Feedback follow-up (2026-10-19; final checklist passed 2026-10-20 on
+`7e0e2f9`): the cave read is now
 128 blocks deep with gentler depth dimming, so the Nether roof at Y110 and
 Y127 still shows the lava sea. The cave panel and heights follow the
 FreeCamera eye while it owns the view (`freeCameraPose`); "Center on me"

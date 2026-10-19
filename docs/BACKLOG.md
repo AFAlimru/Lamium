@@ -705,13 +705,14 @@ height. The camera arrow is display-only; closing and reopening the map
 returns to the camera.
 The owner extended this branch to cover the cave map and the FreeCamera map
 reference in one change instead of separate PRs. Build, `LamiumTests` and
-`LamiumNativeTests` pass. Remaining: the in-game check (Nether/cave
-usefulness, surface retention, rejoin, UI Profile 50/75/100, camera marker
-and height resume, recording and frame times), then merge. The smaller
-footprint still needs investigation against per-band recording coverage,
-received terrain and pending images. No release is chosen. Keep this
-follow-up separate from L-216. Direction: DESIGN.md, "Cave and Nether
-terrain reference"; current behavior and evidence: MAP.md's "Cave and Nether
+`LamiumNativeTests` pass. The final in-game checklist passed on `7e0e2f9`
+(2026-10-20): green camera arrow, no return-to-camera action, automatic
+follow resume at the reference height, and UI Profile 50/75/100. Remaining:
+measured frame times, the smaller-footprint cause against per-band recording
+coverage, received terrain and pending images, and broader server coverage.
+No release is chosen. Keep this follow-up separate from L-216. Direction:
+DESIGN.md, "Cave and Nether terrain reference"; current behavior and evidence:
+MAP.md's "Cave and Nether
 representation review" and VALIDATION-LOG.md, 2026-10-19.
 
 ### L-196 Review license notices, source access and provenance classification
