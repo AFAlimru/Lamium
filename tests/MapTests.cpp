@@ -431,6 +431,9 @@ void cave() {
     check(stableLayer(0, 64, true) == 64 && stableLayer(64, 67, false) == 64 && stableLayer(64, 61, false) == 64
           && stableLayer(64, 68, false) == 68 && stableLayer(64, 60, false) == 60,
           "the cave layer holds within the slack and then moves to the player");
+    check(caveReferenceHeight(63, 64, true) == 63 && caveReferenceHeight(80, 78, true) == 80
+              && caveReferenceHeight(0, 68, true) == 68 && caveReferenceHeight(0, 68, false) == 68,
+          "the map opens at the recorder's stable band while it is close");
     auto stone = packColor(100, 100, 100);
     // top = 66 for a player at 64: cells for y 66, 65, 64, 63, ...
     std::array<bool, 5> tunnel{true, false, false, true, true};

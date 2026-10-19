@@ -267,11 +267,8 @@ bool canMatchHeight() {
     return spot && state.cave && spot->dimension == state.dimension && playerCave(*spot);
 }
 int recordedCaveHeight(PlayerSpot const& spot, int dimension) {
-    int actual = clampHeight(dimension, blockFloor(spot.y));
     auto layer = map::caveLayerY();
-    if (layer && std::abs(*layer - blockFloor(spot.y)) <= caveLayerSlack)
-        return clampHeight(dimension, *layer);
-    return actual;
+    return clampHeight(dimension, map::caveReferenceHeight(layer.value_or(0), blockFloor(spot.y), layer.has_value()));
 }
 std::optional<int> referenceHeight() {
     auto spot = sourceSpot();
@@ -1848,9 +1845,10 @@ void render(MinecraftUIRenderContext& context, glm::vec2 size, glm::vec2 pointer
     map::record(client, settings, settings.worldMap);
     state.pointer = pointer;
     if (state.cameraReference && !cameraAvailable()) state.cameraReference = false;
+    // Follow the same stable reference the height controls use. Using the raw
+    // eye height here made a + that landed on the stable band snap back.
     if (state.following && state.cave)
-        if (auto spot = sourceSpot(); spot && spot->dimension == state.dimension)
-            state.height = clampHeight(state.dimension, blockFloor(spot->y));
+        if (auto reference = referenceHeight()) state.height = *reference;
     auto& view = state.view;
     view.width = size.x;
     view.height = size.y;

@@ -59,6 +59,12 @@ inline int stableLayer(int current, int playerY, bool fresh) {
     if (fresh || std::abs(playerY - current) > caveLayerSlack) return playerY;
     return current;
 }
+// The height the cave map should open at: the recorder's stable band while it
+// is close to the player, otherwise the player's own height.
+inline int caveReferenceHeight(int stableLayer, int playerY, bool haveLayer) {
+    if (haveLayer && std::abs(stableLayer - playerY) <= caveLayerSlack) return stableLayer;
+    return playerY;
+}
 // Blocks examined per column around the layer: enough above for the head of
 // a player standing up to the slack higher, and a deep window below so the
 // floor or lava under a bridge is still part of the occupied cavern (L-228).
