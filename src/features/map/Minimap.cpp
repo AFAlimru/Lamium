@@ -446,11 +446,11 @@ std::optional<Column> caveColumnAt(IClientInstance& client, BlockSource& region,
     }
     if (standIn) {
         // Let saved colors stand in for this column; if there are none, the
-        // stand-in color is kept without marking the whole chunk partial.
+        // wall/floor color is kept without marking the whole chunk partial.
         columnProvisional = true;
         sawStandIn = true;
     }
-    return caveColumn(hit, layer, color, standIn);
+    return caveColumn(hit, layer, color);
 }
 // Where a scanned cache meets the saved world map: chunks it scans are
 // recorded there, and chunks the client has not loaded are filled from it.
@@ -771,7 +771,7 @@ std::optional<ui::hud_editor::Box> drawMinimap(MinecraftUIRenderContext& context
         // Composing reads shaded colors only, so it can follow every frame.
         if (changed || moved) {
             auto start = now();
-            Frame frame{pixels, centerX, centerZ, blocks, transform, settings.round, cave, unknownFill};
+            Frame frame{pixels, centerX, centerZ, blocks, transform, settings.round, unknownFill};
             composeTerrain(cache, frame, state.terrain);
             state.diagnostics.composeSeconds += now() - start;
             ++state.diagnostics.composes;

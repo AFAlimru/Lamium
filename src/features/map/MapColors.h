@@ -7,8 +7,8 @@
 
 namespace lamium::map {
 // Raise when the column color or height calculation invalidates saved values.
-// 3: L-228 reads deeper cave floors and marks stand-ins separately.
-inline constexpr std::uint16_t columnRevision = 3;
+// 4: L-228 reads a full-height cave column and uses the simpler three-state view.
+inline constexpr std::uint16_t columnRevision = 4;
 // Block colors for the map (BACKLOG L-60): the average of the block's top
 // texture, times the biome tint the world uses for it. Pure.
 

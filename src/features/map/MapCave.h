@@ -63,11 +63,8 @@ inline int stableLayer(int current, int playerY, bool fresh) {
 // a player standing up to the slack higher, and a deep window below so the
 // floor or lava under a bridge is still part of the occupied cavern (L-228).
 // The read stops at the first floor; only drops read the whole window.
-inline constexpr int caveAbove = caveLayerSlack + 2, caveBelow = 96;
+inline constexpr int caveAbove = caveLayerSlack + 2, caveBelow = 128;
 inline constexpr std::uint32_t caveWall = packColor(34, 34, 38), caveDeep = packColor(18, 18, 22);
-// The client's stand-in for blocks it has not received: visible as its own
-// color instead of pretending to be rock (L-228 feedback).
-inline constexpr std::uint32_t caveStandIn = packColor(58, 50, 70);
 // The world map's layer view dims a floor farther than this from the
 // selected reference; broad view keeps every floor.
 inline constexpr int caveFocusSlack = 8;
@@ -107,8 +104,7 @@ inline float caveBrightness(int y, int playerY) {
     return 1.f - .5f * std::min(1.f, std::abs(y - (playerY - 1)) / float(caveBelow));
 }
 // The column as the map shows it, given the floor block's own color.
-inline Column caveColumn(CaveHit hit, int playerY, std::uint32_t floorColor, bool standIn = false) {
-    if (standIn) return {caveStandIn, static_cast<std::int16_t>(hit.y)};
+inline Column caveColumn(CaveHit hit, int playerY, std::uint32_t floorColor) {
     if (hit.kind == CaveHit::Kind::Wall) return {caveWall, static_cast<std::int16_t>(hit.y)};
     if (hit.kind == CaveHit::Kind::Drop) return {caveDeep, static_cast<std::int16_t>(hit.y)};
     float k = caveBrightness(hit.y, playerY);

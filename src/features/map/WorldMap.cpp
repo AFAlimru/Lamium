@@ -116,7 +116,7 @@ void unload(IClientInstance& client, ResourceLocation const& location) {
 
 enum class Target {
     None, Overworld, Nether, End,
-    CaveButton, CavePanel, CaveToggle, BroadToggle, HeightDown, HeightUp, HeightField, MatchHeight,
+    CaveButton, CavePanel, CaveToggle, BroadToggle, HeightDown, HeightUp, HeightField, MatchHeight, Camera,
     Center, Waypoints, Close, Menu,
     LayerWaypoints, LayerSchematics, LayerShapes, // The layer switches (L-146).
     // The side panel: its background, header buttons, list and editor.
@@ -161,6 +161,7 @@ struct State {
     int dimension = 0;
     // The cave/surface state button and its panel (L-228).
     bool cave = false, broad = false, following = true, cavePanel = false;
+    bool cameraReference = false; // FreeCamera is the height/center source.
     int height = 64;
     bool editingHeight = false;
     ui::NumberInput heightInput;
@@ -216,13 +217,19 @@ std::optional<PlayerSpot> playerSpot() {
 }
 // FreeCamera's eye while it owns the view; the cave map should open and
 // match at what the camera sees, not at the body left behind (L-228).
-std::optional<PlayerSpot> viewSpot() {
+std::optional<PlayerSpot> freeCameraSpot() {
     auto body = playerSpot();
-    if (!state.client) return body;
+    if (!state.client) return std::nullopt;
     auto pose = CameraSessions::instance().freeCameraPose(*state.client);
-    if (!pose) return body;
+    if (!pose) return std::nullopt;
     return PlayerSpot{pose->x, pose->y, pose->z, pose->yaw, body ? body->dimension : 0};
 }
+std::optional<PlayerSpot> sourceSpot() {
+    if (state.cameraReference)
+        if (auto camera = freeCameraSpot()) return camera;
+    return playerSpot();
+}
+bool cameraAvailable() { return freeCameraSpot().has_value(); }
 // The player's place seen from another dimension: the Nether is 1/8 scale.
 std::optional<std::pair<double, double>> playerOn(int dimension) {
     auto spot = playerSpot();
@@ -232,7 +239,7 @@ std::optional<std::pair<double, double>> playerOn(int dimension) {
     return std::pair{spot->x * k, spot->z * k};
 }
 void center() {
-    if (auto spot = viewSpot(); spot && spot->dimension == state.dimension) {
+    if (auto spot = sourceSpot(); spot && spot->dimension == state.dimension) {
         state.view.centerX = spot->x;
         state.view.centerZ = spot->z;
         return;
@@ -249,7 +256,7 @@ bool playerCave(PlayerSpot const& spot) {
     return spot.dimension == 1 || (spot.dimension == 0 && map::automaticView() == ViewMode::Cave);
 }
 bool canMatchHeight() {
-    auto spot = viewSpot();
+    auto spot = sourceSpot();
     return spot && state.cave && spot->dimension == state.dimension && playerCave(*spot);
 }
 MapLayer shownLayer() {
@@ -274,7 +281,7 @@ void toggleCave() {
         state.following = false;
         return;
     }
-    auto spot = viewSpot();
+    auto spot = sourceSpot();
     if (spot && spot->dimension == state.dimension) state.height = clampHeight(state.dimension, blockFloor(spot->y));
     state.broad = state.dimension == 1;
     state.following = canMatchHeight();
@@ -286,14 +293,27 @@ void adjustHeight(int delta) {
 }
 void matchHeight() {
     if (!canMatchHeight()) return;
-    auto spot = viewSpot();
+    auto spot = sourceSpot();
     if (!spot) return;
     state.height = clampHeight(state.dimension, blockFloor(spot->y));
     state.following = true;
 }
 void returnToPlayer() {
-    auto spot = viewSpot();
+    auto spot = playerSpot();
     if (!spot) return;
+    state.cameraReference = false;
+    state.dimension = spot->dimension;
+    state.cave = playerCave(*spot);
+    state.broad = state.dimension == 1;
+    state.height = clampHeight(state.dimension, blockFloor(spot->y));
+    state.following = true;
+    state.cavePanel = false;
+    center();
+}
+void returnToCamera() {
+    auto spot = freeCameraSpot();
+    if (!spot) return;
+    state.cameraReference = true;
     state.dimension = spot->dimension;
     state.cave = playerCave(*spot);
     state.broad = state.dimension == 1;
@@ -307,7 +327,9 @@ void showDimension(int dimension) {
     state.dimension = dimension;
     state.menu.reset();
     state.cavePanel = false;
-    auto spot = viewSpot();
+    auto body = playerSpot();
+    if (!body || body->dimension != dimension) state.cameraReference = false;
+    auto spot = sourceSpot();
     if (spot && spot->dimension == dimension) {
         state.height = clampHeight(dimension, blockFloor(spot->y));
         state.cave = playerCave(*spot);
@@ -347,6 +369,7 @@ void act(Target target) {
         state.heightInput.begin(static_cast<float>(state.height));
         break;
     case Target::MatchHeight: matchHeight(); break;
+    case Target::Camera: returnToCamera(); break;
     case Target::Center: returnToPlayer(); break;
     default: break;
     }
@@ -1034,6 +1057,29 @@ void drawMarkers(MinecraftUIRenderContext& context, Settings::Map const& setting
         if (state.arrowUploaded && !ui::runtimeImage(context, slotLocation(slotCount), {x - 8, y - 8, 16, 16}))
             state.arrowUploaded = false;
     }
+    // FreeCamera: a green arrow from the camera's place, so its direction is
+    // readable and the marker is not mistaken for the white player arrow.
+    if (auto camera = freeCameraSpot(); camera && camera->dimension == state.dimension) {
+        float cx = static_cast<float>(view.screenX(camera->x)), cy = static_cast<float>(view.screenY(camera->z));
+        if (cx >= 0 && cx <= view.width - state.panelWidth && cy > state.top && cy < view.height - bottomHeight) {
+            auto forward = heading(camera->yaw);
+            double length = std::hypot(forward.x, forward.z);
+            if (!(length > 0)) length = 1;
+            float dx = static_cast<float>(forward.x / length), dz = static_cast<float>(forward.z / length);
+            // A short view line first, then the camera dot over it.
+            for (int step = 2; step <= 10; ++step) {
+                float lx = cx + dx * step, ly = cy + dz * step;
+                ui::fill(context, lx - 1, ly - 1, 3, 3, Rgb{0, 0, 0}, .75f);
+                ui::fill(context, lx, ly, 1, 1, ui::palette::accent);
+            }
+            ui::fill(context, cx + dx * 11 - 1.5f, cy + dz * 11 - 1.5f, 4, 4, Rgb{0, 0, 0}, .8f);
+            ui::fill(context, cx + dx * 11 - .5f, cy + dz * 11 - .5f, 2, 2, ui::palette::accent);
+            ui::fill(context, cx - 4, cy - 4, 8, 8, Rgb{0, 0, 0}, .85f);
+            ui::fill(context, cx - 3, cy - 3, 6, 6, ui::palette::accent);
+            ui::fill(context, cx - 1, cy - 1, 2, 2, ui::palette::white);
+            state.hits.push_back({cx - 6, cy - 6, 13, 13, Target::Camera});
+        }
+    }
 }
 
 // A footprint as the map draws it, small: a faint fill in its frame.
@@ -1219,7 +1265,8 @@ void drawBars(MinecraftUIRenderContext& context, glm::vec2 size, size_t pending,
 void drawCavePanel(MinecraftUIRenderContext& context, glm::vec2 size) {
     if (!state.cavePanel || state.dimension == 2) return;
     constexpr float w = 212;
-    float h = state.cave ? 96 : 52;
+    bool const camera = cameraAvailable();
+    float h = state.cave ? (camera ? 114 : 96) : 52;
     float available = size.x - state.panelWidth - 3;
     float left = std::clamp(state.caveButton.x, 3.f, std::max(3.f, available - w));
     float top = std::max(state.caveButton.y + state.caveButton.h + 1, state.top + 1);
@@ -1230,6 +1277,11 @@ void drawCavePanel(MinecraftUIRenderContext& context, glm::vec2 size) {
     state.hits.push_back({left, top, w, h, Target::CavePanel});
     float inset = ui::boxTextInset(), x = left + 5, y = top + 4;
     ui::label(context, x, y, w - 10, ui::translated("worldMap.cavePanel"), ui::palette::faint);
+    if (state.cave) {
+        auto reference = ui::translated("worldMap.reference",
+            ui::translated(camera && state.cameraReference ? "worldMap.referenceCamera" : "worldMap.referenceBody"));
+        ui::label(context, x, y, w - 10, reference, ui::palette::faint, ui::Align::Right);
+    }
     y += 10;
     auto labelAt = [&](float rowY, std::string const& text) {
         ui::label(context, x, rowY + 2, 52, text, ui::palette::dim);
@@ -1276,18 +1328,32 @@ void drawCavePanel(MinecraftUIRenderContext& context, glm::vec2 size) {
             state.hits.push_back({fx, fy, fw, fh, Target::HeightField});
         }
         tiny(bx + 62, "+", Target::HeightUp);
-        auto tracking = ui::translated(state.following ? "worldMap.followingY" : "worldMap.fixedY", state.height);
+        auto tracking = ui::translated(state.following
+                ? (state.cameraReference && camera ? "worldMap.cameraY" : "worldMap.followingY")
+                : "worldMap.fixedY", state.height);
         ui::label(context, x + 132, y + 2, w - 142, tracking, ui::palette::faint, ui::Align::Right);
         y += 18;
         bool enabled = canMatchHeight() && !state.following;
         bool over = enabled && hovering(x, y, w - 10, 15);
+        bool const cameraMatch = state.cameraReference && camera;
         auto text = !canMatchHeight() ? ui::translated("worldMap.matchUnavailable")
-            : state.following ? ui::translated("worldMap.matchingHeight", state.height)
-                              : ui::translated("worldMap.matchHeight");
+            : state.following ? (cameraMatch ? ui::translated("worldMap.matchingCameraHeight", state.height)
+                                             : ui::translated("worldMap.matchingHeight", state.height))
+                              : (cameraMatch ? ui::translated("worldMap.matchCameraHeight")
+                                             : ui::translated("worldMap.matchHeight"));
         ui::fill(context, x, y, w - 10, 15, enabled ? (over ? ui::palette::accent : ui::palette::accentDeep) : ui::palette::keyFill, .9f);
         ui::frame(context, x, y, w - 10, 15, enabled ? ui::palette::accent : ui::palette::keyEdge);
         ui::label(context, x, y + 2 + inset, w - 10, text, enabled ? ui::palette::text : ui::palette::faint, ui::Align::Center);
         if (enabled) state.hits.push_back({x, y, w - 10, 15, Target::MatchHeight});
+        if (camera) {
+            y += 18;
+            bool overCamera = hovering(x, y, w - 10, 15);
+            ui::fill(context, x, y, w - 10, 15, overCamera ? ui::palette::accent : ui::palette::accentDeep, .9f);
+            ui::frame(context, x, y, w - 10, 15, ui::palette::accent);
+            ui::label(context, x, y + 2 + inset, w - 10, ui::translated("worldMap.returnCamera"), ui::palette::text,
+                      ui::Align::Center);
+            state.hits.push_back({x, y, w - 10, 15, Target::Camera});
+        }
     } else {
         ui::label(context, x, y + 2, w - 10, ui::translated("worldMap.caveOffHint"), ui::palette::faint);
     }
@@ -1610,7 +1676,8 @@ void open(IClientInstance& client, bool resume) {
     if (resume) return;
     state.selected.reset();
     state.deleteArmed = false;
-    if (auto spot = viewSpot()) {
+    state.cameraReference = cameraAvailable();
+    if (auto spot = sourceSpot()) {
         state.dimension = spot->dimension;
         state.cave = playerCave(*spot);
         state.broad = state.dimension == 1;
@@ -1775,8 +1842,9 @@ void render(MinecraftUIRenderContext& context, glm::vec2 size, glm::vec2 pointer
     // hidden. With the feature off, only the saved map is shown.
     map::record(client, settings, settings.worldMap);
     state.pointer = pointer;
+    if (state.cameraReference && !cameraAvailable()) state.cameraReference = false;
     if (state.following && state.cave)
-        if (auto spot = viewSpot(); spot && spot->dimension == state.dimension)
+        if (auto spot = sourceSpot(); spot && spot->dimension == state.dimension)
             state.height = clampHeight(state.dimension, blockFloor(spot->y));
     auto& view = state.view;
     view.width = size.x;

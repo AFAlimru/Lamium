@@ -135,16 +135,6 @@ void images() {
               < channel(broad[static_cast<size_t>(regionIndex(7, 5))], 0)
           && focused[static_cast<size_t>(regionIndex(5, 5))] == broad[static_cast<size_t>(regionIndex(5, 5))],
           "the layer view dims another height and keeps the selected one");
-    check(cavePattern(caveWall, 0, 0) != cavePattern(caveWall, 1, 0)
-              && cavePattern(caveDeep, 0, 0) != caveDeep,
-          "walls and drops get distinct textures");
-    RegionData hatching;
-    mergeChunk(hatching, {0, 0}, chunkOf(stone, 64));
-    hatching.colors[0] = 0;
-    auto clearCave = shadeRegion(hatching, std::nullopt, false);
-    auto hatchedCave = shadeRegion(hatching, std::nullopt, true);
-    check(clearCave[0] == 0 && channel(hatchedCave[0], 3) > 0 && channel(hatchedCave[0], 3) < 255,
-          "a cave region shows a faint hatch where nothing is recorded");
     std::vector<std::uint32_t> parent(regionColumns, 0);
     downsampleInto(parent, pixels, 3);
     check(parent[static_cast<size_t>(128 * 256 + 128)] != 0 && parent[0] == 0 && parent[static_cast<size_t>(128 * 256 + 140)] == 0,

@@ -243,8 +243,7 @@ Pixels build(ImageId const& id, unsigned started) {
             return nullptr;
         }
         return std::make_shared<std::vector<std::uint32_t> const>(
-            shadeRegion(data, id.focus == std::numeric_limits<int>::min() ? std::nullopt : std::optional<int>(id.focus),
-                        id.layer.cave));
+            shadeRegion(data, id.focus == std::numeric_limits<int>::min() ? std::nullopt : std::optional<int>(id.focus)));
     }
     // Quarters whose child image did not change are kept from the last
     // image, so a change near the player rebuilds one path down, not the

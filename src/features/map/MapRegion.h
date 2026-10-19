@@ -215,26 +215,20 @@ inline std::optional<RegionData> decodeRegion(std::string_view bytes) {
 // A region's RGBA pixels (one per column) with height shading as on the
 // minimap. Columns on the north and west edge shade against level ground.
 // `focus`: the layer view's selected height; floors farther than the cave
-// focus slack are dimmed and checkered so the selected floor reads first.
-// `cave`: unrecorded columns get a faint hatch instead of staying clear.
-inline std::vector<std::uint32_t> shadeRegion(RegionData const& region, std::optional<int> focus = std::nullopt,
-                                              bool cave = false) {
+// focus slack are dimmed so the selected floor reads first.
+inline std::vector<std::uint32_t> shadeRegion(RegionData const& region, std::optional<int> focus = std::nullopt) {
     std::vector<std::uint32_t> out(static_cast<size_t>(regionColumns), 0);
     for (int z = 0; z < regionBlocks; ++z)
         for (int x = 0; x < regionBlocks; ++x) {
             auto i = static_cast<size_t>(z * regionBlocks + x);
             auto color = region.colors[i];
-            if (!(color >> 24)) {
-                if (cave && ((x + z) & 3) == 0) out[i] = packColor(34, 36, 42, 70);
-                continue;
-            }
+            if (!(color >> 24)) continue;
             int h = region.heights[i];
             auto neighbor = [&](size_t j) { return (region.colors[j] >> 24) ? int(region.heights[j]) : h; };
             int north = z ? neighbor(i - regionBlocks) : h, west = x ? neighbor(i - 1) : h;
-            auto shaded = cavePattern(shade(color, shadeFactor(h, north, west)), x, z);
-            if (focus && !caveAtSelectedHeight(h, *focus) && color != caveWall && color != caveDeep
-                && color != caveStandIn)
-                shaded = shade(shaded, ((x + z) & 1) ? .32f : .52f);
+            auto shaded = shade(color, shadeFactor(h, north, west));
+            if (focus && !caveAtSelectedHeight(h, *focus) && color != caveWall && color != caveDeep)
+                shaded = shade(shaded, .5f);
             out[i] = shaded;
         }
     return out;
