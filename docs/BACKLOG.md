@@ -621,8 +621,8 @@ format is uncompressed runs of (length, color, height) per region; natural
 terrain changes color almost every column, so runs average about five
 columns. The maintainer wanted a new format designed once for the long term,
 without much more CPU.
-Spec agreed 2026-10-19, revised after four spec reviews the same day (full
-contract: [MAP.md](MAP.md#region-file-format-lmr2-l-216-2026-10-19)):
+Spec agreed 2026-10-19 and closed after that day's spec reviews; no further
+spec reviews, the next step is building it (full contract: [MAP.md](MAP.md#region-file-format-lmr2-l-216-2026-10-19)):
 - Regions keep the colors seen, as now; no block or biome storage (no
   recolor pass on a resource-pack change, no block-state conversions per
   game version). Those can come later as optional sections.
