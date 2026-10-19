@@ -37,9 +37,10 @@ struct Image {
     std::shared_ptr<std::vector<std::uint32_t> const> pixels;
     unsigned version = 0;
 };
-std::optional<Image> image(MapLayer layer, TileKey tile);
+std::optional<Image> image(MapLayer layer, TileKey tile, std::optional<int> focus = std::nullopt);
 // The tiles the world map shows now, in build order; replaces the last list.
-void want(MapLayer layer, std::vector<TileKey> tiles);
+// `focus`: the cave layer view's selected height; none builds the broad view.
+void want(MapLayer layer, std::vector<TileKey> tiles, std::optional<int> focus = std::nullopt);
 // Wanted tiles not built yet (or being rebuilt).
 size_t pending();
 

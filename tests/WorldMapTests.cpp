@@ -123,6 +123,18 @@ void images() {
     check(pixels[0] == stone && pixels[static_cast<size_t>(regionIndex(20, 0))] == 0, "level ground keeps its color, unknown stays clear");
     check(channel(pixels[static_cast<size_t>(regionIndex(5, 5))], 0) > 100 && channel(pixels[static_cast<size_t>(regionIndex(6, 5))], 0) < 100,
           "a step up is lighter and the column after it darker");
+    // The layer view dims a floor far from the selected height; a nearby one
+    // keeps the broad image's shading.
+    RegionData layered;
+    mergeChunk(layered, {0, 0}, chunkOf(stone, 64));
+    layered.heights[static_cast<size_t>(regionIndex(5, 5))] = 66;
+    layered.heights[static_cast<size_t>(regionIndex(7, 5))] = 32;
+    auto broad = shadeRegion(layered);
+    auto focused = shadeRegion(layered, 66);
+    check(channel(focused[static_cast<size_t>(regionIndex(7, 5))], 0)
+              < channel(broad[static_cast<size_t>(regionIndex(7, 5))], 0)
+          && focused[static_cast<size_t>(regionIndex(5, 5))] == broad[static_cast<size_t>(regionIndex(5, 5))],
+          "the layer view dims another height and keeps the selected one");
     std::vector<std::uint32_t> parent(regionColumns, 0);
     downsampleInto(parent, pixels, 3);
     check(parent[static_cast<size_t>(128 * 256 + 128)] != 0 && parent[0] == 0 && parent[static_cast<size_t>(128 * 256 + 140)] == 0,
@@ -132,20 +144,23 @@ void images() {
     check(kept[128] == 0 && kept[127] == stone && kept[static_cast<size_t>(127 * 256 + 255)] == 0
               && kept[static_cast<size_t>(128 * 256 + 255)] == stone,
           "clearing a quarter leaves the other three");
-    check(layerFolder({0, 0}) == "overworld" && layerFolder({1, 4}) == "nether/y64" && layerFolder({2, 0}) == "end",
-          "each dimension and Nether layer has its folder");
-    check(mapLayer(1, 70) == MapLayer{1, 4} && mapLayer(1, -1) == MapLayer{1, -1} && mapLayer(0, 70) == MapLayer{0, 0},
-          "the Nether is layered by 16 blocks; other dimensions are not");
+    check(layerFolder({0, 0, false}) == "overworld" && layerFolder({1, 4, true}) == "nether/y64"
+              && layerFolder({0, -4, true}) == "overworld/y-64" && layerFolder({2, 0, false}) == "end",
+          "each dimension, cave layer and surface layer has its folder");
+    check(mapLayer(1, 70, true) == MapLayer{1, 4, true} && mapLayer(1, -1, true) == MapLayer{1, -1, true}
+              && mapLayer(0, 70, true) == MapLayer{0, 4, true} && mapLayer(0, 70, false) == MapLayer{0, 0, false},
+          "cave layers are 16-block bands; surfaces are one layer");
     check(regionFileName({-3, 7}) == "r.-3.7.lm2" && regionFileName({-3, 7}, true) == "r.-3.7.lmr",
           "new and legacy region files are named by position");
     check(regionOfFileName("r.-3.7.lmr") == RegionKey{-3, 7} && !regionOfFileName("r.3.lmr") && !regionOfFileName("r.a.1.lmr")
               && !regionOfFileName("r.1.2.lmr.tmp") && !regionOfFileName("r.-.2.lmr") && !regionOfFileName("r.99999999999.0.lmr"),
           "region file names read back; other files are not regions");
-    check(layerOfFolder("overworld") == MapLayer{0, 0} && layerOfFolder("nether/y64") == MapLayer{1, 4}
-              && layerOfFolder("nether/y-16") == MapLayer{1, -1} && layerOfFolder("end") == MapLayer{2, 0}
-              && layerOfFolder("dimension5") == MapLayer{5, 0} && !layerOfFolder("nether/y7") && !layerOfFolder("nether")
-              && !layerOfFolder("") && !layerOfFolder("overworld/old"),
-          "layer folders read back");
+    check(layerOfFolder("overworld") == MapLayer{0, 0, false} && layerOfFolder("nether/y64") == MapLayer{1, 4, true}
+              && layerOfFolder("nether/y-16") == MapLayer{1, -1, true}
+              && layerOfFolder("overworld/y-64") == MapLayer{0, -4, true} && layerOfFolder("end") == MapLayer{2, 0, false}
+              && layerOfFolder("dimension5") == MapLayer{5, 0, false} && !layerOfFolder("nether/y7") && !layerOfFolder("nether")
+              && !layerOfFolder("") && !layerOfFolder("overworld/old") && !layerOfFolder("overworld/y7"),
+          "surface and cave layer folders read back");
 }
 void view() {
     WorldView v{100, -50, defaultWorldScale, 400, 200};

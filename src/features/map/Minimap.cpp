@@ -170,7 +170,10 @@ struct State {
     // What each scan path has seen around the player, apart from the display
     // cache and its eviction (L-206 review, L-210).
     ScanGrid surfaceGrid, caveGrid; // The minimap's display scans.
-    ScanGrid recordGrid;            // The recording scan; the current dimension only.
+    ScanGrid recordGrid;            // The surface recording scan.
+    ScanGrid recordCaveGrid;        // The cave recording scan (L-228).
+    ViewSwitch recordView;          // The recording view, independent of the HUD.
+    bool recordCaveTurn = false;    // Surface and cave take turns on the budget.
     double recordBlocks = 0;        // Logged when it changes.
     unsigned generation = ~0u, storeEpoch = ~0u;
     int dimension = -1;
@@ -217,6 +220,9 @@ State state;
 // input queue, the map from the HUD draw.
 std::atomic<ViewForce> viewForce{ViewForce::Auto};
 std::atomic<ViewMode> shownView{ViewMode::Surface};
+// The automatic view at the player's place, for the world map's initial
+// cave/surface choice (L-228). A forced HUD view does not change it.
+std::atomic<ViewMode> playerView{ViewMode::Surface};
 // Fill for ground not loaded yet: the card color, half transparent.
 constexpr std::uint32_t unknownFill = packColor(16, 17, 19, 150);
 
@@ -235,7 +241,11 @@ void forget() {
     state.surfaceGrid.clear();
     state.caveGrid.clear();
     state.recordGrid.clear();
+    state.recordCaveGrid.clear();
+    state.recordView = {};
+    state.recordCaveTurn = false;
     state.automatic = {};
+    playerView = ViewMode::Surface;
     state.layer.reset();
     viewForce = ViewForce::Auto;
     state.terrain.clear();
@@ -679,6 +689,7 @@ ViewForce pressViewKey() {
     viewForce = next;
     return next;
 }
+ViewMode automaticView() { return playerView.load(); }
 
 std::optional<ui::hud_editor::Box> drawMinimap(MinecraftUIRenderContext& context, float width, float height,
                                                ui::HudElement const& element, Settings::Map const& settings,
@@ -700,6 +711,7 @@ std::optional<ui::hud_editor::Box> drawMinimap(MinecraftUIRenderContext& context
         auto wanted = chooseView(state.automatic.mode, view->dimension == 1, view->covered, view->skyLight);
         auto mode = applyForce(viewForce.load(), state.automatic.update(wanted, time));
         shownView = mode;
+        playerView = state.automatic.mode;
         bool cave = mode == ViewMode::Cave;
         auto& cache = cave ? state.cave : state.surface;
         state.layer = stableLayer(state.layer.value_or(0), blockFloor(view->y), !state.layer);
@@ -714,7 +726,10 @@ std::optional<ui::hud_editor::Box> drawMinimap(MinecraftUIRenderContext& context
         float baseSize = size;
         if (enlarged) size = std::min(size * 2, std::round(height * .85f));
         double marker = pixels / 216.0 * baseSize / size; // A mockup pixel, in texture pixels.
-        Saved saved{settings.worldMap && cave == (view->dimension == 1), mapLayer(view->dimension, layer)};
+        bool underground = view->dimension == 1 || state.automatic.mode == ViewMode::Cave;
+        bool saveable = view->dimension != 1 || cave; // No Nether surface layer.
+        Saved saved{settings.worldMap && saveable && (cave ? underground : true),
+                    mapLayer(view->dimension, layer, cave)};
         if (auto* player = client.getLocalPlayer())
             scan(client, *player, cache, cave ? state.caveGrid : state.surfaceGrid, view->x, view->z, cave, layer, blocks,
                  settings.rotate, time, saved);
@@ -898,17 +913,31 @@ void record(IClientInstance& client, Settings::Map const& settings, bool scannin
         if (!view) return;
         auto time = now();
         follow(view->dimension);
-        // The Nether is recorded as the cave view, by layer; elsewhere the surface.
-        bool cave = view->dimension == 1;
+        // The Nether is cave-only. The Overworld records the surface and,
+        // while the player is under a roof, the cave layer too (L-228).
+        // A forced HUD view does not decide what is recorded.
+        bool const nether = view->dimension == 1;
+        bool const end = view->dimension == 2;
+        auto wanted = chooseView(state.recordView.mode, nether, view->covered, view->skyLight);
+        bool const caveWanted = !end && state.recordView.update(wanted, time) == ViewMode::Cave;
+        playerView = nether || caveWanted ? ViewMode::Cave : ViewMode::Surface;
+        bool const surfaceWanted = !nether;
         state.layer = stableLayer(state.layer.value_or(0), blockFloor(view->y), !state.layer);
-        int layer = cave ? *state.layer : 0;
-        Saved saved{true, mapLayer(view->dimension, layer)};
-        store::frame(place.world, place.mapFolder, saved.layer, view->playerX, view->playerZ, time);
-        for (auto key : store::takeRevisionReports(saved.layer)) {
-            state.recordGrid.outdated(key);
-            state.surfaceGrid.outdated(key);
-            state.caveGrid.outdated(key);
-        }
+        int layer = *state.layer;
+        MapLayer surface = surfaceLayer(view->dimension);
+        MapLayer cave = mapLayer(view->dimension, layer, true);
+        if (surfaceWanted) store::frame(place.world, place.mapFolder, surface, view->playerX, view->playerZ, time);
+        if (caveWanted) store::frame(place.world, place.mapFolder, cave, view->playerX, view->playerZ, time);
+        if (surfaceWanted)
+            for (auto key : store::takeRevisionReports(surface)) {
+                state.recordGrid.outdated(key);
+                state.surfaceGrid.outdated(key);
+            }
+        if (caveWanted)
+            for (auto key : store::takeRevisionReports(cave)) {
+                state.recordCaveGrid.outdated(key);
+                state.caveGrid.outdated(key);
+            }
         if (!scanning || !settings.worldMap) return;
         // Recording follows the view distance (L-206): what the client keeps
         // loaded around the player, from the old fixed range up to the game's
@@ -922,8 +951,14 @@ void record(IClientInstance& client, Settings::Map const& settings, bool scannin
             state.diagnostics.log(std::format("recording {} blocks across (view distance {} chunks, maximum {})", blocks,
                                               options.getViewDistanceChunks(), options.getMaxViewDistanceChunksRaw()));
         }
-        scan(client, *player, cave ? state.cave : state.surface, state.recordGrid, view->playerX, view->playerZ, cave, layer,
-             blocks, false, time, saved, recordBudgetSeconds, true, recordStaleRadius);
+        // Surface and cave share the budget by taking turns. The Nether has
+        // no surface layer, so it records the cave every call.
+        bool const scanCave = caveWanted && (!surfaceWanted || (state.recordCaveTurn = !state.recordCaveTurn));
+        auto& cache = scanCave ? state.cave : state.surface;
+        auto& grid = scanCave ? state.recordCaveGrid : state.recordGrid;
+        Saved saved{true, scanCave ? cave : surface};
+        scan(client, *player, cache, grid, view->playerX, view->playerZ, scanCave, layer, blocks, false, time, saved,
+             recordBudgetSeconds, true, recordStaleRadius);
     } catch (std::exception const& error) {
         state.failed = true;
         state.diagnostics.log(std::format("recording stopped after an error: {}", error.what()));

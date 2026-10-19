@@ -19,6 +19,9 @@ std::optional<ui::hud_editor::Box> drawMinimap(MinecraftUIRenderContext&, float 
 void record(IClientInstance&, Settings::Map const&, bool scan = true);
 // The cave/surface key: forces the view not shown, or returns to automatic.
 ViewForce pressViewKey();
+// The automatic cave/surface view at the player, independent of a forced
+// HUD view; the world map uses it for its opening choice (L-228).
+ViewMode automaticView();
 // The hold-to-enlarge key: twice the size and twice the area at the same scale.
 void setEnlarged(bool held);
 // The radar's hold key: mob faces become dots (or dots faces) while held.

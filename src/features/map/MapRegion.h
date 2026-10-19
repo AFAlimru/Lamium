@@ -1,4 +1,5 @@
 #pragma once
+#include "features/map/MapCave.h"
 #include "features/map/MapImage.h"
 #include "features/map/MapTiles.h"
 #include "features/map/MapView.h"
@@ -213,7 +214,9 @@ inline std::optional<RegionData> decodeRegion(std::string_view bytes) {
 
 // A region's RGBA pixels (one per column) with height shading as on the
 // minimap. Columns on the north and west edge shade against level ground.
-inline std::vector<std::uint32_t> shadeRegion(RegionData const& region) {
+// `focus`: the layer view's selected height; floors farther than the cave
+// focus slack are dimmed and checkered so the selected floor reads first.
+inline std::vector<std::uint32_t> shadeRegion(RegionData const& region, std::optional<int> focus = std::nullopt) {
     std::vector<std::uint32_t> out(static_cast<size_t>(regionColumns), 0);
     for (int z = 0; z < regionBlocks; ++z)
         for (int x = 0; x < regionBlocks; ++x) {
@@ -223,7 +226,10 @@ inline std::vector<std::uint32_t> shadeRegion(RegionData const& region) {
             int h = region.heights[i];
             auto neighbor = [&](size_t j) { return (region.colors[j] >> 24) ? int(region.heights[j]) : h; };
             int north = z ? neighbor(i - regionBlocks) : h, west = x ? neighbor(i - 1) : h;
-            out[i] = shade(color, shadeFactor(h, north, west));
+            auto shaded = shade(color, shadeFactor(h, north, west));
+            if (focus && !caveAtSelectedHeight(h, *focus) && color != caveWall && color != caveDeep)
+                shaded = shade(shaded, ((x + z) & 1) ? .32f : .52f);
+            out[i] = shaded;
         }
     return out;
 }
@@ -249,20 +255,30 @@ inline void downsampleInto(std::vector<std::uint32_t>& parent, std::vector<std::
         }
 }
 
-// Saved folders per map layer: one per dimension, and in the Nether one per
-// 16-block layer, since its cave view depends on the height.
+// Saved folders per map layer: one surface layer per dimension, and one
+// 16-block cave layer where the cave view records (the Nether and, since
+// L-228, the Overworld).
 struct MapLayer {
     int dimension = 0;
-    int band = 0; // Nether only: floor(y / 16).
+    int band = 0; // Cave layers: floor(y / 16).
+    bool cave = false;
     bool operator==(MapLayer const&) const = default;
 };
 inline constexpr int bandHeight = 16;
-inline MapLayer mapLayer(int dimension, int caveLayer) {
-    return dimension == 1 ? MapLayer{1, floorDiv(caveLayer, bandHeight)} : MapLayer{dimension, 0};
+// Overworld cave bands cover the current world range -64..319.
+inline constexpr int overworldCaveMinBand = -4, overworldCaveBands = 24;
+inline MapLayer surfaceLayer(int dimension) { return {dimension, 0, false}; }
+inline MapLayer caveLayer(int dimension, int y) { return {dimension, floorDiv(y, bandHeight), true}; }
+inline MapLayer mapLayer(int dimension, int y, bool cave) {
+    return cave ? caveLayer(dimension, y) : surfaceLayer(dimension);
 }
 inline std::string layerFolder(MapLayer layer) {
+    if (layer.cave) {
+        if (layer.dimension == 0) return "overworld/y" + std::to_string(layer.band * bandHeight);
+        if (layer.dimension == 1) return "nether/y" + std::to_string(layer.band * bandHeight);
+        return "dimension" + std::to_string(layer.dimension) + "/y" + std::to_string(layer.band * bandHeight);
+    }
     if (layer.dimension == 0) return "overworld";
-    if (layer.dimension == 1) return "nether/y" + std::to_string(layer.band * bandHeight);
     if (layer.dimension == 2) return "end";
     return "dimension" + std::to_string(layer.dimension);
 }
@@ -297,17 +313,22 @@ inline std::optional<RegionKey> regionOfFileName(std::string_view name) {
 }
 // `folder` relative to the world's map folder, with '/' separators.
 inline std::optional<MapLayer> layerOfFolder(std::string_view folder) {
-    if (folder == "overworld") return MapLayer{0, 0};
-    if (folder == "end") return MapLayer{2, 0};
+    if (folder == "overworld") return surfaceLayer(0);
+    if (folder == "end") return surfaceLayer(2);
+    if (folder.starts_with("overworld/y")) {
+        auto y = detail::parseInt(folder.substr(11));
+        if (!y || floorMod(*y, bandHeight)) return std::nullopt;
+        return caveLayer(0, *y);
+    }
     if (folder.starts_with("nether/y")) {
         auto y = detail::parseInt(folder.substr(8));
         if (!y || floorMod(*y, bandHeight)) return std::nullopt;
-        return MapLayer{1, floorDiv(*y, bandHeight)};
+        return caveLayer(1, *y);
     }
     if (folder.starts_with("dimension")) {
         auto d = detail::parseInt(folder.substr(9));
         if (!d || *d < 3) return std::nullopt;
-        return MapLayer{*d, 0};
+        return surfaceLayer(*d);
     }
     return std::nullopt;
 }

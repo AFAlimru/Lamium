@@ -6,6 +6,7 @@
 #include "ll/api/event/client/ClientExitLevelEvent.h"
 #include <condition_variable>
 #include <deque>
+#include <limits>
 #include <map>
 #include <mutex>
 #include <set>
@@ -17,17 +18,23 @@ namespace {
 struct RegionId {
     MapLayer layer;
     RegionKey key;
-    auto order() const { return std::tuple(layer.dimension, layer.band, key.x, key.z); }
+    auto order() const { return std::tuple(layer.dimension, layer.band, layer.cave, key.x, key.z); }
     bool operator<(RegionId const& other) const { return order() < other.order(); }
     bool operator==(RegionId const& other) const { return order() == other.order(); }
 };
 struct ImageId {
     MapLayer layer;
     TileKey tile;
-    auto order() const { return std::tuple(layer.dimension, layer.band, tile.lod, tile.x, tile.z); }
+    int focus = std::numeric_limits<int>::min(); // Cave layer view height; min is broad.
+    auto order() const {
+        return std::tuple(layer.dimension, layer.band, layer.cave, tile.lod, tile.x, tile.z, focus);
+    }
     bool operator<(ImageId const& other) const { return order() < other.order(); }
     bool operator==(ImageId const& other) const { return order() == other.order(); }
 };
+using LayerKey = std::tuple<int, int, bool>;
+LayerKey keyOf(MapLayer layer) { return {layer.dimension, layer.band, layer.cave}; }
+constexpr int noFocus = std::numeric_limits<int>::min();
 struct Resident {
     std::shared_ptr<RegionData> data = std::make_shared<RegionData>();
     // Columns the scan wrote since this region was created; the saved file
@@ -69,14 +76,14 @@ std::deque<Save> saves;
 std::deque<RegionId> loads;
 struct Conversion { RegionId id; std::chrono::steady_clock::time_point after{}; };
 std::deque<Conversion> conversions;
-std::map<std::pair<int, int>, std::set<std::pair<int, int>>> revisionReports;
+std::map<LayerKey, std::set<std::pair<int, int>>> revisionReports;
 std::set<RegionId> refusedLogged, damagedLogged, legacyLogged, saveFailedLogged; // Worker only, reset after joining.
 std::chrono::steady_clock::time_point nextConversion{};
 RegionCodec* workerCodec = nullptr; // Used only by the worker's image builder.
 std::vector<ImageId> wanted;
 // Saved and recorded regions per layer (dimension, band). Images wait for
 // the saved folder's listing so they never miss a region.
-std::map<std::pair<int, int>, ExploredIndex> explored;
+std::map<LayerKey, ExploredIndex> explored;
 bool indexing = false;
 // Coarse images whose regions changed since they were built, cached or
 // not: a rebuild keeps the other quarters from the previous image.
@@ -131,7 +138,7 @@ RegionRead readRegion(std::filesystem::path const& path, RegionId const& id) {
     return result;
 }
 void reportRevisions(RegionId const& id, RegionData const& data) {
-    auto& reports = revisionReports[{id.layer.dimension, id.layer.band}];
+    auto& reports = revisionReports[keyOf(id.layer)];
     std::array<bool, 256> recorded{};
     for (size_t i = 0; i < data.colors.size(); ++i) if (data.colors[i]) recorded[chunkOfIndex(i)] = true;
     for (size_t i = 0; i < 256; ++i)
@@ -139,16 +146,18 @@ void reportRevisions(RegionId const& id, RegionData const& data) {
             reports.insert({id.key.x * 16 + static_cast<int>(i % 16), id.key.z * 16 + static_cast<int>(i / 16)});
 }
 void invalidate(RegionId const& id) {
-    for (int lod = 0; lod <= maxLod; ++lod) {
-        ImageId image{id.layer, {lod, id.key.x >> lod, id.key.z >> lod}};
-        auto found = images.find(image);
-        if (found != images.end()) found->second.stale = true;
+    // Every cached image under this region, at every scale and cave focus.
+    for (auto& [image, cached] : images) {
+        if (!(image.layer == id.layer)) continue;
+        if ((image.tile.x >> image.tile.lod) != (id.key.x >> image.tile.lod)) continue;
+        if ((image.tile.z >> image.tile.lod) != (id.key.z >> image.tile.lod)) continue;
+        cached.stale = true;
         dirty.insert(image);
     }
 }
-ExploredIndex& indexOf(MapLayer layer) { return explored[{layer.dimension, layer.band}]; }
+ExploredIndex& indexOf(MapLayer layer) { return explored[keyOf(layer)]; }
 bool known(ImageId const& id) {
-    auto found = explored.find({id.layer.dimension, id.layer.band});
+    auto found = explored.find(keyOf(id.layer));
     return found != explored.end() && found->second.has(id.tile);
 }
 // Caller holds the lock.
@@ -226,7 +235,8 @@ Pixels build(ImageId const& id, unsigned started) {
             trace(id, source ? "resident region is empty" : "region file is empty");
             return nullptr;
         }
-        return std::make_shared<std::vector<std::uint32_t> const>(shadeRegion(data));
+        return std::make_shared<std::vector<std::uint32_t> const>(
+            shadeRegion(data, id.focus == std::numeric_limits<int>::min() ? std::nullopt : std::optional<int>(id.focus)));
     }
     // Quarters whose child image did not change are kept from the last
     // image, so a change near the player rebuilds one path down, not the
@@ -237,7 +247,7 @@ Pixels build(ImageId const& id, unsigned started) {
     Pixels previous;
     std::array<bool, 4> keep{}, recorded{};
     std::array<unsigned, 4> from{}, made{};
-    auto below = [&](int q) { return ImageId{id.layer, {id.tile.lod - 1, id.tile.x * 2 + (q & 1), id.tile.z * 2 + (q >> 1)}}; };
+    auto below = [&](int q) { return ImageId{id.layer, {id.tile.lod - 1, id.tile.x * 2 + (q & 1), id.tile.z * 2 + (q >> 1)}, id.focus}; };
     {
         std::lock_guard lock(mutex);
         if (started != generation) return nullptr;
@@ -564,7 +574,7 @@ bool needsRevision(MapLayer layer, ChunkKey chunk) {
 }
 std::vector<ChunkKey> takeRevisionReports(MapLayer layer) {
     std::lock_guard lock(mutex);
-    auto& reports = revisionReports[{layer.dimension, layer.band}];
+    auto& reports = revisionReports[keyOf(layer)];
     std::vector<ChunkKey> out;
     for (auto [x, z] : reports) out.push_back({x, z});
     reports.clear();
@@ -586,18 +596,18 @@ std::optional<Column> column(MapLayer layer, int x, int z) {
     if (!(data.colors[i] >> 24)) return std::nullopt;
     return Column{data.colors[i], data.heights[i]};
 }
-std::optional<Image> image(MapLayer layer, TileKey tile) {
+std::optional<Image> image(MapLayer layer, TileKey tile, std::optional<int> focus) {
     std::lock_guard lock(mutex);
-    auto found = images.find({layer, tile});
+    auto found = images.find({layer, tile, focus.value_or(noFocus)});
     if (found == images.end()) return std::nullopt;
     found->second.used = clock;
     return Image{found->second.pixels, found->second.version};
 }
-void want(MapLayer layer, std::vector<TileKey> tiles) {
+void want(MapLayer layer, std::vector<TileKey> tiles, std::optional<int> focus) {
     std::lock_guard lock(mutex);
     if (!attachedWorld || finishing) return;
     wanted.clear();
-    for (auto tile : tiles) wanted.push_back({layer, tile});
+    for (auto tile : tiles) wanted.push_back({layer, tile, focus.value_or(noFocus)});
     wake.notify_one();
 }
 size_t pending() {
@@ -634,7 +644,7 @@ bool clear() {
 }
 std::optional<ExploredIndex::Bounds> exploredBounds(MapLayer layer) {
     std::lock_guard lock(mutex);
-    auto found = explored.find({layer.dimension, layer.band});
+    auto found = explored.find(keyOf(layer));
     return found == explored.end() ? std::nullopt : found->second.bounds();
 }
 unsigned epoch() {

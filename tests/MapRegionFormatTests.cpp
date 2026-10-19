@@ -397,7 +397,7 @@ void migration(RegionCodec& codec) {
     batching.complete(batching.serial, true, 22);
     check(!batching.dirty, "forced final save clears only the snapshot it persisted");
     check(regionOfFileName("r.-2.3.lm2") == key && regionOfFileName("r.-2.3.lmr") == key
-              && layerOfFolder("nether/y-16") == MapLayer{1, -1}, "listing includes both formats and distinct Nether layers");
+              && layerOfFolder("nether/y-16") == MapLayer{1, -1, true}, "listing includes both formats and distinct Nether layers");
 }
 }
 void mapRegionFormatTests() {
