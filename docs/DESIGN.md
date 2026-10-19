@@ -628,7 +628,9 @@ exactly one switch, one mode and one set of keys:
     matching use the camera, "Center on me" returns to the body, and a green
     camera arrow marks the camera. The arrow is display-only; closing and
     reopening the map returns to the camera. The panel names the active
-    reference (`カメラ` / `本体`).
+    reference (`カメラ` / `本体`). Body and camera references each decide
+    cave/surface at their own position; a cave map opens at the stable band
+    height the recorder keeps, not at a boundary band that has no data yet.
   - The map does not switch between cave and surface while it is open; the
     initial choice is made when it opens.
 - Layer switches keep their names while they fit; they become symbols only

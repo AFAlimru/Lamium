@@ -18,10 +18,12 @@ has one terrain state button; its panel opens under the button, keeps the
 waypoint list open and shifts left when space is tight. It offers cave
 on/off, broad on/off, a `-`/input/`+` height and a `自分の高さに合わせる`
 action. The map opens at the player's height (the FreeCamera eye when it
-owns the view); changing it fixes the height. "Center on me" returns to the
-body; a green camera arrow marks the camera (display only; close and reopen
-to return). The Nether starts broad and an Overworld cave starts in the
-selected layer.
+owns the view); in a cave it uses the stable band height the recorder keeps,
+so a boundary step does not open an empty new band. Changing it fixes the
+height. "Center on me" returns to the body; a green camera arrow marks the
+camera (display only; close and reopen to return). Body reference decides
+cave/surface from the body's roof; camera reference uses the camera. The
+Nether starts broad and an Overworld cave starts in the selected layer.
 The layer view dims floors more than 8 blocks from the selected height to a
 solid dark color; broad view keeps them. `MapCave.h` reads up to 128 blocks
 below and stops at the first floor. `worldMapNetherAuto` is no longer shown
@@ -269,6 +271,10 @@ wall and no-floor. Layer view dims far floors to a solid dark color instead of a
 checker or dots; wall/drop patterns, the stand-in color and the unknown hatch
 were removed. A cave scan that used stand-ins waits for its saved region to
 merge before recording so saved terrain is not masked after rejoining.
+Review follow-up (2026-10-20, built as `c67054d`, not checked in game): the
+world map opens at the stable cave band used for recording, so a Y63 to Y64
+step does not open the empty Y64 band, and body reference checks the body's
+own roof instead of the FreeCamera automatic view.
 Column revision 4 makes chunks recorded by the previous shallow window due
 again. Upper passages within a few blocks above the selected floor and
 vertically stacked spaces inside one 16-block band remain limitations of the
