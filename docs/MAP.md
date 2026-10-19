@@ -99,9 +99,9 @@ terrain, biomes and structures remain a non-goal. FreeCamera moves the minimap
 center; Freelook keeps it on the player. Mob faces and player heads are
 optional; distant players use vanilla locator state (L-89).
 
-The world map opens with `M`, supports pan/zoom, dimension and Nether-layer
-selection, and a waypoint side panel. Recording is independent of showing the
-minimap. L-104 adds renderer biome tint with fallback/rescan, stronger relief,
+The world map opens with `M`, supports pan/zoom, dimension selection, the
+cave/surface terrain button with its height and broad/layer controls, and a
+waypoint side panel. Recording is independent of showing the minimap. L-104 adds renderer biome tint with fallback/rescan, stronger relief,
 saved colors for incomplete chunks, missing-section requests and teleport
 menu items gated by permissions and available commands. Teleport uses the
 ordinary command; server acceptance is not assumed.

@@ -623,9 +623,9 @@ exactly one switch, one mode and one set of keys:
     initial choice is made when it opens.
 - Layer switches keep their names while they fit; they become symbols only
   when the bar is too narrow.
-- This is a decided direction with implementation in progress, not a
-  validated replacement. MAP.md keeps the current behavior and the
-  implementation record.
+- This is a decided direction, implemented on branch `l228-cave-map` and
+  awaiting the in-game check, not a validated replacement. MAP.md keeps the
+  current behavior and the implementation record.
 
 ## World map layer switches (Decided 2026-10-15, L-146)
 
@@ -637,8 +637,9 @@ exactly one switch, one mode and one set of keys:
   screen option. On a screen too narrow for the names they show their
   symbols alone, and the bottom bar names the one under the pointer
   ("Show Schematics on the map: On"); only when even that does not fit do
-  they go to the second row with the Nether layer (maintainer 2026-10-15,
-  after two rows appeared at UI Profile 100% in the Nether).
+  they go to the second row (maintainer 2026-10-15, after two rows appeared
+  at UI Profile 100%). The cave terrain button (L-228) sits on the first
+  row; the second-row fallback is unchanged.
 - A switch that is off removes its marks from the world map entirely (no
   faint ghost, no click or menu); the death point goes with Waypoints. The
   side panel's list and editor work as before; the minimap and the world
