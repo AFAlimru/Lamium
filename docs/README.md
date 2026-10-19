@@ -58,6 +58,13 @@ build named there and may include superseded experiments.
   Build/tests alone do not establish runtime behavior.
 - Keep BACKLOG-DONE and VALIDATION-LOG intact. Search for the L-number or
   feature instead of reading either whole.
+- Notion's idea inbox holds unchosen proposals. When importing selected
+  notes, assign or reuse an L-item, preserve unresolved choices as Design /
+  Research, and record the mapping in the inbox. Current task status stays
+  in the repository; a dated Notion checkpoint does not reopen shipped work.
+- Keep only current work and remaining coverage in BACKLOG. Completed
+  planning and old release/regression checkpoints are retained in
+  BACKLOG-DONE, with their pending-status wording labeled as historical.
 - Update the demo index when its decision or implementation status changes.
   Mockups show intent; current text and implementation can differ from them.
 - Machine-specific paths stay in the gitignored `AGENTS.local.md`.

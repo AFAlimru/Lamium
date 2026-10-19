@@ -563,7 +563,10 @@ has been completed for detached cameras.
 
 ## Hiding the hand and HUD while flying (L-191, 2026-10-15)
 
-Decided by the maintainer 2026-10-15; built, not checked in game. FreeCamera
+Decided by the maintainer 2026-10-15; checked locally on `b5daa75` (hand,
+hotbar and restoration) and `7d79bef` (whole HUD including Lamium), then in
+the `d5978e2` migration smoke. L-191 is archived in BACKLOG-DONE.md;
+broader coverage remains in VALIDATION.md. FreeCamera
 setting "Hide while flying": nothing, hand (default), hand and hotbar, or
 the whole HUD. The hand is the first-person item pass
 (`ItemInHandRenderer::renderFirstPerson`); the whole HUD skips the HUD

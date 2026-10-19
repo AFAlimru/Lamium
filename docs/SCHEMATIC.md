@@ -17,6 +17,10 @@ One selected placement controls movement, turn/mirror, six-direction layer
 selection, checking and materials. A radial menu exposes placement and
 save-area operations; a separate held adjust key repeats the last stepper
 operation with the wheel. Dedicated keys remain available, all unbound.
+Control follow-ups imported 2026-10-20: L-229 opener-key repeat bug, L-230
+view-directed vertical adjustment and L-231 control discoverability/key
+review. BACKLOG owns their status and open choices; this import changes no
+input behavior.
 
 The default ghost look is tinted with a light-blue outline. Since 2026-10-15
 (L-186) the tint strength is a 0-100% setting, 70% by default (100% is the
@@ -26,8 +30,9 @@ meet, only the stronger result's copy is drawn within a section, and its bar
 is slightly wider to cover the other across sections: wrong block, unknown
 block, wrong state, then ghost/missing. Checking,
 materials, the optional HUD, target-card line and nearest-mistake marker are
-built. Materials include carried shulker-box contents. File entities use named
-dashed frames and are checked by type near their recorded spot, within client
+built. Materials include carried shulker-box contents. File entities use
+models where supported and named dashed frames otherwise, and are checked
+by type near their recorded spot, within client
 observation range; pose, equipment and contents are not verified.
 
 Target-card presentation (2026-10-15, revised the same day): the stacked and
@@ -48,9 +53,12 @@ player approaches; it can be stopped. Blocks, states, the water layer and
 block entity data as the client knows it are saved (since 2026-10-09). Optional entities retain type, position
 and facing. Existing files require a second press to overwrite.
 
-Known rendering gaps include half-drawn beds and outlines for heads, doors
-and honey blocks. Schematic neighbors, the translucent look, the Check tab's
-colored preview and the Files tab's rotatable 3D preview remain follow-ups.
+The neighbor-shape, render-layer, liquid, saved block-entity and screen-preview
+work shipped in 0.1.8; the initial-scope record is in BACKLOG-DONE.md (L-93).
+Current follow-ups are indexed by L-93 in BACKLOG: Check-preview styling
+(L-114), richer entity models (L-115), raw materials (L-116), Japanese
+name-tag text (L-117), the paused glass/mark issues (L-192 to L-194), and
+the later inspection, checking and legibility proposals.
 Local checks do not establish server, other-dimension or large-file coverage.
 
 ## Player feedback to investigate (2026-10-14)

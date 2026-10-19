@@ -65,386 +65,139 @@ published for whoever wants it. There is no "first release" gate.
 
 ## Current execution order
 
-Keep this section short. It is only the ordering layer; task details and status
-live in the L-items below. If this summary ever disagrees with an L-item, the
-L-item wins. Every entry names what the task is, not only its number.
+Keep this section short: ordering lives here; status, contracts and open
+choices live in the L-items. An L-item wins if a summary drifts.
 
-0. **0.2.3 released** on 2026-10-15 (`v0.2.3`, from `88462d5`). Next work
-   follows the items below.
-1. **Small and medium features and fixes** (maintainer 2026-10-10: these
-   come before large features and L-111 integration for now):
-   - Bugs: L-177, L-181 (player reports, need reproductions or an agreed
-     rule); L-192, L-193, L-194 schematic drawing (maintainer 2026-10-15:
-     schematic drawing work pauses here; far-away cases remain); L-123 elytra stretched on the inventory model after FreeCamera and
-     L-91 shield glint in Lamium's icons (both parked); L-132 moving with
-     the inventory screen open (paused after eight rounds); L-205 world map
-     carpet colors and L-207 FreeCamera frame rate (2026-10-17 player
-     reports, need reproductions).
-   - L-196 license/provenance follow-up: verify notices and distribution
-     evidence, then make the supported documentation/packaging changes.
-   - Specs to agree with the maintainer before building: L-165 Mass Craft,
-     L-167 in-world language (chosen: native-path research in progress), L-168 trade
-     finder, L-169's later parts (drops and the rest), L-170
-     enchantment order planner, L-173 quick shapes and beacon range, L-163
-     a Lamium-drawn inventory screen.
-     L-151 to L-154 stay later. This list approves no implementation and
-     sets no release.
-   - Done since 0.2.0 (BACKLOG-DONE): L-155, L-157 to L-161, L-147, L-148,
-     L-150, L-164 with L-133 and L-156, L-171 calculator, L-172 text
-     fields, L-166 repeated villager trades (part 1), L-174 chat position,
-     L-176, L-179, L-187, L-188, L-180, L-182, L-178, L-189, L-228.
-2. **Schematic — L-93 follow-ups:** the screen review and the 0.1.8
-   rendering work shipped in 0.1.8. Open: L-114 the Check tab preview's
-   mistake look and see-through emphasis, L-115 entity models beyond the
-   light-blue compromise (real skins, details such as cushion colors),
-   L-116 raw materials from the game's recipes, L-117 Japanese name tags.
-   Choose with the maintainer; SCHEMATIC.md retains the contract and build
-   record. Server/broader coverage remains open.
-3. **Placement and breaking — L-15 restrictions and L-59 held placement
-   style:** L-15 breaking shipped in 0.1.8; the maintainer will redesign
-   it, and placement waits for that Design. L-59 waits for the maintainer's
-   go.
-4. **0.2.0: clean-up and integration (L-111 integration between
-   features, decided 2026-10-11):** the required items are done
-   (BACKLOG-DONE, 2026-10-11): L-136 GhostRenderer.cpp split, L-138 shared
-   face drawing, the map and settings tidy-up, L-139 map layers, L-134
-   SettingsScreen.cpp split and L-137 game update readiness, after both
-   regression checks and two outside reviews. Released as 0.2.0 on
-   2026-10-11 (L-135 PDB as a separate asset done with it). Maintainer
-   2026-10-11: no 0.2.0 tag for a while; 0.2.0 also gets a review of the
-   features from the player's side, integration and links between
-   features. Done and checked 2026-10-11 (BACKLOG-DONE): L-140 Zoom
-   Wide-angle view, world map names on hover (L-139 follow-up), L-141
-   overlapping ghost flicker, the 0.1.9 Discord reports L-142 glint,
-   L-143 Debug View and vanilla HUD, L-144 hotbar in the HUD editor, L-145
-   Info HUD over the paper doll and position line.
-   Maintainer 2026-10-11: clean-up items move to BACKLOG-DONE only after a
-   code review finds no problems, not on the in-game check alone. The
-   radial menu and the smaller links are optional. Order and boundary:
-   L-111.
-5. **Research when convenient:** L-79 carved pumpkin and spyglass frame draw
-   path (cheap-model friendly
-   trace/test steps), L-71 starting a glide from the mod, L-30 Ender Dragon
-   part hitboxes, L-33 mob growth and
-   breeding timers, L-105 performance profiling (measure before any
-   optimization).
-6. **Before a release:** the pre-release checks below. 0.2.1 was released
-   on 2026-10-14 (0.2.0 on 2026-10-11), 0.2.2 and 0.2.3 on 2026-10-15. No
-   date for the next one.
-   Server checks stay listed below as known gaps (the Release
-   policy does not require a full regression).
+1. **Bugs first.** L-229 schematic menu closes on a held opener (reported;
+   suspected repeat path, not fixed); L-227 FreeCamera shows only the sky
+   outside loaded terrain (Research; new native experiment needs the
+   maintainer's go-ahead). L-177 mismatch-highlight fix is built and awaits
+   the reporter's next schematic session, not another implementation.
+   Parked: L-192/L-193/L-194 schematic drawing, L-123 elytra pose,
+   L-91 shield glint and L-132 inventory-screen movement; respect each
+   item's stop/resume conditions. L-181 trident pose is low priority.
+2. **Small and medium work before large features/integration** (maintainer
+   2026-10-10): L-196 license/provenance evidence; L-230 schematic movement
+   and L-231 controls UX; remaining Design/Research in L-166 trade helpers,
+   L-167 resource packs, L-168 trade finder, L-169 transfer extensions,
+   L-170 enchantment planner, L-173 quick shapes, L-190 list selection and
+   L-163 a Lamium inventory screen. Agree open choices before building.
+   L-206 recording-range implementation is built; its remaining work is
+   runtime coverage. L-165 Mass Craft remains below Map and needs a scope
+   conversation; existing packs already cover part of that need.
+3. **Schematic follow-ups (L-93):** choose among L-114/L-115/L-116,
+   L-183/L-184/L-185/L-186 and the remaining name-tag issue L-117.
+   The initial feature and 0.1.8 work are complete, not new tasks.
+4. **Placement/breaking:** L-15 breaking redesign before placement;
+   L-59 held-placement style waits for the maintainer's go-ahead.
+5. **Optional integration (L-111):** shared spatial actions, a common menu,
+   selection and cross-links; the required 0.2.0 steps are complete.
+6. **Research when convenient:** L-79 pumpkin/spyglass frames, L-71 glide
+   initiation, L-30 dragon hitboxes, L-33 mob timers, L-105 profiling.
+   L-151/L-152/L-153 and the previously parked work remain later.
+7. **Before the next release:** changed-feature smoke and the relevant
+   Pre-release checks below. Latest release: 0.2.3, 2026-10-15 (`88462d5`).
+   No next date is selected; a full regression is not a release gate.
 
-The 2026-10-14 player-feedback triage is recorded as L-177 through L-189:
-reported problems are unverified and proposed behavior is still Design/Research.
-These entries do not select an implementation, priority or release.
+Notion reconciliation, 2026-10-20: four current schematic notes from the
+[idea inbox](https://app.notion.com/p/3f7c12ab5b2d8121b2a0db32608f6b7a)
+are tracked as L-229/L-230/L-231 (the two controls-UX notes share L-231).
+The item/edit-mode proposal still waits for feedback; unchosen ideas such
+as fall-rescue elytra, effect-only particles, rain sound, distortion
+presets, reserved Fake Offhand slots and advanced subtitles stay in Notion.
+This reconciliation selects no new implementation or release.
 
-The 2026-10-17 player-feedback triage is recorded as L-205 through L-208:
-reported problems are unverified and proposed behavior is still Design/Research.
-These entries do not select an implementation, priority or release.
-
-Ideas that are not yet chosen (for example a fall-rescue elytra) stay in
-the maintainer's notes (the Notion idea inbox) and enter
-this file once chosen. The candidates imported on 2026-10-12 are now
-tracked here for design/research; their open choices remain open.
-Mass Craft (L-165) ranks below Map because resource packs already cover part of it.
-
-Task-picking rule: bugs first; otherwise work on what the execution order
-names. Cheap models skip strong-model, Design and Research work. Follow the
-L-item's dependencies and model/validation requirements. When a task is done,
-update its status and relevant feature doc, then move it to BACKLOG-DONE.md;
-do not duplicate task details into this summary.
+Task-picking rule: bugs first, then this order; follow each item's model,
+dependencies and validation requirements. Cheap models skip Design,
+Research and strong-model work. Completed work moves to BACKLOG-DONE.md;
+remaining runtime gaps go below and in VALIDATION.md.
 
 ---
 
 ## Pre-release checks
 
-Remaining coverage to consider for the next changed-feature smoke test. These
-include trace-only and local-only results; VALIDATION.md owns the per-feature
-gaps. The Release policy above does not require a full regression or closing
-every server gap before a release.
+The [Release policy](#release-policy-decided-2026-09-28) requires a smoke
+check of the actual release build: load, settings and changed features.
+Choose relevant checks from these known gaps; a full regression and every
+server case are not release gates. [VALIDATION.md](VALIDATION.md) owns
+current per-feature coverage; VALIDATION-LOG.md owns build/hash evidence.
+Do not infer game success from a build or unit-test result.
 
 ### Since 0.2.3 (unreleased)
 
-L-228 cave/Nether map: implementation and final in-game checklist passed on
-`7e0e2f9`; band/body follow-up `c67054d` and height-follow fix `07f0dc1`
-passed on 2026-10-20. The feature is on `main` and moved to
-BACKLOG-DONE.md. Remaining: measured frame times, broader server coverage,
-and a live check of pending images/per-band coverage if the footprint
-difference recurs.
+- **Maps (L-205/L-206/L-210/L-211/L-215/L-225/L-226):** local scan/image
+  fixes and the 96-chunk scan-grid checks are recorded in VALIDATION.
+  Remaining: compare frame times with recording off/on at 32/64/96 chunks,
+  minimap off/on, nearby edits and movement during a wide pass, and broader
+  servers. Only client-received terrain can be recorded; unreceived terrain
+  is not a promise to fill the entire configured radius.
+- **L-228 cave/Nether map:** final checklist passed on `7e0e2f9`;
+  band/body follow-up `c67054d` and height-follow fix `07f0dc1` passed on
+  2026-10-20. Remaining: measured frame times, broader servers and a live
+  check of pending images/per-band coverage if the footprint difference
+  recurs. Completed implementation is in BACKLOG-DONE.md.
+- **L-216 LMR2 regions:** file/log checks on `6ff0610` confirmed all 1,563
+  old LamiumTest regions migrated without recorded-column loss, including
+  unrescanned regions, with about 83% less disk use. Maintainer local
+  appearance, opening/zoom, cave/Nether and rejoin smoke found no abnormality
+  attributed to L-216. Still open in game: older-build fill-only merges,
+  refusal without overwrite, damaged-file recovery, 10 s failed-save retry,
+  broader servers and measured frame times. Review follow-ups (corrected
+  save batching, separate legacy warnings, cave provisional tint/revision-2)
+  need a focused live check; the reported smoke was for `6ff0610`.
+- **FreeCamera (L-207/L-213/L-214):** open-ground culler cost, switching
+  stability and underground-hold behavior have local results. Frame times
+  per hold choice, servers and broader graphics/resource/lifecycle cases
+  remain open. The sky-only loaded-area boundary failure is open bug L-227.
+- **Connected Textures corner edges (L-208):** local options/help checks
+  passed; resource packs, live resource reload and servers remain open.
+- **Target/HUD/settings (L-217 to L-224):** recorded local checks cover the
+  target ray/ghost-edge fixes, coordinate wording/descriptions, HUD-editor
+  chat/list fixes and calculator entry. Use VALIDATION's remaining language,
+  size, input and server gaps for the changed-feature smoke.
 
-L-216 LMR2 region files: live filesystem/log checks on `6ff0610` confirmed
-all 1,563 old LamiumTest regions migrated with no recorded-column loss,
-including regions not rescanned, and about 83% less disk use. Remaining:
-the older-build fill-only merge, refusal without overwrite, damaged-file
-recovery and the 10 s failed-save retry in game, broader server coverage
-and measured frame times. The maintainer's local appearance, opening/zoom,
-Nether/cave display and rejoin-retention smoke check found no abnormality
-attributed to L-216. Evidence and scope: VALIDATION-LOG.md; implementation:
-MAP.md. Review follow-up: the corrected save batching, separate legacy
-warnings and cave provisional tint/revision-2 paths still need a focused live
-check; the reported smoke result above is for `6ff0610`.
+### Gaps carried from released builds
 
-### Shipped in 0.2.3 (smoke-tested; remaining gaps in VALIDATION.md)
+These are follow-up coverage, not unfinished implementations or release
+gates for versions already published. Full old release/smoke/regression
+checkpoints are retained in BACKLOG-DONE.md, under "Archived release and
+validation checkpoints" (snapshot 2026-10-20).
 
-L-169 held stack and drop gestures (`9da5d9d`, chest checklist passed): try
-the inventory screen, a furnace or another screen with slot roles, and a
-server; the drop key rebound away from Q. L-146 layer switches (passed
-locally): the two-row top bar on a narrow window.
-
-L-198 through L-202: the maintainer completed the local normal-build checklist
-1-14 on `d5978e2` (2026-10-15), except server checks, and found two issues:
-L-197 help presentation and L-203 chat-return placement timing. Both follow-up
-checks passed locally on `f8c714b`. The replacing L-197 in-place footer
-expansion passed its focused check on `c4b8f01`; other sizes, languages and
-editing states while expanded remain unchecked. Existing broader feature gaps remain in VALIDATION.
-Server/server-pack checks remain open. A separately requested forced-unverified
-test build must verify sensitive paths stay vanilla with matching UI/notices
-while independent paths work. Injected hook/cleanup failures and their partial-
-loss/restart UI remain unverified in game; pure tests are not runtime evidence.
-
-### Shipped in 0.2.2 (smoke-tested; remaining gaps in VALIDATION.md)
-
-L-169 Item Transfer: the 0.2.2 part passed the maintainer's normal-build
-smoke checklist on c8c1f1b (five new gestures/switches and chest/furnace/
-brewing/beacon checks). Its batched-request rework and hotbar section passed
-locally and on BDS on `37c3745` (2026-10-15). Full gesture/screen combinations, individually
-itemized edge cases, other screen families, controlled rejection/timeouts
-and world/dimension interruption, unverified-game fallback, packs and
-servers remain coverage in VALIDATION and ITEM-TRANSFER.md. Development is
-complete; the release build still needs the usual load/settings/changed-
-feature smoke check before tagging. Later Design scope remains in L-169.
-
-L-174 Chat position: native placement and the expiry/long-message fix
-passed the maintainer's checks, including reset to the chosen flush-left,
-bottom offset -44 default on `dc3ac45`. Fresh settings and broader layout,
-pack and server coverage remain in VALIDATION (CHAT-POSITION.md).
-
-L-182 (schematic preview crash after rejoining a world): fixed in
-`95a09e0`; the reporter's doubt likely came from not knowing that rejoining
-the same world is enough (maintainer 2026-10-15). No further action unless
-it recurs after the next release.
-
-### Shipped in 0.2.1 (smoke-tested; remaining gaps in VALIDATION.md)
-
-Changed features for the next smoke test; coverage is in VALIDATION.md:
-Edge Guard on a server (L-160, L-161 margin setting, L-162 replay/server input), Find by key (L-159),
-Chunk Borders and Hitboxes on walls (L-157), the Status effects HUD and
-ammo counts (below), the Nether portal screen (L-148), Connected Textures
-drawn with generated sprites and texture sets (L-164: resource packs and a
-reload while in a world are unchecked), text fields with a caret (L-172)
-and the calculator (L-171), repeated villager trading (L-166 part 1,
-normal local/BDS checks complete), the Game language list (L-167; in-world
-hang once, 10 s interval), Skip server resource packs (L-167, BDS cosmetic
-pack only), pack images read from the packs (texture cache fix), and the
-settings outside a world with the title screen entry (L-175). A release ZIP
-is built from main as usual.
-
-### L-162 Edge Guard follow-up coverage (2026-10-13)
-
-- Longer actual play and other servers; slippery blocks remain a known limit.
-- The final run has twelve corrections, nine guarded replays and no fall
-  dump. It does not guarantee protection if a server correction already puts
-  the feet off support; incoming corrections are not clamped. The earlier
-  +0.178 slab-bridging correction was not repeated at its identical location.
-  If a fall recurs, preserve its environment/build/log before reopening work.
-
-### L-166 repeated trading follow-up coverage (2026-10-13)
-
-- Chosen part 1 is complete and checked locally and on the normal BDS build;
-  include it in the next changed-feature release smoke. No release selected.
-- Controlled response delays pause MC_SERVER with communication running.
-  Real network RTT/loss and other servers are untested. Normal logs do not
-  isolate the exact timeout phase or dimension cancellation from an earlier
-  stop; forced world exit with a pending response remains unchecked.
-- Discount/demand price changes and longer actual play remain coverage limits.
-  Favourites and remaining-use UI are separate undecided scope below.
-
-### L-147 and L-150 (2026-10-12, local only)
-
-- Status effects HUD: beacon effects (no warning color), a server's
-  effect updates (does the time count down between updates), Pocket UI,
-  the layout editor sample, F1 and the inventory screen's own effect list.
-- Durability HUD ammo: counts on a server after shooting and picking up.
-
-### Released builds and registry follow-up
-
-The following are released-build checkpoints and listing follow-ups, not
-unmet gates for versions already published. Registry pickup for 0.1.4 to
-0.1.7 is confirmed (maintainer 2026-10-10); 0.1.8's registry PR
-(LiteLDev/lipr, "add github.com/amatouhake/Lamium@0.1.8") was merged
-2026-10-09 UTC.
-
-- 0.2.1 was released on 2026-10-14 (`v0.2.1` at `eb949dc`; main and tag CI
-  passed): ZIP SHA-256 `d4bf5270...40cd` (2.1 MB), symbols
-  `Lamium-0.2.1-client-windows-x64.pdb.zip` SHA-256 `eec760b6...2fdb`; the
-  GitHub asset digests match. L-175 settings from the title screen, L-171
-  calculator, L-172 text fields, L-166 repeated trades, L-147 Status effects
-  HUD, L-150 ammo counts, L-148 portal screen, L-164 Connected Textures
-  sprites (with L-133, L-156), Edge Guard on servers (L-160 to L-162), L-159
-  Find by key, L-157, L-155/L-158 labels, L-167 Game language and Skip
-  server resource packs, and the pack texture cache fix. The maintainer's
-  smoke test passed on the release-ZIP DLL `75f0046c...f47c`. No settings
-  migration. After tagging: check that the registry PR picks up `v0.2.1`
-  and that LeviLauncher/Bedrinth offer it.
-- 0.2.0 was released on 2026-10-11 (`v0.2.0` at the commit recording this;
-  built from `6f77159`): ZIP SHA-256 `4cc9f3cd...a1555` (1.8 MB), symbols
-  `Lamium-0.2.0-client-windows-x64.pdb.zip` SHA-256 `a0f41454...2131c`
-  (first release with the PDB as its own asset, L-135; GUID and age match
-  the DLL). Clean-up and integration (L-134, L-136, L-137, L-138, L-139),
-  L-140 Zoom Wide-angle view, map names on hover, L-141 overlapping ghosts,
-  L-142 glint fix, L-143/L-145 vanilla HUD under Debug View and the Info
-  HUD, L-144 hotbar in the HUD editor, paused-feature notices. The
-  maintainer's smoke test passed on the release-ZIP DLL `71db2f0f...ae49c`.
-  No settings migration. Tag CI passed; the GitHub release carries both
-  assets with matching digests. LeviLauncher offers 0.2.0 (maintainer
-  2026-10-12); Bedrinth not checked.
-- 0.1.9 was released on 2026-10-11 (`v0.1.9` at `8bf28c0`; asset SHA-256
-  `c0bbc358...a4b`): L-96 Connected Textures (panes with the one-texel
-  stretch; split panes parked as L-133), L-128 player list, L-127 inventory
-  HUD and used-slots counter, L-129 locked trades, L-130 English search,
-  L-120 entity counts, L-125/L-126 FreeCamera readouts, waypoints and leave
-  on hit, L-121 even Night Vision, the Vibrant Visuals distance fog fix and
-  vanilla-batched item icons. The maintainer's smoke test passed on the
-  release-ZIP DLL `0bc5eac6...079`. No settings migration. Tag CI was
-  running when this was written. After tagging: check that the registry PR
-  picks up `v0.1.9` and that LeviLauncher/Bedrinth offer it.
-- 0.1.8 was released on 2026-10-10 (`v0.1.8` at `e175eed`, tag CI passed;
-  asset SHA-256 `b99f9f27...e300da4b`): L-93 Schematics rendering and
-  compatibility (version 2 saves, neighbors, render layers, liquids, block
-  entity data, performance), L-114 3D previews, L-115 entity models, the
-  screen review, map markers and target-card rows; L-118 distance fog
-  (selected by default); L-109 death layout restore; L-15 step 1 breaking
-  (to be redesigned, maintainer 2026-10-10); L-37 FreeCamera underground
-  terrain (landed after the 0.1.7 tag; added to the notes after
-  publishing); L-122 Fake Offhand fireworks;
-  L-106/L-107 F1; L-108. The maintainer's smoke test passed on the
-  release-ZIP DLL `1e2f4e6f...37ae55a2c`. No settings migration. After
-  tagging: check that the registry PR picks up `v0.1.8` and that
-  LeviLauncher/Bedrinth offer it.
-- 0.1.7 was released on 2026-10-07 (`v0.1.7`, tag CI passed; asset SHA-256
-  `2e0926e0...93b013b5`): L-93 Schematics (experimental), L-67 Weapon
-  Switch, L-97 fixed fetch slot, L-94 offhand swap (`F`), L-95 Fake Offhand
-  item use, L-102/L-103 Hand Restock threshold/order and inventory-screen
-  transfer, L-104 map follow-ups, L-89 distant players, L-98 HUD density,
-  L-99 Zoom below 2x, L-101 version display. The maintainer's smoke test
-  passed on the release-ZIP DLL `2c3e7546...fd903806b` (`b3c6555`). No
-  settings migration. Schematic gaps (servers,
-  other dimensions, large files, block entities from files, half-drawn beds)
-  are in VALIDATION.md and the README's Known issues.
-- 0.1.6 was released on 2026-10-02 (`v0.1.6`, tag CI passed; asset SHA-256
-  `3d864ca1...3946554f`): L-90 Simplified Chinese (first AI-assisted
-  translation, corrections welcome), L-88 target hearts, L-75 offhand slot,
-  L-63 saturation, L-64/L-92 food values and durability inside the vanilla
-  tooltip. The maintainer's smoke test passed on the release-ZIP DLL
-  `86f5baf0...2587883f` (`b71c9f8`). No settings migration.
-- 0.1.5 was released on 2026-10-02 (`v0.1.5`, tag CI passed) at the maintainer's request,
-  with the map (L-60, L-85, L-87) as its main change. The release build
-  `6add9b9` (DLL `0fae1c58...dc657614c`, from the release ZIP) was deployed
-  for a smoke test; no separate result was reported before tagging.
-- 0.1.4 was released on 2026-09-30 (`v0.1.4`, tag CI passed). Its smoke test
-  passed on the release build `4d25424`: the 0.1.4 version, Hand Restock
-  (L-66) and offhand totems (L-68), Tool Protection (L-62), Tool Switch fetch
-  (L-69), Auto Elytra (L-70) and the L-02 dedicated openers. Still open:
-  Hand Restock on BDS and with real latency. The coverage gaps below carried
-  past 0.1.4; recheck the relevant ones before the next release.
-
-### 0.2.0 regression checks
-
-0.2.0 changes shared parts under existing features, so its smoke test also
-covers (added 2026-10-11 from an outside review). Built on main 2026-10-11;
-first deployed build `d274227` (DLL `c7163916...e084c468`). The steps were
-built back to back without an in-game check in between, so each check names
-the commits a regression would sit in (L-111 rule: one step's commits).
-Check 1 (normal build, `2aea267`) reported passing on 2026-10-11
-(VALIDATION-LOG), its two fixes too (`ca83014` Files names, `376cfae` map
-name plates); the fail-open build (`891b798`) passed the same day. Left:
-a code review of the clean-up steps before they move to done.
-Review 2026-10-11 (two outside reviews of `v0.1.9..c2bbbe9`, findings
-checked against the code by the agent): no blocking problem in L-134,
-L-136, L-138, L-139 or L-137. Fixed: the overlap key missed an earlier
-placement's file changing on disk, waterlogged water ignored the overlap,
-and the overlap check now only looks at placements whose boxes meet
-(`15e5b4a`); the release check compares README's full game version too and
-GAME-UPDATES.md says the ghost gate also stops the in-world mistake
-outlines (`0b3e9a4`). Not changed: the Placed tab still acts on list
-indices while the screen is open (nothing else changes the list then);
-"Open in Placed" from the map selects the placement, as every pick in that
-tab does; the gate takes a lock per query only on an unverified game.
-The steps:
-- L-136 (`1a2c231`, `3ec2498`): schematic ghosts look and behave as on
-  0.1.9 (doors, beds, panes, liquids, honey/slime, block entities, entity
-  models, mistakes, large placements' frame rate), saving an area, the
-  Check list and progress.
-- L-138 (`261c0e4`, `d4a83d1`, `dd1f58c`, `8a4c71a`): Shapes and the
-  breaking region look as before; the save area's corners now sit on the
-  block's own planes, drawn over the white outline (no longer 0.025 out),
-  with the overlay face alpha (look change to judge).
-- L-139 groundwork (`534134f`, `7f85e7d`): waypoint editing, hiding,
-  deleting and keeping the death point from the world map and the
-  Waypoints screen act on the right entry, also with two waypoints of the
-  same name and place.
-- L-134 (`097d32a`, `b612e94`, `22b081a`): the settings screen after the
-  split (below).
-- L-137 (`44f48a8`): the gated paths behave as before on the verified game
-  (Night Vision even brightness, Edge Guard, fog/medium/weather/nausea
-  hiding, Connected Textures, FreeCamera terrain, schematic ghosts and
-  entity models).
-- Overlapping Shapes, breaking restriction and schematic frames: no missing
-  faces, flicker or depth inversions (L-138).
-- Map layers stay in sync with the data of the features that own them;
-  selecting, hiding and acting from the world map change the right
-  waypoint, placement or shape (L-139).
-- Turning each feature off alone leaves other layers, overlays and input
-  working.
-- World exit and dimension change leave no stale selection, marks or draw
-  resources.
-- Settings input after the L-134 split: editing, saving, key capture and
-  returning behave as before.
-- The gated risky paths fail open without a crash on a build that forces
-  the version check to fail (L-137): `xmake f ... --unverified_game=y`,
-  each capability in GAME-UPDATES.md logs "stays vanilla" once.
-- The release's PDB matches its DLL (L-135).
-
-### Pending feature checks
-
-Server use of Weapon Switch, offhand swap, Fake Offhand, Hand Restock
-(threshold/order, inventory-screen transfer) and fixed-slot fetch was
-reported working on 2026-10-10 (everyday use, not every listed step); gaps
-found later are handled as bugs.
-
-- FreeCamera underground visibility (L-37): the 2026-10-07 native-request
-  adapter passed cave drawing in a local world and on BDS on `d56b81e`;
-  the log confirms the native 3 -> 5 replacement. Normal-view and player
-  control restoration also passed. The follow-up confirms intended Hold/Toggle
-  operation, camera retention through menus/focus loss and OFF on dimension
-  travel. Other players' view of the body, world-exit/death regression coverage
-  for the adapter, controllers and surface/shadow/graphics coverage remain open.
-  See CAMERA.md and VALIDATION.md.
-- FreeCamera speed controls (L-26): five-step adjustment and speed keys passed
-  on `7e72244`; revised labels and forward-only sprint follow-up passed on
-  `41b1ff6`. Restart persistence and detailed input/menu/focus combinations
-  were not reported separately.
-- FreeCamera Position reference (L-76): Player remains the default; World
-  compensates body movement, with live switching preserving the camera target.
-  Position retention, live switching and release passed on `43c4211`; rapid
-  elytra/body movement fix (L-77), switching and release passed on `d20fdf8`.
-  Lamium menus, inventory/window movement and release passed on `d3f0293`
-  (L-78). Check target readouts, Hold input ownership and session cleanup;
-  see CAMERA.md.
-- Hide effects first step (L-42): master/rain-splash follow-up passed on
-  `41b1ff6`. Remaining coverage: restart persistence, child keys while the
-  master is off, both pipelines, ambient layers, resource packs, graphics
-  modes and world/dimension transitions; see VISUAL-EFFECTS.md.
-- Boss bars (L-42): hiding and switch behavior passed on `d20fdf8`.
-  Check the optional key separately, other HUD elements, restart persistence
-  and additional resource packs/graphics modes on a trace-disabled build.
-- Nausea color (L-42): child/key/master hiding/restoration and unchanged
-  effect/icon/vanilla preference passed on normal build `b239eb9`. Remaining:
-  restart persistence, additional packs/modes and lifecycle/owner cases.
+| Area | Remaining targeted checks |
+|---|---|
+| Item Transfer, L-169 | Held-stack/drop gestures passed the local chest checklist; try inventory and slot-role screens, servers and a rebound drop key. Full gesture/screen matrix, cursor/hotbar/keep-one/re-entry/saved-switch cases, controlled rejection/timeouts, world/dimension interruption, unverified-game fallback and packs remain. See ITEM-TRANSFER.md. |
+| Shared capability migration, L-198 to L-202 | Server/server-pack smoke. A separately requested forced-unverified build should check vanilla fallback and matching UI/notices while independent paths work. Injected hook/cleanup failures and partial-loss/restart UI remain unverified in game. |
+| Settings/help and map layers, L-197/L-146 | Broader sizes, languages and editing states; narrow-window two-row map bar. Use current DESIGN and VALIDATION, not superseded footer-expansion checkpoints. |
+| Chat position, L-174/L-203 | Fresh settings, GUI scales/Pocket UI, packs, world/dimension/focus and servers beyond the recorded local checks. See CHAT-POSITION.md. |
+| Edge Guard, L-162 | Longer play, other servers, slippery blocks; correction that already puts feet off support remains a limit. Preserve environment/build/log if a fall recurs. |
+| Repeated trading, L-166 part 1 | Real RTT/loss and other servers, price changes, forced exit with a pending response, timeout/dimension cancellation isolated from earlier stops; controlled MC_SERVER delays do not establish network behavior. |
+| Effects/ammo HUD, L-147/L-150 | Beacon effects, server updates/counts, Pocket UI, layout sample, F1/inventory interplay. |
+| In-world language/server packs, L-167 | English Search and schematic ghosts after a change, broader servers/packs, rapid switching/hang risk and the 10 s interval. Cosmetic BDS evidence does not establish all pack types. See LANGUAGE.md. |
+| Camera and visual effects | FreeCamera world-exit/death/controller/body-view and hold-input cases, speed restart persistence; Hide effects restart/keys/master, ambient layers, packs, graphics modes and lifecycle. Detailed coverage is in VALIDATION.md, CAMERA.md and VISUAL-EFFECTS.md. |
+| Distribution listings | 0.1.4–0.1.8 registry pickup is recorded; LeviLauncher 0.2.0 was seen. Later registry/LeviLauncher/Bedrinth checks remain unrecorded here. Verify the version being released using DISTRIBUTION.md rather than reopening old release gates. |
 
 ---
 
 ## Bugs
+
+### L-229 Holding the schematic menu opener closes the menu
+Kind: Bug / Ready. High priority. Maintainer runtime report, 2026-10-20,
+from the [Notion idea inbox](https://app.notion.com/p/3f7c12ab5b2d8121b2a0db32608f6b7a).
+Status: reported, not fixed or rechecked. With "Open the schematic menu"
+bound to R, holding R closes the radial menu just after it opens. R is the
+reporter's binding; this action is unbound by default.
+Code evidence: SettingsScreen.cpp computes repeated key presses but queues
+them to `pendingKeys`; `handleMenuKey()` closes on the opener. Treat repeat
+handling as the leading explanation, not a verified complete root cause.
+Expected: one fresh press opens; holding/repeated key-downs leave it open;
+release then a fresh press closes. Keep Esc, right-click/back and existing
+menu actions. Reuse the fresh-press/chord conventions where appropriate;
+do not suppress repeat needed by other editing/navigation controls.
+Files: `src/ui/SettingsScreen.cpp`, `src/input/Binding.h` if a shared pure
+decision is needed, and the relevant pure input tests. Check keyboard and
+mouse bindings, remapped keys and ordered chords, hold/release/repress,
+Esc/right-click and focus transitions. Build + LamiumTests, then a short
+maintainer in-game checklist on the exact build/hash. No release selected.
 
 ### L-227 FreeCamera outside the loaded area shows only the sky
 Kind: Bug / Research. Maintainer 2026-10-19 (`9a565f0`): with FreeCamera
@@ -472,25 +225,6 @@ loaded chunk. Each is a new game dependency (GAME-UPDATES.md) and needs the
 maintainer's go-ahead. Terrain beyond the loaded area stays out of scope
 (CAMERA.md). [CAMERA.md](CAMERA.md)
 
-### L-207 FreeCamera halves the frame rate
-Kind: Bug / Research. User report 2026-10-17; maintainer asked the reporter
-for other observed factors the same day.
-Status: reproduced and measured in a local world 2026-10-18: 65 -> 32 at a
-standstill, 39 while flying, 64 after FreeCamera off. The forced 3 -> 5
-spectator override alone accounts for the drop; the detached view and
-terrain streaming do not. Fix 2026-10-18: the override is only requested
-while the camera is inside terrain; measured in game 2026-10-18 (local
-world): requests arrive continuously (~85-110 per second), the type
-returns to the normal culler within a second of the camera leaving
-terrain, and the above-ground frame rate is back at 78 (49 inside).
-Check when reproducing (measure first, L-105): how much of the drop is the
-detached view drawing more of the world, how much the forced spectator
-culler (3 -> 5, L-37; its cost is unmeasured and it may cull less than the
-normal type), and how much fast flight (up to 200 blocks/s with sprint)
-keeps terrain streaming and mesh building busy. Questions for the reporter:
-constant or only while moving; hover in place; recovery after stopping;
-speed setting. [CAMERA.md](CAMERA.md)
-
 ### L-177 Schematic mismatch highlight appears at the wrong position
 Kind: Bug / Research. User report 2026-10-14.
 Status: cause found and fix built 2026-10-14 (`0235527`), not checked in game.
@@ -512,7 +246,7 @@ assume the check data itself is wrong. Compare Check rows, world-space
 highlights and targeted blocks across transformed placements. Record a
 reproduction before choosing a fix. [SCHEMATIC.md](SCHEMATIC.md).
 
-### L-181 FreeCamera trident interaction affects the player unexpectedly
+### L-181 FreeCamera draws the held trident the wrong way round
 Kind: Bug / Research, low priority (maintainer 2026-10-15: drawing only,
 harmless). User report 2026-10-14; not yet reproduced.
 Clarified 2026-10-14: nothing hits the player. In FreeCamera the trident in
@@ -520,11 +254,9 @@ the player's hand is drawn the wrong way round, so it looks stuck in the
 player. A drawing problem like L-123 (stale pose state while the body is
 out of the camera's normal view); check whether the use/charge pose or the
 held-item transform is the stale part.
-Status: open. Using FreeCamera with a trident held was reported to leave the
-player struck by the trident. Capture the exact sequence (enter camera,
-held/used/thrown trident, Riptide or ordinary throw, local/server) and
-distinguish blocked input, borrowed camera position and server-authoritative
-projectile behavior. In FreeCamera, player interaction suppression and
+Status: open drawing issue; the original "struck by the trident" report
+is superseded by the clarification above. Capture the held/use/charge
+pose, camera/body visibility and local/server sequence when resuming. In FreeCamera, player interaction suppression and
 restoration must remain intact. [CAMERA.md](CAMERA.md).
 
 ### L-123 FreeCamera stretches the worn elytra on the inventory player model
@@ -617,16 +349,65 @@ chunk, or draw the faces with a material that does not write depth.
 
 ## Feature work and research
 
+### L-230 Move schematics vertically with view-directed wheel adjustment
+Kind: Design, then Ready/Research for the chosen input rule. Maintainer
+feedback, 2026-10-20, from the
+[Notion idea inbox](https://app.notion.com/p/3f7c12ab5b2d8121b2a0db32608f6b7a).
+Status: accepted for design tracking; no input rule, implementation or
+release chosen. Forward/back adjustment currently picks a horizontal X/Z
+axis, so looking up/down does not move the target on Y. The radial menu,
+Repeat the last adjustment and directional keys already exist; inspect
+their current behavior before proposing another control scheme.
+Goal: allow one-block wheel steps along Y when looking sufficiently up or
+down, using the existing adjustment workflow where practical.
+Open: pitch threshold and behavior near the boundary, wheel sign, whether
+the axis follows each step or stays fixed for a gesture, and which placement/
+save-area targets share the rule. Preserve horizontal and explicit up/down
+operations until a replacement is agreed. Model axis/sign rules as pure
+logic with tests; check pitch boundaries, FreeCamera, rotated/mirrored
+placements, layer adjustment and binding conflicts in game.
+Files to inspect: `src/features/schematic/SchematicActions.cpp`, pure
+movement helpers, `src/features/schematic/MenuModel.h`,
+`src/input/CustomInput.cpp`, and
+`src/ui/SettingsScreen.cpp`. Contract: [SCHEMATIC.md](SCHEMATIC.md).
+
+### L-231 Make schematic controls easier to find and review directional keys
+Kind: Design. Combines two maintainer UX notes from 2026-10-20 in the
+[Notion idea inbox](https://app.notion.com/p/3f7c12ab5b2d8121b2a0db32608f6b7a).
+Status: design tracking only; no key removal, new gesture or UI selected.
+Existing controls include wheel steppers in the radial menu, a held Repeat
+the last adjustment key plus wheel, six one-block directional Press actions
+and move-to-feet. Dedicated actions are unbound by default and grouped as
+detail shortcuts. Whether users know the wheel/repeat paths is unconfirmed.
+Goal: make the usual placement adjustment discoverable and explain what it
+will do, without making users bind or learn every directional action.
+Review menu hints, key-setting labels/help and the operation guide, including
+whether their text fits. Separate a missing capability (L-230's Y-axis
+movement) from an existing operation that needs a clearer explanation.
+Open: whether directional keys earn their UI weight for precise one-shot or
+macro use; whether the menu/wheel/repeat workflow should be the primary
+path; and which explanation belongs where. Preserve existing saved action
+IDs and bindings; do not remove shortcuts merely because their use is
+unmeasured. Decide retention/grouping with the maintainer before changing
+the UI. Item-based operation or a dedicated edit mode stays an unchosen
+long-term Notion idea, not an implicit part of this task. L-111 may reuse
+settled spatial controls later.
+Files to inspect: `src/input/Binding.h`, `src/ui/SettingsRows.h`, menu/input
+code and three-language help; [SCHEMATIC.md](SCHEMATIC.md) owns the contract.
+
 ### L-206 World map recording range is a fixed radius instead of the view distance
-Kind: Ready. User report 2026-10-17; maintainer 2026-10-17: fix it, then
+Kind: Ready, implementation built; runtime coverage pending. User report
+2026-10-17; maintainer 2026-10-17: fix it, then
 approved PR #13's range rule and merging after review fixes and main sync.
 Implemented: `record()` follows the client's view distance, retaining the
 384-block width as a floor and the reported maximum (at most 96 chunks) as
 a ceiling. No new settings rows. Display retention and time budgets stay
-bounded; a persistent sweep reaches the far rings despite cache eviction,
-alternating with nearby refreshes so local edits, movement and cave layers
-do not wait for the wide pass. The scheduler is pure and tested, including
-one-chunk budgets and resource waits. Details: MAP.md, L-206 current notes.
+bounded. L-210 replaced the earlier resumable ring sweep with a dense scan
+grid, bounded picking and alternating near/never-seen/retry work; L-225 and
+L-226 fix whole-rescan retries and cache retention around a far FreeCamera.
+The scheduler is pure and tested, including small budgets and resource
+waits. Current implementation and the 96-chunk local results: MAP.md and
+VALIDATION.md; the older ring-sweep description is superseded.
 Remaining: in-game recording coverage and frame times at 32/64/96 chunks,
 with the minimap off as well as on; near changes and movement during a wide
 pass. Build/tests alone do not establish these runtime results.
@@ -688,20 +469,6 @@ explicitly outstanding findings for P1-P5; build and LamiumTests pass for
 changes, package/archive checks for packaging changes. Do not claim a full
 similarity audit or legal clearance from this bounded review.
 
-### L-191 Hide the hand and HUD in FreeCamera, and what can be operated there
-Kind: Feature (was Design). Maintainer idea 2026-10-14.
-Decided 2026-10-15 (maintainer, as proposed): a FreeCamera child setting
-"Hide in FreeCamera": nothing / hand / hand and hotbar / whole HUD (as F1);
-default hand. What FreeCamera lets the player do stays blocked as today;
-allowing actions is L-25, later.
-Status: built 2026-10-15, not checked in game (CAMERA.md "Hiding the hand
-and HUD while flying").
-In FreeCamera almost nothing can be operated, yet the first-person hand and
-held item and the hotbar are still drawn. Consider hiding them while
-FreeCamera is on (option, default to decide), together with the question of
-which actions FreeCamera should allow (it blocks player interaction today,
-CAMERA.md). Related drawing bugs: L-123 elytra, L-181 trident.
-
 ### L-190 Select several rows at once in list screens
 Kind: Design. Maintainer idea 2026-10-14; no implementation or release chosen.
 Goal: in list screens (waypoints, the schematic Check list and similar lists)
@@ -727,8 +494,11 @@ to completion totals/HUD/nearest-mistake, and how to unignore/review them.
 Keep the original strict comparison available. [SCHEMATIC.md](SCHEMATIC.md).
 
 ### L-184 Inspect ghost block data and schematic container contents
-Kind: Design / Research for saved data inspection; the target-card part is
-built and awaits in-game checks.
+Kind: Design / Research for saved data inspection. The target-card part
+has local checks: ghost/real targets on `b5daa75`, followed by the ray and
+ghost-edge fixes L-217/L-222/L-224 (last `30b66ce`, 2026-10-19). Saved
+container/Block Entity inspection remains open. The sequence below is
+the earlier 2026-10-15 target-card checkpoint, not a new implementation.
 Target-card history 2026-10-15: the ghost-as-target card with a "Ghost of
 <placement>" row was built first, then replaced by an upper/lower section
 (`334889a`, `0b89cd2`) and a None / Stacked / Side by side choice (`771ba02`).
@@ -847,164 +617,29 @@ screen) opens it with the held item preselected; anything inside the anvil
 screen comes later.
 Open (maintainer): whether the anvil highlight is wanted later.
 
-### L-169 Item Transfer in more screens, and bulk transfer
-Rework for 0.2.2 (maintainer 2026-10-15, built by Claude; passed locally
-and on BDS on `37c3745`, VALIDATION-LOG): the 0.2.2 gestures moved items visibly one by one because each request
-waited for its answer. A trace of a resource pack's bulk move (VALIDATION-LOG
-2026-10-15) showed vanilla auto-place called for every source slot in one
-frame and answered in one response. Requests now go out together, up to 64
-per tick, and are confirmed once (DESIGN "Inventory transfer"). Check in
-game before releasing 0.2.2: chest everything both ways, matching (coal),
-hotbar kept, Shift + right drag, a furnace and a brewing stand: passed
-locally on `7586995` (maintainer); a server is not checked. Follow-up the same
-day: "everything" with a hotbar slot hovered moves the hotbar alone, and
-in the inventory screen the whole hotbar side: passed on `37c3745`, with
-both checklists repeated on BDS without problems.
-Kind: Design for the remaining parts. Requested 2026-10-12; extends
-L-41/L-103 (DESIGN "Inventory transfer"). The selected 0.2.2 part is done
-and locally smoke-tested on c8c1f1b (2026-10-15), unreleased; its contract
-and completion record moved to [BACKLOG-DONE.md](BACKLOG-DONE.md#l-169-item-transfer--022-part).
-Implementation and evidence: [ITEM-TRANSFER.md](ITEM-TRANSFER.md).
-Broader screen/server and edge-case coverage stays in Pre-release checks.
-The proposals below are retained history for later parts; they do not
-override the completed 0.2.2 contract or authorize additional implementation.
+### L-169 Item Transfer: remaining gesture and screen extensions
+Kind: Design. Current status reconciled 2026-10-20: matching/everything,
+keep-one and native slot-role routing shipped in 0.2.2; held-stack matching
+and the four drop gestures shipped in 0.2.3. The former passed locally and
+on BDS on `37c3745`; the latter passed the local chest checklist on
+`9da5d9d` (2026-10-15). All five held-stack/drop switches default on, as
+chosen by the maintainer. L-154 is merged here and archived.
+Current behavior and authoritative confirmation rules: DESIGN.md "Inventory
+transfer" and [ITEM-TRANSFER.md](ITEM-TRANSFER.md). Completion and the
+superseded proposal/handoff are retained in BACKLOG-DONE.md (L-169's 0.2.2
+and 0.2.3 records). Do not implement the old proposal again.
 
-Goals:
-1. Screens that do not work today: dispenser, dropper, hopper, the furnace
-   family (furnace, blast furnace, smoker), brewing stand, and others found
-   while testing (crafter, beacon, shulker box to check). Check each first:
-   the current transfer acts only in "storage screens".
-2. Bulk transfer: move everything, or everything of one kind, between the
-   container and the inventory with one action.
-Vanilla already has take-all and place-all handlers in the container
-screens (`ContainerScreenController::_handleTakeAll`, `_handlePlaceAll`,
-`_handleAutoPlace(amount, ...)`, the per-screen `_registerAutoPlaceOrder`
-and `_registerCoalesceOrder`); the maintainer reports that only a
-controller binding reaches them and that a resource pack can show them.
-Research first whether Lamium can call them from a key or gesture (queued
-to the client thread, AGENTS rule 2) and what they move exactly; prefer
-them over Lamium-built sweeps where they do the right thing.
-Agent's proposal (not decided):
-- Routing for slots with roles: furnaces send fuel to the fuel slot and
-  smeltable items to the input (an item that is both: input first, as
-  vanilla's shift-click; to check), and only take from the output; brewing
-  stands send bottles, the ingredient and blaze powder to their slots. The
-  existing four gestures keep their meaning; a gesture with no valid
-  destination does nothing.
-- Bulk: a key or modified click on the container side "take all", on the
-  inventory side "put all"; with the hovered item, only that kind. An
-  option keeps the hotbar out of "put all" (default: hotbar kept).
-- Same safety as today: one request at a time, confirmed from
-  authoritative state, stops on screen close, cursor item or a rejected
-  request.
-Gestures (maintainer 2026-10-12: base them on a widely used Java
-inventory-gesture set, read from its public description only, PROVENANCE;
-also bulk "matching" moves and drop operations). Today's four gestures
-already match that set. Proposed additions (agent, not decided):
-| Gesture | Effect |
-|---|---|
-| Ctrl + wheel | every stack of the hovered kind to the other side |
-| Ctrl + Shift + wheel | everything to the other side |
-| Alt + left click | same as Ctrl + wheel, as a click |
-| Alt + Shift + left click | same as Ctrl + Shift + wheel, as a click |
-| Shift + right drag | all but one item from each passed slot (vanilla's Shift + right drag today) |
-| Shift + click an empty slot, items on the cursor | every matching item into that side |
-| Shift + click outside the window, items on the cursor | drop every matching item in the inventory |
-| Drop key + Ctrl + drag | drop one item from each passed slot |
-| Drop key + Shift + right drag | drop all but one from each passed slot |
-| Drop key + Shift + left drag | drop everything in each passed slot |
-| W or S held + Shift/Ctrl click (and drag) | move the stack (or one item) up or down within the inventory |
-Drops go through vanilla's own drop request and are confirmed like moves;
-each drop gesture has its own switch, and "drop every matching item"
-default off (it can throw away a whole inventory). Check on Bedrock before
-choosing: whether Alt reaches the game in screens, what the drop key does
-in screens today, and that W/S are free while a screen is open.
-Decided (maintainer 2026-10-12): take the matching/everything moves (Ctrl
-+ wheel, Ctrl + Shift + wheel, the Alt clicks, Shift + click on an empty
-slot), all-but-one (Shift + right drag) and the drop gestures; not the W/S
-moves for now. First screens: the furnace family and dispenser, dropper and
-hopper; the brewing stand next.
-Open (maintainer): defaults per gesture (agent: on, except "drop every
-matching item" off), hotbar handling in "everything" (agent: hotbar kept),
-and whether "fill existing stacks only" is wanted as well.
-
-Update 2026-10-15 (maintainer): L-154 is folded in here and the work goes to
-another agent; this entry is its brief. In scope for the next release:
-1. Matching moves and all-but-one, as decided on 2026-10-12 (Ctrl + wheel,
-   Ctrl + Shift + wheel, the Alt clicks, Shift + click on an empty slot,
-   Shift + right drag). On 2026-10-15 the maintainer also agreed to "move
-   every item of the hovered kind" and "move the stack but leave one", which
-   the gestures above already cover. The agent's 2026-10-15 alternatives,
-   Shift + double click (every item of the kind) and Ctrl + Shift + click
-   (the stack but one), are **not decided**: ask whether they are wanted as
-   extra bindings before adding them.
-2. More screens and slot roles: furnace, blast furnace, smoker, dispenser,
-   dropper and hopper first, then the brewing stand; check crafter, beacon
-   and shulker box. Route by slot role (fuel, input, output; bottles,
-   ingredient, blaze powder) as proposed above, taking only from outputs.
-3. Drop gestures as decided, each with its own switch ("drop every matching
-   item" default off unless the maintainer says otherwise).
-Still open for the maintainer: the defaults per gesture, the hotbar in
-"everything", "fill existing stacks only", and the two 2026-10-15
-alternatives.
-
-Update 2026-10-15 (maintainer, later): the gesture set itself is not final.
-The maintainer will settle it with the implementing agent, comparing it with
-reference mods (listed in PROVENANCE.md, reference only) and with how it
-plays. Treat the gestures above as the starting proposal, not a contract.
-
-Update 2026-10-15 (maintainer, answering the implementing agent): this
-round builds (1) Shift + click on an empty slot with items on the cursor:
-every matching item into that slot's side, and (2) the drop gestures
-listed above (drop key + Ctrl drag: one from each slot; drop key + Shift +
-right drag: all but one; drop key + Shift + left drag: everything; Shift +
-click outside the window with items on the cursor: drop every matching
-item). Each gets its own switch and **all default on**, including "drop
-every matching item" (the maintainer's choice over the agent's proposal of
-off). Not this round: the Shift + double click and Ctrl + Shift + click
-alternatives and "fill existing stacks only". Research what the drop key
-does in screens today before building the drop gestures.
-For (1) the cursor stack goes into the clicked empty slot first, then every
-matching item from the other side follows to that side; the hand ends
-empty (maintainer 2026-10-15). Research build: `f3501da` with
-`--transfer_trace=y` logs vanilla drops (raw ItemTransferAmount bytes, whose
-fields the SDK does not name) and keys in screens; its log decides how the
-drop gestures call vanilla's drop.
-Trace result (2026-10-15, VALIDATION-LOG): the drop key over a slot drops
-one, Ctrl + drop key the stack, a left click outside the window drops the
-held stack and a right click one item; all go through the same drop with
-bytes `01000000 02000000 00` (one) or `01000000 00000000 00` (stack). Shift
-+ click on an empty slot with items held did nothing in vanilla (an
-auto-place that moves nothing). Built on that basis in `9da5d9d`; the
-maintainer's chest checklist passed the same day (ITEM-TRANSFER.md "Held
-stack and drops"). Other screens and servers go to Pre-release checks.
-
-Handoff for the implementing agent (read AGENTS.md first; implementation of
-the 0.2.2 contract may go to another agent; product questions come back to
-the maintainer):
-- Current behaviour and rules: DESIGN.md "Inventory transfer" (the four
-  gestures, one request at a time, stop conditions); L-41 and L-103 in
-  BACKLOG-DONE.md; VALIDATION.md rows for Inventory transfer.
-- Code: `src/features/inventory/transfer/TransferGesture.h` (pure gesture
-  and side rules, tests in `tests/TransferGestureTests.cpp`);
-  `src/features/inventory/game/TransferSession.cpp` (requests and their
-  confirmation); `src/features/inventory/game/ScreenTracker.cpp` (which
-  screen is open; keeps `_isContainerScreen()` controllers, including the
-  traced furnace, brewing stand and beacon; sorting has its own type guard);
-  `InventoryMove.cpp` and `RequestTracker.cpp` for the move requests;
-  `TransferRoutes.cpp` discovers native roles and scopes destination filtering.
-- Keep pure planning (which slots, in which order, by slot role) in headers
-  with tests; game glue in .cpp. Never touch inventories from the input
-  event (queue to the client thread, AGENTS rule 2); confirm each move from
-  authoritative state, not from the request (rule 9).
-- New settings follow AGENTS rule 4 (Settings, Options, SettingsStore,
-  SettingsRows, three languages); a new hook gets a GAME-UPDATES.md entry.
-- Research before building: whether vanilla's take-all / place-all /
-  auto-place handlers (`_handleTakeAll`, `_handlePlaceAll`,
-  `_handleAutoPlace`) can be called and what they move; whether Alt reaches
-  the game in screens; what the drop key does in screens today.
-- End with a short in-game checklist per screen and gesture (local and a
-  server), as AGENTS.md asks.
+Unchosen extensions, with no implementation or release approved:
+- Extra Shift + double-click (matching) or Ctrl + Shift + click (leave one)
+  bindings; decide whether they add value beside the shipped gestures.
+- "Fill existing stacks only" and W/S-directed moves; the latter were
+  explicitly deferred, not selected.
+- Additional screen families: reproduce a specific unsupported operation
+  and confirm its native slot roles before extending coverage.
+The full gesture/screen matrix, drop-key rebinding, controlled rejection or
+timeout, lifecycle interruption, unverified-game fallback, packs and wider
+server checks are validation gaps, not unfinished gesture implementation;
+see Pre-release checks and VALIDATION.md.
 
 ### L-168 Trade finder: reroll a villager until a wanted trade appears
 Kind: Design, then Research (strong model). Requested by the maintainer
@@ -1042,9 +677,13 @@ game's item and enchantment lists), and whether matches are kept as a short
 log.
 
 ### L-167 Change the language and resource packs from inside a world
-Kind: Research, then Design (strong model). Imported from the maintainer's
-notes (2026-09-25) on 2026-10-12. Chosen 2026-10-13: language first;
-native-path research in progress, no release selected.
+Kind: Research, then Design (strong model) for the remaining pack work.
+Current status, 2026-10-20: Game language and Skip server resource packs
+shipped in 0.2.1; language was checked locally and server-pack skipping
+with a cosmetic BDS pack. Broader coverage is in VALIDATION.md. General
+stack editing and applying the player's global packs while skipping server
+packs remain unchosen Research/Design. The dated research below is history.
+Imported from the maintainer's notes (2026-09-25) on 2026-10-12.
 Goal: switch the game's display language, and look at or change the global
 resource pack stack, without leaving the world or server first.
 Research first, before any spec: what 26.51 already allows from the pause
@@ -1518,117 +1157,25 @@ start a glide right after the swap. No faked flags or packets: only a
 vanilla path that the server accepts.
 
 ### L-93 Schematic: load, place, project, verify and list materials (experimental)
-2026-10-14 player-feedback follow-ups: mismatch highlight position (L-177),
-piston texture/geometry (L-178), shulker facing (L-179), crash on opening
-settings during checks (L-182), mismatch suppression (L-183), ghost data
-inspection (L-184), permission-gated world load (L-185) and ghost
-legibility/translucency comparison (L-186). All are open; no implementation
-or release is selected by this documentation update.
+Kind: Follow-up tracking; each L-item below owns its kind and open choices.
+The initial scope shipped in 0.1.7; the screen review and 0.1.8 rendering/
+compatibility work are complete. Their full record is in BACKLOG-DONE.md
+(L-93); [SCHEMATIC.md](SCHEMATIC.md) owns the feature contract and technical
+history. Runtime coverage remains in VALIDATION.md.
 
-Kind: First scope completed; follow-ups are Ready **(strong model)** or
-Research where a new renderer path or behavior needs investigation.
-Status: included in 0.1.7 (released 2026-10-07). Loading/placing, ghosts,
-checking/materials, HUD/keys/target line, entities, area save, folder opening,
-large-file warning, menu/adjust key and the final UI/drawing fixes have local
-checks, including the release smoke test. Server and broader coverage remain
-open; see [VALIDATION.md](VALIDATION.md).
-Requirements, technical notes and the retained decision/build/research record:
-[SCHEMATIC.md](SCHEMATIC.md).
-Accepted follow-ups (2026-10-07; known gaps, not 0.1.7 blockers):
-- Placement markers on the minimap/world map.
-- A richer target-card line: expected block icon and differing state values
-  (built 2026-10-08, checked in game the same day). Redesigned 2026-10-08
-  (maintainer chose the agent's proposal): rows say what to do and take the
-  verifier colors (red wrong/extra, yellow state, light blue missing); a
-  wrong or extra block reads "Should be [icon] <block>"; each differing
-  state is one row "<state>: <now> → <should be>" with readable names
-  (L-112), and the block's own row for that state is not repeated.
-  Built 2026-10-08 (`SchematicTarget.h`, tested) and checked in game the same
-  day, including the drawn change arrow in English and Japanese.
-- Beds sometimes drawing only one half or an outline; heads, doors and
-  honey blocks still drawing as outlines.
-- The Check tab's verifier-colored preview and the Files tab's rotatable
-  3D preview.
-- Neighbor-dependent ghost shapes using schematic neighbors (B1 done
-  2026-10-09; doors draw, connections come from file states).
-- The translucent ghost look.
-- Entity name-tag distance and quantity.
-
-Screen review (decided 2026-10-08; SCHEMATIC.md "Screen review against the
-mockup", mock `docs/demos/schematic-screen.html`). Work order:
-1. Screen and world, Ready (strong model), one in-game check for the step:
-   placement frames in the world; the Placed list's selection bar and
-   progress column; Files folders and columns; Check filter counts and
-   differing states in the right pane; Materials sections, HUD switch,
-   chest/stack amounts, missing items as slots and the ResourceCalculator
-   button; entity ghosts as light-blue outline and faces, name tags without
-   limits.
-   Built 2026-10-08 and checked in game the same day (VALIDATION-LOG "L-93
-   screen review step 1" and "refinements"); shipped in 0.1.8. Commits:
-   placement frames (`273fb39`),
-   the Placed progress column and selection bar, Files folders and columns
-   (`e183d46`), Check filter counts and differing states (`926c9f6`),
-   Materials sections, HUD switch, chest amounts, missing slots and the
-   ResourceCalculator link (`8dd8457`), entity boxes with faces and every
-   name shown (`98d9fe1`).
-2. Research, after step 1 or alongside it: L-114 3D previews in the screen,
-   L-115 entity models as ghosts, L-116 raw materials from the game's recipes.
-
-0.1.8 rendering and compatibility work (plan 2026-10-09 in SCHEMATIC.md
-"Rendering and compatibility plan for 0.1.8"): A saved-file version and a
-vanilla-loader check, **done and checked in game 2026-10-09**; B1 schematic
-neighbors (doors and their missing halves, mirror axes for block states and
-entity facing), **done and checked in game 2026-10-09**; B2 render layers
-(honey and slime drawn, blended ghosts and marks sorted), **done 2026-10-09**;
-B3 liquids (sloped, flowing, waterlogged; previews too), **done 2026-10-09**;
-deferred research (one item, maintainer 2026-10-09): translucency that does not
-hide what is behind it, in the world pass (a blended material without depth
-writes) and in the previews (water there is opaque), **done 2026-10-09**
-(world: blended ghosts and marks drawn after the world's translucent
-blocks; previews: shallow real depth, water translucent, cut-out limits
-accepted); B4 block entity data (and Lamium saves keep it), **done and
-checked in game 2026-10-09**; D waterlogging in the check, **done and checked
-in game 2026-10-09**; C measured and tuned (30-50 -> 45-60 fps with several
-large placements), **done 2026-10-09**
-(B5's block-entity ghost lighting **done and checked 2026-10-09**; looking
-straight down and Vibrant Visuals stay on the check list).
-Reported 2026-10-09 (maintainer, `c48e59c`): water in waterlogged ghost
-stairs showed through the stairs' covered sides (the ghost is translucent,
-the real block is not) and its edge cells looked flowing; ghost beetroots
-flickered. Built `62bff77`, not yet checked: a waterlogged cell's water is
-not drawn on sides its own ghost covers entirely (`sidesCovered`, area of
-the side's quads), and quads a ghost repeats (a face in both windings, as
-crop planes are suspected to be) are dropped.
-Checked 2026-10-10 on `62bff77`: no water through the stairs' sides, no
-beetroot flicker. Left then, built `b40c543`: the pool
-inside waterlogged stairs still showed the flowing texture (the texture
-followed the slope; now it follows the flow, `liquids::flow`, tested: a
-still pool leaning toward its walls keeps the still texture, a source at a
-drop still flows); farmland beside schematic water flickered on its side
-(a water face is no longer drawn against a ghost face in the same plane).
-Both checked in game 2026-10-10 on `b40c543`.
-Vibrant Visuals (2026-10-09): lines and mistake/selection faces keep their
-colors there (done and checked); left, not scheduled: ghost faces untinted,
-the honey ghost black, line width (the structure block's outline is wider).
-Reported 2026-10-09: in the Files/Check previews biome-tinted blocks
-(grass tops, leaves, vines) stayed untinted gray, tessellated above the
-build limit where no biome answered. Fixed and checked the same day: cells
-are tessellated at the top of the world around the player, so they take the
-player's biome (chosen over a fixed tint). Leaves stayed gray (a real
-mangrove leaf beside them was green): they draw in the seasons layers, which
-the world colors in its own shader. Tinting only the seasons layers changed
-nothing (`b02aea7`); built (not yet checked): blocks with a foliage tint
-method (leaves, vines) take the renderer's biome tint (`BiomeColorSampling`,
-as the minimap) on their still-gray vertices, in previews and world ghosts
-alike: checked green (`dac35cb`, VALIDATION-LOG, one oddity noted there).
-B-D: Research (strong model), approach left to the agent.
-
-Pick the next follow-up with the maintainer; the list is not an implementation
-order. Chosen 2026-10-07: placement markers on the minimap/world map,
-built the same day (look in SCHEMATIC.md) and checked in game 2026-10-08.
-Deeper map integration (toggling and editing placements from the map) is
-part of L-111. Runtime
-gaps stay under Pre-release checks and VALIDATION.
+Open work, to choose with the maintainer rather than implement as one batch:
+- Bugs: L-177 stale mismatch highlight (fix built, reporter check pending),
+  L-117 Japanese entity-name text, and paused drawing work L-192/L-193/L-194.
+- Controls: L-229 menu-key repeat, L-230 view-directed vertical movement,
+  L-231 finding and understanding the existing controls.
+- Inspection and checking: L-183 mismatch suppression, L-184 saved ghost/
+  container data, L-190 multi-selection; permission-gated world load L-185.
+- Rendering and materials: L-114 Check-preview mistake styling/interaction,
+  L-115 richer entity models, L-116 recipe-derived raw materials, and
+  L-186 the remaining ghost-legibility/translucency design.
+L-178 piston ghosts, L-179 shulker facing and L-182 rejoin-preview crash are
+closed; their records are in BACKLOG-DONE.md. Map-layer integration shipped
+under L-139; the remaining shared controls are L-111.
 
 ### L-30 Ender Dragon multipart hitboxes on Bedrock
 Status: research.
@@ -1785,83 +1332,35 @@ how ingredients with several choices (any log, tags) and multi-step chains
 which recipe to prefer when several make the same item. The calculation is
 pure logic with tests.
 
-### L-111 Integration between features (0.2.0)
-Kind: Tracking item for 0.2.0 (the Design is settled below; the building
-steps are their own items: L-136, L-138, L-139, L-134, L-137, L-135).
-Raised by the maintainer 2026-10-08 after checking the 2026-10-07 batch.
-Why: the features have matured on their own, and the links between them have
-weakened recently. Lamium is one mod, so they can work together more.
-Examples from the maintainer:
-- Map and Schematics: placements show on the maps (L-93 follow-up), but the
-  map cannot toggle their display or edit them the way it edits waypoints.
-  The same applies to Shapes.
-- The radial menu built for Schematics' many operations could serve the
-  whole mod's controls.
-- Block Restrictions (L-15) and similar overlays share drawing problems
-  (L-110).
-Constraints: the module split has real benefits (independent lifecycles,
-fail-open per feature, smaller blast radius). Decide with the maintainer
-what to integrate, the risks of each step and the order, before any
-implementation. Output: a short plan (possibly a demo) that turns into Ready
-items.
-Status 2026-10-11: steps 1-6 built on main (see the 0.2.0 regression
-checks); the in-game checks per step are what is left before the release.
-Earlier status: agent's proposal written 2026-10-08 in [INTEGRATION.md](INTEGRATION.md)
-(shared parts features register into: face drawing, map layers, a Lamium
-radial menu, looked-at selection, settings cross-links; suggested order and
-open questions).
-Decided 2026-10-11 (maintainer, on the agent's recommendation): 0.2.0's
-theme is clean-up and integration together.
-- Boundary: shared parts that features register into (INTEGRATION.md
-  principle); no feature merges outright.
-- Order (revised 2026-10-11 after an outside review): tidy the place an
-  integration touches right before it, in separate commits from the
-  integration itself (a behavior change must be traceable to one of them,
-  as the L-73 periodic-input regression showed).
-  1. L-136 split GhostRenderer.cpp (on its own, behavior unchanged).
-  2. L-138 shared face drawing; move Shapes and the breaking restriction
-     onto it, and the schematic area frame only.
-  3. Tidy what map layers touch: WorldMap.cpp's selection and action model,
-     and the Shapes view and waypoint list state in SettingsScreen.cpp (the
-     first part of L-134).
-  4. L-139 map layers: schematic placements first, then Shapes.
-  5. The rest of L-134: Hotkeys, the schematic view and the plain settings
-     table.
-  6. 0.2.0 regression checks (Pre-release checks), L-137's required part,
-     L-135 PDB as a separate asset.
-  L-137's inventory runs alongside from the start.
-- Required for 0.2.0: L-136, L-138, L-139, L-134, L-135 and L-137's required
-  part. C radial menu, D looked-at selection and E settings cross-links go
-  in when the maintainer feels like it, in 0.2.0 or later (C needs a demo
-  first). Effort is not a reason to cut scope (maintainer 2026-10-11:
-  agents make it cheap); behavior risk is what the order and checks guard.
-- Fail-open is per risky capability, the same rule as L-137, for features
-  and shared parts alike: a native path that cannot be verified stops for
-  every feature that uses it, while pure data handling and unrelated paths
-  keep working (a map layer's data does not stop because a render path
-  failed). A feature that fails leaves the shared part working for others.
-- Each step is checked in game and recorded (VALIDATION-LOG) before the next
-  starts, so a regression is bounded to one step's commits.
-- Shapes on the minimap are an option (maintainer 2026-10-11): many shapes
-  would crowd it. Still open, decided when the step comes: one Lamium menu
-  key or per-feature keys into the same menu (C).
-Input from the maintainer's notes (2026-10-13): when levelling ground the
-existing features would help but take too long to set up. Aim for calling
-up the needed action while working rather than configuring a feature
-first. The schematic's spatial operations (a base point from the looked-at
-block or the feet, two points for a range, a Y boundary moved with the
-wheel, the radial menu and "repeat the last adjustment with the wheel")
-could serve Breaking restrictions and Shapes too. Keep features
-independent; never mix "the layers shown" with "the region where an action
-is allowed"; key conflicts, contexts and UI weight to be checked.
+### L-111 Integration between features: remaining shared controls
+Kind: Design. The required 0.2.0 work (L-134/L-135/L-136/L-137/L-138/L-139)
+passed the recorded regression checks and two outside reviews, then shipped
+on 2026-10-11. Its plan and release/regression checkpoints are retained in
+BACKLOG-DONE.md. No 0.2.0 work remains to be released.
+
+Open optional scope (no implementation or release chosen): a common Lamium
+radial menu, looked-at selection and settings cross-links (C/D/E in
+[INTEGRATION.md](INTEGRATION.md)). A menu needs an agreed demo first; one
+common opener versus per-feature openers remains undecided.
+Maintainer input, 2026-10-13: make spatial actions usable while working,
+without setting up a feature first. Candidate shared operations are a base
+point from the looked-at block or feet, two range corners, a Y boundary
+adjusted by the wheel, and repeating the last adjustment. L-173 quick shapes
+and L-15 restrictions own their behavior; L-230/L-231 first address the
+schematic controls themselves.
+
+Keep independent feature lifecycles and shared parts that features register
+into; do not merge features. Keep display layers distinct from allowed-action
+regions. Check input contexts, binding conflicts and UI weight with the
+maintainer. Tidy touched code separately from behavior changes, preserve
+per-capability fail-open, and check each step in game before the next.
 
 ### L-105 Performance: find the real bottleneck before optimizing
-Kind: Research **(strong model)**. Chosen by the maintainer 2026-10-07 from
+Kind: Research **(strong model)**. Chosen by the maintainer 2026-10-07 from their notes.
 Measured 2026-10-14 (VALIDATION-LOG, schematic perf trace): with 3086
 ghost sections shown the ghost pass costs 4-6 ms a frame standing still with
 nothing rebuilt, mostly per-section draws (faces, lines, block actors,
 entities); a candidate is merging sections into fewer meshes.
-their notes.
 Status: open. Step 1 only; no optimization is built until it names a
 bottleneck.
 Why: Hide particles / weather / overlays avoid some drawing, but they are
@@ -1912,6 +1411,7 @@ micro-optimizations.
 
 The following notes were imported on 2026-10-12 for later consideration.
 Documentation tracking does not approve implementation or a release target.
+L-154 was merged into L-169 and is archived in BACKLOG-DONE.md.
 Fake Offhand reserved-slot protection is excluded from this import; the
 undecided historical idea remains in L-94's record.
 
@@ -1939,20 +1439,6 @@ direction. Open: default, release/resume semantics and interaction with
 remapped keys, controllers, permanent movement and detached cameras.
 Model event sequences in pure logic before touching gameplay input; menus
 and focus changes must not leave stale held inputs. Not implemented.
-
-### L-154 Additional inventory transfer gestures
-Merged into L-169 on 2026-10-15 (maintainer): the matching and all-but-one
-moves, the drop gestures and more screens are specified there; the work goes
-to another agent. Earlier notes kept below.
-Kind: Design; choose a concrete gesture before implementation. Bulk
-transfer and more screens moved to L-169 (2026-10-12).
-Candidates: matching-item bulk transfer, leaving one item behind, modified
-clicks, dragging to drop items and keyboard-directed moves. Do not assign
-chords or change existing gestures yet. Clarify source/destination, cursor
-ownership, modifier conflicts and authoritative completion for each chosen
-operation. Dropping needs an explicit user-facing design. Trading support
-and Mass Craft remain separate workflows, not implicit scope of this item.
-Not implemented; preserve the current storage and inventory-screen behavior.
 
 ### Previously parked work
 

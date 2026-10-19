@@ -4,10 +4,12 @@ Draft for [BACKLOG L-111](BACKLOG.md), written by an agent on 2026-10-08
 for the maintainer to decide on. Nothing here is decided until it moves into
 BACKLOG.md or DESIGN.md.
 
-Decided 2026-10-11: the boundary, order and 0.2.0 scope are in L-111 in
-BACKLOG.md; A is L-138 and B is L-139 (required), C to E are optional.
-Built 2026-10-11: A and B (in-game checks pending, BACKLOG 0.2.0 regression
-checks).
+Current status (reconciled 2026-10-20): A (L-138) and B (L-139) passed the
+recorded 0.2.0 regression checks and outside reviews and shipped in 0.2.0
+on 2026-10-11. The original boundary/order, completed plan and regression
+checkpoints are retained in BACKLOG-DONE.md. C to E remain optional Design
+under L-111 in BACKLOG.md; the proposals below are not new implementation
+instructions for completed A/B work.
 Shapes on the minimap are a setting; the menu key question stays open until
 C.
 
