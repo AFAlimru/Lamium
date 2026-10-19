@@ -698,9 +698,11 @@ the D state button and panel, `bf4f325` addresses the first in-game feedback
 and review findings, and `9675129` settles the display model (128-block cave
 read, solid dim for far layer floors, three reads only: floor/wall/no-floor,
 column revision 4) and adds the FreeCamera reference (camera for opening and
-height matching, body for "Center on me", green camera arrow). A manual
-height edit that lands on the reference height resumes following. The camera
-arrow is display-only; closing and reopening the map returns to the camera.
+height matching, body for "Center on me"). `7e0e2f9` draws the camera as the
+same green arrow, removes the return-to-camera action (reopen the map to
+return), and resumes following when a manual edit lands on the reference
+height. The camera arrow is display-only; closing and reopening the map
+returns to the camera.
 The owner extended this branch to cover the cave map and the FreeCamera map
 reference in one change instead of separate PRs. Build, `LamiumTests` and
 `LamiumNativeTests` pass. Remaining: the in-game check (Nether/cave
