@@ -257,16 +257,26 @@ int heightMin(int dimension) { return dimension == 1 ? 0 : -64; }
 int heightMax(int dimension) { return dimension == 1 ? 127 : 319; }
 int clampHeight(int dimension, int y) { return std::clamp(y, heightMin(dimension), heightMax(dimension)); }
 bool playerCave(PlayerSpot const& spot) {
-    return spot.dimension == 1 || (spot.dimension == 0 && map::automaticView() == ViewMode::Cave);
+    if (spot.dimension == 1) return true;
+    if (spot.dimension != 0) return false;
+    if (state.cameraReference) return map::automaticView() == ViewMode::Cave;
+    return state.client && map::bodyCave(*state.client);
 }
 bool canMatchHeight() {
     auto spot = sourceSpot();
     return spot && state.cave && spot->dimension == state.dimension && playerCave(*spot);
 }
+int recordedCaveHeight(PlayerSpot const& spot, int dimension) {
+    int actual = clampHeight(dimension, blockFloor(spot.y));
+    auto layer = map::caveLayerY();
+    if (layer && std::abs(*layer - blockFloor(spot.y)) <= caveLayerSlack)
+        return clampHeight(dimension, *layer);
+    return actual;
+}
 std::optional<int> referenceHeight() {
     auto spot = sourceSpot();
     if (!state.cave || !spot || spot->dimension != state.dimension) return std::nullopt;
-    return clampHeight(state.dimension, blockFloor(spot->y));
+    return recordedCaveHeight(*spot, state.dimension);
 }
 // A manual edit that lands exactly on the reference height is a return to the
 // player/camera, not a fixed height that still offers a match action.
@@ -297,7 +307,7 @@ void toggleCave() {
         return;
     }
     auto spot = sourceSpot();
-    if (spot && spot->dimension == state.dimension) state.height = clampHeight(state.dimension, blockFloor(spot->y));
+    if (spot && spot->dimension == state.dimension) state.height = recordedCaveHeight(*spot, state.dimension);
     state.broad = state.dimension == 1;
     syncFollowing();
 }
@@ -310,7 +320,7 @@ void matchHeight() {
     if (!canMatchHeight()) return;
     auto spot = sourceSpot();
     if (!spot) return;
-    state.height = clampHeight(state.dimension, blockFloor(spot->y));
+    state.height = recordedCaveHeight(*spot, state.dimension);
     state.following = true;
 }
 void returnToPlayer() {
@@ -320,7 +330,8 @@ void returnToPlayer() {
     state.dimension = spot->dimension;
     state.cave = playerCave(*spot);
     state.broad = state.dimension == 1;
-    state.height = clampHeight(state.dimension, blockFloor(spot->y));
+    state.height = state.cave ? recordedCaveHeight(*spot, state.dimension)
+                              : clampHeight(state.dimension, blockFloor(spot->y));
     state.following = true;
     state.cavePanel = false;
     center();
@@ -334,8 +345,9 @@ void showDimension(int dimension) {
     if (!body || body->dimension != dimension) state.cameraReference = false;
     auto spot = sourceSpot();
     if (spot && spot->dimension == dimension) {
-        state.height = clampHeight(dimension, blockFloor(spot->y));
         state.cave = playerCave(*spot);
+        state.height = state.cave ? recordedCaveHeight(*spot, dimension)
+                                  : clampHeight(dimension, blockFloor(spot->y));
         state.following = state.cave;
     } else {
         state.cave = dimension == 1;
@@ -1671,7 +1683,8 @@ void open(IClientInstance& client, bool resume) {
         state.dimension = spot->dimension;
         state.cave = playerCave(*spot);
         state.broad = state.dimension == 1;
-        state.height = clampHeight(state.dimension, blockFloor(spot->y));
+        state.height = state.cave ? recordedCaveHeight(*spot, state.dimension)
+                                  : clampHeight(state.dimension, blockFloor(spot->y));
         state.following = true;
     } else {
         state.dimension = 0;

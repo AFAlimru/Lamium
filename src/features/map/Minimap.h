@@ -22,6 +22,13 @@ ViewForce pressViewKey();
 // The automatic cave/surface view at the player, independent of a forced
 // HUD view; the world map uses it for its opening choice (L-228).
 ViewMode automaticView();
+// The height of the cave band currently used for recording. The world map
+// opens at this height so a boundary step does not show an empty new band;
+// empty until the first map frame.
+std::optional<int> caveLayerY();
+// Whether the body (not the FreeCamera eye) is in a cave. The world map uses
+// this when it follows the body, so a camera in a cave does not decide it.
+bool bodyCave(IClientInstance&);
 // The hold-to-enlarge key: twice the size and twice the area at the same scale.
 void setEnlarged(bool held);
 // The radar's hold key: mob faces become dots (or dots faces) while held.

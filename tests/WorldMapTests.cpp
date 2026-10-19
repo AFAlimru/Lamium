@@ -164,6 +164,9 @@ void images() {
               && layerOfFolder("dimension5") == MapLayer{5, 0, false} && !layerOfFolder("nether/y7") && !layerOfFolder("nether")
               && !layerOfFolder("") && !layerOfFolder("overworld/old") && !layerOfFolder("overworld/y7"),
           "surface and cave layer folders read back");
+    auto opened = stableLayer(63, 64, false);
+    check(layerFolder(caveLayer(0, opened)) == "overworld/y48" && layerFolder(caveLayer(0, 64)) == "overworld/y64",
+          "a boundary step opens the band the recorder keeps");
 }
 void view() {
     WorldView v{100, -50, defaultWorldScale, 400, 200};

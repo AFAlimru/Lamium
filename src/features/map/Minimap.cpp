@@ -714,6 +714,25 @@ ViewForce pressViewKey() {
     return next;
 }
 ViewMode automaticView() { return playerView.load(); }
+std::optional<int> caveLayerY() { return state.layer; }
+bool bodyCave(IClientInstance& client) {
+    auto* player = client.getLocalPlayer();
+    if (!player) return false;
+    int dimension = static_cast<int>(player->getDimensionId());
+    if (dimension == 1) return true;
+    if (dimension != 0) return false;
+    auto feet = player->getFeetPos();
+    if (!std::isfinite(feet.x) || !std::isfinite(feet.y) || !std::isfinite(feet.z)) return false;
+    auto& region = player->getDimensionBlockSource();
+    BlockPos feetPos{blockFloor(feet.x), blockFloor(feet.y), blockFloor(feet.z)};
+    if (!region.getChunkAt(feetPos)) return false;
+    BlockPos head{feetPos.x, feetPos.y + 1, feetPos.z};
+    int roofs = 0;
+    for (int dz = -1; dz <= 1; ++dz)
+        for (int dx = -1; dx <= 1; ++dx)
+            if (region.getHeightmapPos(BlockPos{feetPos.x + dx, 0, feetPos.z + dz}).y > head.y + 1) ++roofs;
+    return coveredByMost(roofs);
+}
 
 std::optional<ui::hud_editor::Box> drawMinimap(MinecraftUIRenderContext& context, float width, float height,
                                                ui::HudElement const& element, Settings::Map const& settings,
