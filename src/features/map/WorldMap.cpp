@@ -368,8 +368,10 @@ void commitHeight() {
     auto value = state.heightInput.parsedPrecise(static_cast<float>(heightMin(state.dimension)),
                                                  static_cast<float>(heightMax(state.dimension)), true);
     if (!value) return; // Incomplete or out of range: the height stays.
-    state.height = static_cast<int>(*value);
-    state.following = false;
+    if (static_cast<int>(*value) != state.height || !state.following) {
+        state.height = static_cast<int>(*value);
+        state.following = false;
+    }
 }
 void commitCoordinate() {
     int axis = std::exchange(state.editingAxis, -1);
