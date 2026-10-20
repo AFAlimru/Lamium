@@ -76,10 +76,10 @@ choices live in the L-items. An L-item wins if a summary drifts.
    L-91 shield glint and L-132 inventory-screen movement; respect each
    item's stop/resume conditions. L-181 trident pose is low priority.
 2. **Small and medium work before large features/integration** (maintainer
-   2026-10-10): L-196 license/provenance evidence; L-231 controls UX and
-   L-234 layer model are recorded in
-   [SCHEMATIC-CONTROLS.md](SCHEMATIC-CONTROLS.md) and wait for an independent
-   read before any prototype; L-232 slime chunk indicator (needs in-game
+   2026-10-10): L-196 license/provenance evidence; L-231 controls UX first,
+   then L-234 layer model as a separate step; both are recorded in
+   [SCHEMATIC-CONTROLS.md](SCHEMATIC-CONTROLS.md) with the 2026-10-20 review's
+   open points; L-232 slime chunk indicator (needs in-game
    verification of the rule first); remaining Design/Research in L-166 trade
    helpers,
    L-167 resource packs, L-168 trade finder, L-169 transfer extensions,
@@ -383,8 +383,12 @@ corner 2, area) with a target key and a looked-at target; repeat covers only
 movement, rotation/mirror and the layer cut; corner keys stay separate; the
 only default binding is Alt+Wheel up/down for forward/back; corner defaults
 and an edit mode are postponed; the Area category's move items may become
-redundant. Open: target display/reset details, the looked-at precedence,
-labels/help, and whether to prototype on a separate branch.
+redundant. The 2026-10-20 review adds open points recorded in the note: clear
+the remembered adjustment when the target changes, cycle only valid targets,
+and define the HUD-off indicator and target/repeat toasts. Suggested order:
+L-231 first with the current layer model, L-234 later as a separate step.
+Open: target display/reset details, the looked-at precedence, labels/help, and
+whether to prototype on a separate branch.
 Existing controls include wheel steppers in the radial menu, a held Repeat
 the last adjustment key plus wheel, six one-block directional Press actions
 and move-to-feet. Dedicated actions are unbound by default and grouped as
@@ -504,10 +508,13 @@ directions will not last; move to Axis (Y/X/Z) + Cut + Keep + Mode as
 recorded in [SCHEMATIC-CONTROLS.md](SCHEMATIC-CONTROLS.md). Cut is a local
 offset along the axis (the world coordinate is display only), so moving a
 placement keeps its slice; check and materials keep reading the same region.
-Open: the clamp rule when rotation swaps the extent, storage migration timing
-and format, the Layers menu item count, and whether the one-shot view slice
-matches the intended workflow. The note asks for an independent read before
-building; a prototype may use a separate branch.
+Open: the clamp rule when rotation swaps the extent; storage migration
+(version 1 plus a per-placement tag with dual-written legacy fields, proposed
+in the note) and what rollback shows; the Keep operation and the Layers menu
+item count; and whether the one-shot view slice matches the intended workflow.
+The 2026-10-20 review asks to settle the migration before a prototype and
+suggests doing L-231 first, with L-234 as a separate step; the note records
+that order. A prototype may use a separate branch.
 
 ### L-206 World map recording range is a fixed radius instead of the view distance
 Kind: Ready, implementation built; runtime coverage pending. User report
@@ -1280,8 +1287,10 @@ history. Runtime coverage remains in VALIDATION.md.
 Open work, to choose with the maintainer rather than implement as one batch:
 - Bugs: L-177 stale mismatch highlight (fix built, reporter check pending),
   L-117 Japanese entity-name text, and paused drawing work L-192/L-193/L-194.
-- Controls: L-230 view-directed movement (all-six frame awaiting the in-game
-  check), L-231 finding and understanding the existing controls.
+- Controls: L-230 view-directed movement (checked in game 2026-10-20),
+  L-231 control rework and L-234 cut-plane layer model. Both are design
+  entries in [SCHEMATIC-CONTROLS.md](SCHEMATIC-CONTROLS.md); L-231 is planned
+  first, L-234 as a separate step.
 - Inspection and checking: L-183 mismatch suppression, L-184 saved ghost/
   container data, L-190 multi-selection; permission-gated world load L-185.
 - Rendering and materials: L-114 Check-preview mistake styling/interaction,
