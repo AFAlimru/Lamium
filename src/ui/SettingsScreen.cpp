@@ -1379,7 +1379,7 @@ void openTool(input::Action action) {
     case input::Action::OpenSchematics: openSchematics(*current, -1); return;
     case input::Action::OpenHotkeys: openHotkeys(*current); return;
     case input::Action::OpenHudLayout: openHudLayout(*current); return;
-    case input::Action::OpenWorldMap: enterWorldMap(true, false); return;
+    case input::Action::OpenWorldMap: selectNav(worldMapNav); return;
     case input::Action::OpenCalculator: enterCalculator(true); return;
     case input::Action::SchematicMenu: enterSchematicMenu(); return;
     default: return;
