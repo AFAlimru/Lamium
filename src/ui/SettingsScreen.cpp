@@ -1500,6 +1500,11 @@ void start() {
         if (event.keyCode() == 0x7a) return;
         // One held Esc must not finish an edit and then close the settings.
         if (repeat && event.keyCode() == 0x1b) { event.cancel(); return; }
+        // Holding the opener must not close the menu its own press opened (L-229).
+        if (repeat && schematicMenu && isKeyOf(input::Action::SchematicMenu, event.keyCode())) {
+            event.cancel();
+            return;
+        }
         if (language_view::opened()) {
             event.cancel(); pendingKeys.push_back(event.keyCode()); return;
         }
