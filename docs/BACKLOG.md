@@ -661,11 +661,11 @@ not a legal opinion):
   recorded in PROVENANCE group 2 and THIRD_PARTY_NOTICES. No third-party
   human contribution after each repository's start was found; LaminaPeek's
   older history is levilamina-mod-template's (CC0-1.0 since 2023-12-10).
-- **P4, done pending CI.** In xmake v3.1.1 (the CI version) and v3.1.2,
+- **P4, done.** In xmake v3.1.1 (the CI version) and v3.1.2,
   `set_license` stores the string unchecked and the package license check
   only tests the `LGPL-` / `GPL-` prefix (`core/base/license.lua`), so
-  `LGPL-3.0-only` behaves as `LGPL-3.0` did. Changed in `xmake.lua`; a
-  Windows build with the new value was not run in the review environment.
+  `LGPL-3.0-only` behaves as `LGPL-3.0` did. Changed in `xmake.lua`; CI run
+  821 on `cb1b95a` built, tested and package-checked it on Windows.
 - **P5, done.** nlohmann/json moved from PROVENANCE group 2 to group 1: it is
   a header-only xmake package compiled into the DLL, not source copied into
   the repository. No outside source file was found under `src/`, `tests/` or
