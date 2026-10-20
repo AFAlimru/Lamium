@@ -1,5 +1,5 @@
 add_rules("mode.debug", "mode.release")
-set_license("LGPL-3.0")
+set_license("LGPL-3.0-only")
 
 -- Single source for the manifest version and the string the Debug View shows.
 local lamiumVersion = "0.2.3"
