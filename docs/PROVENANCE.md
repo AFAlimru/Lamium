@@ -12,16 +12,20 @@ way.
 ## 1. Platform and dependencies
 
 Used as separate programs, SDKs or libraries. Their code is not copied into
-`src/`.
+`src/` or anywhere else in this repository: xmake fetches them at the
+versions in `xmake-requires.lock`. "Compiled in" means their headers or
+static code end up inside `Lamium.dll`, so their notices ship with it.
 
-| Project | Role | License |
-| --- | --- | --- |
-| Minecraft Bedrock Edition | Game the mod runs in; nothing is bundled | Proprietary (Minecraft EULA) |
-| [LeviLamina](https://github.com/LiteLDev/LeviLamina) | Client mod loader, API and SDK headers; dynamically linked | LGPL-3.0 |
-| LeviLauncher | Installs and launches instances | GPL-3.0 (separate program) |
-| LeviBuildScript | Build-time packaging rule | External build tool |
-| [Zstandard v1.5.7](https://github.com/facebook/zstd/tree/v1.5.7) | Map region compression; statically linked xmake package | BSD-3-Clause option; notice in THIRD_PARTY_NOTICES.md |
-| SDK libraries | Header-only and support libraries | See [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md) |
+| Project | Role | How it enters the build | License |
+| --- | --- | --- | --- |
+| Minecraft Bedrock Edition | Game the mod runs in; nothing is bundled | Not at all | Proprietary (Minecraft EULA) |
+| [LeviLamina](https://github.com/LiteLDev/LeviLamina) | Client mod loader, API and SDK headers | Headers compiled in; `LeviLamina.dll` linked dynamically through an import library generated from the official release DLL (`packages/`) | LGPL-3.0 |
+| [nlohmann/json v3.12.0](https://github.com/nlohmann/json/tree/v3.12.0) | Settings and data serialization | Header-only xmake package, compiled in | MIT; notice in THIRD_PARTY_NOTICES.md |
+| [Zstandard v1.5.7](https://github.com/facebook/zstd/tree/v1.5.7) | Map region compression | Static xmake package, compiled in | BSD-3-Clause option; notice in THIRD_PARTY_NOTICES.md |
+| SDK libraries | Header-only and support libraries the SDK depends on | Headers compiled in where used | See [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md) |
+| LeviLauncher | Installs and launches instances | Not at all (separate program) | GPL-3.0 |
+| LeviBuildScript 0.6.1 | Build rules: runs prelink before linking, writes `manifest.json` | Build time only | No license file found (checked 2026-10-20) |
+| prelink v0.8.6 and [bedrock-runtime-data](https://github.com/LiteLDev/bedrock-runtime-data) v26.51.1-client.6 | Generate `bedrock_runtime_api.lib`, the import library for the delay-loaded `bedrock_runtime.dll` | Build time; only import records reach the DLL | prelink: binary release, no license file found; bedrock-runtime-data: MIT |
 
 ## 2. Incorporated or derived source
 
@@ -29,11 +33,23 @@ Code in this repository that did not start in this repository.
 
 | Source | What came in | License / notice |
 | --- | --- | --- |
-| [levilamina-mod-template](https://github.com/LiteLDev/levilamina-mod-template) | Build and packaging scaffolding | CC0-1.0 |
-| [LaminaView](https://github.com/amatouhake/LaminaView) | Camera integration lessons | Earlier mod by Lamium's author |
-| [LaminaPeek](https://github.com/amatouhake/LaminaPeek) | Item-content readers, hover integration, preview rendering | Earlier mod by Lamium's author |
-| [LaminaSort](https://github.com/amatouhake/LaminaSort) | Inventory planning, item classification, container transfers | Earlier mod by Lamium's author |
-| [nlohmann/json](https://github.com/nlohmann/json) | Settings serialization | See THIRD_PARTY_NOTICES.md |
+| [levilamina-mod-template](https://github.com/LiteLDev/levilamina-mod-template) | Build and packaging scaffolding, `src/app/MemoryOperators.cpp` | CC0-1.0 |
+| [LaminaView](https://github.com/amatouhake/LaminaView) | Camera integration lessons | Earlier mod by Lamium's author; MIT |
+| [LaminaPeek](https://github.com/amatouhake/LaminaPeek) | Item-content readers, hover integration, preview rendering | Earlier mod by Lamium's author; MIT |
+| [LaminaSort](https://github.com/amatouhake/LaminaSort) | Inventory planning, item classification, container transfers | Earlier mod by Lamium's author; MIT |
+
+Earlier mods, checked once on 2026-10-20 (BACKLOG L-196 P3) at LaminaPeek
+`9d1f5f8`, LaminaSort `6112b79` and LaminaView `7a4f0f4`: each repository's
+LICENSE is MIT, copyright 2026 amatouhake. LaminaSort and LaminaView have
+commits by amatouhake only. LaminaPeek was started from a clone of
+levilamina-mod-template (template head `5eb4780`, 2026-09-14), so its history
+begins with the template's own commits by LiteLDev contributors (the
+template was MIT, copyright LiteLDev, from 2023-11-23 and CC0-1.0 from
+2023-12-10); every commit after that start is by amatouhake. Of the
+template's files only build scaffolding and the two-line memory-operator
+file came into Lamium. Some commits in all three name an AI coding agent as
+co-author; that label is not a third-party contribution. This is a record of
+the repositories' history, not a similarity audit.
 
 Before code from any other project enters the tree, record here: the upstream
 repository and commit, the files taken, what was changed, and the upstream

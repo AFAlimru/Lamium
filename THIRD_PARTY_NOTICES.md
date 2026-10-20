@@ -1,5 +1,12 @@
 # Third-party notices
 
+## Lamium source
+
+Lamium's source is at <https://github.com/amatouhake/Lamium>. A release is
+built from the tag `v<version>` matching the version in `manifest.json`; the
+build steps are in the README's Build section, and `xmake-requires.lock` at
+that tag pins the dependency versions listed below.
+
 ## LeviLamina mod template
 
 The build and packaging scaffolding is adapted from the
@@ -11,19 +18,22 @@ use CC0. Lamium is licensed under LGPL-3.0-only.
 
 Camera integration uses implementation lessons from
 [LaminaView](https://github.com/amatouhake/LaminaView), an earlier mod by
-Lamium's author, copyright 2026 amatouhake.
+Lamium's author, copyright 2026 amatouhake, published under the MIT License.
 
 ## LaminaPeek
 
 Item-content readers, hover integration, and preview rendering are adapted from
 [LaminaPeek](https://github.com/amatouhake/LaminaPeek), an earlier mod by
-Lamium's author, copyright 2026 amatouhake.
+Lamium's author, copyright 2026 amatouhake, published under the MIT License.
 
 ## LaminaSort
 
 Inventory planning, item classification, and container transfer integration are
 adapted from [LaminaSort](https://github.com/amatouhake/LaminaSort), an earlier
-mod by Lamium's author, copyright 2026 amatouhake.
+mod by Lamium's author, copyright 2026 amatouhake, published under the MIT License.
+
+The code Lamium adapted from these three earlier mods was written by
+Lamium's author, who licenses it in Lamium under LGPL-3.0-only.
 
 ## JSON for Modern C++
 
@@ -79,5 +89,9 @@ Lamium. Their mentions above are preserved as part of the upstream notice files.
 SymbolProvider has a public-domain notice in its source file rather than a root
 LICENSE file. The referenced [MinGW disclaimer](licenses/mingw-w64-DISCLAIMER.PD.txt)
 is retained from [mingw-w64 at commit 57b5950](https://github.com/mingw-w64/mingw-w64/blob/57b595039040eaa15bece85b7cc71d952281b269/DISCLAIMER.PD).
-Build-generated runtime import libraries remain part of the outstanding
-distribution review.
+Two import libraries are generated during the build and are not shipped:
+`LeviLamina.lib` from the official LeviLamina release DLL's exports
+(`packages/levilamina-client-sdk.lua`), and `bedrock_runtime_api.lib`, made by
+LiteLDev's prelink tool from
+[bedrock-runtime-data](https://github.com/LiteLDev/bedrock-runtime-data)
+(MIT) for the delay-loaded `bedrock_runtime.dll`.
