@@ -1,0 +1,14 @@
+#pragma once
+#include <string>
+#include <string_view>
+
+// Key names in the settings table's key column (L-232). The game spells the
+// two long modifier names out; the column is narrow, so Alt and Ctrl use
+// their usual short spelling. Shift already fits and keeps the game's name.
+namespace lamium::ui {
+inline std::string keyLabel(int code, std::string_view mapped) {
+    if (code == 0x12 || code == 0xA4 || code == 0xA5) return "ALT";
+    if (code == 0x11 || code == 0xA2 || code == 0xA3) return "CTRL";
+    return std::string{mapped};
+}
+}

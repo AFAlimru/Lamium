@@ -474,6 +474,12 @@ std::string behaviorText(input::Action action) {
     return translated(behavior == input::Behavior::Hold ? "behavior.hold"
         : behavior == input::Behavior::Toggle ? "behavior.toggle" : "behavior.press");
 }
+// What the capture accepts, where the binding is edited (L-231): wheel turns
+// are valid only for actions that fire once per input.
+std::string captureText(input::Action action) {
+    return translated(input::actions[static_cast<size_t>(action)].behavior == input::Behavior::Hold
+        ? "captureInlineHold" : "captureInline");
+}
 std::string optionValueText(settings::Option const& option, settings::OptionValue const& value) {
     auto pattern = splitLabel(translated(option.label)).value;
     try {
@@ -669,10 +675,13 @@ std::string linkTitle(input::Link link) {
 // Lists every binding related to the action's chord, grouped by how it
 // relates, below the key cell (above it when there is more room there).
 void drawConflictTip(MinecraftUIRenderContext& context, IClientInstance& current, SettingsTable const& t, int row,
-                     input::Action action) {
+                     input::Action action, bool hoveredKey) {
     auto const preferences = Runtime::instance().preferences();
     auto const conflicts = input::bindingConflicts(preferences.bindings, action);
-    if (conflicts.empty()) return;
+    // Hovering the key cell always shows the full binding; the keyboard tip
+    // still appears only when there is a conflict to explain (L-232).
+    if (!hoveredKey && conflicts.empty()) return;
+    if (hoveredKey && input::effectiveChord(preferences.bindings, action).empty()) return;
     constexpr float pad = 4, headHeight = 15, lineHeight = 12, titleHeight = 13, itemHeight = 14;
     float width = std::min(240.0f, t.width - 2*SettingsTable::pad), inner = width - 2*pad;
     std::vector<std::string> notes;
@@ -710,13 +719,14 @@ void drawConflictTip(MinecraftUIRenderContext& context, IClientInstance& current
     // Row text is queued until a flush; flush it so the tooltip covers it.
     context.flushText(0, std::nullopt);
     fill(context,x,y,width,height,palette::panel,.97f);
-    frame(context,x,y,width,height,palette::warning);
+    frame(context,x,y,width,height,conflicts.empty() ? palette::keyEdge : palette::warning);
     float cursor = y + pad;
     auto relation = strongestConflict(conflicts);
     keycaps(context,x+pad,cursor,inner*.6f,chordKeys(current, input::effectiveChord(preferences.bindings, action)),
         conflictTone(relation));
-    label(context,x+pad,cursor+boxTextInset(),inner,translated(relation == input::Relation::Shared ? "tip.countShared" : "tip.count",
-        std::to_string(conflicts.size())),palette::warning,Align::Right);
+    if (!conflicts.empty())
+        label(context,x+pad,cursor+boxTextInset(),inner,translated(relation == input::Relation::Shared ? "tip.countShared" : "tip.count",
+            std::to_string(conflicts.size())),palette::warning,Align::Right);
     cursor += headHeight;
     for (auto const& note : notes) {
         paragraph(context,x+pad,cursor,inner,note,lines(note),palette::warning);
@@ -1038,7 +1048,7 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
     } else if (capturing_) {
         label(context,textLeft,t.footerTop+3,textWidthAvailable,
             screen::message().empty() ? fullDescription : screen::message(),screen::message().empty() ? palette::dim : palette::warning);
-        label(context,textLeft,t.footerTop+30,textWidthAvailable,translated("captureInline"),palette::faint);
+        label(context,textLeft,t.footerTop+30,textWidthAvailable,captureText(*capturing_),palette::faint);
     } else {
         for (int i = 0; i < SettingsTable::descriptionLines && helpFirst + i < helpLineCount; ++i)
             label(context,textLeft,t.footerTop+3+i*SettingsTable::descriptionLineHeight,
@@ -1055,7 +1065,9 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
         label(context,textLeft,t.descriptionHintY(),textWidthAvailable,std::move(hint),screen::message().empty() ? palette::faint : palette::warning);
     }
     if (!capturing_ && !findingKey)
-        if (auto target = tipTarget(t, hover)) drawConflictTip(context,current,t,target->first,target->second);
+        if (auto target = tipTarget(t, hover))
+            drawConflictTip(context,current,t,target->first,target->second,
+                hover.zone == Zone::Row && hover.column == Column::Key);
     drawVersionTip(context, t, hover);
     context.flushText(0,std::nullopt);
 }

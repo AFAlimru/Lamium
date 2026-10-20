@@ -25,6 +25,7 @@
 #include "features/schematic/SchematicActions.h"
 #include "features/schematic/Selection.h"
 #include "ui/Localization.h"
+#include "ui/KeyLabel.h"
 #include "mc/client/game/ClientInstance.h"
 #include "mc/client/input/KeyboardRemappingLayout.h"
 #include "mc/client/options/IOptionRegistry.h"
@@ -131,7 +132,7 @@ std::string bindingChordName(IClientInstance& client, input::Chord const& chord)
         if (!result.empty()) result += " + ";
         if (token.device == input::Device::Wheel) result += ui::translated(token.code > 0 ? "wheelUp" : "wheelDown");
         else if (token.device == input::Device::Mouse) result += ui::translated("mouseButton", token.code);
-        else result += layout ? layout->getMappedKeyName(token.code) : std::to_string(token.code);
+        else result += ui::keyLabel(token.code, layout ? layout->getMappedKeyName(token.code) : std::to_string(token.code));
     }
     return result;
 }

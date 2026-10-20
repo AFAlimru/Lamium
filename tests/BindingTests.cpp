@@ -4,6 +4,7 @@
 #include "settings/Options.h"
 #include "input/Actions.h"
 #include "ui/SettingsNavigation.h"
+#include "ui/KeyLabel.h"
 void check(bool, char const*);
 void bindingTests() {
     using namespace lamium::input;
@@ -413,4 +414,12 @@ void bindingTests() {
     capture.observe({Device::Mouse, 5}, true, Behavior::Press);
     check(capture.observe({Device::Mouse, 5}, false, Behavior::Press) == Chord{{Device::Mouse, 5}},
           "capture supports extra mouse buttons");
+    check(lamium::ui::keyLabel(0x12, "ALTERNATIVE") == "ALT" && lamium::ui::keyLabel(0xA4, "ALTERNATIVE") == "ALT"
+              && lamium::ui::keyLabel(0xA5, "ALTERNATIVE") == "ALT",
+          "the long Alt name is shortened for the generic and both side codes");
+    check(lamium::ui::keyLabel(0x11, "CONTROL") == "CTRL" && lamium::ui::keyLabel(0xA2, "CONTROL") == "CTRL"
+              && lamium::ui::keyLabel(0xA3, "CONTROL") == "CTRL",
+          "the long Ctrl name is shortened for the generic and both side codes");
+    check(lamium::ui::keyLabel(0x10, "SHIFT") == "SHIFT" && lamium::ui::keyLabel(0x52, "R") == "R",
+          "short names and ordinary keys keep the game's name");
 }
