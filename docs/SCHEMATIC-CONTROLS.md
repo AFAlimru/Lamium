@@ -1,8 +1,14 @@
 # Schematic controls redesign
 
-Status: design discussion, 2026-10-20, reviewed once. **Nothing implemented.**
-This note records the direction the maintainer chose and the questions that are
-still open, so the plan can be checked again before a prototype.
+Status: design discussion, 2026-10-20; two independent reviews. **Nothing
+implemented.** This note separates what the maintainer adopted from what is
+still a proposal or an open question, so a prototype does not read a
+recommendation as a decision.
+
+- **Adopted**: the maintainer agreed.
+- **Proposed**: recommended here, not confirmed.
+- **Open**: undecided.
+
 [SCHEMATIC.md](SCHEMATIC.md) still describes the behavior in the game today;
 [BACKLOG.md](BACKLOG.md) owns task status (L-231 controls, L-234 layer model).
 
@@ -22,7 +28,7 @@ still open, so the plan can be checked again before a prototype.
   child category.
 - Every schematic key is unbound, so the quick paths are hard to find.
 
-## Decisions
+## Adopted direction
 
 ### Move target
 
@@ -34,16 +40,10 @@ still open, so the plan can be checked again before a prototype.
   selected placement.
 - Display: the target name in the schematic HUD when it is on, the target's
   frame or mark emphasized in the world, and the target named in move toasts.
-  The HUD is optional, so the HUD-off case relies on the frame/mark and the
-  target/move toasts. Where the placement and area frames overlap, the active
-  frame is drawn last with a brighter or thicker stroke.
-- Cycle only valid targets: the placement when one is selected, a corner when
-  it is set, and the area when both corners are set. Whether an unset target is
-  skipped or selected with a "not set" toast is still open.
 - Reset to the placement on world/dimension change and when a placement is
   selected or placed.
-- The looked-at selection extends "select the placement you look at": a corner
-  block first, then a placement box, then a save-area box.
+- The looked-at selection extends "select the placement you look at"; the ray
+  and distance rule is in Proposed below.
 
 ### Repeat the last adjustment
 
@@ -51,11 +51,6 @@ still open, so the plan can be checked again before a prototype.
   axis/mode, placement selection and the move target.
 - Key actions update the remembered adjustment, not only menu steppers, so
   the adjust key is consistent across both surfaces.
-- Changing the move target or selecting another placement clears the
-  remembered adjustment, so a rotate done on the placement cannot repeat after
-  the target changed to a corner. A failed operation does not update it.
-- Rotate, mirror and layer operations still act on the selected placement; the
-  repeat toast names the operation and what it acts on.
 
 ### Corners and default keys
 
@@ -77,82 +72,134 @@ still open, so the plan can be checked again before a prototype.
   why the world coordinate is only a display: a world-space cut would be left
   behind when the placement moves.
 - **Keep** is used by "up to": low shows cells at or below the cut, high at or
-  above. "Only" shows the one layer at the cut; "all" ignores the cut. The
-  Layers menu needs an operation for it: a **Keep** stepper (low/high) as a
-  sixth item, or a **Flip side** command that switches to "up to" and turns
-  the kept side over. Without it the model field cannot be changed from the
-  menu, and the view slice's keep has no visible effect in only mode.
-- **View slice** is one-shot. The axis is the dominant axis of the full view
-  vector (largest |x|, |y| or |z|), not the 60-degree movement rule: looking 30
-  degrees down at a wall still slices on X/Z, while looking 70 degrees down
-  slices on Y. The cut is the view source's layer along that axis: the player's
-  feet in normal play, and the detached camera's block in Freelook or
-  FreeCamera (the same view source as the movement direction), clamped to the
-  placement with a toast when it was. The mode starts as only, and keep is the
-  side away from the camera. The crosshair is deliberately not used: it can
-  point at a ghost, inside a placement or outside the build, and building from
-  the bottom needs a stable reference. The axis stays fixed until the command
-  runs again; the adjust key plus the wheel moves the cut. No continuous view
-  sync, which would restart the check on every look. Examples: standing at
-  Y=64 looking east slices on X at the player's X; looking 70 degrees down
-  slices on Y at Y=64; FreeCamera far away looking down slices on Y at the
-  camera's Y, not the body's; a 90-degree rotation swaps the X/Z extent and
-  clamps the local cut.
+  above. "Only" shows the one layer at the cut; "all" ignores the cut.
+- **View slice** is one-shot: a key or menu item sets the axis from the view,
+  the cut to the player's feet layer along that axis, mode to only, and keep to
+  the side away from the camera. The axis stays fixed until the command runs
+  again; the adjust key plus the wheel moves the cut. No continuous view sync,
+  which would restart the check on every look. Details are in Proposed.
 - Check and Materials read the same cut region; a change restarts the check
   once.
 
-### Storage and migration (proposed; decide before the L-234 prototype)
+## Proposed rules (need confirmation)
 
-The review's concern: converting an old high-side direction needs the placed
-size, while the save path writes the whole placement set, so an unrelated
-edit can write a placement that is not converted yet. Proposal:
+### Storage and migration
 
-- Keep the document at `version: 1` and add a per-placement
-  `layerVersion: 2` with `layerAxis` (y/x/z), `layerCut` (local offset),
-  `layerKeep` (low/high) and the existing `layerMode`. Older readers ignore
-  unknown keys.
-- When the size is known, also write the exact legacy fields for an older
-  Lamium: all is size-independent; only or up-to low uses the low direction
-  with `index = cut`; up-to high uses the high direction with
-  `index = extent - 1 - cut`.
-- Never convert without the size: a placement whose structure is missing
-  keeps its legacy fields and is written back unchanged; other placements can
-  still be saved. The cut fields are added when the structure loads and the
-  placement is next saved.
-- The new reader prefers `layerVersion: 2`; otherwise it reads the legacy
-  fields and converts lazily when the size is available.
+The first proposal collided with the old format: `layerAxis` is a six-direction
+integer in the old file, so a new Y/X/Z axis cannot reuse the key — an older
+Lamium would read a different direction, and a string value would fall back to
+the default. The new state must live under a different key.
+
+- Add `layerView: { axis: "y"|"x"|"z", cut: <offset>, keep: "low"|"high",
+  mode: "all"|"only"|"upTo" }` per placement. Leave the legacy
+  `layerAxis`/`layerMode`/`layer` fields untouched for older readers.
+- Keep the document at `version: 1`; older readers ignore `layerView`, and new
+  readers prefer it.
+- When the placed size is known, dual-write the exact legacy fields: all is
+  size-independent; only or up-to low uses the low direction with
+  `index = cut`; up-to high uses the high direction with
+  `index = extent - 1 - cut`. An older Lamium then shows the same cells.
+- Never convert without the size: a placement whose structure is missing keeps
+  its legacy fields and is written back unchanged; other placements can still
+  be saved. `layerView` is added when the structure loads and the placement is
+  next saved.
 - A mixed file must round-trip both forms. Rollback to an older Lamium reads
   the last legacy fields; a cut changed after that save cannot be represented
   there, so decide whether the cut is only editable while the size is known or
   rollback may show the previous view.
-- Open: version 1 plus a per-placement tag (proposed) or document version 2
-  (simpler, but an older Lamium rejects the whole file); whether the legacy
-  fields are dual-written always or only until the next release.
+- Open: document `version: 1` plus `layerView` (proposed) versus a document
+  version 2 (simpler, but an older Lamium rejects the whole file); whether the
+  legacy fields are dual-written always or only until the next release.
+
+### View slice details
+
+- Axis: the dominant axis of the full view vector (largest |x|, |y| or |z|),
+  not the 60-degree movement rule. Looking 30 degrees down at a wall still
+  slices on X/Z; looking 70 degrees down slices on Y. Ties need a fixed order.
+- Cut: the view source's layer along that axis: the player's feet in normal
+  play, and the detached camera's block in Freelook or FreeCamera (the same
+  view source as the movement direction). Clamp to the placement and toast
+  when clamped. The alternative is always the body's feet.
+- Mode starts as only; keep is the side away from the camera. The crosshair is
+  not used: it can point at a ghost, inside a placement or outside the build,
+  and building from the bottom needs a stable reference.
+- A successful slice sets the remembered adjustment to the cut, so the next
+  adjust plus wheel moves the cut instead of repeating an earlier rotate.
+- Repeat sign: the memory stores the kind of adjustment, not the last sign;
+  the wheel direction chooses the sign. After a back step, adjust + wheel up
+  therefore moves forward. The toast names the value. The alternative is to
+  remember the last sign as well.
+- Examples: standing at Y=64 looking east slices on X at the player's X;
+  looking 70 degrees down slices on Y at Y=64; FreeCamera far away looking down
+  slices on Y at the camera's Y, not the body's; a 90-degree rotation swaps the
+  X/Z extent and clamps the local cut.
+
+### Repeat details
+
+- Changing the move target or selecting another placement clears the
+  remembered adjustment, so a rotate done on the placement cannot repeat after
+  the target changed to a corner. A failed operation does not update it.
+- Rotate, mirror and layer operations still act on the selected placement; the
+  repeat toast names the operation and what it acts on.
+
+### Keep operation
+
+- The Layers menu needs a way to change Keep: a **Keep** stepper (low/high) as
+  a sixth item, or a **Flip side** command that switches to "up to" and turns
+  the kept side over. Without it the field cannot be changed from the menu, and
+  the view slice's keep has no visible effect in only mode.
+- Open: which form, and the Layers menu item count with the slice.
+
+### Target validity
+
+- Add an explicit **no target** state. Check validity before an operation and
+  revalidate after a delete, area clear, visibility change or placement
+  selection.
+- If the current target becomes invalid, fall back to the first valid one in
+  this order: placement (when selected), corner 1, corner 2, area (when both
+  corners are set), else no target.
+- Direction keys with no target toast that there is nothing to move; the
+  target key cycles the valid targets.
+- Open: whether an unset target is skipped or selected with a "not set" toast,
+  and how no target is displayed.
+
+### Looked-at selection
+
+- Use the same drawn view ray as movement (`detachedViewRay` when a detached
+  view owns the view, otherwise the player's eye and view), not the body view
+  in FreeCamera.
+- Compare distances first: ray entry to each placement box and to the area
+  box, and the hit distance of a corner block; choose the nearest.
+- Tie-break by kind: corner, then placement, then area (proposed).
+- Open: the exact tie rule, and a corner that sits inside a placement.
+
+### Target display without the HUD
+
+- The HUD is optional, so the HUD-off case relies on the frame or mark and on
+  the target and move toasts. Where the placement and area frames overlap, the
+  active frame is drawn last with a brighter or thicker stroke.
+- Open: whether an unset target is skipped or selected with a toast; how "no
+  target" reads in the HUD when it is on.
 
 ## Open questions
 
-- Target display details and reset rules; precedence when a placement and the
-  area overlap under the crosshair; whether an unset target is skipped or
-  selected with a toast.
-- Whether clearing the remembered adjustment on a target change is the right
-  rule, and whether failed operations should leave the previous memory.
-- Cut offset when a rotation swaps the extent: the clamp rule.
-- Storage: version 1 plus a per-placement tag (proposed) or document version 2;
-  how long the legacy fields are dual-written; what rollback should show after
-  a cut changed without the size.
-- Layers menu: add a Keep stepper or a Flip side command; five, six or seven
-  items with the view slice; whether the slice is a key, a menu item or both.
-- View slice: whether the detached camera's position (proposed) or the body's
-  feet is the cut in Freelook/FreeCamera, and the exact dominant-axis tie rule.
+- Storage: `version: 1` plus `layerView` (proposed) or document version 2; how
+  long the legacy fields are dual-written; what rollback shows after a cut
+  changed without the size.
+- Keep operation form; Layers menu item count; whether the slice is a key, a
+  menu item or both.
+- Cut position in Freelook/FreeCamera (detached camera proposed, body feet the
+  alternative); the dominant-axis tie order.
+- Target skip versus "not set" toast; no-target display.
+- Repeat sign rule (kind-only proposed; remembering the sign is the
+  alternative).
 - Action labels and help for target-based movement (saved action ids stay).
 - Default chords while Schematics is off: accept the toast or gate them later.
-- Whether the one-shot slice matches the intended workflow (axis at command
-  time, adjust key plus wheel, no continuous sync).
 - Prototype scope and branch.
 
 ## Suggested order
 
-From the 2026-10-20 review, for the maintainer to confirm:
+From the 2026-10-20 reviews, for the maintainer to confirm:
 
 1. **L-231 first**: move target, target display and repeat cleanup with the
    current layer model, so the operation feel can be checked before the layer
@@ -177,8 +224,11 @@ the three-language help, and `tests/SchematicTests.cpp`.
 
 ## Review
 
-An independent read was returned on 2026-10-20. Its gaps are folded into this
-note: storage migration, the missing Keep operation, repeat after a target
-change, target display without the HUD, and the view slice's coordinate basis.
-Its suggested order is recorded above. A prototype may live on a separate
-branch; main keeps today's behavior until the design settles.
+Two independent reads were returned on 2026-10-20. The second found the
+`layerAxis` key collision in the first migration proposal, the missing repeat
+setup after a slice, target invalidation after delete/clear, and the
+distance/view-source gap in the looked-at selection; those are corrected or
+recorded above. The first review's gaps (Keep operation, HUD-off display,
+repeat after a target change, slice coordinate basis) are folded in too. A
+prototype may live on a separate branch; main keeps today's behavior until the
+design settles.

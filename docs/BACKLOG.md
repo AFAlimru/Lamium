@@ -383,11 +383,13 @@ corner 2, area) with a target key and a looked-at target; repeat covers only
 movement, rotation/mirror and the layer cut; corner keys stay separate; the
 only default binding is Alt+Wheel up/down for forward/back; corner defaults
 and an edit mode are postponed; the Area category's move items may become
-redundant. The 2026-10-20 review adds open points recorded in the note: clear
-the remembered adjustment when the target changes, cycle only valid targets,
-and define the HUD-off indicator and target/repeat toasts. Suggested order:
-L-231 first with the current layer model, L-234 later as a separate step.
-Open: target display/reset details, the looked-at precedence, labels/help, and
+redundant. The 2026-10-20 reviews add points recorded in the note: clear the
+remembered adjustment when the target changes; cycle only valid targets and
+define a no-target state after delete, clear or hide; use the drawn camera ray
+and distance-first order for the looked-at selection; define the repeat sign;
+and define the HUD-off indicator and toasts. Suggested order: L-231 first with
+the current layer model, L-234 later as a separate step.
+Open: target display/reset details, the looked-at tie rule, labels/help, and
 whether to prototype on a separate branch.
 Existing controls include wheel steppers in the radial menu, a held Repeat
 the last adjustment key plus wheel, six one-block directional Press actions
@@ -508,12 +510,14 @@ directions will not last; move to Axis (Y/X/Z) + Cut + Keep + Mode as
 recorded in [SCHEMATIC-CONTROLS.md](SCHEMATIC-CONTROLS.md). Cut is a local
 offset along the axis (the world coordinate is display only), so moving a
 placement keeps its slice; check and materials keep reading the same region.
-Open: the clamp rule when rotation swaps the extent; storage migration
-(version 1 plus a per-placement tag with dual-written legacy fields, proposed
-in the note) and what rollback shows; the Keep operation and the Layers menu
-item count; and whether the one-shot view slice matches the intended workflow.
-The 2026-10-20 review asks to settle the migration before a prototype and
-suggests doing L-231 first, with L-234 as a separate step; the note records
+Open: the clamp rule when rotation swaps the extent; storage migration and
+what rollback shows (the note now proposes a separate `layerView` object,
+because the new axis cannot reuse the old six-direction `layerAxis` key); the
+Keep operation and the Layers menu item count; the slice's cut position in
+Freelook/FreeCamera; and whether the one-shot view slice matches the intended
+workflow. The 2026-10-20 reviews ask to settle the migration before a
+prototype and suggest doing L-231 first, with L-234 as a separate step; the
+note records
 that order. A prototype may use a separate branch.
 
 ### L-206 World map recording range is a fixed radius instead of the view distance
