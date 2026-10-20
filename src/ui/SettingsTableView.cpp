@@ -370,7 +370,11 @@ void handleClick(SettingsTable::Hit const& hit, bool right) {
     switch (entry.kind) {
     case RowKind::Feature:
         if (entry.feature->id == "gameLanguage") { language_view::begin(); return; }
-        if (entry.feature->id == "calculator" && hit.column == Column::State) { screen::openCalculator(); return; }
+        if (entry.feature->id == "calculator") {
+            constexpr float openWidth = 38;
+            float openX = displayed.stateX - (openWidth - SettingsTable::stateWidth);
+            if (hit.x >= openX && hit.x < openX + openWidth) { screen::openCalculator(); return; }
+        }
         if (hit.column == Column::State) toggleFeature(*entry.feature);
         else if (hit.column == Column::Key) {
             if (auto primary = primaryAction(*entry.feature)) startCapture(*primary);
@@ -953,9 +957,15 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
                     hover.zone == Zone::Row && hover.index == i);
             }
             // The calculator opens from here, not from the sidebar (L-220).
-            if (entry.feature->id == "calculator" && !editingRow)
-                drawSmallButton(context, t.stateX, y + 1, SettingsTable::stateWidth, capHeight, translated("open"),
-                    hover.zone == Zone::Row && hover.index == i && hover.column == Column::State);
+            // "Open" is wider than the 24 px state cell, so the button borrows
+            // the gap and a little of the name cell instead of overlapping its
+            // own frame (L-231).
+            if (entry.feature->id == "calculator" && !editingRow) {
+                constexpr float openWidth = 38;
+                float openX = t.stateX - (openWidth - SettingsTable::stateWidth);
+                drawSmallButton(context, openX, y + 1, openWidth, capHeight, translated("open"),
+                    hover.zone == Zone::Row && hover.index == i && hover.x >= openX && hover.x < openX + openWidth);
+            }
             break;
         }
         case RowKind::Option: {
