@@ -12,6 +12,15 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Rebase note for the 2026-10-20 entries
+
+The local commits named in the 2026-10-20 entries below were rebased onto
+`origin/main` (the merged PR #31, the slime item) before they were pushed.
+Those commit ids are the pre-rebase local ones and no longer resolve in the
+public history; the DLL SHA-256 in each entry identifies the build that was
+actually run. The binding-display item was renumbered from L-232 to L-235 at
+the same time, because origin took L-232 for the slime chunk indicator.
+
 ## Open World map world check passed (2026-10-20)
 
 Build `de8335f`, deployed DLL SHA-256
