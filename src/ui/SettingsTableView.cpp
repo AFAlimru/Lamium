@@ -274,6 +274,10 @@ void pressMapCache() {
     mapCacheArmed = false;
     if (map::store::clear()) showMessageToast(translated("mapCacheCleared"));
 }
+// Open buttons on tool rows (L-231): the 24 px state cell is too narrow for
+// the word, so the button borrows the gap and a little of the name cell.
+constexpr float openButtonWidth = 38;
+float openButtonX(SettingsTable const& t) { return t.stateX - (openButtonWidth - SettingsTable::stateWidth); }
 void activateRow(int row, bool space) {
     if (!valid(row)) return;
     auto const& entry = rows[row];
@@ -281,7 +285,7 @@ void activateRow(int row, bool space) {
     case RowKind::Section: return;
     case RowKind::Feature:
         if (entry.feature->id == "gameLanguage") { language_view::begin(); return; }
-        if (entry.feature->id == "calculator") { screen::openCalculator(); return; }
+        if (auto primary = primaryAction(*entry.feature); primary && opensTool(*primary)) { screen::openTool(*primary); return; }
         if (space && hasSwitch(*entry.feature)) { toggleFeature(*entry.feature); return; }
         if (entry.children) { setExpanded(row, !entry.expanded); return; }
         if (hasSwitch(*entry.feature)) { toggleFeature(*entry.feature); return; }
@@ -370,10 +374,9 @@ void handleClick(SettingsTable::Hit const& hit, bool right) {
     switch (entry.kind) {
     case RowKind::Feature:
         if (entry.feature->id == "gameLanguage") { language_view::begin(); return; }
-        if (entry.feature->id == "calculator") {
-            constexpr float openWidth = 38;
-            float openX = displayed.stateX - (openWidth - SettingsTable::stateWidth);
-            if (hit.x >= openX && hit.x < openX + openWidth) { screen::openCalculator(); return; }
+        if (auto primary = primaryAction(*entry.feature); primary && opensTool(*primary)) {
+            float openX = openButtonX(displayed);
+            if (hit.x >= openX && hit.x < openX + openButtonWidth) { screen::openTool(*primary); return; }
         }
         if (hit.column == Column::State) toggleFeature(*entry.feature);
         else if (hit.column == Column::Key) {
@@ -406,6 +409,10 @@ void handleClick(SettingsTable::Hit const& hit, bool right) {
         return;
     }
     case RowKind::Action:
+        if (!hotkeysView() && opensTool(*entry.action)) {
+            float openX = openButtonX(displayed);
+            if (hit.x >= openX && hit.x < openX + openButtonWidth) { screen::openTool(*entry.action); return; }
+        }
         if (hit.column == Column::Key) startCapture(*entry.action);
         return;
     case RowKind::Layout: openLayout(*entry.layout); return;
@@ -521,6 +528,15 @@ input::Relation strongestConflict(std::vector<input::Conflict> const& conflicts)
 KeyTone conflictTone(input::Relation relation) {
     return relation == input::Relation::Shared ? KeyTone::Filled
         : relation == input::Relation::Overlap ? KeyTone::Outline : KeyTone::Plain;
+}
+// Open buttons on tool rows (L-231). The 24 px state cell is too narrow for
+// the word, so the button borrows the gap and a little of the name cell.
+bool openButtonHovered(SettingsTable const& t, SettingsTable::Hit const& hover, int row) {
+    float x = openButtonX(t);
+    return hover.zone == Zone::Row && hover.index == row && hover.x >= x && hover.x < x + openButtonWidth;
+}
+void drawOpenButton(MinecraftUIRenderContext& context, SettingsTable const& t, float y, bool hovered) {
+    drawSmallButton(context,openButtonX(t),y+1,openButtonWidth,capHeight,translated("open"),hovered);
 }
 void drawKeyCell(MinecraftUIRenderContext& context, IClientInstance& current, float y, input::Action action) {
     // Cap text sits at the cap top in Japanese; start the cap low enough that
@@ -940,8 +956,10 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
         float nameRight = editingRow ? buttonsX - SettingsTable::gap : t.stateX - SettingsTable::gap;
         switch (entry.kind) {
         case RowKind::Feature: {
+            auto primary = primaryAction(*entry.feature);
+            bool open = primary && opensTool(*primary) && !editingRow;
             if (entry.children) chevron(context,t.nameX,y+5,entry.expanded);
-            drawName(context,t.nameX+9,y,nameRight,featureName(*entry.feature)+pausedSuffix(entry.feature->id),palette::text,
+            drawName(context,t.nameX+9,y,open ? nameRight - 14 : nameRight,featureName(*entry.feature)+pausedSuffix(entry.feature->id),palette::text,
                 entry.children,entry.feature->experimental);
             if (editingRow) {}
             else if (auto option = settings::find(entry.feature->toggle))
@@ -950,22 +968,13 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
             else if (isSessionFeature(entry.feature->id))
                 toggleSwitch(context,t.stateX+(SettingsTable::stateWidth-switchWidth)/2,y+(SettingsTable::rowHeight-switchHeight)/2,
                     sessionState(entry.feature->id));
-            if (auto primary = primaryAction(*entry.feature)) drawKeyCell(context,current,y,*primary);
+            if (primary) drawKeyCell(context,current,y,*primary);
             if (entry.feature->id == "gameLanguage") {
                 float width = t.keyX + t.keyWidth - t.stateX;
                 drawSmallButton(context, t.stateX, y + 1, width, capHeight, game_language::currentName(),
                     hover.zone == Zone::Row && hover.index == i);
             }
-            // The calculator opens from here, not from the sidebar (L-220).
-            // "Open" is wider than the 24 px state cell, so the button borrows
-            // the gap and a little of the name cell instead of overlapping its
-            // own frame (L-231).
-            if (entry.feature->id == "calculator" && !editingRow) {
-                constexpr float openWidth = 38;
-                float openX = t.stateX - (openWidth - SettingsTable::stateWidth);
-                drawSmallButton(context, openX, y + 1, openWidth, capHeight, translated("open"),
-                    hover.zone == Zone::Row && hover.index == i && hover.x >= openX && hover.x < openX + openWidth);
-            }
+            if (open) drawOpenButton(context,t,y,openButtonHovered(t,hover,i));
             break;
         }
         case RowKind::Option: {
@@ -1000,14 +1009,16 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
             break;
         }
         case RowKind::Action: {
+            bool open = !hotkeysView() && opensTool(*entry.action) && !editingRow;
             if (hotkeysView()) {
                 drawName(context,t.nameX,y,editingRow ? nameRight : t.keyX-SettingsTable::gap,actionLabel(*entry.action),
                     palette::text,0,entry.feature->experimental);
             } else {
                 drawGuide(context,y,entry.lastChild);
-                label(context,t.nameX+12,y+3,nameRight-t.nameX-12,actionLabel(*entry.action,true),palette::dim);
+                label(context,t.nameX+12,y+3,(open ? nameRight - 14 : nameRight)-t.nameX-12,actionLabel(*entry.action,true),palette::dim);
             }
             drawKeyCell(context,current,y,*entry.action);
+            if (open) drawOpenButton(context,t,y,openButtonHovered(t,hover,i));
             break;
         }
         case RowKind::Layout: {

@@ -47,6 +47,8 @@ int currentNav();
 void selectNav(int index);
 // The calculator panel over the settings; Esc returns (L-220).
 void openCalculator();
+// Runs a tool from its Open button in the settings table (L-231).
+void openTool(input::Action action);
 // Tab / Shift+Tab: the next or previous navigation item.
 void nextNav(bool back);
 // A click on the sidebar or the version in an undocked view; true if it

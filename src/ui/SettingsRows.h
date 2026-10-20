@@ -120,6 +120,25 @@ inline std::optional<input::Action> primaryAction(FeatureInfo const& feature) {
     return feature.primary;
 }
 
+// Actions that open one of Lamium's tools from the settings table get an
+// Open button on their own row (L-231). Only the main opener per tool; the
+// Schematics tab variants keep their keys alone.
+inline bool opensTool(input::Action action) {
+    switch (action) {
+    case input::Action::OpenShapes:
+    case input::Action::OpenWaypoints:
+    case input::Action::OpenSchematics:
+    case input::Action::OpenHotkeys:
+    case input::Action::OpenHudLayout:
+    case input::Action::OpenWorldMap:
+    case input::Action::OpenCalculator:
+    case input::Action::SchematicMenu:
+        return true;
+    default:
+        return false;
+    }
+}
+
 // Option rows that carry a hotkey in their own key cell, so a setting and
 // the key that changes it read as one item. Such an action gets no row of its
 // own under the feature; Hotkeys still lists it.

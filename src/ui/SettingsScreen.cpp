@@ -1313,14 +1313,10 @@ void openSchematicSave(IClientInstance& current) {
     savePrompt->name.append("schematic");
     savePrompt->name.selectAll();
 }
-void openSchematicMenu(IClientInstance& current) {
-    std::lock_guard lock(mutex);
-    if (scene) return; // From gameplay only.
-    open(current);
-    if (!scene) return;
-    // The menu key is still down; mark it held before the first repeat
-    // arrives, or that repeat closes the menu it just opened (L-229).
-    seedHeld(input::effectiveChord(Runtime::instance().preferences().bindings, input::Action::SchematicMenu));
+// The radial menu is a mode of the settings screen, so it can start from a
+// menu key in gameplay or from an Open button on the settings table; both show
+// it over the same world background.
+void enterSchematicMenu() {
     auto const preferences = Runtime::instance().preferences();
     schematicMenu = SchematicMenu{};
     if (!preferences.schematic.enabled) {
@@ -1330,6 +1326,16 @@ void openSchematicMenu(IClientInstance& current) {
         return;
     }
     schematicMenu->show(schematic::menu::openAt(preferences.schematic.menuReopen, schematicMenuClosedAt));
+}
+void openSchematicMenu(IClientInstance& current) {
+    std::lock_guard lock(mutex);
+    if (scene) return; // From gameplay only.
+    open(current);
+    if (!scene) return;
+    // The menu key is still down; mark it held before the first repeat
+    // arrives, or that repeat closes the menu it just opened (L-229).
+    seedHeld(input::effectiveChord(Runtime::instance().preferences().bindings, input::Action::SchematicMenu));
+    enterSchematicMenu();
 }
 void openCalculator(IClientInstance& current) {
     std::lock_guard lock(mutex);
@@ -1357,6 +1363,28 @@ void openHudLayout(IClientInstance& current) {
         selectNav(hudNav, true);
         hud_editor::select(std::nullopt);
     }
+}
+namespace screen {
+// The Open button on a tool's settings row (L-231). The screen is already
+// open, so each tool takes its in-settings path; the schematic menu replaces
+// the table with the radial menu over the same world.
+void openTool(input::Action action) {
+    std::lock_guard lock(mutex);
+    auto* current = client();
+    if (!scene || !current) return;
+    finishEditing();
+    switch (action) {
+    case input::Action::OpenShapes: openShapes(*current); return;
+    case input::Action::OpenWaypoints: openWaypoints(*current); return;
+    case input::Action::OpenSchematics: openSchematics(*current, -1); return;
+    case input::Action::OpenHotkeys: openHotkeys(*current); return;
+    case input::Action::OpenHudLayout: openHudLayout(*current); return;
+    case input::Action::OpenWorldMap: enterWorldMap(true, false); return;
+    case input::Action::OpenCalculator: enterCalculator(true); return;
+    case input::Action::SchematicMenu: enterSchematicMenu(); return;
+    default: return;
+    }
+}
 }
 bool ownsInput() {
     std::lock_guard lock(mutex);

@@ -406,4 +406,13 @@ void settingsRowsTests() {
         "label splits at the first separator");
     check(ui::actionName("Lamium: Hold to zoom") == "Hold to zoom" && ui::actionName("Toggle Periodic Use") == "Toggle Periodic Use",
         "action names drop the controls-screen prefix only");
+    // Open buttons (L-231): the main opener of each tool, not its tab
+    // variants or plain toggles.
+    for (auto action : {input::Action::OpenShapes, input::Action::OpenWaypoints, input::Action::OpenSchematics,
+                        input::Action::OpenHotkeys, input::Action::OpenHudLayout, input::Action::OpenWorldMap,
+                        input::Action::OpenCalculator, input::Action::SchematicMenu})
+        check(ui::opensTool(action), "a tool's main opener row gets an Open button");
+    for (auto action : {input::Action::OpenSchematicFiles, input::Action::OpenSchematicCheck, input::Action::ToggleShapes,
+                        input::Action::ToggleWorldMap, input::Action::Settings})
+        check(!ui::opensTool(action), "tab variants and toggles get no Open button");
 }
