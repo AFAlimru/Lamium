@@ -64,21 +64,28 @@ struct ShapesLayout {
         l.drawAllY = !docked ? l.top + 4 : ownRow ? l.toolbarTop + toolbarHeight + 2 : l.toolbarTop + 2;
         l.theadTop = bodyTop + (ownRow ? 2 : 1) * toolbarHeight;
         l.rowsTop = l.theadTop + theadHeight;
-        if (docked) {
-            l.listVisible = dockedListRows;
-            l.detailLeft = l.left; l.detailWidth = l.width;
-            l.detailTop = l.rowsTop + dockedListRows * rowHeight + 2;
-        } else {
-            l.listVisible = std::max(0, static_cast<int>((bodyBottom - l.rowsTop - 2) / rowHeight));
-            l.detailTop = bodyTop;
-        }
-        l.listFirst = std::clamp(listFirst, 0, std::max(0, l.listCount - l.listVisible));
-        l.nameY = l.detailTop + 4 + (draft ? 12 : 0);
-        l.previewY = l.nameY + rowHeight + 4;
-        l.fieldsTop = picking ? l.nameY + rowHeight : l.previewY + previewSize + 4;
         l.actionsY = bodyBottom - actionsHeight - 2;
         float pitch = picking ? pickHeight : rowHeight;
-        l.fieldVisible = std::max(0, static_cast<int>((l.actionsY - 2 - l.fieldsTop) / pitch));
+        auto placeDetail = [&](float detailTop) {
+            l.detailTop = detailTop;
+            l.nameY = l.detailTop + 4 + (draft ? 12 : 0);
+            l.previewY = l.nameY + rowHeight + 4;
+            l.fieldsTop = picking ? l.nameY + rowHeight : l.previewY + previewSize + 4;
+            l.fieldVisible = std::max(0, static_cast<int>((l.actionsY - 2 - l.fieldsTop) / pitch));
+        };
+        if (docked) {
+            l.detailLeft = l.left; l.detailWidth = l.width;
+            // On a short screen the list gives up rows (down to two) so the
+            // editor below keeps at least two of its own.
+            for (l.listVisible = dockedListRows; ; --l.listVisible) {
+                placeDetail(l.rowsTop + l.listVisible * rowHeight + 2);
+                if (l.fieldVisible >= 2 || l.listVisible <= 2) break;
+            }
+        } else {
+            l.listVisible = std::max(0, static_cast<int>((bodyBottom - l.rowsTop - 2) / rowHeight));
+            placeDetail(bodyTop);
+        }
+        l.listFirst = std::clamp(listFirst, 0, std::max(0, l.listCount - l.listVisible));
         l.fieldFirst = std::clamp(fieldFirst, 0, std::max(0, l.fieldCount - l.fieldVisible));
         return l;
     }
@@ -121,8 +128,11 @@ struct ShapesLayout {
     // The delete action sits at the right edge.
     float deleteX() const { return detailLeft + detailWidth - pad - deleteWidth; }
 
+    // Hits do not need usable(): when the editor has no room for its rows the
+    // header, list and actions still work, so the panel can always be undocked
+    // or closed. Field rows are only hit while they are visible.
     Hit hit(float x, float y) const {
-        if (!usable() || !std::isfinite(x) || !std::isfinite(y)) return {};
+        if (!(width > 0) || !std::isfinite(x) || !std::isfinite(y)) return {};
         if (x < left || x >= left + width || y < top || y >= top + height) return {};
         if (y < top + headerHeight) {
             if (x >= closeX && x < closeX + closeWidth) return {Zone::Close};

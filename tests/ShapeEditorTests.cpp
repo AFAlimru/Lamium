@@ -125,6 +125,16 @@ void shapeEditorTests() {
         "the switch is hit in its own row, not in the toolbar");
     check(tabs.detailTop > tabs.rowsTop && tabs.rowsTop - docked.rowsTop == ui::ShapesLayout::toolbarHeight,
         "the list moves down by one toolbar row");
+    // A short screen (1920x1012 at GUI scale 4 is 480x253): the docked list gives
+    // up rows so the editor keeps some, and the header works even with none left.
+    auto shortScreen = ui::ShapesLayout::fit(table, 480, 253, true, 8, 0, 13, 0, false, false, true);
+    check(shortScreen.width > 0 && shortScreen.listVisible < ui::ShapesLayout::dockedListRows
+        && shortScreen.listVisible >= 2 && shortScreen.fieldVisible >= 1, "a short docked panel shares its height");
+    auto cramped = ui::ShapesLayout::fit(table, 480, 150, true, 8, 0, 13, 0, false, false, true);
+    check(cramped.width > 0 && cramped.fieldVisible == 0, "a very short docked panel has no editor rows");
+    check(cramped.hit(cramped.dockX + 2, cramped.top + 8).zone == ui::ShapesLayout::Zone::Dock
+        && cramped.hit(cramped.closeX + 2, cramped.top + 8).zone == ui::ShapesLayout::Zone::Close,
+        "it can still be undocked or closed");
     check(docked.hit(docked.actionX(1) + 2, docked.actionsY + 4).zone == ui::ShapesLayout::Zone::Action
         && docked.hit(docked.actionX(1) + 2, docked.actionsY + 4).index == 1, "draft cancel action");
     auto picking = ui::ShapesLayout::fit(table, 640, 360, false, 0, 0, 4, 0, false, true);

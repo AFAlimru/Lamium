@@ -429,7 +429,7 @@ constexpr int schematicTabCount = 4;
 float schematicTabWidth(ShapesLayout const& l) { return (l.listWidth - 2 * ShapesLayout::pad - 3 * 2) / schematicTabCount; }
 float schematicTabX(ShapesLayout const& l, int tab) { return l.listLeft + ShapesLayout::pad + tab * (schematicTabWidth(l) + 2); }
 int schematicTabAt(ShapesLayout const& l, float x, float y) {
-    if (!l.usable() || y < l.toolbarTop || y >= l.toolbarTop + ShapesLayout::toolbarHeight) return -1;
+    if (!(l.width > 0) || y < l.toolbarTop || y >= l.toolbarTop + ShapesLayout::toolbarHeight) return -1;
     for (int i = 0; i < schematicTabCount; ++i)
         if (x >= schematicTabX(l, i) && x < schematicTabX(l, i) + schematicTabWidth(l)) return i;
     return -1;
