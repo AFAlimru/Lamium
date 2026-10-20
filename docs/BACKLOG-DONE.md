@@ -10,22 +10,6 @@ Runtime status is in [VALIDATION.md](VALIDATION.md), the evidence in
 
 ## Bugs
 
-### L-229 Holding the schematic menu opener closes the menu
-Closed 2026-10-20: confirmed in game on `07f0dc1` (with the opener on R,
-holding it closed the radial menu just after it opened), fixed the same day,
-and checked in game on `7f47f9a` (deployed DLL SHA-256
-`b4d761a644c01f5404fa762df1a0ac359ce949951d57fcc04d7f030a5fe3571f`):
-holding the opener leaves the menu open, and release then a fresh press
-closes it. Esc, right-click/back and the menu actions are unchanged.
-
-Kind: Bug / Ready. High priority. Maintainer runtime report, 2026-10-20,
-from the [Notion idea inbox](https://app.notion.com/p/3f7c12ab5b2d8121b2a0db32608f6b7a).
-Cause: the settings key listener queued key repeats to `pendingKeys` like
-fresh presses, and `handleMenuKey()` closes on any opener press.
-Fix: while the radial menu is open, repeated key-downs of its opener are
-dropped; release then a fresh press still closes. Files:
-`src/ui/SettingsScreen.cpp`.
-
 ### L-207 FreeCamera halves the frame rate
 Closed during documentation reconciliation, 2026-10-20: the measured open-ground regression was fixed and locally checked on 2026-10-18, as recorded below and in CAMERA.md. The later investigation prompts below predate that result. Culler-switch stability and underground hold were checked separately as L-213/L-214; per-hold frame times and broader coverage remain unchecked. The sky-only view outside loaded terrain is the separate open bug L-227.
 

@@ -24,10 +24,11 @@ right x forward, so they are world Y with a level-ish view and take over the
 horizontal direction once forward turns vertical. Steps are decided per input
 with no gesture lock. A detached Freelook or FreeCamera view owns the
 direction. Press actions can be bound to wheel chords (for example Alt with a
-wheel direction); Hold actions cannot. Control follow-ups: L-230 movement
-(all-six frame awaiting the in-game check) and L-231 control discoverability.
-The L-229 opener repeat and L-232 binding-name display are fixed and checked
-(BACKLOG-DONE.md); BACKLOG owns the open status.
+wheel direction); Hold actions cannot. Control follow-ups: L-231 control
+discoverability and L-229's opener repeat (reopened after the first fix; a
+second fix awaits the in-game check). L-230 movement passed its in-game check,
+and L-232 binding-name display is fixed and checked (BACKLOG-DONE.md);
+BACKLOG owns the open status.
 
 The default ghost look is tinted with a light-blue outline. Since 2026-10-15
 (L-186) the tint strength is a 0-100% setting, 70% by default (100% is the

@@ -12,6 +12,28 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-229 correction and all-six movement check (2026-10-20)
+
+Correction to the entries below: the schematic menu opener check was reported
+as passed but was not. Holding R still closed the radial menu on `7f47f9a`
+and on `dcab6ce`. Cause: the first fix dropped key repeats only after the
+settings screen had seen the key, but the opening press happens before the
+screen listens, so the first repeat still looked fresh and closed the menu.
+A second fix (DLL SHA-256
+`e09ef07ed07208180dec1c2e725769ce3ff4fd84cb857cd69810a3c7749bd8bc`) seeds
+the opener's held inputs when the menu opens; it is not yet checked in game.
+
+On `dcab6ce` (DLL SHA-256
+`03aa48491a5d53cde4aca536a525985c791444b9bf5b1e04e148c6312f98dd00`) the
+maintainer confirmed the all-six movement checklist passed with no problems:
+pitch just under and over 60 degrees up and down, up/down taking over the
+horizontal direction, 45-degree yaw, the four move targets, rotated and
+mirrored placements, Freelook and FreeCamera, layer keys and bound wheel
+chords.
+
+This is a maintainer report, not an agent observation. The branch is committed
+locally and not pushed.
+
 ## Key binding tooltip checked (2026-10-20)
 
 Build `dcab6ce`, deployed DLL SHA-256
