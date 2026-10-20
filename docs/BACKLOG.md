@@ -77,8 +77,9 @@ choices live in the L-items. An L-item wins if a summary drifts.
    item's stop/resume conditions. L-181 trident pose is low priority.
 2. **Small and medium work before large features/integration** (maintainer
    2026-10-10): L-196 license/provenance evidence; L-231 controls UX first,
-   then L-234 layer model as a separate step; their design is settled in
-   [SCHEMATIC-CONTROLS.md](SCHEMATIC-CONTROLS.md), nothing implemented;
+   then L-234 layer model as a separate step; their design is recorded in
+   [SCHEMATIC-CONTROLS.md](SCHEMATIC-CONTROLS.md) with the third review's four
+   proposals still to confirm; nothing implemented;
    L-232 slime chunk indicator (needs in-game
    verification of the rule first); remaining Design/Research in L-166 trade
    helpers,
@@ -378,7 +379,9 @@ Kind: Design. Combines two maintainer UX notes from 2026-10-20 in the
 [Notion idea inbox](https://app.notion.com/p/3f7c12ab5b2d8121b2a0db32608f6b7a).
 Status: design discussion continued 2026-10-20; the direction in
 [SCHEMATIC-CONTROLS.md](SCHEMATIC-CONTROLS.md) now includes the adopted answers
-to both reviews; no implementation.
+to two reviews and the third review's four proposals; no implementation.
+The Open button part of this item is implemented and checked in game; the
+remaining work is the control rework below.
 Decided there: one move target shared by keys and menu (placement, corner 1,
 corner 2, area) with a target key and a looked-at target; cycle only valid
 targets, with an explicit no-target state and fallback order after delete or
@@ -388,10 +391,15 @@ rotation/mirror and the layer cut, stores the adjustment kind and lets the
 wheel choose the sign, and is cleared when the target changes; corner keys
 stay separate; the only default binding is Alt+Wheel up/down for forward/back;
 corner defaults and an edit mode are postponed; the Area category's move items
-may become redundant. Suggested order: L-231 first with the current layer
-model, L-234 later as a separate step.
-Open: action labels/help, the default chord while Schematics is off, and the
-prototype branch.
+may become redundant.
+Third review (proposed in the note, to confirm): a directly hit corner wins
+before distance even inside the placement box; the move-to-feet key acts on the
+current target; repeat memory is also cleared on world/dimension change,
+feature disable and session reset.
+Suggested order: L-231 first with the current layer model, L-234 later as a
+separate step.
+Open: action labels/help, the four third-review proposals, and the prototype
+branch.
 Existing controls include wheel steppers in the radial menu, a held Repeat
 the last adjustment key plus wheel, six one-block directional Press actions
 and move-to-feet. Dedicated actions are unbound by default and grouped as
@@ -519,9 +527,15 @@ Layers menu is Axis / Cut / Mode / Keep / Slice from view / Cut here; Show all
 is dropped because Mode has All. Keep is a stepper. The slice cuts at the feet
 in normal play and at the detached camera in Freelook/FreeCamera, on the
 dominant full-view axis with Y/X/Z tie order, and sets the remembered
-adjustment to the cut. Check and materials keep reading the same region.
+adjustment to the cut. Third review (proposed): Cut here keeps the axis and
+keep and sets the cut at the view source's layer (switching All to Only);
+changing the axis sets the cut at the view source's layer along the new axis,
+clamped and toasted. Check and materials keep reading the same region.
 Remaining: prove with pure tests that converting every old direction and mode
-shows the same cells, then implement. The 2026-10-20 reviews recommend L-231
+shows the same cells, then implement. Include the post-rotation extents, a
+missing structure file, and an old-version save → new-version → old-version
+round-trip, and confirm the drawing, Check and Materials agree. The 2026-10-20
+reviews recommend L-231
 first and L-234 as a separate step; a prototype may use a separate branch.
 
 ### L-206 World map recording range is a fixed radius instead of the view distance
@@ -1297,8 +1311,9 @@ Open work, to choose with the maintainer rather than implement as one batch:
   L-117 Japanese entity-name text, and paused drawing work L-192/L-193/L-194.
 - Controls: L-230 view-directed movement (checked in game 2026-10-20),
   L-231 control rework and L-234 cut-plane layer model. Their design is
-  settled in [SCHEMATIC-CONTROLS.md](SCHEMATIC-CONTROLS.md); L-231 is planned
-  first, L-234 as a separate step, and neither is implemented yet.
+  recorded in [SCHEMATIC-CONTROLS.md](SCHEMATIC-CONTROLS.md); the third
+  review's four proposals still need confirmation. L-231 is planned first,
+  L-234 as a separate step, and neither is implemented yet.
 - Inspection and checking: L-183 mismatch suppression, L-184 saved ghost/
   container data, L-190 multi-selection; permission-gated world load L-185.
 - Rendering and materials: L-114 Check-preview mistake styling/interaction,
