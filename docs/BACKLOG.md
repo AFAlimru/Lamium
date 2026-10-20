@@ -426,7 +426,11 @@ the free State cell; `openTool()` takes the in-settings path for the views,
 the map view for the world map, and the radial menu for the schematic menu.
 The radial menu is a mode of the same screen, so entering it hides the table
 and shows the menu over the same world background; closing the menu closes
-the screen, as when it is opened from gameplay. Awaiting the in-game look.
+the screen, as when it is opened from gameplay. The in-game look passed.
+Review follow-up 2026-10-20: the Open World map button now goes through
+`selectNav(worldMapNav)`, so outside a world it refuses with `worldOnly` like
+the sidebar instead of opening the map; the title-screen case is not checked
+in game yet.
 Open: whether the buttons crowd the rows once seen.
 Wheel chords (maintainer 2026-10-20): a Press action can already be bound to
 a wheel chord in the key settings; Left Alt + Wheel Up/Down assigned to the
