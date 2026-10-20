@@ -49,8 +49,8 @@ Point stepFor(IClientInstance& client, Action action) {
     // Left and right stay horizontal even when forward points up or down.
     case Action::MovePlacementLeft: return {-axes.right.x, -axes.right.y, -axes.right.z};
     case Action::MovePlacementRight: return axes.right;
-    case Action::MovePlacementUp: return {0, 1, 0};
-    default: return {0, -1, 0};
+    case Action::MovePlacementUp: return axes.up;
+    default: return {-axes.up.x, -axes.up.y, -axes.up.z};
     }
 }
 // Applies `apply` to the selected placement and reports `message` built from it.
@@ -292,7 +292,7 @@ void step(IClientInstance& client, menu::Stepper stepper, int amount) {
         moveBy(*player, scaled(stepper == S::ForwardBack ? axes.forward : axes.right, amount));
         return;
     }
-    case S::UpDown: moveBy(*player, {0, amount, 0}); return;
+    case S::UpDown: moveBy(*player, scaled(viewAxes(client).up, amount)); return;
     case S::Rotate:
         changeSelected([&](SavedPlacement& p) { p.placement.rotation = quarterTurns(p.placement.rotation + amount); },
             [](SavedPlacement const& p) { return ui::translated("schematic.toast.rotated", p.name, p.placement.rotation * 90); });

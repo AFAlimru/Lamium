@@ -907,6 +907,7 @@ void moveRules() {
     using namespace lamium::schematic;
     auto forward = [](double x, double y, double z) { return moveAxes(x, y, z).forward; };
     auto right = [](double x, double y, double z) { return moveAxes(x, y, z).right; };
+    auto up = [](double x, double y, double z) { return moveAxes(x, y, z).up; };
     constexpr double pi = 3.14159265358979323846;
     auto down = [&](double degrees) {
         double p = degrees * pi / 180;
@@ -936,6 +937,22 @@ void moveRules() {
           "a zero view direction falls back to south");
     check(scaled(moveAxes(1, 0, 0).forward, -2) == Point{-2, 0, 0} && scaled(moveAxes(1, 0, 0).right, 2) == Point{0, 0, 2},
           "wheel amounts scale both axes");
+    check(up(1, 0, 0) == Point{0, 1, 0} && up(std::cos(30 * pi / 180), -std::sin(30 * pi / 180), 0) == Point{0, 1, 0},
+          "a level-ish view keeps up on world Y");
+    check(up(std::cos(61 * pi / 180), -std::sin(61 * pi / 180), 0) == Point{1, 0, 0},
+          "looking steeply down moves up to the horizon ahead, not to world Y");
+    check(up(std::cos(61 * pi / 180), std::sin(61 * pi / 180), 0) == Point{-1, 0, 0},
+          "looking steeply up moves up behind the view");
+    auto orthogonal = [&](double x, double y, double z) {
+        auto a = moveAxes(x, y, z);
+        auto dot = [](Point p, Point q) { return p.x * q.x + p.y * q.y + p.z * q.z; };
+        auto length = [&](Point p) { return dot(p, p); };
+        return dot(a.forward, a.right) == 0 && dot(a.forward, a.up) == 0 && dot(a.right, a.up) == 0
+            && length(a.forward) == 1 && length(a.right) == 1 && length(a.up) == 1;
+    };
+    check(orthogonal(0, 0, 1) && orthogonal(1, 0, 0) && orthogonal(0, -1, 0) && orthogonal(0, 1, 0)
+              && orthogonal(std::cos(45 * pi / 180), -std::sin(45 * pi / 180), 0),
+          "the six directions always stay one orthogonal unit-axis frame");
 }
 void schematicTests() {
     rayCells();
