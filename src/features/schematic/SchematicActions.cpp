@@ -1,5 +1,7 @@
 #include "features/schematic/SchematicActions.h"
+#include "features/camera/CameraSessions.h"
 #include "features/schematic/GhostRenderer.h"
+#include "features/schematic/MoveDirection.h"
 #include "features/schematic/SchematicSession.h"
 #include "features/schematic/Selection.h"
 #include "input/Actions.h"
@@ -25,21 +27,28 @@ std::optional<Point> feet(LocalPlayer& player) {
     if (!std::isfinite(p.x) || !std::isfinite(p.y) || !std::isfinite(p.z)) return std::nullopt;
     return Point{static_cast<int>(std::floor(p.x)), static_cast<int>(std::floor(p.y)), static_cast<int>(std::floor(p.z))};
 }
-// One block away from the player along the horizontal axis they face most;
-// left and right are a quarter turn from it.
-Point away(LocalPlayer& player) {
-    auto v = player.getViewVector(1.f);
-    if (std::abs(v.x) >= std::abs(v.z)) return {v.x > 0 ? 1 : -1, 0, 0};
-    return {0, 0, v.z > 0 ? 1 : -1};
+// The drawn view's axes: a detached Freelook or FreeCamera view owns the
+// crosshair, so a step follows it rather than the body (L-230).
+Axes viewAxes(IClientInstance& client) {
+    if (auto ray = CameraSessions::instance().detachedViewRay(client)) {
+        double length = std::sqrt(ray->dx * ray->dx + ray->dy * ray->dy + ray->dz * ray->dz);
+        if (length > 1e-9) return moveAxes(ray->dx / length, ray->dy / length, ray->dz / length);
+    }
+    auto* player = client.getLocalPlayer();
+    if (!player) return moveAxes(0, 0, 1);
+    auto v = player->getViewVector(1.f);
+    double length = std::sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
+    if (!(length > 1e-9)) return moveAxes(0, 0, 1);
+    return moveAxes(v.x / length, v.y / length, v.z / length);
 }
-Point stepFor(LocalPlayer& player, Action action) {
-    auto f = away(player);
+Point stepFor(IClientInstance& client, Action action) {
+    auto axes = viewAxes(client);
     switch (action) {
-    case Action::MovePlacementForward: return f;
-    case Action::MovePlacementBack: return {-f.x, 0, -f.z};
-    // Seen from above with +z south: left of facing east (+x) is north (-z).
-    case Action::MovePlacementLeft: return {f.z, 0, -f.x};
-    case Action::MovePlacementRight: return {-f.z, 0, f.x};
+    case Action::MovePlacementForward: return axes.forward;
+    case Action::MovePlacementBack: return {-axes.forward.x, -axes.forward.y, -axes.forward.z};
+    // Left and right stay horizontal even when forward points up or down.
+    case Action::MovePlacementLeft: return {-axes.right.x, -axes.right.y, -axes.right.z};
+    case Action::MovePlacementRight: return axes.right;
     case Action::MovePlacementUp: return {0, 1, 0};
     default: return {0, -1, 0};
     }
@@ -218,7 +227,7 @@ void press(IClientInstance& client, Action action) {
     }
     case Action::MovePlacementForward: case Action::MovePlacementBack: case Action::MovePlacementLeft:
     case Action::MovePlacementRight: case Action::MovePlacementUp: case Action::MovePlacementDown: {
-        auto d = stepFor(*player, action);
+        auto d = stepFor(client, action);
         changeSelected([&](SavedPlacement& p) {
             p.placement.origin.x += d.x; p.placement.origin.y += d.y; p.placement.origin.z += d.z;
         }, moved);
@@ -279,9 +288,8 @@ void step(IClientInstance& client, menu::Stepper stepper, int amount) {
         return;
     }
     case S::ForwardBack: case S::LeftRight: {
-        auto f = away(*player);
-        Point d = stepper == S::ForwardBack ? Point{f.x * amount, 0, f.z * amount} : Point{-f.z * amount, 0, f.x * amount};
-        moveBy(*player, d);
+        auto axes = viewAxes(client);
+        moveBy(*player, scaled(stepper == S::ForwardBack ? axes.forward : axes.right, amount));
         return;
     }
     case S::UpDown: moveBy(*player, {0, amount, 0}); return;

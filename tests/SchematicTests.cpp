@@ -11,6 +11,7 @@
 #include "ui/SchematicFiles.h"
 #include "features/schematic/MaterialAmount.h"
 #include "features/schematic/MenuModel.h"
+#include "features/schematic/MoveDirection.h"
 #include "features/schematic/RestPose.h"
 #include "features/schematic/PreviewView.h"
 #include "features/schematic/GhostFaces.h"
@@ -902,6 +903,40 @@ void ghostLook() {
               && edgeKey({0, 1, 0}, {1, 1, 0}) != edgeKey({0, 1, 0}, {1, 1, 1}),
           "two boxes' copies of one edge share a key, other edges do not");
 }
+void moveRules() {
+    using namespace lamium::schematic;
+    auto forward = [](double x, double y, double z) { return moveAxes(x, y, z).forward; };
+    auto right = [](double x, double y, double z) { return moveAxes(x, y, z).right; };
+    constexpr double pi = 3.14159265358979323846;
+    auto down = [&](double degrees) {
+        double p = degrees * pi / 180;
+        return forward(std::cos(p), -std::sin(p), 0);
+    };
+    check(forward(1, 0, 0) == Point{1, 0, 0} && right(1, 0, 0) == Point{0, 0, 1},
+          "level view east steps east, right steps south");
+    check(forward(0, 0, 1) == Point{0, 0, 1} && right(0, 0, 1) == Point{-1, 0, 0},
+          "level view south steps south, right steps west");
+    check(down(30) == Point{1, 0, 0} && down(59) == Point{1, 0, 0},
+          "below 60 degrees a step stays on the horizontal axis");
+    check(down(61) == Point{0, -1, 0}, "past 60 degrees down a forward step moves down");
+    check(forward(std::cos(61 * pi / 180), std::sin(61 * pi / 180), 0) == Point{0, 1, 0},
+          "past 60 degrees up a forward step moves up");
+    check(forward(std::cos(60 * pi / 180), -std::sin(60 * pi / 180), 0) == Point{1, 0, 0},
+          "exactly 60 degrees stays horizontal");
+    // Sin and cos of 45 degrees are equal, so the step is decided per event:
+    // 44 degrees faces south-dominant, 46 degrees east-dominant.
+    check(forward(std::sin(44 * pi / 180), 0, std::cos(44 * pi / 180)) == Point{0, 0, 1}
+              && forward(std::sin(46 * pi / 180), 0, std::cos(46 * pi / 180)) == Point{1, 0, 0},
+          "the horizontal axis follows the view at once, with no hysteresis");
+    auto steep = moveAxes(0, -1, 0);
+    check(steep.forward == Point{0, -1, 0} && steep.right == Point{-1, 0, 0},
+          "looking straight down keeps a fixed horizontal fallback for left and right");
+    auto none = moveAxes(0, 0, 0);
+    check(none.forward == Point{0, 0, 1} && none.right == Point{-1, 0, 0},
+          "a zero view direction falls back to south");
+    check(scaled(moveAxes(1, 0, 0).forward, -2) == Point{-2, 0, 0} && scaled(moveAxes(1, 0, 0).right, 2) == Point{0, 0, 2},
+          "wheel amounts scale both axes");
+}
 void schematicTests() {
     rayCells();
     ghostLook();
@@ -914,6 +949,7 @@ void schematicTests() {
     placementOverlap();
     drawKeys();
     menuRules();
+    moveRules();
     ghostFaces();
     placementTransforms();
     entityRules();
