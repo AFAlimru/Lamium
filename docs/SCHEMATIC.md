@@ -17,10 +17,15 @@ One selected placement controls movement, turn/mirror, six-direction layer
 selection, checking and materials. A radial menu exposes placement and
 save-area operations; a separate held adjust key repeats the last stepper
 operation with the wheel. Dedicated keys remain available, all unbound.
-Control follow-ups imported 2026-10-20: L-229 opener-key repeat bug, L-230
-view-directed vertical adjustment and L-231 control discoverability/key
-review. BACKLOG owns their status and open choices; this import changes no
-input behavior.
+Movement follows the drawn view (2026-10-20, L-230): forward/back step along
+the dominant view axis and move on Y past 60 degrees up or down, left/right
+stay horizontal, and explicit up/down keeps world Y. Steps are decided per
+input with no gesture lock. A detached Freelook or FreeCamera view owns the
+direction. Press actions can be bound to wheel chords (for example Alt with a
+wheel direction); Hold actions cannot. Control follow-ups: L-229 opener-key
+repeat, L-230 movement, L-231 control discoverability and L-232 binding-name
+display. BACKLOG owns their status; the 2026-10-20 changes are built but not
+yet checked in game.
 
 The default ghost look is tinted with a light-blue outline. Since 2026-10-15
 (L-186) the tint strength is a 0-100% setting, 70% by default (100% is the

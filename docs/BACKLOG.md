@@ -184,21 +184,22 @@ validation checkpoints" (snapshot 2026-10-20).
 ### L-229 Holding the schematic menu opener closes the menu
 Kind: Bug / Ready. High priority. Maintainer runtime report, 2026-10-20,
 from the [Notion idea inbox](https://app.notion.com/p/3f7c12ab5b2d8121b2a0db32608f6b7a).
-Status: reported, not fixed or rechecked. With "Open the schematic menu"
-bound to R, holding R closes the radial menu just after it opens. R is the
-reporter's binding; this action is unbound by default.
-Code evidence: SettingsScreen.cpp computes repeated key presses but queues
-them to `pendingKeys`; `handleMenuKey()` closes on the opener. Treat repeat
-handling as the leading explanation, not a verified complete root cause.
+Status: confirmed in game 2026-10-20 (`07f0dc1`) and fixed the same day; the
+fix is not yet checked in game. With "Open the schematic menu" bound to R,
+holding R closed the radial menu just after it opened. R is the reporter's
+binding; this action is unbound by default.
+Cause: the settings key listener queued key repeats to `pendingKeys` like
+fresh presses, and `handleMenuKey()` closes on any opener press.
+Fix: while the radial menu is open, repeated key-downs of its opener are
+dropped; release then a fresh press still closes. Esc, right-click/back and
+the existing menu actions are unchanged.
 Expected: one fresh press opens; holding/repeated key-downs leave it open;
 release then a fresh press closes. Keep Esc, right-click/back and existing
-menu actions. Reuse the fresh-press/chord conventions where appropriate;
-do not suppress repeat needed by other editing/navigation controls.
-Files: `src/ui/SettingsScreen.cpp`, `src/input/Binding.h` if a shared pure
-decision is needed, and the relevant pure input tests. Check keyboard and
-mouse bindings, remapped keys and ordered chords, hold/release/repress,
-Esc/right-click and focus transitions. Build + LamiumTests, then a short
-maintainer in-game checklist on the exact build/hash. No release selected.
+menu actions. Do not suppress repeat needed by other editing/navigation
+controls.
+Files: `src/ui/SettingsScreen.cpp`. Check keyboard and mouse bindings,
+remapped keys and ordered chords, hold/release/repress, Esc/right-click and
+focus transitions in game. No release selected.
 
 ### L-227 FreeCamera outside the loaded area shows only the sky
 Kind: Bug / Research. Maintainer 2026-10-19 (`9a565f0`): with FreeCamera
@@ -350,27 +351,33 @@ chunk, or draw the faces with a material that does not write depth.
 
 ## Feature work and research
 
-### L-230 Move schematics vertically with view-directed wheel adjustment
-Kind: Design, then Ready/Research for the chosen input rule. Maintainer
-feedback, 2026-10-20, from the
-[Notion idea inbox](https://app.notion.com/p/3f7c12ab5b2d8121b2a0db32608f6b7a).
-Status: accepted for design tracking; no input rule, implementation or
-release chosen. Forward/back adjustment currently picks a horizontal X/Z
-axis, so looking up/down does not move the target on Y. The radial menu,
-Repeat the last adjustment and directional keys already exist; inspect
-their current behavior before proposing another control scheme.
-Goal: allow one-block wheel steps along Y when looking sufficiently up or
-down, using the existing adjustment workflow where practical.
-Open: pitch threshold and behavior near the boundary, wheel sign, whether
-the axis follows each step or stays fixed for a gesture, and which placement/
-save-area targets share the rule. Preserve horizontal and explicit up/down
-operations until a replacement is agreed. Model axis/sign rules as pure
-logic with tests; check pitch boundaries, FreeCamera, rotated/mirrored
-placements, layer adjustment and binding conflicts in game.
-Files to inspect: `src/features/schematic/SchematicActions.cpp`, pure
-movement helpers, `src/features/schematic/MenuModel.h`,
-`src/input/CustomInput.cpp`, and
-`src/ui/SettingsScreen.cpp`. Contract: [SCHEMATIC.md](SCHEMATIC.md).
+### L-230 Move schematics with view-directed steps
+Kind: Ready (rule decided 2026-10-20). Maintainer feedback, 2026-10-20, from
+the [Notion idea inbox](https://app.notion.com/p/3f7c12ab5b2d8121b2a0db32608f6b7a).
+Status: decided and built 2026-10-20; not yet checked in game. The old
+behavior picked a horizontal X/Z axis, so looking up or down never moved the
+target on Y.
+Rule (maintainer 2026-10-20):
+- Forward and back follow the drawn view, one world axis per step. Past 60
+  degrees up or down (`|y| > tan 60 * horizontal`) the step is Y, signed by
+  the view; otherwise the dominant horizontal axis (x or z) wins.
+- Left and right stay horizontal, perpendicular to that axis; explicit
+  up/down keeps world Y.
+- Decided per step from the current view: no gesture lock, no hysteresis. A
+  turn changes the next step at once, and the radial menu blocks looking
+  while it is open, so a burst cannot drift.
+- The selected placement, corner 1, corner 2 and the whole area share the
+  rule (`moveBy`).
+- Camera-based: a detached Freelook or FreeCamera view owns the direction
+  (`detachedViewRay`); otherwise the body's view.
+- Default behavior, no setting yet. Add an on/off option only if horizontal
+  building is disturbed in practice.
+Built: `src/features/schematic/MoveDirection.h` (pure, tested in
+SchematicTests), used by `SchematicActions.cpp` for the menu steppers and the
+six directional keys. Contract: [SCHEMATIC.md](SCHEMATIC.md).
+Check in game: pitch just under/over 60 up and down; 45-degree yaw; the four
+move targets; a rotated/mirrored placement; Freelook and FreeCamera; layer
+keys unchanged; bound wheel chords still fire.
 
 ### L-231 Make schematic controls easier to find and review directional keys
 Kind: Design. Combines two maintainer UX notes from 2026-10-20 in the
@@ -392,6 +399,12 @@ the remedy is undecided. Review how settings exposes tool/screen openers
 alongside their bindings, including whether to add, remove or otherwise
 unify direct-open controls. Do not assume that adding a radial-menu button
 or removing the calculator button is already approved.
+Wheel chords (maintainer 2026-10-20): a Press action can already be bound to
+a wheel chord in the key settings; Left Alt + Wheel Up/Down assigned to the
+schematic away/closer actions fired as expected. Hold actions reject a wheel
+token by design. So the wheel path is a discoverability gap, not a missing
+capability: the capture footer now names wheel directions and says a wheel
+cannot be held. Name truncation and the hover text are tracked as L-232.
 Open: whether directional keys earn their UI weight for precise one-shot or
 macro use; whether the menu/wheel/repeat workflow should be the primary
 path; and which explanation belongs where. Preserve existing saved action
@@ -434,6 +447,29 @@ Open (maintainer): the line wording (yes/no only, or with the Y limit), and
 whether the Y limit text is worth showing before the boundary (40 vs 39) is
 verified. Record the formula's source in [PROVENANCE.md](PROVENANCE.md)
 before using it; do not copy the reporter's code verbatim.
+
+### L-232 Key settings truncate long binding names and hide the full chord
+Kind: Ready. Maintainer 2026-10-20, from assigning Left Alt + Wheel Up/Down
+to the schematic away/closer actions: both rows drew "ALTERNATIVE + ..." and
+the wheel direction was clipped, so two different bindings looked identical.
+Hovering the key cell showed nothing unless the binding had a conflict.
+Decided 2026-10-20:
+- Shorten only the game's long modifier names: ALTERNATIVE becomes ALT,
+  CONTROL becomes CTRL. SHIFT and ordinary keys keep the game's name; wheel
+  directions keep "Wheel up/down" for now (icons only if they still read
+  badly later).
+- Hovering the key cell always shows the full chord through the existing
+  conflict tooltip; the keyboard-selected tip still appears only when there
+  is a conflict to explain.
+- The capture footer names wheel directions, and says a wheel cannot be held
+  for Hold actions (L-231).
+- Left and right Alt remain one binding; the two sides are not distinguished.
+Built 2026-10-20: `src/ui/KeyLabel.h` (pure, tested in BindingTests),
+`bindingChordName`, the tooltip condition in SettingsTableView, and the
+capture footer text.
+Check in game: a two-token chord shows both parts or is clipped without
+losing which wheel direction it is; hovering shows the full text; a
+conflict still shows its explanation; a single long key remains legible.
 
 ### L-206 World map recording range is a fixed radius instead of the view distance
 Kind: Ready, implementation built; runtime coverage pending. User report
