@@ -1,10 +1,9 @@
 # Schematic controls redesign
 
-Status: design discussion, 2026-10-20; three independent reviews and the
-recommendations below adopted by the maintainer the same day, except the four
-proposals from the third review. **Nothing implemented.** This note records the
-agreed direction; the items under "Open questions" and "Third review" remain
-undecided.
+Status: design discussion, 2026-10-20; three independent reviews and all
+recommendations adopted by the maintainer the same day. **Nothing
+implemented.** This note records the agreed direction; only the items under
+"Open questions" remain undecided.
 
 [SCHEMATIC.md](SCHEMATIC.md) still describes the behavior in the game today;
 [BACKLOG.md](BACKLOG.md) owns task status (L-231 controls, L-234 layer model).
@@ -35,6 +34,10 @@ undecided.
 - The six direction keys, the menu movement steppers and the move toasts act
   on the target. Rotate/mirror and the layer controls stay settings of the
   selected placement.
+- The move-to-feet key acts on the current target like the menu's item: the
+  placement origin, corner 2, or the area (corner 1 to the feet and corner 2
+  follows). With no target it toasts. The help says "Move the target to your
+  feet"; the action id stays.
 - Display: the target name in the schematic HUD when it is on, the target's
   frame or mark emphasized in the world, and the target named in move toasts.
   The HUD is optional, so the HUD-off case relies on the frame/mark and the
@@ -63,9 +66,11 @@ undecided.
 - The memory stores the **kind** of adjustment, not its last sign; the wheel
   direction chooses the sign. After a back step, adjust + wheel up moves
   forward. The toast names the value.
-- Changing the move target or selecting another placement clears the memory,
-  so a rotate done on the placement cannot repeat after the target changed to
-  a corner. A failed operation does not update it.
+- Clear the memory on target change, another placement selection,
+  world/dimension change, feature disable and session reset, so a rotate done
+  on the placement cannot repeat after the context changed. A failed operation
+  does not update it. The current code does not clear on stop; the
+  implementation adds it.
 - A successful view slice sets the memory to the layer cut, so the next adjust
   plus wheel moves the cut.
 - Rotate, mirror and layer operations still act on the selected placement; the
@@ -97,6 +102,11 @@ undecided.
   Show all is dropped because Mode already has All. Keep is a stepper (low /
   high); in only/all it has no visible effect but stays editable for "up to".
   The slice is also available as an unbound key.
+- Cut here keeps the axis and keep, sets the cut to the view source's layer
+  along that axis (feet in normal play, detached camera in FreeLook/
+  FreeCamera), and switches All to Only so the change shows.
+- Changing the axis sets the cut to the view source's layer along the new
+  axis, clamped and toasted; the numeric offset is not carried across axes.
 - **View slice** is one-shot. The axis is the dominant axis of the full view
   vector (largest |x|, |y| or |z|), not the 60-degree movement rule: looking 30
   degrees down at a wall still slices on X/Z, while looking 70 degrees down
@@ -144,43 +154,27 @@ undecided.
 - Use the same drawn view ray as movement (`detachedViewRay` when a detached
   view owns the view, otherwise the player's eye and view), not the body view
   in FreeCamera.
-- Compare distances first:
-  - a corner when the crosshair block is that corner cell, at the hit distance;
-  - a placement at its box entry along the ray;
-  - the area only when the crosshair block is inside it, at the hit distance
-    (the box entry is not used, or the area would win over a placement inside
-    it).
-- On equal distance, prefer corner, then placement, then area.
+- A corner the crosshair hits directly wins before any distance comparison,
+  including when the camera is inside the placement box. If both corners share
+  the cell, keep the current target when it is one of them, else prefer corner
+  1.
+- Otherwise compare distances first: a placement at its box entry along the
+  ray, and the area only when the crosshair block is inside it, at the hit
+  distance (the box entry is not used, or the area would win over a placement
+  inside it).
+- On equal distance, prefer placement, then area. A corner inside a placement
+  that is not hit directly is reached through the target key, not by looking
+  through the box.
 - Looking at air inside the area selects nothing.
 
-## Third review (2026-10-20, proposed)
+## Third review (2026-10-20, adopted)
 
-Recommended for adoption before L-231 starts:
-
-1. **Corner direct hit** — a corner the crosshair hits directly wins before
-   any distance comparison, including when the camera is inside the placement
-   box. If both corners share the cell, keep the current target when it is one
-   of them, else prefer corner 1. A corner inside a placement that is not hit
-   directly is reachable through the target key, not by looking through the box.
-2. **Move to feet** — the move-to-feet key acts on the current move target like
-   the menu's item (area: corner 1 to the feet and corner 2 follows; corner 2:
-   that corner; placement: the origin). With no target it toasts. The help
-   becomes "Move the target to your feet"; the action id stays.
-3. **Cut here and axis changes** — Cut here sets the cut to the view source's
-   layer along the current axis (feet in normal play, detached camera in
-   FreeLook/FreeCamera), keeps the axis and keep, and switches All to Only so
-   the change shows. Changing the axis sets the cut to the view source's layer
-   along the new axis, clamped and toasted. This keeps the plane through the
-   player instead of carrying an index to a different axis.
-4. **Repeat memory clearing** — clear it on world/dimension change, feature
-   disable and session reset as well as on target change or another placement
-   selection. A failed operation still does not set it. The current code does
-   not clear on stop; the implementation must add it.
+The four points were adopted the same day and are folded into the sections
+above; nothing remains proposed.
 
 ## Open questions
 
 - Action labels and help for target-based movement (saved action ids stay).
-- Whether to adopt the four recommendations above.
 - Prototype scope and branch.
 
 ## Suggested order
@@ -217,5 +211,5 @@ setup after a slice, target invalidation after delete/clear, and the
 distance/view-source gap in the looked-at selection. The third found the
 corner-inside-the-box selection gap, the missing move-to-feet unification, the
 undefined Cut-here/axis handover, and the incomplete repeat clearing. All are
-corrected or recorded above. A prototype may live on a separate branch; main
-keeps today's behavior until the design settles.
+adopted above. A prototype may live on a separate branch; main keeps today's
+behavior until the design settles.
