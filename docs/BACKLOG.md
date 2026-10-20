@@ -68,8 +68,7 @@ published for whoever wants it. There is no "first release" gate.
 Keep this section short: ordering lives here; status, contracts and open
 choices live in the L-items. An L-item wins if a summary drifts.
 
-1. **Bugs first.** L-229 schematic menu opener (fixed, awaiting the in-game
-   check); L-227 FreeCamera shows only the sky
+1. **Bugs first.** L-227 FreeCamera shows only the sky
    outside loaded terrain (Research; new native experiment needs the
    maintainer's go-ahead). L-177 mismatch-highlight fix is built and awaits
    the reporter's next schematic session, not another implementation.
@@ -78,9 +77,8 @@ choices live in the L-items. An L-item wins if a summary drifts.
    item's stop/resume conditions. L-181 trident pose is low priority.
 2. **Small and medium work before large features/integration** (maintainer
    2026-10-10): L-196 license/provenance evidence; L-230 schematic movement
-   (all-six view frame built, awaiting the in-game check), L-232 binding
-   display (built, awaiting the in-game check) and L-231 controls UX;
-   L-232 slime chunk indicator (needs in-game verification of the rule
+   (all-six view frame built, awaiting the in-game check) and L-231 controls
+   UX; L-232 slime chunk indicator (needs in-game verification of the rule
    first); remaining Design/Research in L-166 trade helpers,
    L-167 resource packs, L-168 trade finder, L-169 transfer extensions,
    L-170 enchantment planner, L-173 quick shapes, L-190 list selection and
@@ -182,26 +180,6 @@ validation checkpoints" (snapshot 2026-10-20).
 ---
 
 ## Bugs
-
-### L-229 Holding the schematic menu opener closes the menu
-Kind: Bug / Ready. High priority. Maintainer runtime report, 2026-10-20,
-from the [Notion idea inbox](https://app.notion.com/p/3f7c12ab5b2d8121b2a0db32608f6b7a).
-Status: confirmed in game 2026-10-20 (`07f0dc1`) and fixed the same day; the
-fix is not yet checked in game. With "Open the schematic menu" bound to R,
-holding R closed the radial menu just after it opened. R is the reporter's
-binding; this action is unbound by default.
-Cause: the settings key listener queued key repeats to `pendingKeys` like
-fresh presses, and `handleMenuKey()` closes on any opener press.
-Fix: while the radial menu is open, repeated key-downs of its opener are
-dropped; release then a fresh press still closes. Esc, right-click/back and
-the existing menu actions are unchanged.
-Expected: one fresh press opens; holding/repeated key-downs leave it open;
-release then a fresh press closes. Keep Esc, right-click/back and existing
-menu actions. Do not suppress repeat needed by other editing/navigation
-controls.
-Files: `src/ui/SettingsScreen.cpp`. Check keyboard and mouse bindings,
-remapped keys and ordered chords, hold/release/repress, Esc/right-click and
-focus transitions in game. No release selected.
 
 ### L-227 FreeCamera outside the loaded area shows only the sky
 Kind: Bug / Research. Maintainer 2026-10-19 (`9a565f0`): with FreeCamera
@@ -412,7 +390,8 @@ a wheel chord in the key settings; Left Alt + Wheel Up/Down assigned to the
 schematic away/closer actions fired as expected. Hold actions reject a wheel
 token by design. So the wheel path is a discoverability gap, not a missing
 capability: the capture footer now names wheel directions and says a wheel
-cannot be held. Name truncation and the hover text are tracked as L-232.
+cannot be held. Name truncation and the hover text were fixed as L-232
+(BACKLOG-DONE.md).
 Open: whether directional keys earn their UI weight for precise one-shot or
 macro use; whether the menu/wheel/repeat workflow should be the primary
 path; and which explanation belongs where. Preserve existing saved action
@@ -455,38 +434,6 @@ Open (maintainer): the line wording (yes/no only, or with the Y limit), and
 whether the Y limit text is worth showing before the boundary (40 vs 39) is
 verified. Record the formula's source in [PROVENANCE.md](PROVENANCE.md)
 before using it; do not copy the reporter's code verbatim.
-
-### L-232 Key settings truncate long binding names and hide the full chord
-Kind: Ready. Maintainer 2026-10-20, from assigning Left Alt + Wheel Up/Down
-to the schematic away/closer actions: both rows drew "ALTERNATIVE + ..." and
-the wheel direction was clipped, so two different bindings looked identical.
-Hovering the key cell showed nothing unless the binding had a conflict.
-Decided 2026-10-20:
-- Shorten only the game's long modifier names: ALTERNATIVE becomes ALT,
-  CONTROL becomes CTRL. SHIFT and ordinary keys keep the game's name; wheel
-  directions keep "Wheel up/down" for now (icons only if they still read
-  badly later).
-- Hovering the key cell shows the full chord through the existing conflict
-  tooltip only when the cell clips it; a short binding needs no tip. The
-  keyboard-selected tip still appears only for conflicts.
-- The tip is as wide as its content (the chord plus the conflict count),
-  capped by the table width, so the count no longer squeezes the caps the row
-  clipped. A chord that is still too long wraps onto another line, and the
-  padding stays equal above and below.
-- The capture footer names wheel directions, and says a wheel cannot be held
-  for Hold actions (L-231).
-- Left and right Alt remain one binding; the two sides are not distinguished.
-Built 2026-10-20: `src/ui/KeyLabel.h` (pure, tested in BindingTests),
-`src/ui/KeycapLines.h` (pure wrap, tested in SettingsTableTests),
-`bindingChordName`, `keycapsWidth`/`keycapsWrap` and the tooltip in
-SettingsTableView, and the capture footer text. The hover rule, width and
-padding were revised after the maintainer's first in-game look: the tip
-appeared for short bindings too, its bottom padding was larger than the top,
-it had dropped the key caps, and a conflict tip clipped the chord it was meant
-to reveal.
-Check in game: clipped rows (three tokens or long names) show the full chord
-on hover, short bindings show no tip, the tip's top and bottom padding match,
-a conflict still shows its explanation, and a single long key stays legible.
 
 ### L-206 World map recording range is a fixed radius instead of the view distance
 Kind: Ready, implementation built; runtime coverage pending. User report
@@ -1259,8 +1206,8 @@ history. Runtime coverage remains in VALIDATION.md.
 Open work, to choose with the maintainer rather than implement as one batch:
 - Bugs: L-177 stale mismatch highlight (fix built, reporter check pending),
   L-117 Japanese entity-name text, and paused drawing work L-192/L-193/L-194.
-- Controls: L-229 menu-key repeat, L-230 view-directed vertical movement,
-  L-231 finding and understanding the existing controls.
+- Controls: L-230 view-directed movement (all-six frame awaiting the in-game
+  check), L-231 finding and understanding the existing controls.
 - Inspection and checking: L-183 mismatch suppression, L-184 saved ghost/
   container data, L-190 multi-selection; permission-gated world load L-185.
 - Rendering and materials: L-114 Check-preview mistake styling/interaction,

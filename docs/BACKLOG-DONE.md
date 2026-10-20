@@ -10,6 +10,22 @@ Runtime status is in [VALIDATION.md](VALIDATION.md), the evidence in
 
 ## Bugs
 
+### L-229 Holding the schematic menu opener closes the menu
+Closed 2026-10-20: confirmed in game on `07f0dc1` (with the opener on R,
+holding it closed the radial menu just after it opened), fixed the same day,
+and checked in game on `7f47f9a` (deployed DLL SHA-256
+`b4d761a644c01f5404fa762df1a0ac359ce949951d57fcc04d7f030a5fe3571f`):
+holding the opener leaves the menu open, and release then a fresh press
+closes it. Esc, right-click/back and the menu actions are unchanged.
+
+Kind: Bug / Ready. High priority. Maintainer runtime report, 2026-10-20,
+from the [Notion idea inbox](https://app.notion.com/p/3f7c12ab5b2d8121b2a0db32608f6b7a).
+Cause: the settings key listener queued key repeats to `pendingKeys` like
+fresh presses, and `handleMenuKey()` closes on any opener press.
+Fix: while the radial menu is open, repeated key-downs of its opener are
+dropped; release then a fresh press still closes. Files:
+`src/ui/SettingsScreen.cpp`.
+
 ### L-207 FreeCamera halves the frame rate
 Closed during documentation reconciliation, 2026-10-20: the measured open-ground regression was fixed and locally checked on 2026-10-18, as recorded below and in CAMERA.md. The later investigation prompts below predate that result. Culler-switch stability and underground hold were checked separately as L-213/L-214; per-hold frame times and broader coverage remain unchecked. The sky-only view outside loaded terrain is the separate open bug L-227.
 
@@ -1289,6 +1305,42 @@ result is only the converted text; Latin typing and Backspace unchanged.
 ---
 
 ## Ready
+
+### L-232 Key settings truncate long binding names and hide the full chord
+Closed 2026-10-20: built and checked in game on `dcab6ce` (deployed DLL
+SHA-256 `03aa48491a5d53cde4aca536a525985c791444b9bf5b1e04e148c6312f98dd00`):
+hovering a clipped key cell shows the whole chord, short bindings show no
+tip, a conflict tip (four caps plus the count) does not clip and keeps equal
+padding. A long chord and a small window did not make the caps wrap; the wrap
+path stays as a tested fallback.
+
+Kind: Ready. Maintainer 2026-10-20, from assigning Left Alt + Wheel Up/Down
+to the schematic away/closer actions: both rows drew "ALTERNATIVE + ..." and
+the wheel direction was clipped, so two different bindings looked identical.
+Hovering the key cell showed nothing unless the binding had a conflict.
+Decided 2026-10-20:
+- Shorten only the game's long modifier names: ALTERNATIVE becomes ALT,
+  CONTROL becomes CTRL. SHIFT and ordinary keys keep the game's name; wheel
+  directions keep "Wheel up/down" for now (icons only if they still read
+  badly later).
+- Hovering the key cell shows the full chord through the existing conflict
+  tooltip only when the cell clips it; a short binding needs no tip. The
+  keyboard-selected tip still appears only for conflicts.
+- The tip is as wide as its content (the chord plus the conflict count),
+  capped by the table width, so the count no longer squeezes the caps the row
+  clipped. A chord that is still too long wraps onto another line, and the
+  padding stays equal above and below.
+- The capture footer names wheel directions, and says a wheel cannot be held
+  for Hold actions (L-231).
+- Left and right Alt remain one binding; the two sides are not distinguished.
+Built 2026-10-20: `src/ui/KeyLabel.h` (pure, tested in BindingTests),
+`src/ui/KeycapLines.h` (pure wrap, tested in SettingsTableTests),
+`bindingChordName`, `keycapsWidth`/`keycapsWrap` and the tooltip in
+SettingsTableView, and the capture footer text. The hover rule, width and
+padding were revised after the maintainer's first in-game look: the tip
+appeared for short bindings too, its bottom padding was larger than the top,
+it had dropped the key caps, and a conflict tip clipped the chord it was meant
+to reveal.
 
 ### L-93 Schematic: load, place, project, verify and list materials (experimental)
 Archived initial-scope record, 2026-10-20: the initial feature shipped in 0.1.7 and the screen/rendering work in 0.1.8. Dated status statements below describe their original checkpoint. Current follow-ups remain under L-93 and their own L-items in BACKLOG.md; later fixes and coverage are in SCHEMATIC.md and VALIDATION.md.

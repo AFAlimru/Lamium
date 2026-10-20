@@ -12,6 +12,26 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Key binding tooltip checked (2026-10-20)
+
+Build `dcab6ce`, deployed DLL SHA-256
+`03aa48491a5d53cde4aca536a525985c791444b9bf5b1e04e148c6312f98dd00`,
+default release build (no trace/probe options), local `1.26.51.01 LIP`
+deployment, Windows x64. Maintainer report:
+
+- a clipped key cell shows the whole chord on hover; short bindings show no
+  tip;
+- a conflict tip with four caps and "Overlaps: 3" stays readable, with the
+  count beside the caps instead of squeezing them;
+- the padding above and below is equal;
+- a deliberately long chord and a small window did not make the caps wrap,
+  so the wrap path remains unobserved in game (it stays as a tested
+  fallback).
+
+The all-six view frame (L-230) is not covered by this check and remains
+unchecked in game. This is a maintainer report, not an agent observation. The
+branch is committed locally and not pushed.
+
 ## Schematic movement, menu opener and key display checked (2026-10-20)
 
 Build `7f47f9a`, deployed DLL SHA-256
