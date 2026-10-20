@@ -964,6 +964,7 @@ void moveTargetRules() {
     check(fallback(none) == MoveTarget::None && nextValid(MoveTarget::None, none) == MoveTarget::None,
           "an empty set falls back to and cycles to no target");
     TargetValidity corners{false, true, true, true};
+    check(!valid(MoveTarget::None, corners), "no target stops being valid once a candidate exists");
     check(fallback(corners) == MoveTarget::Corner1, "the first valid target is the fallback");
     check(nextValid(MoveTarget::None, corners) == MoveTarget::Corner1
               && nextValid(MoveTarget::Corner1, corners) == MoveTarget::Corner2

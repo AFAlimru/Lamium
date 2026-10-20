@@ -16,6 +16,9 @@
 #include "mc/client/player/LocalPlayer.h"
 #include "mc/client/renderer/screen/MinecraftUIRenderContext.h"
 #include "mc/world/phys/HitResult.h"
+#include "mc/world/level/BlockSource.h"
+#include "mc/world/level/ShapeType.h"
+#include "mc/world/level/block/Block.h"
 #include <atomic>
 #include <cmath>
 #include <limits>
@@ -113,6 +116,38 @@ std::optional<double> enter(Vec3 const& eye, Vec3 const& dir, Point low, Size si
     }
     return near;
 }
+// The first block along the drawn view, using the same solid-block filter as
+// the target card so water and lava are looked through. The game's latest hit
+// result follows the body, not a detached camera.
+struct BlockHit {
+    bool tile = false;
+    Point block{};
+    Vec3 pos{};
+    double distance = std::numeric_limits<double>::max();
+};
+BlockHit cameraBlock(LocalPlayer& player, Vec3 const& eye, Vec3 const& dir) {
+    BlockHit result;
+    double length = std::sqrt(static_cast<double>(dir.x) * dir.x + static_cast<double>(dir.y) * dir.y
+        + static_cast<double>(dir.z) * dir.z);
+    if (!(length > 1e-9)) return result;
+    constexpr int reach = 256;
+    Vec3 to{eye.x + static_cast<float>(dir.x / length * reach), eye.y + static_cast<float>(dir.y / length * reach),
+        eye.z + static_cast<float>(dir.z / length * reach)};
+    auto& source = player.getDimensionBlockSource();
+    auto hit = source.clip(eye, to, false, ShapeType::Outline, reach, false, false, nullptr,
+        [](BlockSource const&, Block const& block, bool) {
+            auto name = block.getTypeName();
+            return name != "minecraft:water" && name != "minecraft:flowing_water" && name != "minecraft:lava"
+                && name != "minecraft:flowing_lava";
+        }, false);
+    if (hit.mType != HitResultType::Tile) return result;
+    result.tile = true;
+    result.block = {hit.mBlock.x, hit.mBlock.y, hit.mBlock.z};
+    result.pos = hit.mPos;
+    double dx = hit.mPos.x - eye.x, dy = hit.mPos.y - eye.y, dz = hit.mPos.z - eye.z;
+    result.distance = std::sqrt(dx * dx + dy * dy + dz * dz);
+    return result;
+}
 // The move target the drawn view points at: a directly hit corner first (also
 // inside a placement box), then the nearest placement box, then the save area
 // when the hit block is inside it.
@@ -126,15 +161,10 @@ void selectLooked(IClientInstance& client, LocalPlayer& player) {
     }
     auto set = session::current();
     auto state = selection::current();
-    auto const& hit = client.getLatestHitResult();
-    bool tile = hit.mType == HitResultType::Tile;
-    Point hitBlock{};
-    double hitDistance = std::numeric_limits<double>::max();
-    if (tile) {
-        hitBlock = {hit.mBlock.x, hit.mBlock.y, hit.mBlock.z};
-        double dx = hit.mPos.x - eye.x, dy = hit.mPos.y - eye.y, dz = hit.mPos.z - eye.z;
-        hitDistance = std::sqrt(dx * dx + dy * dy + dz * dz);
-    }
+    BlockHit hit = cameraBlock(player, eye, dir);
+    bool tile = hit.tile;
+    Point hitBlock = hit.block;
+    double hitDistance = hit.distance;
     // A corner the crosshair hits directly wins before distance, including
     // when the camera is inside the placement box.
     if (tile && state.dimension == dimension) {
@@ -174,8 +204,7 @@ void selectLooked(IClientInstance& client, LocalPlayer& player) {
     // Distance first; the placement wins a tie with the area.
     if (best >= 0 && (!areaCandidate || bestDistance <= areaDistance)) {
         session::change([&](PlacementSet& s) { s.selected = best; return true; });
-        changeTarget(MoveTarget::Placement);
-        remembered.reset();
+        placementSelected();
         ui::showMessageToast(ui::translated("schematic.toast.selected", set.placements[static_cast<size_t>(best)].name));
         return;
     }
@@ -360,7 +389,7 @@ void press(IClientInstance& client, Action action) {
             return true;
         });
         ui::showMessageToast(any ? ui::translated("schematic.toast.selected", name) : ui::translated("schematic.toast.noPlacement"));
-        if (any) remembered.reset();
+        if (any) placementSelected();
         return;
     }
     case Action::MovePlacementForward: case Action::MovePlacementBack: case Action::MovePlacementLeft:
@@ -430,6 +459,10 @@ void setTarget(menu::Target value) {
     changeTarget(next);
     ui::showMessageToast(ui::translated("schematic.menu.moveTarget") + ": " + targetName(next));
 }
+void placementSelected() {
+    moveTarget = MoveTarget::Placement;
+    remembered.reset();
+}
 
 void step(IClientInstance& client, menu::Stepper stepper, int amount) {
     using S = menu::Stepper;
@@ -486,7 +519,7 @@ void step(IClientInstance& client, menu::Stepper stepper, int amount) {
             return true;
         });
         ui::showMessageToast(any ? ui::translated("schematic.toast.selected", name) : ui::translated("schematic.toast.noPlacement"));
-        if (any) remembered.reset();
+        if (any) placementSelected();
         return;
     }
     }

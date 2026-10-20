@@ -16,6 +16,8 @@ void press(IClientInstance& client, input::Action action);
 // (screen commands and settings switches are the screen's). Client thread.
 MoveTarget target();
 void setTarget(menu::Target);
+// A placement was selected or placed: movement goes back to it.
+void placementSelected();
 void step(IClientInstance& client, menu::Stepper stepper, int amount);
 void run(IClientInstance& client, menu::Command command);
 // The value an item shows under its name; empty when it has none.

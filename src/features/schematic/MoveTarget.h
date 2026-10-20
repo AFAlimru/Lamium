@@ -21,7 +21,9 @@ inline bool valid(MoveTarget target, TargetValidity const& v) {
     case MoveTarget::Corner1: return v.corner1;
     case MoveTarget::Corner2: return v.corner2;
     case MoveTarget::Area: return v.area;
-    case MoveTarget::None: return true;
+    // No target is the state only while no candidate exists; once one does,
+    // a move resolves it instead of keeping "none" forever.
+    case MoveTarget::None: return !v.placement && !v.corner1 && !v.corner2 && !v.area;
     }
     return false;
 }
