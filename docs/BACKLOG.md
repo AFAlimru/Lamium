@@ -68,8 +68,8 @@ published for whoever wants it. There is no "first release" gate.
 Keep this section short: ordering lives here; status, contracts and open
 choices live in the L-items. An L-item wins if a summary drifts.
 
-1. **Bugs first.** L-229 schematic menu closes on a held opener (reported;
-   suspected repeat path, not fixed); L-227 FreeCamera shows only the sky
+1. **Bugs first.** L-229 schematic menu opener (fixed, awaiting the in-game
+   check); L-227 FreeCamera shows only the sky
    outside loaded terrain (Research; new native experiment needs the
    maintainer's go-ahead). L-177 mismatch-highlight fix is built and awaits
    the reporter's next schematic session, not another implementation.
@@ -78,8 +78,10 @@ choices live in the L-items. An L-item wins if a summary drifts.
    item's stop/resume conditions. L-181 trident pose is low priority.
 2. **Small and medium work before large features/integration** (maintainer
    2026-10-10): L-196 license/provenance evidence; L-230 schematic movement
-   and L-231 controls UX; L-232 slime chunk indicator (needs in-game
-   verification of the rule first); remaining Design/Research in L-166 trade helpers,
+   (all-six view frame built, awaiting the in-game check), L-232 binding
+   display (built, awaiting the in-game check) and L-231 controls UX;
+   L-232 slime chunk indicator (needs in-game verification of the rule
+   first); remaining Design/Research in L-166 trade helpers,
    L-167 resource packs, L-168 trade finder, L-169 transfer extensions,
    L-170 enchantment planner, L-173 quick shapes, L-190 list selection and
    L-163 a Lamium inventory screen. Agree open choices before building.
@@ -354,15 +356,20 @@ chunk, or draw the faces with a material that does not write depth.
 ### L-230 Move schematics with view-directed steps
 Kind: Ready (rule decided 2026-10-20). Maintainer feedback, 2026-10-20, from
 the [Notion idea inbox](https://app.notion.com/p/3f7c12ab5b2d8121b2a0db32608f6b7a).
-Status: decided and built 2026-10-20; not yet checked in game. The old
-behavior picked a horizontal X/Z axis, so looking up or down never moved the
-target on Y.
-Rule (maintainer 2026-10-20):
-- Forward and back follow the drawn view, one world axis per step. Past 60
-  degrees up or down (`|y| > tan 60 * horizontal`) the step is Y, signed by
-  the view; otherwise the dominant horizontal axis (x or z) wins.
-- Left and right stay horizontal, perpendicular to that axis; explicit
-  up/down keeps world Y.
+Status: decided and built 2026-10-20; the first rule was checked in game the
+same day and reworked after it. The old behavior picked a horizontal X/Z
+axis, so looking up or down never moved the target on Y.
+Rule (maintainer 2026-10-20, revised after the first check):
+- All six directions come from one camera frame. Forward is the view's
+  dominant world axis; past 60 degrees up or down (`|y| > tan 60 *
+  horizontal`) it is Y, signed by the view, otherwise the dominant horizontal
+  axis (x or z). Right is the horizontal perpendicular. Up is right x
+  forward, so it is world Y with a level-ish view and the horizontal
+  direction the camera faces once forward has turned vertical.
+- The maintainer's revision: up/down must follow the view too. Keeping them
+  on world Y removed horizontal forward/back while looking up or down, so
+  every direction now follows the same frame and none disappears at the
+  steep boundary (up and forward trade places there).
 - Decided per step from the current view: no gesture lock, no hysteresis. A
   turn changes the next step at once, and the radial menu blocks looking
   while it is open, so a burst cannot drift.
@@ -375,9 +382,10 @@ Rule (maintainer 2026-10-20):
 Built: `src/features/schematic/MoveDirection.h` (pure, tested in
 SchematicTests), used by `SchematicActions.cpp` for the menu steppers and the
 six directional keys. Contract: [SCHEMATIC.md](SCHEMATIC.md).
-Check in game: pitch just under/over 60 up and down; 45-degree yaw; the four
-move targets; a rotated/mirrored placement; Freelook and FreeCamera; layer
-keys unchanged; bound wheel chords still fire.
+Check in game on the all-six build: pitch just under/over 60 up and down, and
+that up/down take over the horizontal direction there; 45-degree yaw; the
+four move targets; a rotated/mirrored placement; Freelook and FreeCamera;
+layer keys unchanged; bound wheel chords still fire.
 
 ### L-231 Make schematic controls easier to find and review directional keys
 Kind: Design. Combines two maintainer UX notes from 2026-10-20 in the
@@ -458,18 +466,22 @@ Decided 2026-10-20:
   CONTROL becomes CTRL. SHIFT and ordinary keys keep the game's name; wheel
   directions keep "Wheel up/down" for now (icons only if they still read
   badly later).
-- Hovering the key cell always shows the full chord through the existing
-  conflict tooltip; the keyboard-selected tip still appears only when there
-  is a conflict to explain.
+- Hovering the key cell shows the full chord through the existing conflict
+  tooltip only when the cell clips it; a short binding needs no tip. The
+  keyboard-selected tip still appears only for conflicts.
+- The revealed chord is written out and wrapped instead of using key caps,
+  with the same padding above and below.
 - The capture footer names wheel directions, and says a wheel cannot be held
   for Hold actions (L-231).
 - Left and right Alt remain one binding; the two sides are not distinguished.
 Built 2026-10-20: `src/ui/KeyLabel.h` (pure, tested in BindingTests),
-`bindingChordName`, the tooltip condition in SettingsTableView, and the
-capture footer text.
-Check in game: a two-token chord shows both parts or is clipped without
-losing which wheel direction it is; hovering shows the full text; a
-conflict still shows its explanation; a single long key remains legible.
+`bindingChordName`, `keycapsWidth` and the tooltip in SettingsTableView, and
+the capture footer text. The hover rule and padding were revised after the
+maintainer's first in-game look: the tip appeared for short bindings too and
+its bottom padding was larger than the top.
+Check in game: clipped rows (three tokens or long names) show the full chord
+on hover, short bindings show no tip, the tip's top and bottom padding match,
+a conflict still shows its explanation, and a single long key stays legible.
 
 ### L-206 World map recording range is a fixed radius instead of the view distance
 Kind: Ready, implementation built; runtime coverage pending. User report

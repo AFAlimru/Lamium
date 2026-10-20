@@ -12,6 +12,34 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Schematic movement, menu opener and key display checked (2026-10-20)
+
+Build `7f47f9a`, deployed DLL SHA-256
+`b4d761a644c01f5404fa762df1a0ac359ce949951d57fcc04d7f030a5fe3571f`,
+default release build (no trace/probe options), local `1.26.51.01 LIP`
+deployment, Windows x64. Maintainer report from the checklist:
+
+- holding the schematic menu opener (R) leaves the radial menu open; a fresh
+  press after release closes it;
+- the horizontal forward/back and left/right wheel steppers move one block per
+  notch;
+- looking up or down past 60 degrees moves forward/back on Y;
+- at 45-degree yaw the next notch switches the horizontal axis;
+- looking straight down, the forward key still follows the yaw;
+- the repeat key says "Use an adjustment in the schematic menu first" before
+  a menu stepper was used;
+- the key column shows ALT/CTRL and hover reveals the full binding, but the
+  tip also appeared for short bindings and had more padding below than above.
+
+After this report the movement rule was revised so up/down also follow the
+view (all six directions from one camera frame), and the binding tip now
+appears only for clipped rows with equal padding. Neither revision has been
+checked in game. Corners/area, rotated or mirrored placements, Freelook,
+FreeCamera, servers and other dimensions were not tested.
+
+This is a maintainer report, not an agent observation. The branch is committed
+locally and not pushed.
+
 ## L-228 height follow fix verified (2026-10-20)
 
 Build `07f0dc1`, docs `15c8453`, deployed DLL SHA-256

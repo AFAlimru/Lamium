@@ -17,10 +17,12 @@ One selected placement controls movement, turn/mirror, six-direction layer
 selection, checking and materials. A radial menu exposes placement and
 save-area operations; a separate held adjust key repeats the last stepper
 operation with the wheel. Dedicated keys remain available, all unbound.
-Movement follows the drawn view (2026-10-20, L-230): forward/back step along
-the dominant view axis and move on Y past 60 degrees up or down, left/right
-stay horizontal, and explicit up/down keeps world Y. Steps are decided per
-input with no gesture lock. A detached Freelook or FreeCamera view owns the
+Movement follows the drawn view (2026-10-20, L-230): all six directions come
+from one camera frame. Forward/back step along the view's dominant axis and
+move on Y past 60 degrees up or down; left/right stay horizontal; up/down are
+right x forward, so they are world Y with a level-ish view and take over the
+horizontal direction once forward turns vertical. Steps are decided per input
+with no gesture lock. A detached Freelook or FreeCamera view owns the
 direction. Press actions can be bound to wheel chords (for example Alt with a
 wheel direction); Hold actions cannot. Control follow-ups: L-229 opener-key
 repeat, L-230 movement, L-231 control discoverability and L-232 binding-name
