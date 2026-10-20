@@ -1,4 +1,5 @@
 #include "ui/Widgets.h"
+#include "ui/KeycapLines.h"
 #include "ui/TextFit.h"
 #include "mc/client/renderer/screen/MinecraftUIRenderContext.h"
 #include "mc/client/game/IClientInstance.h"
@@ -293,6 +294,28 @@ float keycapsWidth(MinecraftUIRenderContext& context, std::vector<std::string> c
         width += textWidth(context, keys[i]) + 6;
     }
     return width;
+}
+namespace {
+std::vector<float> capWidths(MinecraftUIRenderContext& context, std::vector<std::string> const& keys) {
+    std::vector<float> widths;
+    widths.reserve(keys.size());
+    for (auto const& key : keys) widths.push_back(textWidth(context, key));
+    return widths;
+}
+}
+float keycapsWrapHeight(MinecraftUIRenderContext& context, float width, std::vector<std::string> const& keys, float lineGap) {
+    auto lines = keycapLines(capWidths(context, keys), width);
+    return lines.empty() ? 0.f : static_cast<float>(lines.size()) * capHeight + (static_cast<float>(lines.size()) - 1) * lineGap;
+}
+float keycapsWrap(MinecraftUIRenderContext& context, float x, float y, float width, std::vector<std::string> const& keys,
+                  KeyTone tone, float lineGap) {
+    float used = 0;
+    for (auto [first, last] : keycapLines(capWidths(context, keys), width)) {
+        keycaps(context,x,y+used,width,
+            std::vector<std::string>(keys.begin()+static_cast<std::ptrdiff_t>(first),keys.begin()+static_cast<std::ptrdiff_t>(last)),tone);
+        used += capHeight + lineGap;
+    }
+    return used ? used - lineGap : 0;
 }
 float keycaps(MinecraftUIRenderContext& context, float x, float y, float width, std::vector<std::string> const& keys,
               KeyTone tone) {

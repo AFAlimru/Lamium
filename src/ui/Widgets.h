@@ -105,5 +105,10 @@ float keycaps(MinecraftUIRenderContext&, float x, float y, float width, std::vec
               KeyTone tone = KeyTone::Plain);
 // The width keycaps() needs to draw every cap without clipping.
 float keycapsWidth(MinecraftUIRenderContext&, std::vector<std::string> const& keys);
+// Caps wrapped onto further lines when they do not fit one; both return the
+// height the caps occupy.
+float keycapsWrapHeight(MinecraftUIRenderContext&, float width, std::vector<std::string> const& keys, float lineGap = 3);
+float keycapsWrap(MinecraftUIRenderContext&, float x, float y, float width, std::vector<std::string> const& keys,
+                  KeyTone tone = KeyTone::Plain, float lineGap = 3);
 constexpr float capHeight = 11;
 }

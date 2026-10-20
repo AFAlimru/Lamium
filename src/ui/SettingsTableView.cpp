@@ -687,11 +687,10 @@ void drawConflictTip(MinecraftUIRenderContext& context, IClientInstance& current
     if (hoveredKey && conflicts.empty() && keycapsWidth(context, keys) <= t.keyWidth) return;
     constexpr float pad = 4, headHeight = 15, lineHeight = 12, titleHeight = 13, itemHeight = 14;
     float width = std::min(240.0f, t.width - 2*SettingsTable::pad), inner = width - 2*pad;
-    // A clipped binding is written out below; with no conflict there is no
-    // other section, so the padding stays the same above and below it.
-    std::string binding = bindingChordName(current, chord);
-    size_t bindingLines = conflicts.empty() ? paragraphLines(context, inner, binding, 3) : 1;
-    float header = conflicts.empty() ? bindingLines * lineHeight : headHeight;
+    // A clipped binding is shown as key caps wrapped onto further lines; with
+    // no conflict there is no other section, so the padding stays the same
+    // above and below it.
+    float header = conflicts.empty() ? keycapsWrapHeight(context, inner, keys, 3) : headHeight;
     std::vector<std::string> notes;
     bool leads = std::any_of(conflicts.begin(), conflicts.end(), [](auto c) { return c.link == input::Link::StartsWithThis; });
     if (input::firesOnRelease(preferences.bindings, action)) notes.push_back(translated("tip.release"));
@@ -730,7 +729,7 @@ void drawConflictTip(MinecraftUIRenderContext& context, IClientInstance& current
     frame(context,x,y,width,height,conflicts.empty() ? palette::keyEdge : palette::warning);
     float cursor = y + pad;
     if (conflicts.empty()) {
-        paragraph(context,x+pad,cursor,inner,binding,bindingLines,palette::text);
+        keycapsWrap(context,x+pad,cursor,inner,keys,KeyTone::Plain,3);
     } else {
         auto relation = strongestConflict(conflicts);
         keycaps(context,x+pad,cursor,inner*.6f,keys,conflictTone(relation));

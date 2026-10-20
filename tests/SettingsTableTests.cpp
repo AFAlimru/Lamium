@@ -1,5 +1,7 @@
 #include "ui/SettingsTable.h"
+#include "ui/KeycapLines.h"
 #include "app/Versions.h"
+#include <array>
 #include <limits>
 void check(bool, char const*);
 void settingsTableTests() {
@@ -157,5 +159,21 @@ void settingsTableTests() {
               "slider values snap to the step");
         check(SettingsTable::sliderValue(2, 2, 64, 1) == 64 && SettingsTable::sliderPosition(6, 2, 64) > 0,
               "slider values and positions clamp to the range");
+    }
+    {
+        // Key caps wrap onto another line only when the next cap plus its gap
+        // would overflow (L-232); a lone cap wider than the line still advances.
+        std::array<float, 3> caps{30, 30, 30};
+        auto lines = lamium::ui::keycapLines(std::span<float const>{caps}, 100);
+        check(lines.size() == 2 && lines[0] == std::pair<size_t, size_t>{0, 2} && lines[1] == std::pair<size_t, size_t>{2, 3},
+              "three caps wrap into two lines at the measured width");
+        std::array<float, 2> exact{30, 30};
+        check(lamium::ui::keycapLines(std::span<float const>{exact}, 78).size() == 1,
+              "caps that exactly fill the line do not wrap");
+        std::array<float, 1> wide{200};
+        auto lone = lamium::ui::keycapLines(std::span<float const>{wide}, 100);
+        check(lone.size() == 1 && lone[0] == std::pair<size_t, size_t>{0, 1},
+              "a lone too-wide cap still advances instead of looping");
+        check(lamium::ui::keycapLines({}, 100).empty(), "no caps make no lines");
     }
 }
