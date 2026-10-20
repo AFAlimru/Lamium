@@ -5,6 +5,7 @@
 #include "features/schematic/MoveTarget.h"
 #include "features/schematic/TargetRay.h"
 #include "features/schematic/SchematicSession.h"
+#include "app/Runtime.h"
 #include "features/schematic/Selection.h"
 #include "input/Actions.h"
 #include "ui/Localization.h"
@@ -37,12 +38,16 @@ std::optional<Point> feet(LocalPlayer& player) {
     if (!std::isfinite(p.x) || !std::isfinite(p.y) || !std::isfinite(p.z)) return std::nullopt;
     return Point{static_cast<int>(std::floor(p.x)), static_cast<int>(std::floor(p.y)), static_cast<int>(std::floor(p.z))};
 }
-// The block the view stands in: the player's feet, or the detached camera's
-// block in Freelook / FreeCamera.
+// The block the view stands in: the player's feet, or the camera's virtual
+// feet (its position minus the player's eye height) in Freelook / FreeCamera.
 std::optional<Point> viewFeet(IClientInstance& client, LocalPlayer& player) {
     if (auto ray = CameraSessions::instance().detachedViewRay(client)) {
         if (!std::isfinite(ray->x) || !std::isfinite(ray->y) || !std::isfinite(ray->z)) return std::nullopt;
-        return Point{static_cast<int>(std::floor(ray->x)), static_cast<int>(std::floor(ray->y)),
+        auto eye = player.getEyePos();
+        auto feet = player.getFeetPos();
+        double eyeHeight = eye.y - feet.y;
+        if (!(eyeHeight > 0)) eyeHeight = 1.62;
+        return Point{static_cast<int>(std::floor(ray->x)), static_cast<int>(std::floor(ray->y - eyeHeight)),
             static_cast<int>(std::floor(ray->z))};
     }
     return feet(player);
@@ -71,16 +76,6 @@ Point stepFor(IClientInstance& client, Action action) {
     case Action::MovePlacementRight: return axes.right;
     case Action::MovePlacementUp: return axes.up;
     default: return {-axes.up.x, -axes.up.y, -axes.up.z};
-    }
-}
-// The menu stepper a direction key repeats with the adjust key.
-std::optional<menu::Stepper> movementStepper(Action action) {
-    using S = menu::Stepper;
-    switch (action) {
-    case Action::MovePlacementForward: case Action::MovePlacementBack: return S::ForwardBack;
-    case Action::MovePlacementLeft: case Action::MovePlacementRight: return S::LeftRight;
-    case Action::MovePlacementUp: case Action::MovePlacementDown: return S::UpDown;
-    default: return std::nullopt;
     }
 }
 // Applies `apply` to the selected placement and reports `message` built from it.
@@ -193,31 +188,42 @@ BlockHit viewBlock(IClientInstance& client, LocalPlayer& player) {
 }
 // The first block that fully hides what is behind it. Glass, plants and other
 // see-through blocks do not count, so a corner behind them stays pickable.
-double opaqueDistance(LocalPlayer& player, View const& v) {
+BlockHit opaqueBlock(LocalPlayer& player, View const& v) {
+    BlockHit result;
     double length = std::sqrt(static_cast<double>(v.dir.x) * v.dir.x + static_cast<double>(v.dir.y) * v.dir.y
         + static_cast<double>(v.dir.z) * v.dir.z);
-    if (!(length > 1e-9)) return std::numeric_limits<double>::max();
+    if (!(length > 1e-9)) return result;
     constexpr int reach = 256;
     Vec3 to{v.eye.x + static_cast<float>(v.dir.x / length * reach), v.eye.y + static_cast<float>(v.dir.y / length * reach),
         v.eye.z + static_cast<float>(v.dir.z / length * reach)};
     auto& source = player.getDimensionBlockSource();
     auto hit = source.clip(v.eye, to, false, ShapeType::Outline, reach, false, false, nullptr,
         [](BlockSource const&, Block const& block, bool) { return block.getBlockType().mIsOpaqueFullBlock; }, false);
-    if (hit.mType != HitResultType::Tile) return std::numeric_limits<double>::max();
+    if (hit.mType != HitResultType::Tile) return result;
+    result.tile = true;
+    result.block = {hit.mBlock.x, hit.mBlock.y, hit.mBlock.z};
+    result.pos = hit.mPos;
     double dx = hit.mPos.x - v.eye.x, dy = hit.mPos.y - v.eye.y, dz = hit.mPos.z - v.eye.z;
-    return std::sqrt(dx * dx + dy * dy + dz * dz);
+    result.distance = std::sqrt(dx * dx + dy * dy + dz * dz);
+    return result;
+}
+// A target that overlaps the opaque block is not hidden by it: only a block
+// strictly between the view and the target hides it.
+bool cellOverlapsBox(Point cell, double lx, double ly, double lz, double hx, double hy, double hz) {
+    return cell.x < hx && cell.x + 1.0 > lx && cell.y < hy && cell.y + 1.0 > ly && cell.z < hz && cell.z + 1.0 > lz;
 }
 // The move target the drawn view points at. A corner cell the ray passes
 // through wins even in the air and behind see-through blocks; then the nearest
 // placement box; then the save area when the ray enters it. A fully opaque
-// block in front hides all three.
+// block in front hides a target unless the target overlaps that block.
 void selectLooked(IClientInstance& client, LocalPlayer& player) {
     int dimension = static_cast<int>(player.getDimensionId());
     View v = view(client, player);
     TargetRay ray{v.eye.x, v.eye.y, v.eye.z, v.dir.x, v.dir.y, v.dir.z, 256};
     auto set = session::current();
     auto state = selection::current();
-    double opaque = opaqueDistance(player, v);
+    BlockHit opaque = opaqueBlock(player, v);
+    double opaqueAt = opaque.tile ? opaque.distance : std::numeric_limits<double>::max();
     // A target on the face of an opaque block is still visible: only something
     // strictly in front of it hides it.
     constexpr double face = 1e-6;
@@ -225,8 +231,12 @@ void selectLooked(IClientInstance& client, LocalPlayer& player) {
     if (state.dimension == dimension) {
         auto first = state.first ? cellEntry(ray, state.first->x, state.first->y, state.first->z) : std::nullopt;
         auto second = state.second ? cellEntry(ray, state.second->x, state.second->y, state.second->z) : std::nullopt;
-        bool firstVisible = first && *first <= opaque + face;
-        bool secondVisible = second && *second <= opaque + face;
+        auto visible = [&](std::optional<Point> const& cell, std::optional<double> const& entry) {
+            if (!entry) return false;
+            return *entry <= opaqueAt + face || (opaque.tile && cell && *cell == opaque.block);
+        };
+        bool firstVisible = visible(state.first, first);
+        bool secondVisible = visible(state.second, second);
         if (firstVisible && secondVisible && std::abs(*first - *second) < 1e-9) {
             // Both corners in one cell: keep the current corner if it is one.
             cornerTarget = moveTarget == MoveTarget::Corner1 || moveTarget == MoveTarget::Corner2 ? moveTarget : MoveTarget::Corner1;
@@ -248,8 +258,11 @@ void selectLooked(IClientInstance& client, LocalPlayer& player) {
         auto const& p = set.placements[static_cast<size_t>(i)];
         auto structure = p.dimension == dimension && p.visible ? session::structure(p.file) : nullptr;
         if (!structure) continue;
-        auto distance = enter(v.eye, v.dir, p.placement.origin, placedSize(structure->size, p.placement.rotation), 256);
-        if (distance && *distance < bestDistance && *distance <= opaque + face) { best = i; bestDistance = *distance; }
+        auto size = placedSize(structure->size, p.placement.rotation);
+        auto distance = enter(v.eye, v.dir, p.placement.origin, size, 256);
+        bool overlaps = opaque.tile && cellOverlapsBox(opaque.block, p.placement.origin.x, p.placement.origin.y,
+            p.placement.origin.z, p.placement.origin.x + size.x, p.placement.origin.y + size.y, p.placement.origin.z + size.z);
+        if (distance && *distance < bestDistance && (overlaps || *distance <= opaqueAt + face)) { best = i; bestDistance = *distance; }
     }
     if (best >= 0) {
         session::change([&](PlacementSet& s) { s.selected = best; return true; });
@@ -262,7 +275,8 @@ void selectLooked(IClientInstance& client, LocalPlayer& player) {
         auto low = area.low();
         auto size = area.size();
         auto entry = boxEntry(ray, low.x, low.y, low.z, low.x + size.x, low.y + size.y, low.z + size.z);
-        if (entry && *entry <= opaque + face) {
+        bool overlaps = opaque.tile && cellOverlapsBox(opaque.block, low.x, low.y, low.z, low.x + size.x, low.y + size.y, low.z + size.z);
+        if (entry && (overlaps || *entry <= opaqueAt + face)) {
             changeTarget(MoveTarget::Area);
             remembered.reset();
             ui::showMessageToast(ui::translated("schematic.menu.moveTarget") + ": " + targetName(MoveTarget::Area));
@@ -449,8 +463,6 @@ void press(IClientInstance& client, Action action) {
     }
     case Action::MovePlacementForward: case Action::MovePlacementBack: case Action::MovePlacementLeft:
     case Action::MovePlacementRight: case Action::MovePlacementUp: case Action::MovePlacementDown: {
-        if (auto stepper = movementStepper(action); stepper && resolveTarget(*player) != MoveTarget::None)
-            remembered = *stepper;
         moveBy(*player, stepFor(client, action));
         return;
     }
@@ -459,21 +471,16 @@ void press(IClientInstance& client, Action action) {
         return;
     }
     case Action::RotatePlacement:
-        if (auto set = session::current(); set.selected >= 0 && set.selected < static_cast<int>(set.placements.size()))
-            remembered = menu::Stepper::Rotate;
         changeSelected([](SavedPlacement& p) { p.placement.rotation = quarterTurns(p.placement.rotation + 1); },
             [](SavedPlacement const& p) { return ui::translated("schematic.toast.rotated", p.name, p.placement.rotation * 90); });
         return;
     case Action::MirrorPlacement:
-        if (auto set = session::current(); set.selected >= 0 && set.selected < static_cast<int>(set.placements.size()))
-            remembered = menu::Stepper::Mirror;
         changeSelected([](SavedPlacement& p) { p.placement.mirror = static_cast<Mirror>((static_cast<int>(p.placement.mirror) + 1) % 3); },
             [](SavedPlacement const& p) { return ui::translated("schematic.toast.mirror", p.name, mirrorName(p.placement.mirror)); });
         return;
     case Action::LayerUp: case Action::LayerDown: {
         int direction = action == Action::LayerUp ? 1 : -1;
         auto structure = selectedStructure();
-        if (structure) remembered = menu::Stepper::Layer;
         changeSelected([&](SavedPlacement& p) {
             if (p.layers.mode == LayerMode::All) p.layers.mode = LayerMode::Only;
             else p.layers.index = std::clamp(p.layers.index + direction, 0, layers(structure.get(), p) - 1);
@@ -484,7 +491,6 @@ void press(IClientInstance& client, Action action) {
         auto at = viewFeet(client, *player);
         auto structure = selectedStructure();
         if (!at || !structure) return;
-        remembered = menu::Stepper::Layer;
         changeSelected([&](SavedPlacement& p) {
             auto placed = placedSize(structure->size, p.placement.rotation);
             Point offset{at->x - p.placement.origin.x, at->y - p.placement.origin.y, at->z - p.placement.origin.z};
@@ -523,7 +529,8 @@ void step(IClientInstance& client, menu::Stepper stepper, int amount) {
     using S = menu::Stepper;
     auto* player = client.getLocalPlayer();
     if (!player || !amount) return;
-    if (menu::repeatable(stepper)) {
+    bool all = Runtime::instance().preferences().schematic.repeatAllSteps;
+    if (all ? menu::repeatableAll(stepper) : menu::repeatable(stepper)) {
         // Resolve a fallback target before remembering the step, or the
         // fallback would clear the adjustment this very move should remember.
         bool moving = stepper == S::ForwardBack || stepper == S::LeftRight || stepper == S::UpDown;
@@ -704,6 +711,12 @@ void adjustFrame(MinecraftUIRenderContext& context, float, float) {
     // One toast: what the wheel repeats, then what the step reported, so the
     // step's own toast does not replace the first at once.
     if (int turns = pendingWheel.exchange(0); turns && remembered) {
+        bool all = Runtime::instance().preferences().schematic.repeatAllSteps;
+        if (!(all ? menu::repeatableAll(*remembered) : menu::repeatable(*remembered))) {
+            remembered.reset();
+            ui::showMessageToast(ui::translated("schematic.adjust.none"));
+            return;
+        }
         step(client, *remembered, turns);
         auto shown = ui::currentToggleToast(ui::toastNow());
         auto prefix = adjustText();

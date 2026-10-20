@@ -629,6 +629,13 @@ void menuRules() {
               && !worksWhileOff({"", Command::Corner1Here}) && !worksWhileOff({"", Command::SaveArea})
               && !worksWhileOff({"", Stepper::Rotate}),
           "with Schematics off the menu opens at its switch, and only the switch and screens run");
+    using S = Stepper;
+    check(repeatable(S::ForwardBack) && repeatable(S::Rotate) && repeatable(S::Layer)
+              && !repeatable(S::LayerAxis) && !repeatable(S::LayerMode) && !repeatable(S::Target) && !repeatable(S::Placement),
+          "the adjust key repeats movement, rotation/mirror and the layer index only");
+    check(repeatableAll(S::LayerAxis) && repeatableAll(S::LayerMode) && !repeatableAll(S::Target)
+              && !repeatableAll(S::Placement),
+          "the option adds the layer axis and mode but not target or placement selection");
 
     using lamium::ui::RadialLayout;
     RadialLayout::Sizes sizes{100, 26, 140, 62};
