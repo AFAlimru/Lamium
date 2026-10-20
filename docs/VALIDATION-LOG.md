@@ -12,6 +12,17 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## Open World map world check passed (2026-10-20)
+
+Build `de8335f`, deployed DLL SHA-256
+`62c1876881782e7de848b73e81af005fe0c80890ea738e6319c104e8e7e5ffac`,
+default release build (no trace/probe options), local `1.26.51.01 LIP`
+deployment, Windows x64. Maintainer report: from the title-screen settings,
+the World map row's Open button shows `worldOnly` and does not open the map;
+in a world it opens the settings map view, matching the sidebar. This is a
+maintainer report, not an agent observation. The branch is committed locally
+before this entry; the push follows it.
+
 ## L-229 second fix checked (2026-10-20)
 
 Build `fee90cf`, deployed DLL SHA-256

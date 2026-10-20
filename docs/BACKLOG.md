@@ -429,8 +429,7 @@ and shows the menu over the same world background; closing the menu closes
 the screen, as when it is opened from gameplay. The in-game look passed.
 Review follow-up 2026-10-20: the Open World map button now goes through
 `selectNav(worldMapNav)`, so outside a world it refuses with `worldOnly` like
-the sidebar instead of opening the map; the title-screen case is not checked
-in game yet.
+the sidebar instead of opening the map; this passed in game the same day.
 Open: whether the buttons crowd the rows once seen.
 Wheel chords (maintainer 2026-10-20): a Press action can already be bound to
 a wheel chord in the key settings; Left Alt + Wheel Up/Down assigned to the
