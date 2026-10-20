@@ -686,11 +686,21 @@ void drawConflictTip(MinecraftUIRenderContext& context, IClientInstance& current
     if (!hoveredKey && conflicts.empty()) return;
     if (hoveredKey && conflicts.empty() && keycapsWidth(context, keys) <= t.keyWidth) return;
     constexpr float pad = 4, headHeight = 15, lineHeight = 12, titleHeight = 13, itemHeight = 14;
-    float width = std::min(240.0f, t.width - 2*SettingsTable::pad), inner = width - 2*pad;
-    // A clipped binding is shown as key caps wrapped onto further lines; with
-    // no conflict there is no other section, so the padding stays the same
-    // above and below it.
-    float header = conflicts.empty() ? keycapsWrapHeight(context, inner, keys, 3) : headHeight;
+    // Size the tip to the chord it reveals: the count on the right must not
+    // squeeze the caps the row clipped (L-232).
+    auto relation = strongestConflict(conflicts);
+    std::string count = conflicts.empty() ? std::string{}
+        : translated(relation == input::Relation::Shared ? "tip.countShared" : "tip.count", std::to_string(conflicts.size()));
+    float capsWidth = keycapsWidth(context, keys);
+    float countWidth = count.empty() ? 0 : textWidth(context, count) + 8;
+    float available = std::max(80.0f, t.width - 2*SettingsTable::pad);
+    float width = std::min(available, std::max(conflicts.empty() ? 120.0f : 240.0f, 2*pad + capsWidth + countWidth));
+    float inner = width - 2*pad;
+    float headerWidth = std::max(40.0f, inner - countWidth);
+    float capsHeight = keycapsWrapHeight(context, headerWidth, keys, 3);
+    // With a conflict the caps share the top row with the count and leave a
+    // little space below; alone they keep equal padding.
+    float header = conflicts.empty() ? capsHeight : std::max(headHeight, capsHeight + 4);
     std::vector<std::string> notes;
     bool leads = std::any_of(conflicts.begin(), conflicts.end(), [](auto c) { return c.link == input::Link::StartsWithThis; });
     if (input::firesOnRelease(preferences.bindings, action)) notes.push_back(translated("tip.release"));
@@ -728,14 +738,9 @@ void drawConflictTip(MinecraftUIRenderContext& context, IClientInstance& current
     fill(context,x,y,width,height,palette::panel,.97f);
     frame(context,x,y,width,height,conflicts.empty() ? palette::keyEdge : palette::warning);
     float cursor = y + pad;
-    if (conflicts.empty()) {
-        keycapsWrap(context,x+pad,cursor,inner,keys,KeyTone::Plain,3);
-    } else {
-        auto relation = strongestConflict(conflicts);
-        keycaps(context,x+pad,cursor,inner*.6f,keys,conflictTone(relation));
-        label(context,x+pad,cursor+boxTextInset(),inner,translated(relation == input::Relation::Shared ? "tip.countShared" : "tip.count",
-            std::to_string(conflicts.size())),palette::warning,Align::Right);
-    }
+    keycapsWrap(context,x+pad,cursor,headerWidth,keys,conflictTone(relation),3);
+    if (!count.empty())
+        label(context,x+pad,cursor+boxTextInset(),inner,count,palette::warning,Align::Right);
     cursor += header;
     for (auto const& note : notes) {
         paragraph(context,x+pad,cursor,inner,note,lines(note),palette::warning);

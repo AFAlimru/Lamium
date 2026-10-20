@@ -469,19 +469,21 @@ Decided 2026-10-20:
 - Hovering the key cell shows the full chord through the existing conflict
   tooltip only when the cell clips it; a short binding needs no tip. The
   keyboard-selected tip still appears only for conflicts.
-- The revealed chord keeps its key caps; if even the wider tooltip would
-  still clip them, they wrap onto another line. The padding stays equal above
-  and below.
+- The tip is as wide as its content (the chord plus the conflict count),
+  capped by the table width, so the count no longer squeezes the caps the row
+  clipped. A chord that is still too long wraps onto another line, and the
+  padding stays equal above and below.
 - The capture footer names wheel directions, and says a wheel cannot be held
   for Hold actions (L-231).
 - Left and right Alt remain one binding; the two sides are not distinguished.
 Built 2026-10-20: `src/ui/KeyLabel.h` (pure, tested in BindingTests),
 `src/ui/KeycapLines.h` (pure wrap, tested in SettingsTableTests),
 `bindingChordName`, `keycapsWidth`/`keycapsWrap` and the tooltip in
-SettingsTableView, and the capture footer text. The hover rule and padding
-were revised after the maintainer's first in-game look: the tip appeared for
-short bindings too, its bottom padding was larger than the top, and it had
-dropped the key caps; the caps stayed and now wrap.
+SettingsTableView, and the capture footer text. The hover rule, width and
+padding were revised after the maintainer's first in-game look: the tip
+appeared for short bindings too, its bottom padding was larger than the top,
+it had dropped the key caps, and a conflict tip clipped the chord it was meant
+to reveal.
 Check in game: clipped rows (three tokens or long names) show the full chord
 on hover, short bindings show no tip, the tip's top and bottom padding match,
 a conflict still shows its explanation, and a single long key stays legible.
