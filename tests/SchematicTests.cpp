@@ -12,6 +12,7 @@
 #include "features/schematic/MaterialAmount.h"
 #include "features/schematic/MenuModel.h"
 #include "features/schematic/MoveDirection.h"
+#include "features/schematic/MoveTarget.h"
 #include "features/schematic/RestPose.h"
 #include "features/schematic/PreviewView.h"
 #include "features/schematic/GhostFaces.h"
@@ -954,6 +955,31 @@ void moveRules() {
               && orthogonal(std::cos(45 * pi / 180), -std::sin(45 * pi / 180), 0),
           "the six directions always stay one orthogonal unit-axis frame");
 }
+void moveTargetRules() {
+    using namespace lamium::schematic;
+    TargetValidity none{};
+    check(!valid(MoveTarget::Placement, none) && !valid(MoveTarget::Corner1, none)
+              && !valid(MoveTarget::Corner2, none) && !valid(MoveTarget::Area, none) && valid(MoveTarget::None, none),
+          "no target is valid until one exists");
+    check(fallback(none) == MoveTarget::None && nextValid(MoveTarget::None, none) == MoveTarget::None,
+          "an empty set falls back to and cycles to no target");
+    TargetValidity corners{false, true, true, true};
+    check(fallback(corners) == MoveTarget::Corner1, "the first valid target is the fallback");
+    check(nextValid(MoveTarget::None, corners) == MoveTarget::Corner1
+              && nextValid(MoveTarget::Corner1, corners) == MoveTarget::Corner2
+              && nextValid(MoveTarget::Corner2, corners) == MoveTarget::Area
+              && nextValid(MoveTarget::Area, corners) == MoveTarget::Corner1,
+          "the cycle skips invalid targets and wraps");
+    check(previousValid(MoveTarget::Corner1, corners) == MoveTarget::Area
+              && previousValid(MoveTarget::Area, corners) == MoveTarget::Corner2,
+          "the reverse cycle also skips invalid targets and wraps");
+    TargetValidity placementOnly{true, false, false, false};
+    check(nextValid(MoveTarget::Area, placementOnly) == MoveTarget::Placement
+              && nextValid(MoveTarget::Placement, placementOnly) == MoveTarget::Placement,
+          "a single valid target stays selected while cycling");
+    TargetValidity areaOnly{false, false, false, true};
+    check(fallback(areaOnly) == MoveTarget::Area, "an area alone is a valid target");
+}
 void schematicTests() {
     rayCells();
     ghostLook();
@@ -967,6 +993,7 @@ void schematicTests() {
     drawKeys();
     menuRules();
     moveRules();
+    moveTargetRules();
     ghostFaces();
     placementTransforms();
     entityRules();

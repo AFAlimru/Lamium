@@ -2,6 +2,7 @@
 #include "features/camera/CameraSessions.h"
 #include "features/schematic/GhostRenderer.h"
 #include "features/schematic/MoveDirection.h"
+#include "features/schematic/MoveTarget.h"
 #include "features/schematic/SchematicSession.h"
 #include "features/schematic/Selection.h"
 #include "input/Actions.h"
@@ -22,6 +23,9 @@
 namespace lamium::schematic::actions {
 namespace {
 using input::Action;
+MoveTarget moveTarget = MoveTarget::Placement;
+std::optional<menu::Stepper> remembered;
+void changeTarget(MoveTarget next);
 std::optional<Point> feet(LocalPlayer& player) {
     auto p = player.getFeetPos();
     if (!std::isfinite(p.x) || !std::isfinite(p.y) || !std::isfinite(p.z)) return std::nullopt;
@@ -117,6 +121,8 @@ void selectLooked(LocalPlayer& player) {
     if (best < 0) { ui::showMessageToast(ui::translated("schematic.toast.notLooking")); return; }
     session::change([&](PlacementSet& s) { s.selected = best; return true; });
     ui::showMessageToast(ui::translated("schematic.toast.selected", set.placements[static_cast<size_t>(best)].name));
+    changeTarget(MoveTarget::Placement);
+    remembered.reset();
 }
 // Always the mistake nearest to where the player is now.
 void nearestMistake(LocalPlayer& player) {
@@ -150,17 +156,54 @@ void setCorner(IClientInstance& client, LocalPlayer& player, int which) {
         ui::showMessageToast(ui::translated("schematic.toast.cornerArea", which + 1, at.x, at.y, at.z, size.x, size.y, size.z));
     } else ui::showMessageToast(ui::translated("schematic.toast.corner", which + 1, at.x, at.y, at.z));
 }
-menu::Target moveTarget = menu::Target::Placement;
-std::optional<menu::Stepper> remembered;
 std::atomic<bool> adjustHeld{false};
 std::atomic<int> pendingWheel{0};
 std::atomic<IClientInstance*> adjustClient{nullptr};
 ll::event::ListenerPtr wheelListener;
 
+std::string targetName(MoveTarget target) {
+    static constexpr std::array<char const*, 5> keys{"schematic.target.placement", "schematic.target.corner1",
+        "schematic.target.corner2", "schematic.target.area", "schematic.target.none"};
+    return ui::translated(keys[static_cast<size_t>(target)]);
+}
+// Which targets exist now: the selected placement and the corners/area must be
+// in the player's dimension.
+TargetValidity validity(LocalPlayer& player) {
+    auto set = session::current();
+    int dimension = static_cast<int>(player.getDimensionId());
+    TargetValidity v;
+    v.placement = set.selected >= 0 && set.selected < static_cast<int>(set.placements.size())
+        && set.placements[static_cast<size_t>(set.selected)].dimension == dimension;
+    auto state = selection::current();
+    bool same = state.dimension == dimension;
+    v.corner1 = same && state.first.has_value();
+    v.corner2 = same && state.second.has_value();
+    v.area = same && state.first && state.second;
+    return v;
+}
+// The target a move acts on; an invalid remembered target falls back to the
+// first valid one and drops the repeat memory.
+MoveTarget resolveTarget(LocalPlayer& player) {
+    TargetValidity v = validity(player);
+    if (valid(moveTarget, v)) return moveTarget;
+    moveTarget = fallback(v);
+    remembered.reset();
+    return moveTarget;
+}
+void changeTarget(MoveTarget next) {
+    if (next == moveTarget) return;
+    moveTarget = next;
+    remembered.reset();
+}
 // Moves the move target by `d`: the selected placement, a corner or both.
 void moveBy(LocalPlayer& player, Point d) {
     auto shifted = [&](Point p) { return Point{p.x + d.x, p.y + d.y, p.z + d.z}; };
-    if (moveTarget == menu::Target::Placement) {
+    MoveTarget target = resolveTarget(player);
+    if (target == MoveTarget::None) {
+        ui::showMessageToast(ui::translated("schematic.toast.noTarget"));
+        return;
+    }
+    if (target == MoveTarget::Placement) {
         changeSelected([&](SavedPlacement& p) { p.placement.origin = shifted(p.placement.origin); }, [](SavedPlacement const& p) {
             return ui::translated("schematic.toast.moved", p.name, p.placement.origin.x, p.placement.origin.y, p.placement.origin.z);
         });
@@ -176,12 +219,40 @@ void moveBy(LocalPlayer& player, Point d) {
         return true;
     };
     bool moved = false;
-    if (moveTarget == menu::Target::Corner1 || moveTarget == menu::Target::Area) moved = corner(state.first, 0) || moved;
-    if (moveTarget == menu::Target::Corner2 || moveTarget == menu::Target::Area) moved = corner(state.second, 1) || moved;
+    if (target == MoveTarget::Corner1 || target == MoveTarget::Area) moved = corner(state.first, 0) || moved;
+    if (target == MoveTarget::Corner2 || target == MoveTarget::Area) moved = corner(state.second, 1) || moved;
     if (!moved) { ui::showMessageToast(ui::translated("schematic.toast.noArea")); return; }
     auto now = selection::current();
-    auto const& shown = moveTarget == menu::Target::Corner2 ? now.second : now.first;
-    if (shown) ui::showMessageToast(ui::translated("schematic.toast.corner", moveTarget == menu::Target::Corner2 ? 2 : 1, shown->x, shown->y, shown->z));
+    auto const& shown = target == MoveTarget::Corner2 ? now.second : now.first;
+    if (shown) ui::showMessageToast(targetName(target) + ": " + ui::translated("schematic.toast.corner",
+        target == MoveTarget::Corner2 ? 2 : 1, shown->x, shown->y, shown->z));
+}
+// Moves the target to the feet: the placement's origin, one corner, or the
+// whole area with corner 1 at the feet (corner 2 follows).
+void moveTargetToFeet(LocalPlayer& player) {
+    auto at = feet(player);
+    if (!at) return;
+    MoveTarget target = resolveTarget(player);
+    if (target == MoveTarget::None) {
+        ui::showMessageToast(ui::translated("schematic.toast.noTarget"));
+        return;
+    }
+    int dimension = static_cast<int>(player.getDimensionId());
+    if (target == MoveTarget::Placement) {
+        changeSelected([&](SavedPlacement& p) { p.placement.origin = *at; p.dimension = dimension; }, [](SavedPlacement const& p) {
+            return ui::translated("schematic.toast.moved", p.name, p.placement.origin.x, p.placement.origin.y, p.placement.origin.z);
+        });
+        return;
+    }
+    if (target == MoveTarget::Corner1 || target == MoveTarget::Corner2) {
+        int which = target == MoveTarget::Corner2 ? 1 : 0;
+        selection::setCorner(which, *at, dimension);
+        ui::showMessageToast(targetName(target) + ": " + ui::translated("schematic.toast.corner", which + 1, at->x, at->y, at->z));
+        return;
+    }
+    auto state = selection::current();
+    if (!state.first) { ui::showMessageToast(ui::translated("schematic.toast.noArea")); return; }
+    moveBy(player, {at->x - state.first->x, at->y - state.first->y, at->z - state.first->z});
 }
 std::string mirrorName(Mirror mirror) {
     return ui::translated(mirror == Mirror::X ? "schematic.mirror.x" : mirror == Mirror::Z ? "schematic.mirror.z" : "schematic.mirror.none");
@@ -193,7 +264,7 @@ std::string layerText(Structure const* structure, SavedPlacement const& p) {
 
 bool handles(Action action) {
     switch (action) {
-    case Action::NearestMistake: case Action::SelectLookedPlacement: case Action::NextPlacement:
+    case Action::NearestMistake: case Action::SelectLookedPlacement: case Action::NextPlacement: case Action::CycleMoveTarget:
     case Action::MovePlacementForward: case Action::MovePlacementBack: case Action::MovePlacementHere:
     case Action::MovePlacementLeft: case Action::MovePlacementRight: case Action::MovePlacementUp: case Action::MovePlacementDown:
     case Action::RotatePlacement: case Action::MirrorPlacement: case Action::LayerUp: case Action::LayerDown: case Action::LayerHere:
@@ -206,14 +277,17 @@ bool handles(Action action) {
 void press(IClientInstance& client, Action action) {
     auto* player = client.getLocalPlayer();
     if (!player) return;
-    auto moved = [](SavedPlacement const& p) {
-        return ui::translated("schematic.toast.moved", p.name, p.placement.origin.x, p.placement.origin.y, p.placement.origin.z);
-    };
     switch (action) {
     case Action::NearestMistake: nearestMistake(*player); return;
     case Action::SelectLookedPlacement: selectLooked(*player); return;
     case Action::SchematicCorner1: setCorner(client, *player, 0); return;
     case Action::SchematicCorner2: setCorner(client, *player, 1); return;
+    case Action::CycleMoveTarget: {
+        MoveTarget next = nextValid(moveTarget, validity(*player));
+        changeTarget(next);
+        ui::showMessageToast(ui::translated("schematic.menu.moveTarget") + ": " + targetName(next));
+        return;
+    }
     case Action::NextPlacement: {
         std::string name;
         bool any = session::change([&](PlacementSet& set) {
@@ -223,21 +297,16 @@ void press(IClientInstance& client, Action action) {
             return true;
         });
         ui::showMessageToast(any ? ui::translated("schematic.toast.selected", name) : ui::translated("schematic.toast.noPlacement"));
+        if (any) remembered.reset();
         return;
     }
     case Action::MovePlacementForward: case Action::MovePlacementBack: case Action::MovePlacementLeft:
     case Action::MovePlacementRight: case Action::MovePlacementUp: case Action::MovePlacementDown: {
-        auto d = stepFor(client, action);
-        changeSelected([&](SavedPlacement& p) {
-            p.placement.origin.x += d.x; p.placement.origin.y += d.y; p.placement.origin.z += d.z;
-        }, moved);
+        moveBy(*player, stepFor(client, action));
         return;
     }
     case Action::MovePlacementHere: {
-        auto at = feet(*player);
-        if (!at) return;
-        int dimension = static_cast<int>(player->getDimensionId());
-        changeSelected([&](SavedPlacement& p) { p.placement.origin = *at; p.dimension = dimension; }, moved);
+        moveTargetToFeet(*player);
         return;
     }
     case Action::RotatePlacement:
@@ -273,8 +342,23 @@ void press(IClientInstance& client, Action action) {
     }
 }
 
-menu::Target target() { return moveTarget; }
-void setTarget(menu::Target value) { moveTarget = value; }
+MoveTarget target() { return moveTarget; }
+void setTarget(menu::Target value) {
+    MoveTarget next = static_cast<MoveTarget>(value);
+    auto set = session::current();
+    auto state = selection::current();
+    bool exists = false;
+    switch (next) {
+    case MoveTarget::Placement: exists = set.selected >= 0 && set.selected < static_cast<int>(set.placements.size()); break;
+    case MoveTarget::Corner1: exists = state.first.has_value(); break;
+    case MoveTarget::Corner2: exists = state.second.has_value(); break;
+    case MoveTarget::Area: exists = state.first && state.second; break;
+    default: break;
+    }
+    if (!exists) { ui::showMessageToast(ui::translated("schematic.toast.targetUnset")); return; }
+    changeTarget(next);
+    ui::showMessageToast(ui::translated("schematic.menu.moveTarget") + ": " + targetName(next));
+}
 
 void step(IClientInstance& client, menu::Stepper stepper, int amount) {
     using S = menu::Stepper;
@@ -283,8 +367,14 @@ void step(IClientInstance& client, menu::Stepper stepper, int amount) {
     if (menu::repeatable(stepper)) remembered = stepper;
     switch (stepper) {
     case S::Target: {
-        moveTarget = static_cast<menu::Target>(((static_cast<int>(moveTarget) + amount) % 4 + 4) % 4);
-        ui::showMessageToast(ui::translated("schematic.menu.moveTarget") + ": " + value(S::Target));
+        TargetValidity v = validity(*player);
+        if (v.placement || v.corner1 || v.corner2 || v.area) {
+            int turns = std::abs(amount);
+            for (int i = 0; i < turns; ++i)
+                moveTarget = amount > 0 ? nextValid(moveTarget, v) : previousValid(moveTarget, v);
+        } else moveTarget = MoveTarget::None;
+        remembered.reset();
+        ui::showMessageToast(ui::translated("schematic.menu.moveTarget") + ": " + targetName(moveTarget));
         return;
     }
     case S::ForwardBack: case S::LeftRight: {
@@ -325,6 +415,7 @@ void step(IClientInstance& client, menu::Stepper stepper, int amount) {
             return true;
         });
         ui::showMessageToast(any ? ui::translated("schematic.toast.selected", name) : ui::translated("schematic.toast.noPlacement"));
+        if (any) remembered.reset();
         return;
     }
     }
@@ -335,16 +426,9 @@ void run(IClientInstance& client, menu::Command command) {
     auto* player = client.getLocalPlayer();
     if (!player) return;
     switch (command) {
-    case C::ToFeet: {
-        auto at = feet(*player);
-        if (!at) return;
-        if (moveTarget == menu::Target::Placement) { press(client, Action::MovePlacementHere); return; }
-        auto state = selection::current();
-        // A corner goes to the feet; the whole area moves with corner 1 there.
-        Point from = moveTarget == menu::Target::Corner2 ? state.second.value_or(*at) : state.first.value_or(*at);
-        moveBy(*player, {at->x - from.x, at->y - from.y, at->z - from.z});
+    case C::ToFeet:
+        moveTargetToFeet(*player);
         return;
-    }
     case C::ResetTurn:
         changeSelected([](SavedPlacement& p) { p.placement.rotation = 0; p.placement.mirror = Mirror::None; },
             [](SavedPlacement const& p) { return ui::translated("schematic.toast.rotated", p.name, 0); });
@@ -370,6 +454,8 @@ void run(IClientInstance& client, menu::Command command) {
     case C::Corner2Here: press(client, Action::SchematicCorner2); return;
     case C::ClearArea:
         selection::clear();
+        changeTarget(fallback(validity(*player)));
+        remembered.reset();
         ui::showMessageToast(ui::translated("schematic.toast.areaCleared"));
         return;
     case C::SelectLooked: press(client, Action::SelectLookedPlacement); return;
@@ -384,11 +470,7 @@ std::string value(menu::Stepper stepper) {
     SavedPlacement const* p = set.selected >= 0 && set.selected < static_cast<int>(set.placements.size())
         ? &set.placements[static_cast<size_t>(set.selected)] : nullptr;
     switch (stepper) {
-    case S::Target: {
-        static constexpr std::array<char const*, 4> targets{"schematic.target.placement", "schematic.target.corner1",
-            "schematic.target.corner2", "schematic.target.area"};
-        return ui::translated(targets[static_cast<size_t>(moveTarget)]);
-    }
+    case S::Target: return targetName(moveTarget);
     case S::Placement: return p ? p->name : std::string{};
     case S::Rotate: return p ? std::format("{}°", p->placement.rotation * 90) : std::string{};
     case S::Mirror: return p ? mirrorName(p->placement.mirror) : std::string{};
@@ -447,6 +529,8 @@ void stopAdjust() {
     }
     adjustHeld = false;
     pendingWheel = 0;
+    remembered.reset();
+    moveTarget = MoveTarget::Placement;
 }
 void adjustFrame(MinecraftUIRenderContext& context, float, float) {
     IClientInstance& client = context.mClient;

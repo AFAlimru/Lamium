@@ -1,5 +1,6 @@
 #pragma once
 #include "features/schematic/MenuModel.h"
+#include "features/schematic/MoveTarget.h"
 #include "input/Binding.h"
 #include <optional>
 #include <string>
@@ -13,7 +14,7 @@ void press(IClientInstance& client, input::Action action);
 
 // The schematic menu's steppers and its commands that act in the world
 // (screen commands and settings switches are the screen's). Client thread.
-menu::Target target();
+MoveTarget target();
 void setTarget(menu::Target);
 void step(IClientInstance& client, menu::Stepper stepper, int amount);
 void run(IClientInstance& client, menu::Command command);
