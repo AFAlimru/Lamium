@@ -286,6 +286,14 @@ void changeArrow(MinecraftUIRenderContext& context, float x, float y, float scal
     for (int i = 0; i < 3; ++i)                               // Head, narrowing to the tip.
         fill(context, x + (4 + i) * scale, y + i * scale, scale, (5 - 2 * i) * scale, color);
 }
+float keycapsWidth(MinecraftUIRenderContext& context, std::vector<std::string> const& keys) {
+    float width = 0;
+    for (size_t i = 0; i < keys.size(); ++i) {
+        if (i) width += 6;
+        width += textWidth(context, keys[i]) + 6;
+    }
+    return width;
+}
 float keycaps(MinecraftUIRenderContext& context, float x, float y, float width, std::vector<std::string> const& keys,
               KeyTone tone) {
     bool filled = tone == KeyTone::Filled;

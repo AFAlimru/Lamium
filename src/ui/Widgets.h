@@ -103,5 +103,7 @@ enum class KeyTone { Plain, Outline, Filled };
 // Draws key caps left to right within width and returns the width used.
 float keycaps(MinecraftUIRenderContext&, float x, float y, float width, std::vector<std::string> const& keys,
               KeyTone tone = KeyTone::Plain);
+// The width keycaps() needs to draw every cap without clipping.
+float keycapsWidth(MinecraftUIRenderContext&, std::vector<std::string> const& keys);
 constexpr float capHeight = 11;
 }

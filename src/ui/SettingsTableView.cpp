@@ -677,13 +677,21 @@ std::string linkTitle(input::Link link) {
 void drawConflictTip(MinecraftUIRenderContext& context, IClientInstance& current, SettingsTable const& t, int row,
                      input::Action action, bool hoveredKey) {
     auto const preferences = Runtime::instance().preferences();
+    auto const chord = input::effectiveChord(preferences.bindings, action);
+    if (chord.empty()) return;
     auto const conflicts = input::bindingConflicts(preferences.bindings, action);
-    // Hovering the key cell always shows the full binding; the keyboard tip
-    // still appears only when there is a conflict to explain (L-232).
+    auto const keys = chordKeys(current, chord);
+    // Hovering the key cell reveals a binding only when the cell clips it; the
+    // keyboard tip still appears only when there is a conflict (L-232).
     if (!hoveredKey && conflicts.empty()) return;
-    if (hoveredKey && input::effectiveChord(preferences.bindings, action).empty()) return;
+    if (hoveredKey && conflicts.empty() && keycapsWidth(context, keys) <= t.keyWidth) return;
     constexpr float pad = 4, headHeight = 15, lineHeight = 12, titleHeight = 13, itemHeight = 14;
     float width = std::min(240.0f, t.width - 2*SettingsTable::pad), inner = width - 2*pad;
+    // A clipped binding is written out below; with no conflict there is no
+    // other section, so the padding stays the same above and below it.
+    std::string binding = bindingChordName(current, chord);
+    size_t bindingLines = conflicts.empty() ? paragraphLines(context, inner, binding, 3) : 1;
+    float header = conflicts.empty() ? bindingLines * lineHeight : headHeight;
     std::vector<std::string> notes;
     bool leads = std::any_of(conflicts.begin(), conflicts.end(), [](auto c) { return c.link == input::Link::StartsWithThis; });
     if (input::firesOnRelease(preferences.bindings, action)) notes.push_back(translated("tip.release"));
@@ -695,7 +703,7 @@ void drawConflictTip(MinecraftUIRenderContext& context, IClientInstance& current
     for (auto const& note : notes) notesHeight += lines(note) * lineHeight;
     // Items that fit the budget; the rest are counted on a last line.
     auto fitting = [&](float budget, float& height) {
-        height = 2*pad + headHeight + notesHeight;
+        height = 2*pad + header + notesHeight;
         size_t shown = 0;
         for (; shown < conflicts.size(); ++shown) {
             bool group = shown == 0 || conflicts[shown].link != conflicts[shown-1].link;
@@ -721,13 +729,15 @@ void drawConflictTip(MinecraftUIRenderContext& context, IClientInstance& current
     fill(context,x,y,width,height,palette::panel,.97f);
     frame(context,x,y,width,height,conflicts.empty() ? palette::keyEdge : palette::warning);
     float cursor = y + pad;
-    auto relation = strongestConflict(conflicts);
-    keycaps(context,x+pad,cursor,inner*.6f,chordKeys(current, input::effectiveChord(preferences.bindings, action)),
-        conflictTone(relation));
-    if (!conflicts.empty())
+    if (conflicts.empty()) {
+        paragraph(context,x+pad,cursor,inner,binding,bindingLines,palette::text);
+    } else {
+        auto relation = strongestConflict(conflicts);
+        keycaps(context,x+pad,cursor,inner*.6f,keys,conflictTone(relation));
         label(context,x+pad,cursor+boxTextInset(),inner,translated(relation == input::Relation::Shared ? "tip.countShared" : "tip.count",
             std::to_string(conflicts.size())),palette::warning,Align::Right);
-    cursor += headHeight;
+    }
+    cursor += header;
     for (auto const& note : notes) {
         paragraph(context,x+pad,cursor,inner,note,lines(note),palette::warning);
         cursor += lines(note) * lineHeight;
