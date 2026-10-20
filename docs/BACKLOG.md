@@ -391,14 +391,22 @@ without binding a key; do not add a new section for them. Sidebar entries
 exist for most tools, but a first-time user may not connect the sidebar to a
 different screen. If text buttons crowd the rows, use a link-style Open icon
 instead.
+Placement (maintainer 2026-10-20): the Open button belongs on the opener's own
+action row, not on a feature row with a switch, so no row needs both. The
+world map's opener is the "Open the world map" action row (M) under the World
+map feature; that feature row keeps the map switch and its toggle key. The
+schematic menu and calculator are features whose primary action is the
+opener, have no switch, and carry the button on the feature row. Sidebar
+tools have the same opener action rows (Open shapes, Open waypoints, Open the
+schematics screen, Open hotkeys, Open HUD layout).
 Layout state: the State column is 24 px, enough for a switch but not for the
 word "Open"; the calculator's button therefore overlapped its own frame. The
 calculator button was widened to 38 px into the name gap on 2026-10-20 and
-awaits a look in game. Open questions: where the button goes on rows that
-already use the State column for a switch (an Open icon at the name's right
-edge is one option), and whether Open for the world map and schematic menu
-opens the in-settings view or closes settings and opens the tool over the
-world.
+passed its in-game look. Open questions: whether the four Schematics tab
+openers get buttons or only the main openers; whether Open for the schematic
+menu opens the radial menu over the settings screen or closes settings first;
+and whether the text "Open" or a link-style icon reads better once several
+opener rows have buttons.
 Wheel chords (maintainer 2026-10-20): a Press action can already be bound to
 a wheel chord in the key settings; Left Alt + Wheel Up/Down assigned to the
 schematic away/closer actions fired as expected. Hold actions reject a wheel
