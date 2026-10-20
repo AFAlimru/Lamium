@@ -13,6 +13,7 @@
 #include "features/schematic/MenuModel.h"
 #include "features/schematic/MoveDirection.h"
 #include "features/schematic/MoveTarget.h"
+#include "features/schematic/TargetRay.h"
 #include "features/schematic/RestPose.h"
 #include "features/schematic/PreviewView.h"
 #include "features/schematic/GhostFaces.h"
@@ -981,6 +982,22 @@ void moveTargetRules() {
     TargetValidity areaOnly{false, false, false, true};
     check(fallback(areaOnly) == MoveTarget::Area, "an area alone is a valid target");
 }
+void targetRayRules() {
+    using namespace lamium::schematic;
+    TargetRay through{0.5, 0.5, -2, 0, 0, 1, 256};
+    auto cell = cellEntry(through, 0, 0, 0);
+    check(cell && std::abs(*cell - 2) < 1e-9, "a ray through a cell reports its entry distance");
+    TargetRay inside{0.5, 0.5, 0.5, 0, 0, 1, 256};
+    check(cellEntry(inside, 0, 0, 0) == 0, "an origin inside the cell enters at 0");
+    TargetRay outside{2, 0.5, -2, 0, 0, 1, 256};
+    check(!cellEntry(outside, 0, 0, 0), "a ray beside the cell misses it");
+    TargetRay behind{0.5, 0.5, 2, 0, 0, 1, 256};
+    check(!cellEntry(behind, 0, 0, 0), "a cell behind the ray misses");
+    TargetRay shortReach{0.5, 0.5, -2, 0, 0, 1, 1};
+    check(!cellEntry(shortReach, 0, 0, 0), "a cell past the reach misses");
+    auto area = boxEntry(through, 0, 0, 0, 4, 4, 4);
+    check(area && std::abs(*area - 2) < 1e-9, "an area box uses the same entry distance");
+}
 void schematicTests() {
     rayCells();
     ghostLook();
@@ -995,6 +1012,7 @@ void schematicTests() {
     menuRules();
     moveRules();
     moveTargetRules();
+    targetRayRules();
     ghostFaces();
     placementTransforms();
     entityRules();

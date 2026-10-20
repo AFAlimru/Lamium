@@ -3,6 +3,7 @@
 #include "features/schematic/GhostRenderer.h"
 #include "features/schematic/MoveDirection.h"
 #include "features/schematic/MoveTarget.h"
+#include "features/schematic/TargetRay.h"
 #include "features/schematic/SchematicSession.h"
 #include "features/schematic/Selection.h"
 #include "input/Actions.h"
@@ -19,6 +20,7 @@
 #include "mc/world/level/BlockSource.h"
 #include "mc/world/level/ShapeType.h"
 #include "mc/world/level/block/Block.h"
+#include "mc/world/level/block/BlockType.h"
 #include <atomic>
 #include <cmath>
 #include <limits>
@@ -34,6 +36,16 @@ std::optional<Point> feet(LocalPlayer& player) {
     auto p = player.getFeetPos();
     if (!std::isfinite(p.x) || !std::isfinite(p.y) || !std::isfinite(p.z)) return std::nullopt;
     return Point{static_cast<int>(std::floor(p.x)), static_cast<int>(std::floor(p.y)), static_cast<int>(std::floor(p.z))};
+}
+// The block the view stands in: the player's feet, or the detached camera's
+// block in Freelook / FreeCamera.
+std::optional<Point> viewFeet(IClientInstance& client, LocalPlayer& player) {
+    if (auto ray = CameraSessions::instance().detachedViewRay(client)) {
+        if (!std::isfinite(ray->x) || !std::isfinite(ray->y) || !std::isfinite(ray->z)) return std::nullopt;
+        return Point{static_cast<int>(std::floor(ray->x)), static_cast<int>(std::floor(ray->y)),
+            static_cast<int>(std::floor(ray->z))};
+    }
+    return feet(player);
 }
 // The drawn view's axes: a detached Freelook or FreeCamera view owns the
 // crosshair, so a step follows it rather than the body (L-230).
@@ -148,53 +160,87 @@ BlockHit cameraBlock(LocalPlayer& player, Vec3 const& eye, Vec3 const& dir) {
     result.distance = std::sqrt(dx * dx + dy * dy + dz * dz);
     return result;
 }
-// The move target the drawn view points at: a directly hit corner first (also
-// inside a placement box), then the nearest placement box, then the save area
-// when the hit block is inside it.
+struct View {
+    Vec3 eye{};
+    Vec3 dir{0, 0, 1};
+    bool detached = false;
+};
+View view(IClientInstance& client, LocalPlayer& player) {
+    View v;
+    v.eye = player.getEyePos();
+    v.dir = player.getViewVector(1.f);
+    if (auto ray = CameraSessions::instance().detachedViewRay(client)) {
+        v.eye = Vec3{static_cast<float>(ray->x), static_cast<float>(ray->y), static_cast<float>(ray->z)};
+        v.dir = Vec3{static_cast<float>(ray->dx), static_cast<float>(ray->dy), static_cast<float>(ray->dz)};
+        v.detached = true;
+    }
+    return v;
+}
+// The block the view picks: the game's crosshair in normal play (so block
+// seams match what is outlined), our own ray for a detached camera.
+BlockHit viewBlock(IClientInstance& client, LocalPlayer& player) {
+    View v = view(client, player);
+    if (v.detached) return cameraBlock(player, v.eye, v.dir);
+    BlockHit result;
+    auto const& latest = client.getLatestHitResult();
+    if (latest.mType != HitResultType::Tile) return result;
+    result.tile = true;
+    result.block = {latest.mBlock.x, latest.mBlock.y, latest.mBlock.z};
+    result.pos = latest.mPos;
+    double dx = latest.mPos.x - v.eye.x, dy = latest.mPos.y - v.eye.y, dz = latest.mPos.z - v.eye.z;
+    result.distance = std::sqrt(dx * dx + dy * dy + dz * dz);
+    return result;
+}
+// The first block that fully hides what is behind it. Glass, plants and other
+// see-through blocks do not count, so a corner behind them stays pickable.
+double opaqueDistance(LocalPlayer& player, View const& v) {
+    double length = std::sqrt(static_cast<double>(v.dir.x) * v.dir.x + static_cast<double>(v.dir.y) * v.dir.y
+        + static_cast<double>(v.dir.z) * v.dir.z);
+    if (!(length > 1e-9)) return std::numeric_limits<double>::max();
+    constexpr int reach = 256;
+    Vec3 to{v.eye.x + static_cast<float>(v.dir.x / length * reach), v.eye.y + static_cast<float>(v.dir.y / length * reach),
+        v.eye.z + static_cast<float>(v.dir.z / length * reach)};
+    auto& source = player.getDimensionBlockSource();
+    auto hit = source.clip(v.eye, to, false, ShapeType::Outline, reach, false, false, nullptr,
+        [](BlockSource const&, Block const& block, bool) { return block.getBlockType().mIsOpaqueFullBlock; }, false);
+    if (hit.mType != HitResultType::Tile) return std::numeric_limits<double>::max();
+    double dx = hit.mPos.x - v.eye.x, dy = hit.mPos.y - v.eye.y, dz = hit.mPos.z - v.eye.z;
+    return std::sqrt(dx * dx + dy * dy + dz * dz);
+}
+// The move target the drawn view points at. A corner cell the ray passes
+// through wins even in the air and behind see-through blocks; then the nearest
+// placement box; then the save area when the ray enters it. A fully opaque
+// block in front hides all three.
 void selectLooked(IClientInstance& client, LocalPlayer& player) {
     int dimension = static_cast<int>(player.getDimensionId());
-    auto eye = player.getEyePos();
-    auto dir = player.getViewVector(1.f);
-    bool detached = false;
-    if (auto ray = CameraSessions::instance().detachedViewRay(client)) {
-        eye = Vec3{static_cast<float>(ray->x), static_cast<float>(ray->y), static_cast<float>(ray->z)};
-        dir = Vec3{static_cast<float>(ray->dx), static_cast<float>(ray->dy), static_cast<float>(ray->dz)};
-        detached = true;
-    }
+    View v = view(client, player);
+    TargetRay ray{v.eye.x, v.eye.y, v.eye.z, v.dir.x, v.dir.y, v.dir.z, 256};
     auto set = session::current();
     auto state = selection::current();
-    BlockHit hit;
-    if (detached) {
-        hit = cameraBlock(player, eye, dir);
-    } else {
-        // In normal play the game's own pick is the crosshair: rebuilding a
-        // ray from the eye drifts at block seams (L-217).
-        auto const& latest = client.getLatestHitResult();
-        if (latest.mType == HitResultType::Tile) {
-            hit.tile = true;
-            hit.block = {latest.mBlock.x, latest.mBlock.y, latest.mBlock.z};
-            hit.pos = latest.mPos;
-            double dx = latest.mPos.x - eye.x, dy = latest.mPos.y - eye.y, dz = latest.mPos.z - eye.z;
-            hit.distance = std::sqrt(dx * dx + dy * dy + dz * dz);
+    double opaque = opaqueDistance(player, v);
+    // A target on the face of an opaque block is still visible: only something
+    // strictly in front of it hides it.
+    constexpr double face = 1e-6;
+    MoveTarget cornerTarget = MoveTarget::None;
+    if (state.dimension == dimension) {
+        auto first = state.first ? cellEntry(ray, state.first->x, state.first->y, state.first->z) : std::nullopt;
+        auto second = state.second ? cellEntry(ray, state.second->x, state.second->y, state.second->z) : std::nullopt;
+        bool firstVisible = first && *first <= opaque + face;
+        bool secondVisible = second && *second <= opaque + face;
+        if (firstVisible && secondVisible && std::abs(*first - *second) < 1e-9) {
+            // Both corners in one cell: keep the current corner if it is one.
+            cornerTarget = moveTarget == MoveTarget::Corner1 || moveTarget == MoveTarget::Corner2 ? moveTarget : MoveTarget::Corner1;
+        } else if (firstVisible && (!secondVisible || *first < *second)) {
+            cornerTarget = MoveTarget::Corner1;
+        } else if (secondVisible) {
+            cornerTarget = MoveTarget::Corner2;
         }
     }
-    bool tile = hit.tile;
-    Point hitBlock = hit.block;
-    double hitDistance = hit.distance;
-    // A corner the crosshair hits directly wins before distance, including
-    // when the camera is inside the placement box.
-    if (tile && state.dimension == dimension) {
-        bool first = state.first && *state.first == hitBlock;
-        bool second = state.second && *state.second == hitBlock;
-        if (first || second) {
-            MoveTarget next = first && second
-                ? (moveTarget == MoveTarget::Corner1 || moveTarget == MoveTarget::Corner2 ? moveTarget : MoveTarget::Corner1)
-                : (first ? MoveTarget::Corner1 : MoveTarget::Corner2);
-            changeTarget(next);
-            remembered.reset();
-            ui::showMessageToast(ui::translated("schematic.menu.moveTarget") + ": " + targetName(next));
-            return;
-        }
+    if (cornerTarget != MoveTarget::None) {
+        changeTarget(cornerTarget);
+        remembered.reset();
+        ui::showMessageToast(ui::translated("schematic.menu.moveTarget") + ": " + targetName(cornerTarget));
+        return;
     }
     int best = -1;
     double bestDistance = std::numeric_limits<double>::max();
@@ -202,33 +248,26 @@ void selectLooked(IClientInstance& client, LocalPlayer& player) {
         auto const& p = set.placements[static_cast<size_t>(i)];
         auto structure = p.dimension == dimension && p.visible ? session::structure(p.file) : nullptr;
         if (!structure) continue;
-        auto distance = enter(eye, dir, p.placement.origin, placedSize(structure->size, p.placement.rotation), 256);
-        if (distance && *distance < bestDistance) { best = i; bestDistance = *distance; }
+        auto distance = enter(v.eye, v.dir, p.placement.origin, placedSize(structure->size, p.placement.rotation), 256);
+        if (distance && *distance < bestDistance && *distance <= opaque + face) { best = i; bestDistance = *distance; }
     }
-    bool areaCandidate = false;
-    double areaDistance = std::numeric_limits<double>::max();
-    if (tile && state.dimension == dimension && state.first && state.second) {
-        Area area{*state.first, *state.second};
-        auto low = area.low();
-        auto size = area.size();
-        if (hitBlock.x >= low.x && hitBlock.x < low.x + size.x && hitBlock.y >= low.y && hitBlock.y < low.y + size.y
-            && hitBlock.z >= low.z && hitBlock.z < low.z + size.z) {
-            areaCandidate = true;
-            areaDistance = hitDistance;
-        }
-    }
-    // Distance first; the placement wins a tie with the area.
-    if (best >= 0 && (!areaCandidate || bestDistance <= areaDistance)) {
+    if (best >= 0) {
         session::change([&](PlacementSet& s) { s.selected = best; return true; });
         placementSelected();
         ui::showMessageToast(ui::translated("schematic.toast.selected", set.placements[static_cast<size_t>(best)].name));
         return;
     }
-    if (areaCandidate) {
-        changeTarget(MoveTarget::Area);
-        remembered.reset();
-        ui::showMessageToast(ui::translated("schematic.menu.moveTarget") + ": " + targetName(MoveTarget::Area));
-        return;
+    if (state.dimension == dimension && state.first && state.second) {
+        Area area{*state.first, *state.second};
+        auto low = area.low();
+        auto size = area.size();
+        auto entry = boxEntry(ray, low.x, low.y, low.z, low.x + size.x, low.y + size.y, low.z + size.z);
+        if (entry && *entry <= opaque + face) {
+            changeTarget(MoveTarget::Area);
+            remembered.reset();
+            ui::showMessageToast(ui::translated("schematic.menu.moveTarget") + ": " + targetName(MoveTarget::Area));
+            return;
+        }
     }
     ui::showMessageToast(ui::translated("schematic.toast.notLooking"));
 }
@@ -255,9 +294,9 @@ void nearestMistake(LocalPlayer& player) {
 }
 // A corner of the area to save: the block in the crosshair.
 void setCorner(IClientInstance& client, LocalPlayer& player, int which) {
-    auto const& hit = client.getLatestHitResult();
-    if (hit.mType != HitResultType::Tile) { ui::showMessageToast(ui::translated("schematic.toast.lookAtBlock")); return; }
-    Point at{hit.mBlock.x, hit.mBlock.y, hit.mBlock.z};
+    BlockHit hit = viewBlock(client, player);
+    if (!hit.tile) { ui::showMessageToast(ui::translated("schematic.toast.lookAtBlock")); return; }
+    Point at = hit.block;
     selection::setCorner(which, at, static_cast<int>(player.getDimensionId()));
     if (auto area = selection::current().area()) {
         auto size = area->size();
@@ -337,8 +376,8 @@ void moveBy(LocalPlayer& player, Point d) {
 }
 // Moves the target to the feet: the placement's origin, one corner, or the
 // whole area with corner 1 at the feet (corner 2 follows).
-void moveTargetToFeet(LocalPlayer& player) {
-    auto at = feet(player);
+void moveTargetToFeet(IClientInstance& client, LocalPlayer& player) {
+    auto at = viewFeet(client, player);
     if (!at) return;
     MoveTarget target = resolveTarget(player);
     if (target == MoveTarget::None) {
@@ -416,7 +455,7 @@ void press(IClientInstance& client, Action action) {
         return;
     }
     case Action::MovePlacementHere: {
-        moveTargetToFeet(*player);
+        moveTargetToFeet(client, *player);
         return;
     }
     case Action::RotatePlacement:
@@ -442,7 +481,7 @@ void press(IClientInstance& client, Action action) {
         return;
     }
     case Action::LayerHere: {
-        auto at = feet(*player);
+        auto at = viewFeet(client, *player);
         auto structure = selectedStructure();
         if (!at || !structure) return;
         remembered = menu::Stepper::Layer;
@@ -553,7 +592,7 @@ void run(IClientInstance& client, menu::Command command) {
     if (!player) return;
     switch (command) {
     case C::ToFeet:
-        moveTargetToFeet(*player);
+        moveTargetToFeet(client, *player);
         return;
     case C::ResetTurn:
         changeSelected([](SavedPlacement& p) { p.placement.rotation = 0; p.placement.mirror = Mirror::None; },
