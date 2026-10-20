@@ -536,7 +536,13 @@ bool openButtonHovered(SettingsTable const& t, SettingsTable::Hit const& hover, 
     return hover.zone == Zone::Row && hover.index == row && hover.x >= x && hover.x < x + openButtonWidth;
 }
 void drawOpenButton(MinecraftUIRenderContext& context, SettingsTable const& t, float y, bool hovered) {
-    drawSmallButton(context,openButtonX(t),y+1,openButtonWidth,capHeight,translated("open"),hovered);
+    // Same row and cap style as the key cell beside it, so the two line up.
+    float x = openButtonX(t), cy = y + 2;
+    fill(context,x,cy,openButtonWidth,capHeight,palette::keyFill);
+    if (hovered) fill(context,x,cy,openButtonWidth,capHeight,palette::white,.1f);
+    frame(context,x,cy,openButtonWidth,capHeight,palette::keyEdge);
+    fill(context,x+1,cy+capHeight-2,openButtonWidth-2,1,Rgb{0,0,0},.5f);
+    labelScaled(context,x,cy+boxTextInset(),openButtonWidth,translated("open"),1.f,palette::text,Align::Center,true);
 }
 void drawKeyCell(MinecraftUIRenderContext& context, IClientInstance& current, float y, input::Action action) {
     // Cap text sits at the cap top in Japanese; start the cap low enough that
