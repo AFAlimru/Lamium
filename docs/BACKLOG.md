@@ -68,8 +68,7 @@ published for whoever wants it. There is no "first release" gate.
 Keep this section short: ordering lives here; status, contracts and open
 choices live in the L-items. An L-item wins if a summary drifts.
 
-1. **Bugs first.** L-229 schematic menu opener (second fix awaiting the
-   in-game check); L-227 FreeCamera shows only the sky
+1. **Bugs first.** L-227 FreeCamera shows only the sky
    outside loaded terrain (Research; new native experiment needs the
    maintainer's go-ahead). L-177 mismatch-highlight fix is built and awaits
    the reporter's next schematic session, not another implementation.
@@ -180,28 +179,6 @@ validation checkpoints" (snapshot 2026-10-20).
 ---
 
 ## Bugs
-
-### L-229 Holding the schematic menu opener closes the menu
-Kind: Bug / Ready. High priority. Maintainer runtime report, 2026-10-20,
-from the [Notion idea inbox](https://app.notion.com/p/3f7c12ab5b2d8121b2a0db32608f6b7a).
-Status: reported; the first fix (2026-10-20, `7f47f9a`) did not work and the
-maintainer re-reported it on `dcab6ce`. A second fix was built on 2026-10-20
-(deployed DLL SHA-256
-`e09ef07ed07208180dec1c2e725769ce3ff4fd84cb857cd69810a3c7749bd8bc`) and is
-not yet checked in game.
-Cause: the settings key listener queues key repeats as presses, and
-`handleMenuKey()` closes on any opener press. The first fix dropped repeats
-only after the settings screen had seen the key once, but the opening press
-happens before the screen listens, so the first repeat still looked fresh.
-Fix: opening the schematic menu now seeds the opener's still-held inputs into
-the screen's held set (shared `seedHeld`, also used for the Settings and World
-Map openers), so its repeats are recognised and the existing guard drops
-them. Release then a fresh press still closes; Esc, right-click/back and the
-menu actions are unchanged.
-Files: `src/ui/SettingsScreen.cpp`.
-Check in game: bind a key to Open the schematic menu; tap, hold, release and
-tap; Esc and right-click close; with a mouse-bound opener too if practical.
-Do not suppress repeats needed by editing/navigation controls.
 
 ### L-227 FreeCamera outside the loaded area shows only the sky
 Kind: Bug / Research. Maintainer 2026-10-19 (`9a565f0`): with FreeCamera
@@ -386,11 +363,12 @@ Rule (maintainer 2026-10-20, revised after the first check):
 Built: `src/features/schematic/MoveDirection.h` (pure, tested in
 SchematicTests), used by `SchematicActions.cpp` for the menu steppers and the
 six directional keys. Contract: [SCHEMATIC.md](SCHEMATIC.md).
-Open (maintainer 2026-10-20): no help text explains the 60-degree turn or
-that up/down become horizontal; decide whether to add a short line to the
-directional key help or the menu, and whether the threshold should be
-selectable (45/60) or stay one constant. The code keeps the rule pure, so a
-constant or a setting both fit; no choice made.
+Explained (decided 2026-10-20): the directional key help now says that
+looking steeply up or down moves forward/back on Y, and that up/down follow
+the view and become horizontal then. No degree number is shown. A 45-degree
+option is declined for now; the threshold stays one constant and can be
+revisited if it feels wrong in use. The help text was added on 2026-10-20 and
+awaits a look in game.
 
 ### L-231 Make schematic controls easier to find and review directional keys
 Kind: Design. Combines two maintainer UX notes from 2026-10-20 in the
@@ -407,11 +385,15 @@ whether their text fits. Separate a missing capability (L-230's Y-axis
 movement) from an existing operation that needs a clearer explanation.
 Additional maintainer feedback, 2026-10-20: settings offers a direct Open
 button for the calculator (L-220), but no equivalent button for the schematic
-radial menu. Track this inconsistent access as an improvement candidate;
-the remedy is undecided. Review how settings exposes tool/screen openers
-alongside their bindings, including whether to add, remove or otherwise
-unify direct-open controls. Do not assume that adding a radial-menu button
-or removing the calculator button is already approved.
+radial menu. Decided 2026-10-20: add direct Open buttons for every tool,
+including the schematic menu, as a way to try a tool without binding a key.
+The open question is the layout, because a button in every row could look
+crowded and some rows already use the State column for a switch: the
+calculator puts Open in a free State column; the schematic menu is a key
+group rather than a feature row; opening it from settings means closing the
+settings screen first. Do not add buttons until the layout is chosen. The
+"Open" label also overlapped its frame (small-button text inset); fix that
+with the layout work.
 Wheel chords (maintainer 2026-10-20): a Press action can already be bound to
 a wheel chord in the key settings; Left Alt + Wheel Up/Down assigned to the
 schematic away/closer actions fired as expected. Hold actions reject a wheel

@@ -12,6 +12,20 @@ Entries below that name 26.51.3 were verified on that release. After the
 26.51.5 update (commit 4a5b975) a brief in-game check found no regressions;
 it was not a full re-run of every entry.
 
+## L-229 second fix checked (2026-10-20)
+
+Build `fee90cf`, deployed DLL SHA-256
+`e09ef07ed07208180dec1c2e725769ce3ff4fd84cb857cd69810a3c7749bd8bc`,
+default release build (no trace/probe options), local `1.26.51.01 LIP`
+deployment, Windows x64. Maintainer report: holding the schematic menu
+opener (R) leaves the radial menu open, and release then a fresh press closes
+it. Esc, right-click/back and the menu actions are unchanged.
+
+The directional key help text added after this build (DLL SHA-256
+`e4b2c506c4fc3501dcdaea2dba33540c80ff55c5df4db3d0dfd1b2345cf8e609`) has not
+been looked at in game. This is a maintainer report, not an agent observation.
+The branch is committed locally and not pushed.
+
 ## L-229 correction and all-six movement check (2026-10-20)
 
 Correction to the entries below: the schematic menu opener check was reported

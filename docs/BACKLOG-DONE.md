@@ -10,6 +10,24 @@ Runtime status is in [VALIDATION.md](VALIDATION.md), the evidence in
 
 ## Bugs
 
+### L-229 Holding the schematic menu opener closes the menu
+Closed 2026-10-20: the second fix passed in game on the same day (deployed
+DLL SHA-256
+`e09ef07ed07208180dec1c2e725769ce3ff4fd84cb857cd69810a3c7749bd8bc`): holding
+the opener leaves the radial menu open, and release then a fresh press
+closes it. Esc, right-click/back and the menu actions are unchanged.
+
+Kind: Bug / Ready. High priority. Maintainer runtime report, 2026-10-20,
+from the [Notion idea inbox](https://app.notion.com/p/3f7c12ab5b2d8121b2a0db32608f6b7a).
+History: confirmed in game on `07f0dc1`; a first fix on `7f47f9a` dropped
+repeats only after the settings screen had seen the key, but the opening
+press happens before the screen listens, so the first repeat still looked
+fresh and closed the menu; the maintainer re-reported it on `dcab6ce`.
+Fix: `seedHeld` marks the opener's still-held inputs when a screen opens
+(shared by the Settings, World Map and schematic menu openers), so its
+repeats are recognised and the existing guard drops them. Files:
+`src/ui/SettingsScreen.cpp`.
+
 ### L-207 FreeCamera halves the frame rate
 Closed during documentation reconciliation, 2026-10-20: the measured open-ground regression was fixed and locally checked on 2026-10-18, as recorded below and in CAMERA.md. The later investigation prompts below predate that result. Culler-switch stability and underground hold were checked separately as L-213/L-214; per-hold frame times and broader coverage remain unchecked. The sky-only view outside loaded terrain is the separate open bug L-227.
 
