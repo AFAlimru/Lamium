@@ -115,6 +115,16 @@ void shapeEditorTests() {
     check(docked.usable() && docked.left > 640 * .5f && docked.detailTop > docked.rowsTop, "docked panel sits right, list above editor");
     check(docked.hit(docked.drawAllX + 2, docked.drawAllY + 4).zone == ui::ShapesLayout::Zone::DrawAll,
         "docked draw-all switch moves to the toolbar");
+    // Schematics fills the toolbar with its tabs: docked, the switch gets its own row
+    // below the toolbar, clear of the tabs and above the column headings.
+    auto tabs = ui::ShapesLayout::fit(table, 640, 360, true, 8, 0, 16, 0, false, false, true);
+    check(tabs.usable() && tabs.drawAllY >= tabs.toolbarTop + ui::ShapesLayout::toolbarHeight
+        && tabs.drawAllY + 12 <= tabs.theadTop, "docked draw-all switch below a full toolbar");
+    check(tabs.hit(tabs.drawAllX + 2, tabs.drawAllY + 4).zone == ui::ShapesLayout::Zone::DrawAll
+        && tabs.hit(tabs.drawAllX + 2, tabs.toolbarTop + 6).zone != ui::ShapesLayout::Zone::DrawAll,
+        "the switch is hit in its own row, not in the toolbar");
+    check(tabs.detailTop > tabs.rowsTop && tabs.rowsTop - docked.rowsTop == ui::ShapesLayout::toolbarHeight,
+        "the list moves down by one toolbar row");
     check(docked.hit(docked.actionX(1) + 2, docked.actionsY + 4).zone == ui::ShapesLayout::Zone::Action
         && docked.hit(docked.actionX(1) + 2, docked.actionsY + 4).index == 1, "draft cancel action");
     auto picking = ui::ShapesLayout::fit(table, 640, 360, false, 0, 0, 4, 0, false, true);

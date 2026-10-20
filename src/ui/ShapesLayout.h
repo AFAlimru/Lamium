@@ -25,8 +25,11 @@ struct ShapesLayout {
     float detailLeft{}, detailWidth{}, detailTop{}, nameY{}, previewY{}, fieldsTop{}, actionsY{}, footerTop{};
     int fieldVisible{}, fieldFirst{}, fieldCount{};
 
+    // fullToolbar: the toolbar is taken across its width (the Schematics tabs),
+    // so a docked draw-all switch gets a row of its own below it.
     static ShapesLayout fit(SettingsTable const& table, float screenWidth, float screenHeight, bool docked,
-                            int listCount, int listFirst, int fieldCount, int fieldFirst, bool draft, bool picking) {
+                            int listCount, int listFirst, int fieldCount, int fieldFirst, bool draft, bool picking,
+                            bool fullToolbar = false) {
         ShapesLayout l;
         l.docked = docked; l.draft = draft; l.picking = picking;
         l.listCount = std::max(0, listCount); l.fieldCount = std::max(0, fieldCount);
@@ -57,8 +60,9 @@ struct ShapesLayout {
         l.toolbarTop = bodyTop;
         // Docked panels are narrow: the draw-all switch moves to the toolbar.
         l.drawAllX = docked ? l.listLeft + l.listWidth - pad - drawAllWidth : l.keysX - 4 - drawAllWidth;
-        l.drawAllY = docked ? l.toolbarTop + 2 : l.top + 4;
-        l.theadTop = bodyTop + toolbarHeight;
+        bool ownRow = docked && fullToolbar;
+        l.drawAllY = !docked ? l.top + 4 : ownRow ? l.toolbarTop + toolbarHeight + 2 : l.toolbarTop + 2;
+        l.theadTop = bodyTop + (ownRow ? 2 : 1) * toolbarHeight;
         l.rowsTop = l.theadTop + theadHeight;
         if (docked) {
             l.listVisible = dockedListRows;
@@ -130,10 +134,10 @@ struct ShapesLayout {
         if (y >= footerTop) return {Zone::Footer};
         bool inList = x >= listLeft && x < listLeft + listWidth && (!docked || y < detailTop);
         if (inList) {
-            if (y >= toolbarTop && y < toolbarTop + toolbarHeight) {
-                if (docked && x >= drawAllX && x < drawAllX + drawAllWidth) return {Zone::DrawAll};
+            if (docked && x >= drawAllX && x < drawAllX + drawAllWidth && y >= drawAllY - 2 && y < drawAllY - 2 + toolbarHeight)
+                return {Zone::DrawAll};
+            if (y >= toolbarTop && y < toolbarTop + toolbarHeight)
                 return x < listLeft + pad + newWidth ? Hit{Zone::NewShape} : Hit{};
-            }
             if (y < rowsTop) return {};
             int offset = static_cast<int>((y - rowsTop) / rowHeight);
             int row = listFirst + offset;
