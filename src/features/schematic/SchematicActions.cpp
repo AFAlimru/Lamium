@@ -26,6 +26,7 @@ using input::Action;
 MoveTarget moveTarget = MoveTarget::Placement;
 std::optional<menu::Stepper> remembered;
 void changeTarget(MoveTarget next);
+std::string targetName(MoveTarget target);
 std::optional<Point> feet(LocalPlayer& player) {
     auto p = player.getFeetPos();
     if (!std::isfinite(p.x) || !std::isfinite(p.y) || !std::isfinite(p.z)) return std::nullopt;
@@ -102,13 +103,43 @@ std::optional<double> enter(Vec3 const& eye, Vec3 const& dir, Point low, Size si
     }
     return near;
 }
-// The placement the view ray reaches first. Ghosts are not blocks, so the
-// crosshair hit cannot find them.
-void selectLooked(LocalPlayer& player) {
+// The move target the drawn view points at: a directly hit corner first (also
+// inside a placement box), then the nearest placement box, then the save area
+// when the hit block is inside it.
+void selectLooked(IClientInstance& client, LocalPlayer& player) {
     int dimension = static_cast<int>(player.getDimensionId());
     auto eye = player.getEyePos();
     auto dir = player.getViewVector(1.f);
+    if (auto ray = CameraSessions::instance().detachedViewRay(client)) {
+        eye = Vec3{static_cast<float>(ray->x), static_cast<float>(ray->y), static_cast<float>(ray->z)};
+        dir = Vec3{static_cast<float>(ray->dx), static_cast<float>(ray->dy), static_cast<float>(ray->dz)};
+    }
     auto set = session::current();
+    auto state = selection::current();
+    auto const& hit = client.getLatestHitResult();
+    bool tile = hit.mType == HitResultType::Tile;
+    Point hitBlock{};
+    double hitDistance = std::numeric_limits<double>::max();
+    if (tile) {
+        hitBlock = {hit.mBlock.x, hit.mBlock.y, hit.mBlock.z};
+        double dx = hit.mPos.x - eye.x, dy = hit.mPos.y - eye.y, dz = hit.mPos.z - eye.z;
+        hitDistance = std::sqrt(dx * dx + dy * dy + dz * dz);
+    }
+    // A corner the crosshair hits directly wins before distance, including
+    // when the camera is inside the placement box.
+    if (tile && state.dimension == dimension) {
+        bool first = state.first && *state.first == hitBlock;
+        bool second = state.second && *state.second == hitBlock;
+        if (first || second) {
+            MoveTarget next = first && second
+                ? (moveTarget == MoveTarget::Corner1 || moveTarget == MoveTarget::Corner2 ? moveTarget : MoveTarget::Corner1)
+                : (first ? MoveTarget::Corner1 : MoveTarget::Corner2);
+            changeTarget(next);
+            remembered.reset();
+            ui::showMessageToast(ui::translated("schematic.menu.moveTarget") + ": " + targetName(next));
+            return;
+        }
+    }
     int best = -1;
     double bestDistance = std::numeric_limits<double>::max();
     for (int i = 0; i < static_cast<int>(set.placements.size()); ++i) {
@@ -118,11 +149,33 @@ void selectLooked(LocalPlayer& player) {
         auto distance = enter(eye, dir, p.placement.origin, placedSize(structure->size, p.placement.rotation), 256);
         if (distance && *distance < bestDistance) { best = i; bestDistance = *distance; }
     }
-    if (best < 0) { ui::showMessageToast(ui::translated("schematic.toast.notLooking")); return; }
-    session::change([&](PlacementSet& s) { s.selected = best; return true; });
-    ui::showMessageToast(ui::translated("schematic.toast.selected", set.placements[static_cast<size_t>(best)].name));
-    changeTarget(MoveTarget::Placement);
-    remembered.reset();
+    bool areaCandidate = false;
+    double areaDistance = std::numeric_limits<double>::max();
+    if (tile && state.dimension == dimension && state.first && state.second) {
+        Area area{*state.first, *state.second};
+        auto low = area.low();
+        auto size = area.size();
+        if (hitBlock.x >= low.x && hitBlock.x < low.x + size.x && hitBlock.y >= low.y && hitBlock.y < low.y + size.y
+            && hitBlock.z >= low.z && hitBlock.z < low.z + size.z) {
+            areaCandidate = true;
+            areaDistance = hitDistance;
+        }
+    }
+    // Distance first; the placement wins a tie with the area.
+    if (best >= 0 && (!areaCandidate || bestDistance <= areaDistance)) {
+        session::change([&](PlacementSet& s) { s.selected = best; return true; });
+        changeTarget(MoveTarget::Placement);
+        remembered.reset();
+        ui::showMessageToast(ui::translated("schematic.toast.selected", set.placements[static_cast<size_t>(best)].name));
+        return;
+    }
+    if (areaCandidate) {
+        changeTarget(MoveTarget::Area);
+        remembered.reset();
+        ui::showMessageToast(ui::translated("schematic.menu.moveTarget") + ": " + targetName(MoveTarget::Area));
+        return;
+    }
+    ui::showMessageToast(ui::translated("schematic.toast.notLooking"));
 }
 // Always the mistake nearest to where the player is now.
 void nearestMistake(LocalPlayer& player) {
@@ -279,7 +332,7 @@ void press(IClientInstance& client, Action action) {
     if (!player) return;
     switch (action) {
     case Action::NearestMistake: nearestMistake(*player); return;
-    case Action::SelectLookedPlacement: selectLooked(*player); return;
+    case Action::SelectLookedPlacement: selectLooked(client, *player); return;
     case Action::SchematicCorner1: setCorner(client, *player, 0); return;
     case Action::SchematicCorner2: setCorner(client, *player, 1); return;
     case Action::CycleMoveTarget: {
