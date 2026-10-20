@@ -42,7 +42,8 @@ published for whoever wants it. There is no "first release" gate.
 - Release when a meaningful set of changes has landed and main builds, passes
   the tests and has no known crash. Before tagging, smoke-test the release
   build (the mod loads, settings open, the changed features work) and update
-  the README feature list and Known issues. A full regression is not required.
+  the README feature tables and Known issues, and [FEATURES.md](FEATURES.md).
+  A full regression is not required.
 - From 0.1.4 on, releases are ordinary GitHub releases, not marked
   pre-release: the 0.x version, the README status and the Experimental badges
   say what is unfinished.
