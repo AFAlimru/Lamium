@@ -247,6 +247,18 @@ void observeHeld(input::Token token, bool down) {
     if (!down) std::erase(uiHeld, token);
     else if (std::find(uiHeld.begin(), uiHeld.end(), token) == uiHeld.end()) uiHeld.push_back(token);
 }
+// The key that opened a screen may still be down when the screen starts
+// listening. Mark its inputs held so their repeats are not taken for fresh
+// presses and close the screen again (L-188, L-229). Mouse tokens map to the
+// Windows button codes used by keyDown().
+void seedHeld(input::Chord const& chord) {
+    for (auto token : chord) {
+        int key = token.device == input::Device::Key ? token.code
+            : token.device == input::Device::Mouse && token.code >= 1 && token.code <= 5
+                ? (token.code <= 2 ? token.code : token.code + 1) : 0;
+        if (keyDown(key) && std::find(uiHeld.begin(), uiHeld.end(), token) == uiHeld.end()) uiHeld.push_back(token);
+    }
+}
 std::array<ll::event::ListenerPtr, 5> listeners;
 bool backgroundHook = false;
 bool renderHook = false;
@@ -880,15 +892,7 @@ void enterWorldMap(bool fromSettings, bool resume) {
     finishNumber();
     worldMapOpen = true;
     pendingMapClose = false;
-    if (!fromSettings) {
-        auto opener = input::effectiveChord(Runtime::instance().preferences().bindings, input::Action::OpenWorldMap);
-        for (auto token : opener) {
-            int key = token.device == input::Device::Key ? token.code
-                : token.device == input::Device::Mouse && token.code >= 1 && token.code <= 5
-                    ? (token.code <= 2 ? token.code : token.code + 1) : 0;
-            if (keyDown(key) && std::find(uiHeld.begin(),uiHeld.end(),token) == uiHeld.end()) uiHeld.push_back(token);
-        }
-    }
+    if (!fromSettings) seedHeld(input::effectiveChord(Runtime::instance().preferences().bindings, input::Action::OpenWorldMap));
     mapFromSettings = fromSettings;
     waypoints_view::setFromMap(false);
     map::world::open(*client, resume);
@@ -1254,8 +1258,7 @@ void open(IClientInstance& current) {
     numberDirty = false; uiHeld.clear();
     // The key that opened the screen may still be down: its repeats must not
     // close it again (L-188).
-    auto opener = input::effectiveChord(Runtime::instance().preferences().bindings, input::Action::Settings);
-    if (opener.size() == 1 && opener[0].device == input::Device::Key && keyDown(opener[0].code)) uiHeld.push_back(opener[0]);
+    seedHeld(input::effectiveChord(Runtime::instance().preferences().bindings, input::Action::Settings));
     shapes_view::endEditing();
     table_view::open();
     // Category, expansion and scroll persist between openings in a session.
@@ -1315,6 +1318,9 @@ void openSchematicMenu(IClientInstance& current) {
     if (scene) return; // From gameplay only.
     open(current);
     if (!scene) return;
+    // The menu key is still down; mark it held before the first repeat
+    // arrives, or that repeat closes the menu it just opened (L-229).
+    seedHeld(input::effectiveChord(Runtime::instance().preferences().bindings, input::Action::SchematicMenu));
     auto const preferences = Runtime::instance().preferences();
     schematicMenu = SchematicMenu{};
     if (!preferences.schematic.enabled) {
