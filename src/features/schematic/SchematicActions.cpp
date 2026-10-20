@@ -58,6 +58,16 @@ Point stepFor(IClientInstance& client, Action action) {
     default: return {-axes.up.x, -axes.up.y, -axes.up.z};
     }
 }
+// The menu stepper a direction key repeats with the adjust key.
+std::optional<menu::Stepper> movementStepper(Action action) {
+    using S = menu::Stepper;
+    switch (action) {
+    case Action::MovePlacementForward: case Action::MovePlacementBack: return S::ForwardBack;
+    case Action::MovePlacementLeft: case Action::MovePlacementRight: return S::LeftRight;
+    case Action::MovePlacementUp: case Action::MovePlacementDown: return S::UpDown;
+    default: return std::nullopt;
+    }
+}
 // Applies `apply` to the selected placement and reports `message` built from it.
 template <class Apply, class Message>
 void changeSelected(Apply&& apply, Message&& message) {
@@ -355,6 +365,8 @@ void press(IClientInstance& client, Action action) {
     }
     case Action::MovePlacementForward: case Action::MovePlacementBack: case Action::MovePlacementLeft:
     case Action::MovePlacementRight: case Action::MovePlacementUp: case Action::MovePlacementDown: {
+        if (auto stepper = movementStepper(action); stepper && resolveTarget(*player) != MoveTarget::None)
+            remembered = *stepper;
         moveBy(*player, stepFor(client, action));
         return;
     }
@@ -363,16 +375,21 @@ void press(IClientInstance& client, Action action) {
         return;
     }
     case Action::RotatePlacement:
+        if (auto set = session::current(); set.selected >= 0 && set.selected < static_cast<int>(set.placements.size()))
+            remembered = menu::Stepper::Rotate;
         changeSelected([](SavedPlacement& p) { p.placement.rotation = quarterTurns(p.placement.rotation + 1); },
             [](SavedPlacement const& p) { return ui::translated("schematic.toast.rotated", p.name, p.placement.rotation * 90); });
         return;
     case Action::MirrorPlacement:
+        if (auto set = session::current(); set.selected >= 0 && set.selected < static_cast<int>(set.placements.size()))
+            remembered = menu::Stepper::Mirror;
         changeSelected([](SavedPlacement& p) { p.placement.mirror = static_cast<Mirror>((static_cast<int>(p.placement.mirror) + 1) % 3); },
             [](SavedPlacement const& p) { return ui::translated("schematic.toast.mirror", p.name, mirrorName(p.placement.mirror)); });
         return;
     case Action::LayerUp: case Action::LayerDown: {
         int direction = action == Action::LayerUp ? 1 : -1;
         auto structure = selectedStructure();
+        if (structure) remembered = menu::Stepper::Layer;
         changeSelected([&](SavedPlacement& p) {
             if (p.layers.mode == LayerMode::All) p.layers.mode = LayerMode::Only;
             else p.layers.index = std::clamp(p.layers.index + direction, 0, layers(structure.get(), p) - 1);
@@ -383,6 +400,7 @@ void press(IClientInstance& client, Action action) {
         auto at = feet(*player);
         auto structure = selectedStructure();
         if (!at || !structure) return;
+        remembered = menu::Stepper::Layer;
         changeSelected([&](SavedPlacement& p) {
             auto placed = placedSize(structure->size, p.placement.rotation);
             Point offset{at->x - p.placement.origin.x, at->y - p.placement.origin.y, at->z - p.placement.origin.z};
