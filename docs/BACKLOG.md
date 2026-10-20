@@ -76,9 +76,12 @@ choices live in the L-items. An L-item wins if a summary drifts.
    L-91 shield glint and L-132 inventory-screen movement; respect each
    item's stop/resume conditions. L-181 trident pose is low priority.
 2. **Small and medium work before large features/integration** (maintainer
-   2026-10-10): L-196 license/provenance evidence; L-231 controls UX;
-   L-232 slime chunk indicator (needs in-game verification of the rule
-   first); remaining Design/Research in L-166 trade helpers,
+   2026-10-10): L-196 license/provenance evidence; L-231 controls UX and
+   L-234 layer model are recorded in
+   [SCHEMATIC-CONTROLS.md](SCHEMATIC-CONTROLS.md) and wait for an independent
+   read before any prototype; L-232 slime chunk indicator (needs in-game
+   verification of the rule first); remaining Design/Research in L-166 trade
+   helpers,
    L-167 resource packs, L-168 trade finder, L-169 transfer extensions,
    L-170 enchantment planner, L-173 quick shapes, L-190 list selection and
    L-163 a Lamium inventory screen. Agree open choices before building.
@@ -373,7 +376,15 @@ awaits a look in game.
 ### L-231 Make schematic controls easier to find and review directional keys
 Kind: Design. Combines two maintainer UX notes from 2026-10-20 in the
 [Notion idea inbox](https://app.notion.com/p/3f7c12ab5b2d8121b2a0db32608f6b7a).
-Status: design tracking only; no key removal, new gesture or UI selected.
+Status: design discussion continued 2026-10-20; direction recorded in
+[SCHEMATIC-CONTROLS.md](SCHEMATIC-CONTROLS.md), no implementation.
+Decided there: one move target shared by keys and menu (placement, corner 1,
+corner 2, area) with a target key and a looked-at target; repeat covers only
+movement, rotation/mirror and the layer cut; corner keys stay separate; the
+only default binding is Alt+Wheel up/down for forward/back; corner defaults
+and an edit mode are postponed; the Area category's move items may become
+redundant. Open: target display/reset details, the looked-at precedence,
+labels/help, and whether to prototype on a separate branch.
 Existing controls include wheel steppers in the radial menu, a held Repeat
 the last adjustment key plus wheel, six one-block directional Press actions
 and move-to-feet. Dedicated actions are unbound by default and grouped as
@@ -483,6 +494,17 @@ model. Also decide modifier roles, defaults matching today, the container-
 only context, conflicts with other actions, and whether to start with the
 wheel subset only. L-169 owns transfer extensions; do not start without
 choosing the subset and model.
+
+### L-234 Replace the six-direction layer model with a cut plane
+Kind: Design, no implementation selected. Maintainer 2026-10-20: the six
+directions will not last; move to Axis (Y/X/Z) + Cut + Keep + Mode as
+recorded in [SCHEMATIC-CONTROLS.md](SCHEMATIC-CONTROLS.md). Cut is a local
+offset along the axis (the world coordinate is display only), so moving a
+placement keeps its slice; check and materials keep reading the same region.
+Open: the clamp rule when rotation swaps the extent, storage migration timing
+and format, the Layers menu item count, and whether the one-shot view slice
+matches the intended workflow. The note asks for an independent read before
+building; a prototype may use a separate branch.
 
 ### L-206 World map recording range is a fixed radius instead of the view distance
 Kind: Ready, implementation built; runtime coverage pending. User report

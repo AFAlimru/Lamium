@@ -28,7 +28,10 @@ wheel direction); Hold actions cannot. Control follow-up: L-231 control
 discoverability. L-230 movement passed its in-game check and its key help now
 explains that steep looks move on Y; L-229's opener repeat and L-232
 binding-name display are fixed and checked (BACKLOG-DONE.md); BACKLOG owns the
-open status.
+open status. The next controls round (shared move target, repeat scope,
+default Alt+Wheel forward/back) and the six-direction layer model are under
+redesign in [SCHEMATIC-CONTROLS.md](SCHEMATIC-CONTROLS.md); L-234 owns the layer
+model. Nothing in this section is implemented from that note yet.
 
 The default ghost look is tinted with a light-blue outline. Since 2026-10-15
 (L-186) the tint strength is a 0-100% setting, 70% by default (100% is the
