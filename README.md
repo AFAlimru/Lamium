@@ -9,6 +9,13 @@
   No server plugin or companion protocol is required.
 </p>
 
+> [!NOTE]
+> Not an official LeviMC product. Not approved by LeviMC and not associated
+> with LeviMC. Lamium is an independent community project, published and
+> maintained by amatouhake, who is responsible for it. Contact:
+> [GitHub issues](https://github.com/amatouhake/Lamium/issues), or a private
+> report from the repository's Security tab.
+
 ## Status
 
 Lamium 0.2.3 is an early (0.x) release. The main settings, hotkey, HUD,
@@ -67,214 +74,206 @@ The managed-update ownership and preservation contract is documented in
 
 ## Features
 
-Press `L` in a world or on the title screen, or click "Lamium <version>"
-in the title screen's bottom right corner, to open Lamium Settings (views
-made of one world's data, such as waypoints, open only in a world); `L`
-closes it again. The screen uses a dense
-Bedrock-fitting sidebar/table layout with search, English, Japanese and
-Simplified Chinese text (following the game language), immediate persistence and no Save/Cancel step. Hotkeys, Shapes and HUD layout
-are first-class views in the same UI. On a small window the whole screen
-shrinks to fit; long descriptions scroll in the footer. Every feature has one switch that its
-key also toggles; "All", each category and Hotkeys can reset their settings
-to the defaults.
+Press `L` in a world or on the title screen to open Lamium Settings. Every
+feature has one switch there, which its key also toggles; changes are saved
+at once. *Exp.* marks an experimental feature, still settling. **Key** is
+the default key ("—": unbound until you bind one). **Default** is the state
+after a fresh install ("—": a key or screen without a switch). What each
+feature does in detail: [Features](docs/FEATURES.md).
 
-- **Camera/visuals:** Zoom up to 50x with a smooth wheel, an optional
-  magnification readout and an optional wide-angle view (the wheel goes below
-  1x), Night Vision, Freelook (rear third person by
-  default, restoring your previous view), experimental FreeCamera (keeps its
-  position through menus, adjustable speed with a sprint boost, a player- or
-  world-fixed position, the camera's own position and facing in the Info HUD
-  and Debug View, waypoints added where the camera is, and optionally leaving
-  when your body is hit; the hand, the hotbar or the whole HUD can be hidden
-  while it flies), Night Vision that can light everything evenly (no
-  dark rings by light sources), experimental Connected Textures (glass, glass
-  panes, bookshelves and sandstone next to the same block draw as one
-  surface, without seams; glass, bookshelves and sandstone at the texture's
-  own scale), Hide Offhand Item
-  (including shields) and
-  experimental Hide effects (rain and snow, particles, boss bars, the nausea
-  color, underwater, lava and powder snow fog, the distance fog on land,
-  in the Nether and in the End, and the Nether portal's purple screen; one
-  main switch turns the selected effects on). Zoom, Freelook and FreeCamera can be held or toggled.
-- **Information/HUD:** ordered Info HUD lines (now including scaled
-  coordinates, biome ids, difficulty, yaw/pitch, sprinting, horizontal and
-  vertical speed and real time), a Durability HUD for the held item, offhand
-  and armor, an offhand slot beside the hotbar (count and durability bar
-  included), saturation shown as gold outlines on the hunger bar (holding
-  food previews what eating it would add), a live HUD layout editor that
-  shows where the game's hotbar is, a
-  Target card with icons, hearts in real health units (one heart per 2 HP),
-  armor and bars, a Java F3-style Debug View (game, world, look-at and PC
-  details, entity counts by kind and the most common entity types; the
-  game's own position line and paper doll are hidden while it is open, and
-  where the Info HUD covers them), a player
-  list while `Tab` is held (faces, platform, dimension, distance and
-  permission marks), an inventory HUD (your inventory as a 9x3 grid) and a
-  used-slots counter such as 13/36, a Status effects HUD (icons, numeric
-  levels and remaining time; the game's own effect icons are hidden while it
-  shows), arrows and fireworks counted beside bow, crossbow and elytra
-  durability, Chat position (off by default: chat messages at the bottom
-  left as on Java Edition, movable in the HUD layout editor), and toggle toasts.
-- **World overlays:** Shapes (box, cone, pyramid, ellipsoid, dome and more)
-  with per-world persistence, Java-style Chunk Borders, Hitboxes with eye/look
-  markers and a light-level overlay.
-- **Inventory/inspection:** Shulker and Bundle previews, durability and
-  food values (hunger and saturation as hunger-bar icons) inside the game's
-  item tooltip, every trader level in the trade screen (locked trades shown
-  dimmed, with their items' names on hover), English names and IDs found by
-  the recipe book and creative search in any game language, inventory sorting,
-  experimental Item Transfer between your inventory and every item screen
-  (chests, furnaces, brewing stands, hoppers, beacons and more, also the
-  inventory screen): the wheel, Shift + wheel and drags move one item or a
-  stack, Ctrl + wheel or Alt + click moves every item of a kind, Ctrl +
-  Shift + wheel or Alt + Shift + click moves everything (the hotbar only when
-  you start over it), and Shift + right drag leaves one in each slot; furnace,
-  brewing and beacon slots get only what they accept. With a stack on the
-  cursor, Shift + click on an empty slot gathers the matching items there,
-  and Shift + click outside the window drops them all; holding the drop key,
-  Ctrl + left, Shift + right and Shift + left drags drop one item, all but
-  one, or whole stacks from each slot you pass. Tool Switch and
-  Weapon Switch (optionally fetching a tool or weapon from the inventory, into
-  the selected slot or a fixed one), an offhand swap key (`F`, as in Java),
-  experimental Fake Offhand (uses a hotbar block or item as if it were in the
-  offhand, also when the item in your hand has nothing to do where you aim) and experimental Hand Restock (tops up consumed items in the same
-  hand slot from the inventory or hotbar, with a threshold and a source order,
-  swaps container remainders, and refills an offhand totem after it saves
-  you), and experimental Death layout restore (picking up your dropped items
-  puts the hotbar, armor and offhand, optionally the whole inventory, back
-  the way they were when you died), and repeated villager trades (Shift +
-  right click on a trade row repeats it until it sells out, the inputs run
-  out or the output no longer fits).
-- **Interaction:** Permanent Sneak, Permanent Sprint, experimental Edge Guard
-  (stops at block edges without sneaking, with an adjustable margin; also on
-  servers), experimental Tool Protection (on by
-  default: at 1 durability a tool or worn elytra is swapped for a spare, or
-  mining stops), experimental Auto Elytra (a key, a firework jump or a
-  Riptide trident launch puts an elytra on; the chestplate returns after
-  landing), breaking restriction
-  (modes anchored where you start breaking, including a height band) and
-  Auto Attack/Use (Periodic, Hold or Fast click).
-- **Map (experimental, off by default):** a minimap HUD element (size,
-  range, north or heading up, round or square, compass, coordinates and
-  biome lines, hold to enlarge) colored from your block textures, with a
-  cave view under a roof and in the Nether; a radar of nearby players, mobs
-  and dropped items as dots, or optionally as mob faces and player skin
-  heads; waypoints with the last death point, shown on the minimap and in
-  the world, edited in a Waypoints screen; and a world map (`M`) of the
-  areas you have visited, recorded per world (zooming out until everything
-  explored fits on the screen), with a side panel listing waypoints, placed
-  schematics or shapes and a link that opens the same place in ChunkBase's
-  seed map. Schematic placements and shapes show on the world map, where a
-  click selects one and its menu shows or hides it or opens it in its own
-  screen; switches in the map's top bar hide waypoints, schematics or shapes
-  on the map; shapes can also
-  show on the minimap (an option, off by default). Names on the world map
-  show when the pointer is over a mark (an option shows them all).
-- **Schematics (experimental, off by default):** place `.mcstructure` files
-  from `mods/Lamium/schematics/` as ghost blocks (move, turn, mirror, show
-  layers along any axis), see what is missing, wrong or in the wrong state
-  in the world, the target card (with the expected block and what to change),
-  a Check list and a HUD, the ghost you aim at in the target card (named as
-  not placed yet; a real block that differs says what is wrong first), a
-  ghost tint strength and outline width of your choice, count the materials left against what you carry
-  (Shulker Boxes included, in chests and stacks), save an area of the world
-  as a schematic (also larger than the render distance, by walking along it),
-  and work with all of it during play from a radial schematic menu and a key
-  that repeats the last adjustment with the wheel. Ghosts draw doors, beds,
-  honey, water and lava, block entities with their saved data and entities as
-  their models; the Files and Check tabs have a turnable 3D preview; placements
-  show on the minimap and world map, and can be selected, shown or hidden
-  there. Saved files use the game's current format and load in a structure
-  block.
+### Camera & view
 
-- **General:** a calculator over the game (units for stacks, chests and
-  shulker boxes, history and copy buttons; nothing is sent to chat), text
-  fields with a caret, paste and click placement, an experimental Game
-  language list that changes Minecraft's display language without leaving
-  the world, and experimental Skip server resource packs (a server's packs
-  are accepted as it asks but not shown: the world looks vanilla; local
-  worlds keep their packs).
+| Feature | What it does | Key | Default |
+| --- | --- | --- | --- |
+| Zoom | Zoom up to 50x with the wheel; optional wide angle below 1x | `C` (hold) | — |
+| Freelook | Look around while moving straight on | — | — |
+| FreeCamera *Exp.* | Fly the view while the player stays in place | — | — |
+| Night Vision | Brighten the view locally, optionally without dark rings | — | Off |
+| Hide Offhand Item | Hide the offhand item (shields too) in first person | — | Off |
+| Hide effects *Exp.* | Hide rain, particles, boss bars, nausea, fogs, the portal screen | — | Off |
+| Connected Textures *Exp.* | Glass, panes, bookshelves and sandstone without seams | — | Off |
 
-Lamium owns its key bindings; they do not appear in Minecraft's keyboard
-settings. Bindings are edited under each feature or in the Hotkeys view.
-Clear unbinds an action and Reset restores its default. The Settings action
-cannot be cleared, so the UI cannot be locked out. New actions start unbound.
-Default keys: `L` settings, `M` world map, `Tab` player list (hold),
-`C` zoom (hold), `R` sort (in a container), `F` offhand swap, `F3` Debug
-View, `F3+B` Hitboxes and `F3+G` Chunk Borders. `C` replaces
-Minecraft's "copy coordinates" while Lamium is installed unless you rebind it.
+### HUD & overlays
+
+| Feature | What it does | Key | Default |
+| --- | --- | --- | --- |
+| Info HUD | Coordinates, biome, speed, time and other lines | — | Off |
+| Target Info | A card for the block or mob you aim at | — | Off |
+| Debug View | A Java F3-style panel | `F3` | Off |
+| Durability HUD | Held item, offhand and armor durability; arrows and fireworks | — | Off |
+| Offhand slot | The offhand item beside the hotbar | — | Off |
+| Saturation | Saturation as gold outlines on the hunger bar | — | On |
+| Player list | Players with faces, platform, dimension and distance | `Tab` (hold) | — |
+| Inventory HUD | Your inventory as a 9x3 grid during play | — | Off |
+| Used slots | Used inventory slots, such as 13/36 | — | Off |
+| Status effects HUD | Effects with levels and remaining time | — | Off |
+| Chat position | Chat messages at the bottom left, as on Java Edition | — | Off |
+| Toggle toasts | A notice when a key turns a feature on or off | — | On |
+| Chunk Borders | Java-style chunk edges | `F3+G` | Off |
+| Hitboxes | Entity bounds with eye and look markers | `F3+B` | Off |
+| Light Level Overlay | Where monsters can spawn | — | Off |
+| Shapes | Boxes, cones, domes and more in the world, saved per world | — | On |
+
+The HUD layout view moves and styles Lamium's HUD elements.
+
+### Map *Exp.*
+
+| Feature | What it does | Key | Default |
+| --- | --- | --- | --- |
+| Minimap | A minimap colored from your block textures, with a cave view | — | Off |
+| Radar | Players, mobs and items on the minimap | — | On |
+| Waypoints | Waypoints and the last death point, on the maps and in the world | — | On |
+| World map | A full-screen map of the areas you have visited | `M` | Off |
+
+Radar draws on the minimap. Waypoints and the death point also show in the
+world, with both maps off.
+
+### Schematics *Exp.*
+
+| Feature | What it does | Key | Default |
+| --- | --- | --- | --- |
+| Schematics | Place `.mcstructure` files as ghost blocks, check the build, count materials, save an area | — | Off |
+| Schematic menu | A radial menu for placements, layers, checks and saving | — | — |
+| Schematic HUD | Check counts and materials left for the selected placement | — | Off |
+
+### Inventory
+
+| Feature | What it does | Key | Default |
+| --- | --- | --- | --- |
+| Container previews | Shulker Box and Bundle contents in the tooltip | — | On |
+| Durability numbers | Remaining durability in the tooltip | — | On |
+| Food values | Hunger and saturation a food restores, in the tooltip | — | On |
+| All trader levels | Every trade level in the trade screen | — | On |
+| Repeated trades | Shift + right click repeats a trade | — | On |
+| Search English names too | Recipe and creative search by English name or ID | — | On |
+| Inventory sorting | Sort the inventory or an open container | `R` | On |
+| Inventory transfer *Exp.* | Move items with the wheel, modified clicks and drags | — | On |
+| Tool Switch | Pick the right tool when mining | — | Off |
+| Weapon Switch | Pick the strongest weapon when attacking | — | Off |
+| Offhand swap | Swap the held item with the offhand | `F` | On |
+| Fake Offhand *Exp.* | Use a hotbar block or item as if it were in the offhand | Right click | Off |
+| Hand Restock *Exp.* | Refill the held slot when it runs low; refill a used totem | — | Off |
+| Death layout restore *Exp.* | Put picked-up items back where they were when you died | — | Off |
+
+### Actions
+
+| Feature | What it does | Key | Default |
+| --- | --- | --- | --- |
+| Permanent Sneak | Toggle sneaking with a key | — | Off |
+| Permanent Sprint | Toggle sprinting with a key | — | Off |
+| Edge Guard *Exp.* | Stop at block edges without sneaking | — | Off |
+| Tool Protection *Exp.* | Swap or stop before a tool or elytra breaks | — | On |
+| Auto Elytra *Exp.* | Put an elytra on for a flight, the chestplate back after | — | Off |
+| Block Restrictions | Limit breaking to a region you start in | — | Off |
+| Auto Attack / Auto Use | Click for you: periodic, while held, or fast | — | Off |
+
+### General
+
+| Feature | What it does | Key | Default |
+| --- | --- | --- | --- |
+| Calculator | A calculator with stack, chest and shulker box units | — | — |
+| Game language *Exp.* | Change Minecraft's language without leaving the world | — | — |
+| Skip server resource packs *Exp.* | Show a server's world without its resource packs | — | Off |
+
+Lamium's keys are its own and do not appear in Minecraft's keyboard
+settings. Change them under each feature or in the Hotkeys view; new
+actions start unbound. `C` replaces Minecraft's "copy coordinates" while
+Lamium is installed unless you rebind it.
 
 ## Known issues
 
-- Hand Restock is checked in local worlds; server timing and very fast use or
-  ambiguous inventory changes may skip a refill. It does not refill tools
-  (Tool Protection swaps a tool before it breaks).
-- Enchanted shields show no glint in Lamium's item icons (offhand slot,
-  Shulker/Bundle previews, the inventory HUD); enchanted golden apples and
-  other flat icons do. Enchanted leather armor shows its undyeable parts
-  see-through there (unenchanted leather draws whole).
-- The Simplified Chinese text is a first, AI-assisted translation;
-  corrections are welcome (see [Translating](docs/TRANSLATING.md)).
-- Hide effects cannot hide the carved pumpkin overlay or the spyglass frame
-  yet. Water, lava and powder snow fog hiding is checked with the vanilla
-  resources in Fancy graphics; other packs and graphics modes are unverified.
-  Under Vibrant Visuals the distance fog stays vanilla (in 0.1.8 hiding it
-  turned the world magenta and flickering there) and Night Vision has no
-  effect.
-- FreeCamera is experimental. Underground terrain drawing is checked in a
-  local world and on BDS; Hold/Toggle operation, menus, focus loss and dimension
-  travel are also checked. Other players' view of the body, controllers and
-  broader graphics/resource configurations remain untested.
-- Edge Guard is checked in local worlds and on a test BDS (including server
-  position corrections); other servers and their anti-cheat are untested.
-- Item Transfer's bulk and leave-one moves are checked in chest, furnace,
-  brewing stand and beacon screens, locally and on a test BDS. Other screen
-  families, other servers and rejected moves on laggy servers are untested.
-  The held-stack Shift + click and drop gestures are checked in a chest
-  screen in a local world only.
-- The breaking restriction modes will be redesigned.
-- Auto Attack/Use: whether several clicks per tick land on servers is not
-  verified.
-- The map is experimental: minimap, radar and world map have local and
-  external BDS checks with a large explored area. Waypoint storage per server,
-  distant players on dedicated servers, and the latest section-request/teleport
-  changes on servers remain unverified. Some servers may treat seeing mobs and
-  players through walls as unfair. A few mob faces are not right yet (silverfish and tadpoles stay
-  dots; camel and hoglin faces may look off), and skins with custom head
-  models are untested.
-- Schematics are experimental and checked in local worlds only; servers,
-  other dimensions and very large files are not verified. Under Vibrant
-  Visuals ghosts lose their light-blue tint and the honey ghost is black.
-  Entity models stay in their rest pose (a wolf's tail, zombie arms) with
-  the default skin, sheep wool is not drawn, and entities without a model
-  show as a dashed frame. Entities are checked by type near their spot and
-  saved only by type, position and facing. In the 3D previews parts behind
-  some cut-out blocks (seagrass, a spawner) can be missing, and grass and
-  leaves take the biome you stand in.
-- Connected Textures is experimental and checked in local worlds with the
-  vanilla resources in Fancy graphics; Vibrant Visuals, resource packs (other
-  border widths) and servers are unverified. Only glass, glass panes,
-  bookshelves and sandstone connect. Joined glass panes stretch their glass
-  by one texel at the joins instead of keeping the texture's own scale (drawn
-  that way, panes shaded dark on one half).
-- The player list knows where other players are only while they share your
+Reports, questions and translation fixes are welcome as GitHub issues; see
+[Contributing](CONTRIBUTING.md) for what helps in a report and how pull
+requests are handled. What has been checked in game, per feature, is in
+[validation status](docs/VALIDATION.md).
+
+**Camera & view**
+
+- **FreeCamera:** underground terrain drawing is checked in a local world and
+  on BDS; Hold/Toggle operation, menus, focus loss and dimension travel are
+  also checked. Other players' view of the body, controllers and broader
+  graphics/resource configurations remain untested.
+- **Hide effects:** cannot hide the carved pumpkin overlay or the spyglass
+  frame yet. Water, lava and powder snow fog hiding is checked with the
+  vanilla resources in Fancy graphics; other packs and graphics modes are
+  unverified. Under Vibrant Visuals the distance fog stays vanilla (in 0.1.8
+  hiding it turned the world magenta and flickering there) and Night Vision
+  has no effect.
+- **Connected Textures:** checked in local worlds with the vanilla resources
+  in Fancy graphics; Vibrant Visuals, resource packs (other border widths)
+  and servers are unverified. Only glass, glass panes, bookshelves and
+  sandstone connect. Joined glass panes stretch their glass by one texel at
+  the joins instead of keeping the texture's own scale (drawn that way,
+  panes shaded dark on one half).
+
+**HUD & overlays**
+
+- **Player list:** knows where other players are only while they share your
   dimension: elsewhere it shows the dimension they were last seen in, faded,
-  without a distance. The player list is checked locally, on BDS and in a
-  LAN world; the locked trades only in local worlds.
-- Changing the game language inside a world many times in a row froze the
-  game once (the title screen does not); Lamium allows one change per 10
-  seconds in a world. The cause is unknown.
-- Skip server resource packs is checked on a test BDS with a cosmetic pack.
-  Servers whose packs add blocks, items, entities or menus will show those
-  wrong. On a server that requires its packs, the game itself turns off
-  your global resource packs, so the look is vanilla, not your own packs.
-- Death layout restore is checked in local worlds; with instant respawn the
+  without a distance. Checked locally, on BDS and in a LAN world.
+- **Item icons:** enchanted shields show no glint in Lamium's item icons
+  (offhand slot, Shulker/Bundle previews, the inventory HUD); enchanted
+  golden apples and other flat icons do. Enchanted leather armor shows its
+  undyeable parts see-through there (unenchanted leather draws whole).
+
+**Map**
+
+- Minimap, radar and world map have local and external BDS checks with a
+  large explored area. Waypoint storage per server, distant players on
+  dedicated servers, and the latest section-request/teleport changes on
+  servers remain unverified.
+- Some servers may treat seeing mobs and players through walls as unfair.
+- A few mob faces are not right yet (silverfish and tadpoles stay dots;
+  camel and hoglin faces may look off), and skins with custom head models
+  are untested.
+
+**Schematics**
+
+- Checked in local worlds only; servers, other dimensions and very large
+  files are not verified.
+- Under Vibrant Visuals ghosts lose their light-blue tint and the honey
+  ghost is black.
+- Entity models stay in their rest pose (a wolf's tail, zombie arms) with the
+  default skin, sheep wool is not drawn, and entities without a model show
+  as a dashed frame. Entities are checked by type near their spot and saved
+  only by type, position and facing.
+- In the 3D previews parts behind some cut-out blocks (seagrass, a spawner)
+  can be missing, and grass and leaves take the biome you stand in.
+
+**Inventory**
+
+- **All trader levels:** the locked trades are checked only in local worlds.
+- **Inventory transfer:** bulk and leave-one moves are checked in chest,
+  furnace, brewing stand and beacon screens, locally and on a test BDS.
+  Other screen families, other servers and rejected moves on laggy servers
+  are untested. The held-stack Shift + click and drop gestures are checked in
+  a chest screen in a local world only.
+- **Hand Restock:** checked in local worlds; server timing and very fast use
+  or ambiguous inventory changes may skip a refill. It does not refill tools
+  (Tool Protection swaps a tool before it breaks).
+- **Death layout restore:** checked in local worlds; with instant respawn the
   inventory may be read as kept and nothing is restored. Servers with
   latency are untested.
 
-Reports, questions and translation fixes are welcome as GitHub issues; see
-[Contributing](CONTRIBUTING.md) for what helps in a report and how pull
-requests are handled.
+**Actions**
+
+- **Edge Guard:** checked in local worlds and on a test BDS (including server
+  position corrections); other servers and their anti-cheat are untested.
+- **Block Restrictions:** the breaking modes will be redesigned.
+- **Auto Attack/Use:** whether several clicks per tick land on servers is not
+  verified.
+
+**General**
+
+- **Game language:** changing the game language inside a world many times in
+  a row froze the game once (the title screen does not); Lamium allows one
+  change per 10 seconds in a world. The cause is unknown.
+- **Skip server resource packs:** checked on a test BDS with a cosmetic pack.
+  Servers whose packs add blocks, items, entities or menus will show those
+  wrong. On a server that requires its packs, the game itself turns off your
+  global resource packs, so the look is vanilla, not your own packs.
+- **Simplified Chinese:** the text is a first, AI-assisted translation;
+  corrections are welcome (see [Translating](docs/TRANSLATING.md)).
 
 ## Development
 
@@ -293,9 +292,10 @@ The repository is the source of truth for development:
 - [Provenance](docs/PROVENANCE.md) separates dependencies, incorporated source
   and reference-only research.
 
-Inventory sorting uses ordinary game operations, waits for matching responses
-between operations and revalidates the affected region before continuing.
-Rejection, missing responses or a changed screen stops the plan.
+Features own their transient state and restore vanilla behavior when
+disabled, leaving a world or losing input focus. Inventory actions use
+ordinary game operations and verify the resulting slot contents before
+continuing.
 
 ## Build
 
@@ -331,17 +331,6 @@ proved by CI.
 
 Use a separate launcher instance for development. Do not enable another mod
 that changes the same camera or inventory behavior while testing Lamium.
-
-## Design and diagnostics
-
-Lamium writes diagnostics to `mods/Lamium/logs/lamium.log`, flushing
-informational messages immediately so failures can be inspected while the game
-is running. Logs rotate by size/date and retain at most seven archives.
-
-One mod owns settings and input actions. Features own their transient state and
-restore vanilla behavior when disabled, leaving a world or losing input focus.
-Settings and UI remain local. Inventory actions must use ordinary game
-operations and verify resulting slot contents before continuing.
 
 ## License
 

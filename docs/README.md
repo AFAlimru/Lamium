@@ -9,6 +9,7 @@ The [agent guide](../AGENTS.md) is the working manual and the
 
 | Question | Source |
 |---|---|
+| What does each feature do, for a player? | [FEATURES.md](FEATURES.md): the user guide behind the README's feature tables |
 | What should Lamium look like and how should it behave? | [DESIGN.md](DESIGN.md): accepted product/UI rules; proposed rules are labeled |
 | What should be worked on next, and what is still open? | [BACKLOG.md](BACKLOG.md): execution order, L-items, release policy and pending checks |
 | What was actually checked in Minecraft? | [VALIDATION.md](VALIDATION.md): current coverage per feature |
@@ -57,6 +58,9 @@ build named there and may include superseded experiments.
   an old experiment cannot be mistaken for the next task.
 - Record an in-game result at the top of VALIDATION-LOG, then update VALIDATION.
   Build/tests alone do not establish runtime behavior.
+- A feature added, renamed, made default on/off or out of Experimental is
+  changed in both the README feature tables and FEATURES.md, using the
+  English names of the settings screen.
 - Keep BACKLOG-DONE and VALIDATION-LOG intact. Search for the L-number or
   feature instead of reading either whole.
 - Notion's idea inbox holds unchosen proposals. When importing selected
