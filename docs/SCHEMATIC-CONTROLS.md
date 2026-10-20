@@ -35,8 +35,9 @@ questions" remain undecided.
   on the target. Rotate/mirror and the layer controls stay settings of the
   selected placement.
 - The move-to-feet command uses the view source: the player's feet normally
-  and the camera's block in Freelook/FreeCamera. Layer-here follows the same
-  rule, and corners are set at the block the view (or camera) hits.
+  and the camera's virtual feet (its height minus the player's eye height) in
+  Freelook/FreeCamera. Layer-here follows the same rule, and corners are set at
+  the block the view (or camera) hits.
 - The settings group is "Move target and placement"; the target key is
   "Select the next move target", placed next to "Select the next placement".
 - The move-to-feet key acts on the current target like the menu's item: the
@@ -62,22 +63,23 @@ questions" remain undecided.
 - The looked-at selection extends "select the placement you look at" with the
   ray and distance rules below.
 
-### Repeat the last adjustment
+### Repeat the last menu adjustment
 
-- Repeats movement, rotate/mirror and the layer cut only. Excludes the layer
-  axis/mode, placement selection and the move target.
-- Key actions update the remembered adjustment, not only menu steppers, so
-  the adjust key is consistent across both surfaces.
+- Repeats the adjustment last used in the schematic menu: movement,
+  rotate/mirror and the layer index. Key actions do not replace it, so a menu
+  layer change stays repeatable after a key move.
+- The option **Repeat every menu step** (`schematic.repeatAllSteps`, default
+  off) adds the layer axis and mode. The target picker and placement selection
+  are never repeated.
 - The memory stores the **kind** of adjustment, not its last sign; the wheel
   direction chooses the sign. After a back step, adjust + wheel up moves
   forward. The toast names the value.
 - Clear the memory on target change, another placement selection,
   world/dimension change, feature disable and session reset, so a rotate done
   on the placement cannot repeat after the context changed. A failed operation
-  does not update it. The current code does not clear on stop; the
-  implementation adds it.
-- A successful view slice sets the memory to the layer cut, so the next adjust
-  plus wheel moves the cut.
+  does not update it; stopping the feature clears it.
+- A successful view slice sets the memory to the layer cut (L-234), so the next
+  adjust plus wheel moves the cut.
 - Rotate, mirror and layer operations still act on the selected placement; the
   repeat toast names the operation and what it acts on.
 
@@ -91,6 +93,8 @@ questions" remain undecided.
   turn-it-on toast. Accepted for this round; revisit when Schematics leaves
   Experimental or if it annoys non-users (gating the input on the feature
   switch is the alternative).
+- The schematic menu defaults to the small lower-right layout
+  (`schematic.menuSmall` default on), so it does not cover the crosshair.
 
 ### Layers: a cut plane
 
@@ -165,8 +169,9 @@ questions" remain undecided.
   ray enters its box (in the air too). A placement hit inside the area is
   therefore chosen over the area.
 - A block that fully hides what is behind it occludes these targets; glass,
-  plants and other see-through blocks do not. A target on or in front of the
-  opaque face stays selectable. Water and lava are looked through.
+  plants and other see-through blocks do not. A target on, in front of, or
+  overlapping the opaque block stays selectable; only a block strictly between
+  the view and the target hides it. Water and lava are looked through.
 - Rebuilding a ray from the eye is exact for the cell tests; setting a corner
   keeps using the game's crosshair in normal play so the outlined block and the
   corner agree at seams.

@@ -385,16 +385,20 @@ corner 2, area) with a target key and a looked-at target; cycle only valid
 targets, with an explicit no-target state and fallback order after delete or
 clear; the looked-at selection follows the drawn camera ray, picks a corner
 cell even in the air or behind see-through blocks, then the nearest placement
-box, then the save area box, with fully opaque blocks hiding targets; repeat
-covers only movement, rotation/mirror and the layer cut, stores the adjustment
-kind and lets the wheel choose the sign, and is cleared when the target
-changes; corner keys stay separate; the only default binding is Alt+Wheel
-up/down for forward/back; corner defaults and an edit mode are postponed; the
-Area category's move items may become redundant.
+box, then the save area box, with fully opaque blocks hiding targets unless
+the target overlaps that block; repeat repeats only the last menu adjustment
+(movement, rotation/mirror, layer index) and not key actions, stores the
+adjustment kind and lets the wheel choose the sign, and is cleared when the
+target changes; the "Repeat every menu step" option (default off) adds the
+layer axis and mode; corner keys stay separate; the only default binding is
+Alt+Wheel up/down for forward/back; corner defaults and an edit mode are
+postponed; the Area category's move items may become redundant.
 Polish adopted 2026-10-21: the settings group is "Move target and placement";
 the target key is "Select the next move target" next to "Select the next
-placement"; the failure message names the move target; setting corners,
-move-to-feet and layer-here use the camera's block in Freelook/FreeCamera.
+placement"; the failure message names the move target; setting corners uses
+the camera's view, and move-to-feet/layer-here use the camera's virtual feet
+in Freelook/FreeCamera; the schematic menu's small lower-right layout is the
+default.
 Open: in-game check and merge; L-234 follows as a separate step.
 Existing controls include wheel steppers in the radial menu, a held Repeat
 the last adjustment key plus wheel, six one-block directional Press actions
