@@ -68,11 +68,13 @@ open, so the plan can be reviewed with fresh eyes before a prototype.
 - **Keep** is used by "up to": low shows cells at or below the cut, high at or
   above. "Only" shows the one layer at the cut; "all" ignores the cut.
 - **View slice** is one-shot: a key or menu item sets the axis from the
-  dominant view axis, the cut at the looked-at block (falling back to the
-  player's layer), mode to only, and keep to the side away from the camera.
-  The axis stays fixed until the command runs again; the adjust key plus the
-  wheel moves the cut. There is no continuous view sync, which would restart
-  the check on every look.
+  dominant view axis, the cut to the player's feet layer along that axis (the
+  same reference as the existing "layer here"), mode to only, and keep to the
+  side away from the camera. The crosshair is deliberately not used: it can
+  point at a ghost, inside a placement or outside the build, and building from
+  the bottom needs a stable reference. The axis stays fixed until the command
+  runs again; the adjust key plus the wheel moves the cut. There is no
+  continuous view sync, which would restart the check on every look.
 - Check and Materials read the same cut region; a change restarts the check
   once.
 - Old placements (six directions + index + mode) convert when their structure
