@@ -289,6 +289,9 @@ void placeSelectedFile() {
         return;
     }
     screen::clearMessage();
+    // The new placement is already selected, so pickSchematic's change check
+    // would not run: reset the move target here.
+    schematic::actions::placementSelected();
     refreshSchematics(false);
     selectSchematicTab(SchematicTab::Placements);
     pickSchematic(SchematicPick::Placement, static_cast<int>(schematicSet.placements.size()) - 1);

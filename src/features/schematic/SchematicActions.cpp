@@ -155,13 +155,29 @@ void selectLooked(IClientInstance& client, LocalPlayer& player) {
     int dimension = static_cast<int>(player.getDimensionId());
     auto eye = player.getEyePos();
     auto dir = player.getViewVector(1.f);
+    bool detached = false;
     if (auto ray = CameraSessions::instance().detachedViewRay(client)) {
         eye = Vec3{static_cast<float>(ray->x), static_cast<float>(ray->y), static_cast<float>(ray->z)};
         dir = Vec3{static_cast<float>(ray->dx), static_cast<float>(ray->dy), static_cast<float>(ray->dz)};
+        detached = true;
     }
     auto set = session::current();
     auto state = selection::current();
-    BlockHit hit = cameraBlock(player, eye, dir);
+    BlockHit hit;
+    if (detached) {
+        hit = cameraBlock(player, eye, dir);
+    } else {
+        // In normal play the game's own pick is the crosshair: rebuilding a
+        // ray from the eye drifts at block seams (L-217).
+        auto const& latest = client.getLatestHitResult();
+        if (latest.mType == HitResultType::Tile) {
+            hit.tile = true;
+            hit.block = {latest.mBlock.x, latest.mBlock.y, latest.mBlock.z};
+            hit.pos = latest.mPos;
+            double dx = latest.mPos.x - eye.x, dy = latest.mPos.y - eye.y, dz = latest.mPos.z - eye.z;
+            hit.distance = std::sqrt(dx * dx + dy * dy + dz * dz);
+        }
+    }
     bool tile = hit.tile;
     Point hitBlock = hit.block;
     double hitDistance = hit.distance;
@@ -468,7 +484,13 @@ void step(IClientInstance& client, menu::Stepper stepper, int amount) {
     using S = menu::Stepper;
     auto* player = client.getLocalPlayer();
     if (!player || !amount) return;
-    if (menu::repeatable(stepper)) remembered = stepper;
+    if (menu::repeatable(stepper)) {
+        // Resolve a fallback target before remembering the step, or the
+        // fallback would clear the adjustment this very move should remember.
+        bool moving = stepper == S::ForwardBack || stepper == S::LeftRight || stepper == S::UpDown;
+        if (moving && resolveTarget(*player) == MoveTarget::None) remembered.reset();
+        else remembered = stepper;
+    }
     switch (stepper) {
     case S::Target: {
         TargetValidity v = validity(*player);
