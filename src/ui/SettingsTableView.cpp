@@ -989,15 +989,16 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
             auto name = splitLabel(translated(entry.option->label)).name;
             bool paused = effectsPaused(entry.feature->id,preferences);
             if (paused) name += " (" + translated("effectsPaused") + ")";
+            float detail = entry.detail ? 12.f : 0.f;
             if (editingRow) {
-                label(context,t.nameX+12,y+3,nameRight-t.nameX-12,std::move(name),palette::dim);
+                label(context,t.nameX+12+detail,y+3,nameRight-t.nameX-12-detail,std::move(name),palette::dim);
             } else if (auto flag = std::get_if<bool>(&value)) {
-                label(context,t.nameX+12,y+3,nameRight-t.nameX-12,std::move(name),palette::dim);
+                label(context,t.nameX+12+detail,y+3,nameRight-t.nameX-12-detail,std::move(name),palette::dim);
                 toggleSwitch(context,t.stateX+(SettingsTable::stateWidth-switchWidth)/2,y+(SettingsTable::rowHeight-switchHeight)/2,*flag);
             } else {
                 bool asSlider = entry.option->numeric && entry.option->numeric->step > 0 && editingNumber_ != entry.option;
                 float nameEnd = asSlider ? t.sliderX() : t.stepperX(optionAction(entry.option->id).has_value());
-                label(context,t.nameX+12,y+3,nameEnd-SettingsTable::gap-t.nameX-12,std::move(name),palette::dim);
+                label(context,t.nameX+12+detail,y+3,nameEnd-SettingsTable::gap-t.nameX-12-detail,std::move(name),palette::dim);
                 if (asSlider) {
                     auto const& range = *entry.option->numeric;
                     float number = std::get<float>(value);
@@ -1011,7 +1012,7 @@ void renderTable(MinecraftUIRenderContext& context, IClientInstance& current, gl
                 }
             }
             if (auto linked = optionAction(entry.option->id)) drawKeyCell(context,current,y,*linked);
-            if (paused) fill(context,t.nameX+12,y,t.rowsRight()-t.nameX-12,SettingsTable::rowHeight,palette::panel,.4f);
+            if (paused) fill(context,t.nameX+12+detail,y,t.rowsRight()-t.nameX-12-detail,SettingsTable::rowHeight,palette::panel,.4f);
             break;
         }
         case RowKind::Action: {

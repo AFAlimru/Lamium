@@ -255,6 +255,7 @@ struct SettingsRow {
     int children = 0;       // Feature rows: expandable content
     bool expanded = false;  // Feature rows
     bool lastChild = false; // Child rows: end of the tree guide
+    bool detail = false;    // An option nested under the action above it
     bool heading() const { return kind == RowKind::Feature; }
     bool selectable() const { return kind != RowKind::Section; }
     bool child() const {
@@ -262,7 +263,7 @@ struct SettingsRow {
     }
     bool operator==(SettingsRow const& other) const {
         return kind == other.kind && feature == other.feature && option == other.option
-            && action == other.action && section == other.section && layout == other.layout;
+            && action == other.action && section == other.section && layout == other.layout && detail == other.detail;
     }
 };
 // Category is a section key, or empty for all sections. A query searches every
@@ -309,12 +310,28 @@ std::vector<SettingsRow> buildSettingsRows(bool hotkeys, std::string_view catego
             for (auto const& option : settings::options) {
                 if (option.feature != feature.id || option.id == feature.toggle) continue;
                 if (option.id.starts_with("hud.")) continue; // Edited in the layout editor.
+                // The repeat scope is a detail of the repeat action below.
+                if (feature.id == "schematicMenu" && option.id == "schematic.repeatAllSteps") continue;
                 children.push_back({RowKind::Option, &feature, &option, {}, section});
             }
             for (size_t i : actionOrder) {
                 auto action = static_cast<input::Action>(i);
                 if (input::actions[i].feature == feature.id && action != primary && !shownOnOption(action))
                     children.push_back({RowKind::Action, &feature, nullptr, action, section});
+            }
+            // "Repeat every menu step" belongs under the adjustment key it
+            // changes, not at the top of the menu group.
+            if (feature.id == "schematicMenu") {
+                if (auto option = settings::find("schematic.repeatAllSteps")) {
+                    auto after = std::find_if(children.begin(), children.end(), [](SettingsRow const& row) {
+                        return row.kind == RowKind::Action && row.action == input::Action::AdjustSchematic;
+                    });
+                    if (after != children.end()) {
+                        SettingsRow detail{RowKind::Option, &feature, option, {}, section};
+                        detail.detail = true;
+                        children.insert(after + 1, detail);
+                    }
+                }
             }
             if (feature.id == "sorting" || feature.id == "fakeOffhand" || feature.id == "offhandSwap")
                 std::stable_partition(children.begin(), children.end(), [](SettingsRow const& row) {
