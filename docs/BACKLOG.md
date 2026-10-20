@@ -401,12 +401,22 @@ tools have the same opener action rows (Open shapes, Open waypoints, Open the
 schematics screen, Open hotkeys, Open HUD layout).
 Layout state: the State column is 24 px, enough for a switch but not for the
 word "Open"; the calculator's button therefore overlapped its own frame. The
-calculator button was widened to 38 px into the name gap on 2026-10-20 and
-passed its in-game look. Open questions: whether the four Schematics tab
-openers get buttons or only the main openers; whether Open for the schematic
-menu opens the radial menu over the settings screen or closes settings first;
-and whether the text "Open" or a link-style icon reads better once several
-opener rows have buttons.
+button is 38 px wide, borrowing the gap and a little of the name cell, and
+passed its in-game look.
+Decided 2026-10-20 (final): (b) the sidebar tools are included; the schematic
+menu closes the settings view and opens over the world; keep the text
+"Open", not an icon. Only the main opener gets a button; the four Schematics
+tab variants keep their keys.
+Built 2026-10-20: `opensTool()` lists the eight main openers (shapes,
+waypoints, schematics screen, hotkeys, HUD layout, world map, calculator,
+schematic menu) and is tested in SettingsRowsTests. Their action rows, and
+the calculator/schematic-menu feature rows, draw the 38 px "Open" button in
+the free State cell; `openTool()` takes the in-settings path for the views,
+the map view for the world map, and the radial menu for the schematic menu.
+The radial menu is a mode of the same screen, so entering it hides the table
+and shows the menu over the same world background; closing the menu closes
+the screen, as when it is opened from gameplay. Awaiting the in-game look.
+Open: whether the buttons crowd the rows once seen.
 Wheel chords (maintainer 2026-10-20): a Press action can already be bound to
 a wheel chord in the key settings; Left Alt + Wheel Up/Down assigned to the
 schematic away/closer actions fired as expected. Hold actions reject a wheel
