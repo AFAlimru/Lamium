@@ -164,7 +164,10 @@ feature on or off.
 Boxes, cones, pyramids, ellipsoids, domes and more drawn in the world, saved
 per world. Create and edit them from Shapes in the sidebar.
 
-## Map (experimental, off by default)
+## Map (experimental)
+
+The minimap and the world map are off by default. Waypoints and the death
+point also show in the world while both maps are off.
 
 ### Minimap
 
@@ -265,13 +268,21 @@ Furnace, brewing and beacon slots get only what they accept.
 | Ctrl + Shift + wheel, Alt + Shift + click | Everything (the hotbar only when you start over it) |
 | Shift + right drag | Leaves one in each slot |
 
-With a stack on the cursor:
+With a stack on the cursor (only these two; every other gesture needs an
+empty cursor):
 
 | Gesture | Does |
 | --- | --- |
-| Shift + click on an empty slot | Gathers the matching items there |
-| Shift + click outside the window | Drops them all |
-| Holding the drop key: Ctrl + left, Shift + right, Shift + left drags | Drop one item, all but one, or whole stacks from each slot you pass |
+| Shift + click on an empty slot | Puts the stack there and gathers the matching items from the other side |
+| Shift + click outside the window | Drops the stack and the matching items in your inventory |
+
+With an empty cursor and the drop key held, drags drop instead of moving:
+
+| Gesture | Drops from each slot you pass |
+| --- | --- |
+| Ctrl + left drag | One item |
+| Shift + right drag | All but one |
+| Shift + left drag | The whole stack |
 
 ### Tool Switch and Weapon Switch
 

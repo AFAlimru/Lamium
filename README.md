@@ -125,7 +125,8 @@ The HUD layout view moves and styles Lamium's HUD elements.
 | Waypoints | Waypoints and the last death point, on the maps and in the world | — | On |
 | World map | A full-screen map of the areas you have visited | `M` | Off |
 
-Radar and waypoints show once the minimap or world map is on.
+Radar draws on the minimap. Waypoints and the death point also show in the
+world, with both maps off.
 
 ### Schematics *Exp.*
 
