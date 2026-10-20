@@ -385,15 +385,20 @@ whether their text fits. Separate a missing capability (L-230's Y-axis
 movement) from an existing operation that needs a clearer explanation.
 Additional maintainer feedback, 2026-10-20: settings offers a direct Open
 button for the calculator (L-220), but no equivalent button for the schematic
-radial menu. Decided 2026-10-20: add direct Open buttons for every tool,
-including the schematic menu, as a way to try a tool without binding a key.
-The open question is the layout, because a button in every row could look
-crowded and some rows already use the State column for a switch: the
-calculator puts Open in a free State column; the schematic menu is a key
-group rather than a feature row; opening it from settings means closing the
-settings screen first. Do not add buttons until the layout is chosen. The
-"Open" label also overlapped its frame (small-button text inset); fix that
-with the layout work.
+radial menu. Decided 2026-10-20: add direct Open buttons for tools that lead
+to a separate screen, including the schematic menu, as a way to try a tool
+without binding a key; do not add a new section for them. Sidebar entries
+exist for most tools, but a first-time user may not connect the sidebar to a
+different screen. If text buttons crowd the rows, use a link-style Open icon
+instead.
+Layout state: the State column is 24 px, enough for a switch but not for the
+word "Open"; the calculator's button therefore overlapped its own frame. The
+calculator button was widened to 38 px into the name gap on 2026-10-20 and
+awaits a look in game. Open questions: where the button goes on rows that
+already use the State column for a switch (an Open icon at the name's right
+edge is one option), and whether Open for the world map and schematic menu
+opens the in-settings view or closes settings and opens the tool over the
+world.
 Wheel chords (maintainer 2026-10-20): a Press action can already be bound to
 a wheel chord in the key settings; Left Alt + Wheel Up/Down assigned to the
 schematic away/closer actions fired as expected. Hold actions reject a wheel
@@ -443,6 +448,23 @@ Open (maintainer): the line wording (yes/no only, or with the Y limit), and
 whether the Y limit text is worth showing before the boundary (40 vs 39) is
 verified. Record the formula's source in [PROVENANCE.md](PROVENANCE.md)
 before using it; do not copy the reporter's code verbatim.
+
+### L-233 Make inventory transfer gestures rebindable
+Kind: Design, future. Maintainer 2026-10-20: now that a wheel direction can
+be part of a binding, the transfer gestures should be configurable instead
+of fixed to Shift/Ctrl/Alt plus wheel, drag or click. Not urgent; nothing is
+blocked today.
+Current model: `TransferGesture.h` derives 14 gestures (one/stack/matching/
+all on the wheel, stack/one/keep-one/drop drags, matching/all clicks, cursor
+matching) from hardcoded modifiers; the settings only enable or disable each
+gesture.
+Open: which gestures to expose and which model to use. Wheel gestures fit
+the existing Press-plus-wheel chords. Drags are press-move-release and clicks
+carry cursor state, so plain chords cannot express them without a gesture
+model. Also decide modifier roles, defaults matching today, the container-
+only context, conflicts with other actions, and whether to start with the
+wheel subset only. L-169 owns transfer extensions; do not start without
+choosing the subset and model.
 
 ### L-206 World map recording range is a fixed radius instead of the view distance
 Kind: Ready, implementation built; runtime coverage pending. User report
