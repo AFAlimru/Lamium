@@ -611,6 +611,31 @@ explicitly outstanding findings for P1-P5; build and LamiumTests pass for
 changes, package/archive checks for packaging changes. Do not claim a full
 similarity audit or legal clearance from this bounded review.
 
+Findings (review of 2026-10-20 against main `f37d3d2` and release v0.2.3;
+not a legal opinion):
+
+- **P1, partly done.** Sources read: LeviLamina `main` at `4ca1356`,
+  `EULA.en.md`/`EULA.zh.md` (version 0.2.0, 2025-01-20) and
+  `docs/main/contents/common_guides/usage_guidelines.{en,zh}.md` (first
+  official version 2025-01-04; the Chinese text prevails). The EULA covers
+  LeviMC's closed-source software (PreLoader, PeEditor); Lamium does not
+  ship it. The usage guidelines ask anyone using the LeviLamina name to
+  avoid implying official status and to show, prominently on products,
+  listings and descriptions: "Not an official LeviMC product. Not approved
+  by LeviMC and not associated with LeviMC." (zh: "非官方 LeviMC 产品。未获得
+  LeviMC 批准，与 LeviMC 无关联。"), and to state who is responsible and how
+  to reach them. Before this review neither the README nor the v0.2.3
+  release text carried it. Done: the README opens with the notice and the
+  responsible maintainer and contact; `tooth.json`'s description carries it
+  (reaches LIP, Bedrinth and LeviLauncher with the next tag); the DISTRIBUTION
+  release checklist requires it in release notes. Outstanding: the published
+  v0.2.0-v0.2.3 release texts (the maintainer edits them on GitHub or lets
+  the next release carry it); the Bedrinth and LeviLauncher pages could not
+  be opened from the review environment and need a look after the next tag;
+  whether an in-game notice is wanted (a UI choice, not decided here);
+  Minecraft's own usage guidelines, which LeviMC's guidelines defer to for
+  sharing, could not be fetched and their disclaimer is not yet checked.
+
 ### L-190 Select several rows at once in list screens
 Kind: Design. Maintainer idea 2026-10-14; no implementation or release chosen.
 Goal: in list screens (waypoints, the schematic Check list and similar lists)

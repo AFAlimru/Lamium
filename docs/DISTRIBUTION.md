@@ -172,6 +172,11 @@ Before publishing a managed release:
   stored `\` separators);
 - the pushed tag is `v<version>`, and its CI run passes;
 - release notes call out settings-schema migrations when one exists;
+- release notes open with the independent-project notice from the README
+  ("Not an official LeviMC product. Not approved by LeviMC and not associated
+  with LeviMC."), as LeviLamina's usage guidelines ask for every listing and
+  description; `tooth.json`'s description carries it for LIP, Bedrinth and
+  LeviLauncher;
 - a managed-update smoke test is repeated when packaging, installer behavior or
   compatibility metadata changes.
 
