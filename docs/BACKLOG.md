@@ -436,7 +436,7 @@ a wheel chord in the key settings; Left Alt + Wheel Up/Down assigned to the
 schematic away/closer actions fired as expected. Hold actions reject a wheel
 token by design. So the wheel path is a discoverability gap, not a missing
 capability: the capture footer now names wheel directions and says a wheel
-cannot be held. Name truncation and the hover text were fixed as L-232
+cannot be held. Name truncation and the hover text were fixed as L-235
 (BACKLOG-DONE.md).
 Open: whether directional keys earn their UI weight for precise one-shot or
 macro use; whether the menu/wheel/repeat workflow should be the primary

@@ -1308,7 +1308,7 @@ result is only the converted text; Latin typing and Backspace unchanged.
 
 ## Ready
 
-### L-232 Key settings truncate long binding names and hide the full chord
+### L-235 Key settings truncate long binding names and hide the full chord
 Closed 2026-10-20: built and checked in game on `dcab6ce` (deployed DLL
 SHA-256 `03aa48491a5d53cde4aca536a525985c791444b9bf5b1e04e148c6312f98dd00`):
 hovering a clipped key cell shows the whole chord, short bindings show no
@@ -1343,6 +1343,8 @@ padding were revised after the maintainer's first in-game look: the tip
 appeared for short bindings too, its bottom padding was larger than the top,
 it had dropped the key caps, and a conflict tip clipped the chord it was meant
 to reveal.
+Renumbered from L-232 to L-235 on 2026-10-20: origin's merged PR #31 took
+L-232 for the slime chunk indicator, and this item was still unpushed.
 
 ### L-93 Schematic: load, place, project, verify and list materials (experimental)
 Archived initial-scope record, 2026-10-20: the initial feature shipped in 0.1.7 and the screen/rendering work in 0.1.8. Dated status statements below describe their original checkpoint. Current follow-ups remain under L-93 and their own L-items in BACKLOG.md; later fixes and coverage are in SCHEMATIC.md and VALIDATION.md.

@@ -26,7 +26,7 @@ with no gesture lock. A detached Freelook or FreeCamera view owns the
 direction. Press actions can be bound to wheel chords (for example Alt with a
 wheel direction); Hold actions cannot. Control follow-up: L-231 control
 discoverability. L-230 movement passed its in-game check and its key help now
-explains that steep looks move on Y; L-229's opener repeat and L-232
+explains that steep looks move on Y; L-229's opener repeat and L-235
 binding-name display are fixed and checked (BACKLOG-DONE.md); BACKLOG owns the
 open status. The next controls round (shared move target, repeat scope,
 default Alt+Wheel forward/back) and the six-direction layer model are under
