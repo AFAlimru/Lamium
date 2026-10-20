@@ -1,9 +1,9 @@
 # Schematic controls redesign
 
-Status: design discussion, 2026-10-20; three independent reviews and all
-recommendations adopted by the maintainer the same day. **Nothing
-implemented.** This note records the agreed direction; only the items under
-"Open questions" remain undecided.
+Status: design discussion, 2026-10-20, all recommendations adopted. L-231 is
+implemented on branch `schematic-controls`; in-game checks are pending. L-234
+is not started. This note records the agreed direction; the items under "Open
+questions" remain undecided.
 
 [SCHEMATIC.md](SCHEMATIC.md) still describes the behavior in the game today;
 [BACKLOG.md](BACKLOG.md) owns task status (L-231 controls, L-234 layer model).
@@ -34,6 +34,11 @@ implemented.** This note records the agreed direction; only the items under
 - The six direction keys, the menu movement steppers and the move toasts act
   on the target. Rotate/mirror and the layer controls stay settings of the
   selected placement.
+- The move-to-feet command uses the view source: the player's feet normally
+  and the camera's block in Freelook/FreeCamera. Layer-here follows the same
+  rule, and corners are set at the block the view (or camera) hits.
+- The settings group is "Move target and placement"; the target key is
+  "Select the next move target", placed next to "Select the next placement".
 - The move-to-feet key acts on the current target like the menu's item: the
   placement origin, corner 2, or the area (corner 1 to the feet and corner 2
   follows). With no target it toasts. The help says "Move the target to your
@@ -151,21 +156,21 @@ implemented.** This note records the agreed direction; only the items under
 
 ### Looked-at selection
 
-- Use the same drawn view ray as movement (`detachedViewRay` when a detached
-  view owns the view, otherwise the player's eye and view), not the body view
-  in FreeCamera.
-- A corner the crosshair hits directly wins before any distance comparison,
-  including when the camera is inside the placement box. If both corners share
-  the cell, keep the current target when it is one of them, else prefer corner
-  1.
-- Otherwise compare distances first: a placement at its box entry along the
-  ray, and the area only when the crosshair block is inside it, at the hit
-  distance (the box entry is not used, or the area would win over a placement
-  inside it).
-- On equal distance, prefer placement, then area. A corner inside a placement
-  that is not hit directly is reached through the target key, not by looking
-  through the box.
-- Looking at air inside the area selects nothing.
+- Use the same drawn view ray as movement: the detached camera when one owns
+  the view, otherwise the player's eye and view.
+- A corner wins when the ray passes through its **block cell**, even when the
+  cell is air. The nearest corner entry wins; when both corners share a cell,
+  keep the current corner if it is one, else corner 1.
+- Otherwise the nearest placement box entry wins; then the save area when the
+  ray enters its box (in the air too). A placement hit inside the area is
+  therefore chosen over the area.
+- A block that fully hides what is behind it occludes these targets; glass,
+  plants and other see-through blocks do not. A target on or in front of the
+  opaque face stays selectable. Water and lava are looked through.
+- Rebuilding a ray from the eye is exact for the cell tests; setting a corner
+  keeps using the game's crosshair in normal play so the outlined block and the
+  corner agree at seams.
+- Looking at nothing selectable reports "No move target where you look".
 
 ## Third review (2026-10-20, adopted)
 
@@ -174,8 +179,8 @@ above; nothing remains proposed.
 
 ## Open questions
 
-- Action labels and help for target-based movement (saved action ids stay).
-- Prototype scope and branch.
+- L-234 implementation order and prototype branch (L-231 is implemented and
+  awaits its in-game check).
 
 ## Suggested order
 
