@@ -598,6 +598,21 @@ void step(IClientInstance& client, menu::Stepper stepper, int amount) {
     if (!player || !amount) return;
     syncLifecycle(client);
     bool all = Runtime::instance().preferences().schematic.repeatAllSteps;
+    // Validate a step before remembering it: a rejected layer or turn must not
+    // replace the last successful adjustment for Repeat.
+    bool layerStep = stepper == S::LayerAxis || stepper == S::LayerMode || stepper == S::Layer || stepper == S::LayerKeep;
+    bool turnStep = stepper == S::Rotate || stepper == S::Mirror;
+    if (layerStep && !selectedStructure()) {
+        ui::showMessageToast(ui::translated("schematic.layerNeedsStructure"));
+        return;
+    }
+    if (turnStep) {
+        auto structure = selectedStructure();
+        if (rotationNeedsStructure(structure.get())) {
+            ui::showMessageToast(ui::translated("schematic.rotationNeedsStructure"));
+            return;
+        }
+    }
     if (all ? menu::repeatableAll(stepper) : menu::repeatable(stepper)) {
         // Resolve a fallback target before remembering the step, or the
         // fallback would clear the adjustment this very move should remember.
@@ -658,7 +673,10 @@ void step(IClientInstance& client, menu::Stepper stepper, int amount) {
             } else if (stepper == S::LayerMode) {
                 p.layers.mode = static_cast<LayerMode>(((static_cast<int>(p.layers.mode) + amount) % 3 + 3) % 3);
             } else if (stepper == S::LayerKeep) {
-                p.layers.keep = p.layers.keep == LayerKeep::Low ? LayerKeep::High : LayerKeep::Low;
+                // A wheel can deliver several notches in one frame; keep the
+                // side for an even count, toggle for an odd one.
+                if (amount % 2 != 0)
+                    p.layers.keep = p.layers.keep == LayerKeep::Low ? LayerKeep::High : LayerKeep::Low;
             } else if (p.layers.mode == LayerMode::All) {
                 p.layers.mode = LayerMode::Only;
             } else {
