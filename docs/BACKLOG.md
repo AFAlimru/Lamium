@@ -383,9 +383,14 @@ wheel subset only. L-169 owns transfer extensions; do not start without
 choosing the subset and model.
 
 ### L-236 Rebuild only the ghost sections whose visible layer changed
-Kind: Design. Performance follow-up split from L-234 (2026-10-21). The ghost
-cache key is per placement, so moving the cut discards and rebuilds every
-16-block section, including sections whose shown cells did not change. Give
+Kind: Design, low priority. Performance follow-up split from L-234
+(2026-10-21). Maintainer check 2026-10-22 on a desert village: stepping the
+cut under Only is fine; under Up to the redraw after each step takes a
+noticeable while. Not urgent: drawing a large schematic whole is heavy
+anyway, so day-to-day work likely uses Only. A cheaper first step if it
+returns: keep the old sections drawn until their replacements are built.
+The ghost cache key is per placement, so moving the cut discards and
+rebuilds every 8-block section (and re-resolves the palette), including sections whose shown cells did not change. Give
 each section a layer visibility signature (fully shown, fully hidden, or the
 cut boundary inside it) and reuse unchanged sections when the cut moves;
 changing an unused field (Keep under Only, Axis/Cut under All) already avoids
