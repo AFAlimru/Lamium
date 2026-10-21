@@ -462,6 +462,7 @@ inline constexpr auto simplifiedChinese = std::to_array<Text>({
     {"schematic.mode.upTo", "到此层为止"},
     {"schematic.keep.low", "低侧"},
     {"schematic.keep.high", "高侧"},
+    {"schematic.keep", "保留侧"},
     {"schematic.layer", "切断位置"},
     {"schematic.layerValue", "{} / {}"},
     {"schematic.toast.slice", "{}：在 {} 轴的 {} 处切断"},
@@ -1604,6 +1605,7 @@ inline constexpr auto simplifiedChinese = std::to_array<Text>({
     {"key.Lamium.cyclemovetarget", "选择下一个移动对象"},
     {"help.key.cyclemovetarget", "按顺序切换有效的移动对象：蓝图、角1、角2或保存范围。"},
     {"schematic.layerNeedsStructure", "变更层之前请先加载蓝图。"},
+    {"schematic.rotationNeedsStructure", "设置切断面后旋转放置前，请先加载蓝图。"},
     {"key.Lamium.slicefromview", "从视角切片蓝图"},
     {"help.key.slicefromview", "沿视线的主轴，在相机的虚拟脚下处切开所选放置。只显示该层，并保留远离相机的一侧。"},
 });

@@ -470,6 +470,7 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"schematic.mode.upTo", "Up to this layer", "この層まで"},
     {"schematic.keep.low", "Low side", "低い側"},
     {"schematic.keep.high", "High side", "高い側"},
+    {"schematic.keep", "Keep", "残す側"},
     {"schematic.layer", "Cut", "切断位置"},
     {"schematic.layerValue", "{} / {}", "{} / {}"},
     {"schematic.toast.slice", "{}: cut on {} at {}", "{}: {} 軸の {} で切る"},
@@ -1639,6 +1640,7 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"key.Lamium.cyclemovetarget", "Select the next move target", "次の移動対象を選ぶ"},
     {"help.key.cyclemovetarget", "Selects the next valid move target: placement, corner 1, corner 2 or the save area.", "有効な移動対象（配置・角1・角2・範囲）を順に切り替えます。"},
     {"schematic.layerNeedsStructure", "Load the schematic before changing its layers.", "層を変更するには設計図を読み込んでください。"},
+    {"schematic.rotationNeedsStructure", "Load the schematic before turning it while a cut plane is set.", "切断面を設定した配置を回すには、設計図を読み込んでください。"},
     {"key.Lamium.slicefromview", "Slice the schematic from the view", "視点で設計図をスライス"},
     {"help.key.slicefromview", "Cuts the selected placement on the dominant axis you look along, at the view's virtual feet. Shows only that layer and keeps the side away from the camera.", "選択中の配置を、見ている方向の主軸で、視点の仮想足元の位置で切ります。その層だけを表示し、カメラから遠い側を残します。"},
 });

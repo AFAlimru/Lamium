@@ -120,6 +120,14 @@ std::shared_ptr<Structure const> selectedStructure() {
     if (set.selected < 0 || set.selected >= static_cast<int>(set.placements.size())) return nullptr;
     return session::structure(set.placements[static_cast<size_t>(set.selected)].file);
 }
+// A new-form layer view depends on the placed size, so turning the placement
+// while its structure is missing would leave the old fields stale.
+bool rotationNeedsStructure(Structure const* structure) {
+    if (structure) return false;
+    auto set = session::current();
+    return set.selected >= 0 && set.selected < static_cast<int>(set.placements.size())
+        && !set.placements[static_cast<size_t>(set.selected)].layers.legacy;
+}
 // Where the view ray enters a box, or nullopt when it misses within `reach`.
 std::optional<double> enter(Vec3 const& eye, Vec3 const& dir, Point low, Size size, double reach) {
     double near = 0, far = reach;
@@ -544,6 +552,10 @@ void press(IClientInstance& client, Action action) {
     }
     case Action::RotatePlacement: {
         auto structure = selectedStructure();
+        if (rotationNeedsStructure(structure.get())) {
+            ui::showMessageToast(ui::translated("schematic.rotationNeedsStructure"));
+            return;
+        }
         changeSelected([&](SavedPlacement& p) {
             p.placement.rotation = quarterTurns(p.placement.rotation + 1);
             if (structure && !p.layers.legacy) dualWrite(p.layers, placedSize(structure->size, p.placement.rotation));
@@ -646,6 +658,10 @@ void step(IClientInstance& client, menu::Stepper stepper, int amount) {
     case S::UpDown: moveBy(*player, scaled(viewAxes(client).up, amount)); return;
     case S::Rotate: {
         auto structure = selectedStructure();
+        if (rotationNeedsStructure(structure.get())) {
+            ui::showMessageToast(ui::translated("schematic.rotationNeedsStructure"));
+            return;
+        }
         changeSelected([&](SavedPlacement& p) {
             p.placement.rotation = quarterTurns(p.placement.rotation + amount);
             if (structure && !p.layers.legacy) dualWrite(p.layers, placedSize(structure->size, p.placement.rotation));
@@ -711,6 +727,10 @@ void run(IClientInstance& client, menu::Command command) {
         return;
     case C::ResetTurn: {
         auto structure = selectedStructure();
+        if (rotationNeedsStructure(structure.get())) {
+            ui::showMessageToast(ui::translated("schematic.rotationNeedsStructure"));
+            return;
+        }
         changeSelected([&](SavedPlacement& p) {
             p.placement.rotation = 0;
             p.placement.mirror = Mirror::None;

@@ -149,10 +149,11 @@ void changeSchematic(std::function<void(schematic::SavedPlacement&)> const& appl
 // ---- Schematics view (L-93) ----
 // Four tabs share the list-and-detail layout: placements, files, the
 // verification of the selected placement, and its materials.
-enum class SchematicField { X, Y, Z, Rotation, Mirror, MoveHere, Visible, LayerAxis, LayerMode, Layer, MatchLayer, Extras, Entities };
+enum class SchematicField { X, Y, Z, Rotation, Mirror, MoveHere, Visible, LayerAxis, LayerMode, Layer, Keep, MatchLayer, Extras, Entities };
 constexpr auto schematicFields = std::to_array<SchematicField>({SchematicField::X, SchematicField::Y, SchematicField::Z,
     SchematicField::Rotation, SchematicField::Mirror, SchematicField::MoveHere, SchematicField::Visible, SchematicField::LayerAxis,
-    SchematicField::LayerMode, SchematicField::Layer, SchematicField::MatchLayer, SchematicField::Extras, SchematicField::Entities});
+    SchematicField::LayerMode, SchematicField::Layer, SchematicField::Keep, SchematicField::MatchLayer, SchematicField::Extras,
+    SchematicField::Entities});
 int verifyFilter = 0; // 0 mistakes, 1 wrong or extra, 2 wrong state, 3 not placed
 int verifySelected = -1;
 bool materialsShownOnly = false;
@@ -373,6 +374,7 @@ void activateSchematicField(int index, int part) {
     }
     case SchematicField::Rotation: {
         auto structure = schematic::session::structure(p->file);
+        if (!structure && !p->layers.legacy) { screen::setMessage(translated("schematic.rotationNeedsStructure")); return; }
         changeSchematic([&](schematic::SavedPlacement& t) {
             t.placement.rotation = schematic::quarterTurns(t.placement.rotation + direction);
             if (structure && !t.layers.legacy)
@@ -432,6 +434,17 @@ void activateSchematicField(int index, int part) {
         changeSchematic([&](schematic::SavedPlacement& t) {
             if (t.layers.legacy) t.layers = schematic::fromLegacy(t.layers, placed);
             t.layers.cut = std::clamp(t.layers.cut + direction, 0, count - 1);
+            schematic::dualWrite(t.layers, placed);
+        });
+        return;
+    }
+    case SchematicField::Keep: {
+        auto structure = schematic::session::structure(p->file);
+        if (!structure) { screen::setMessage(translated("schematic.layerNeedsStructure")); return; }
+        auto placed = schematic::placedSize(structure->size, p->placement.rotation);
+        changeSchematic([&](schematic::SavedPlacement& t) {
+            if (t.layers.legacy) t.layers = schematic::fromLegacy(t.layers, placed);
+            t.layers.keep = t.layers.keep == schematic::LayerKeep::Low ? schematic::LayerKeep::High : schematic::LayerKeep::Low;
             schematic::dualWrite(t.layers, placed);
         });
         return;
@@ -691,14 +704,19 @@ std::string fieldValue(schematic::SavedPlacement const& p, SchematicField field)
             : mode == schematic::LayerMode::UpTo ? "schematic.mode.upTo" : "schematic.mode.all");
     }
     case SchematicField::Layer: return translated("schematic.layerValue", shownLayers(p).cut + 1, placedLayers(p));
+    case SchematicField::Keep:
+        return translated(shownLayers(p).keep == schematic::LayerKeep::High ? "schematic.keep.high" : "schematic.keep.low");
     case SchematicField::Extras: return translated(p.countExtras ? "schematic.extras.show" : "schematic.extras.ignore");
     default: return {};
     }
 }
 std::string layersText(schematic::SavedPlacement const& p) {
-    if (shownLayers(p).mode == schematic::LayerMode::All) return translated("schematic.mode.all");
-    return fieldValue(p, SchematicField::LayerAxis) + " " + fieldValue(p, SchematicField::Layer) + " "
+    auto view = shownLayers(p);
+    if (view.mode == schematic::LayerMode::All) return translated("schematic.mode.all");
+    std::string text = fieldValue(p, SchematicField::LayerAxis) + " " + fieldValue(p, SchematicField::Layer) + " "
         + fieldValue(p, SchematicField::LayerMode);
+    if (view.mode == schematic::LayerMode::UpTo) text += " " + fieldValue(p, SchematicField::Keep);
+    return text;
 }
 void drawItemIcon(MinecraftUIRenderContext& context, std::string const& icon, float x, float y, float size) {
     auto const* stack = schematic::items::iconStack(icon);
@@ -1008,9 +1026,9 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
                 float y = l.fieldY(i);
                 auto field = schematicFields[static_cast<size_t>(i)];
                 rowBackground(context,l.detailLeft+1,y,l.detailWidth-2,ShapesLayout::rowHeight,schematicFieldSelected == i,over(ShapeZone::Field,i));
-                static constexpr std::array<std::string_view, 13> labels{"X", "Y", "Z", "schematic.rotation", "schematic.mirror",
+                static constexpr std::array<std::string_view, 14> labels{"X", "Y", "Z", "schematic.rotation", "schematic.mirror",
                     "schematic.moveHere", "schematic.shown", "schematic.layerAxis", "schematic.layerMode", "schematic.layer",
-                    "schematic.matchLayer", "schematic.extras", "schematic.showEntities"};
+                    "schematic.keep", "schematic.matchLayer", "schematic.extras", "schematic.showEntities"};
                 std::string text = i < 3 ? std::string(labels[static_cast<size_t>(i)]) : translated(labels[static_cast<size_t>(i)]);
                 label(context,dx,y+3,l.stepperX()-dx-4,text,palette::dim);
                 switch (field) {
@@ -1414,6 +1432,7 @@ void applyNumber() {
     auto const* selected = checkedPlacement();
     std::shared_ptr<schematic::Structure const> structure;
     if (field == 9 && selected) structure = schematic::session::structure(selected->file);
+    if (field == 9 && !structure) { screen::setMessage(translated("schematic.layerNeedsStructure")); return; }
     changeSchematic([&](schematic::SavedPlacement& p) {
         if (field == 9) {
             auto placed = structure ? schematic::placedSize(structure->size, p.placement.rotation) : schematic::Size{1, 1, 1};
