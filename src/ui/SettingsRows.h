@@ -86,6 +86,7 @@ inline constexpr auto features = std::to_array<FeatureInfo>({
     {"schematic", "feature.schematic", "help.schematic", "schematic.enabled", true, input::Action::ToggleSchematic},
     // The menu and the adjust key first: where to start (L-93, 2026-10-07).
     {"schematicMenu", "feature.schematicMenu", "help.schematicMenu", "", false, input::Action::SchematicMenu},
+    {"schematicRepeat", "key.Lamium.adjustschematic", "help.key.adjustschematic", "", false, input::Action::AdjustSchematic},
     {"schematicHud", "feature.schematicHud", "help.schematicHud", "schematic.hud", true, input::Action::ToggleSchematicHud},
     // Key groups without a switch of their own (DESIGN: a keyless group heading).
     {"schematicPlacement", "feature.schematicPlacement", "help.schematicPlacement", ""},
@@ -255,7 +256,6 @@ struct SettingsRow {
     int children = 0;       // Feature rows: expandable content
     bool expanded = false;  // Feature rows
     bool lastChild = false; // Child rows: end of the tree guide
-    bool detail = false;    // An option nested under the action above it
     bool heading() const { return kind == RowKind::Feature; }
     bool selectable() const { return kind != RowKind::Section; }
     bool child() const {
@@ -263,7 +263,7 @@ struct SettingsRow {
     }
     bool operator==(SettingsRow const& other) const {
         return kind == other.kind && feature == other.feature && option == other.option
-            && action == other.action && section == other.section && layout == other.layout && detail == other.detail;
+            && action == other.action && section == other.section && layout == other.layout;
     }
 };
 // Category is a section key, or empty for all sections. A query searches every
@@ -310,28 +310,12 @@ std::vector<SettingsRow> buildSettingsRows(bool hotkeys, std::string_view catego
             for (auto const& option : settings::options) {
                 if (option.feature != feature.id || option.id == feature.toggle) continue;
                 if (option.id.starts_with("hud.")) continue; // Edited in the layout editor.
-                // The repeat scope is a detail of the repeat action below.
-                if (feature.id == "schematicMenu" && option.id == "schematic.repeatAllSteps") continue;
                 children.push_back({RowKind::Option, &feature, &option, {}, section});
             }
             for (size_t i : actionOrder) {
                 auto action = static_cast<input::Action>(i);
                 if (input::actions[i].feature == feature.id && action != primary && !shownOnOption(action))
                     children.push_back({RowKind::Action, &feature, nullptr, action, section});
-            }
-            // "Repeat every menu step" belongs under the adjustment key it
-            // changes, not at the top of the menu group.
-            if (feature.id == "schematicMenu") {
-                if (auto option = settings::find("schematic.repeatAllSteps")) {
-                    auto after = std::find_if(children.begin(), children.end(), [](SettingsRow const& row) {
-                        return row.kind == RowKind::Action && row.action == input::Action::AdjustSchematic;
-                    });
-                    if (after != children.end()) {
-                        SettingsRow detail{RowKind::Option, &feature, option, {}, section};
-                        detail.detail = true;
-                        children.insert(after + 1, detail);
-                    }
-                }
             }
             if (feature.id == "sorting" || feature.id == "fakeOffhand" || feature.id == "offhandSwap")
                 std::stable_partition(children.begin(), children.end(), [](SettingsRow const& row) {

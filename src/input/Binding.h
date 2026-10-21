@@ -125,7 +125,7 @@ inline constexpr auto actions = std::to_array<ActionInfo>({
     {"schematiccorner2", "schematicSave", Behavior::Press},
     {"saveschematicarea", "schematicSave", Behavior::Press},
     {"schematicmenu", "schematicMenu", Behavior::Press},
-    {"adjustschematic", "schematicMenu", Behavior::Hold},
+    {"adjustschematic", "schematicRepeat", Behavior::Hold},
     {"deathrestore", "deathRestore", Behavior::Toggle},
     {"hidedistancefog", "hideEffects", Behavior::Toggle},
     {"lockedtrades", "lockedTrades", Behavior::Toggle},
