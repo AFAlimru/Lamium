@@ -21,6 +21,18 @@ public history; the DLL SHA-256 in each entry identifies the build that was
 actually run. The binding-display item was renumbered from L-232 to L-235 at
 the same time, because origin took L-232 for the slime chunk indicator.
 
+## L-234 review fixes checked in game (2026-10-21)
+
+Branch `schematic-layers` (`ec8a76e`), deployed DLL SHA-256
+`7693CA222849ECBA691EA8BD0192C829B581CE0B33F8A690822A5F15F2CD4A4F`, default
+release build, local `1.26.51.01 LIP` deployment, Windows x64. Maintainer
+report: a placement still on the old six-direction layer view, set to Only
+and then rotated and mirrored, kept the same build cells (the view is
+converted on the turn); the three layer keys now sit after Layer up/down/here
+in the key settings; ghosts and layer changes behaved as before. The
+mistyped-`layerView` load fallback is covered by `LamiumTests` only, not
+checked in game.
+
 ## L-234 cut-plane layers checked in game (2026-10-21)
 
 Branch `schematic-layers` (`3d68fd3`), deployed DLL SHA-256
