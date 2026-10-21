@@ -21,6 +21,20 @@ public history; the DLL SHA-256 in each entry identifies the build that was
 actually run. The binding-display item was renumbered from L-232 to L-235 at
 the same time, because origin took L-232 for the slime chunk indicator.
 
+## L-237 unreadable schematic notice checked in game (2026-10-22)
+
+`main` (`1fd201b`, implemented by Codex, reviewed before commit), deployed
+DLL SHA-256 `99498ECCD0661A5D8CF3512ACADC2BA220E8295BC768BB07AE2E77A2F4E25AEF`,
+default release build, local `1.26.51.01 LIP` deployment, Windows x64.
+Maintainer report: checks (a)-(d) passed (one toast on join with a renamed
+file, "!" in the Placed list and the HUD message; recovery after renaming
+back; no toast with Schematics off until turned on; one log line per
+failure). Presentation concerns raised in the same session became the L-237
+follow-up: the toast is short, uncolored, indistinguishable from the paused
+notice and hidden when toggle toasts are off; only the "!" is colored; the
+Check tab places the load error 2 units higher than the other tabs; with
+Schematics off, Check and Materials stay at "Counting..." forever.
+
 ## L-238 schematic menu and key parity checked in game (2026-10-22)
 
 `main` (`41d3ea7`), deployed DLL SHA-256

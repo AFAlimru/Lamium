@@ -504,6 +504,49 @@ SCHEMATIC.md's missing-structure note). Hand back for the in-game check:
 (c) with Schematics off at join, no toast until it is turned on;
 (d) the log has one line per failure, not one per frame.
 
+Checks (a)-(d) passed on `1fd201b` (VALIDATION-LOG). **Follow-up, decided
+with the maintainer 2026-10-22 from that check** (Ready, for Codex):
+
+A. **Warning toasts.** Add a warning kind to the shared toast
+   (`src/ui/Toast.h`: `Visible` gains `bool warning`; a new
+   `ui::showWarningToast(message, seconds = 6)` next to `showMessageToast`
+   in `InfoHud.cpp`/`Toast.h`). `drawInfoHud`'s toast block draws a warning
+   **even when `runtime.ui.toggleToasts` is off**, with its text in
+   `palette::warning` (keep `palette::dim` while it fades, as now). The
+   schematic menu's toast note (`renderSchematicMenu`, `currentToggleToast`)
+   uses `palette::warning` for a warning too. Add a Toast timing test for
+   the flag. The unreadable notice uses `showWarningToast`; nothing else
+   changes kind in this item (the paused-capability notice stays as it is,
+   to be decided separately).
+B. **Toast text names the feature.** Replace `schematic.toast.unreadable`:
+   "Schematics: can't read the file of {} placement(s): {}" /
+   "設計図: ファイルを読めない配置 {} 件（{}）" / "蓝图: 无法读取文件的放置 {} 个（{}）".
+C. **Placed list:** the "!" and the name of an unreadable placement are both
+   drawn in `palette::warning` (`SchematicsView.cpp`, the row added in L-237).
+D. **Same position on every tab:** the Check tab's load-error paragraph
+   (`case SchematicTab::Verify`, currently at `pvTop`) starts at
+   `l.previewY` like the Materials and Placed tabs.
+E. **Schematics off in Check and Materials:** while
+   `preferences().schematic.enabled` is off, a selected, loadable placement
+   no longer shows "Counting..." in the Check and Materials tabs (list empty
+   message and detail pane); both show `schematic.offCheck` in
+   `palette::faint` instead: "Schematics is off. Check and materials show
+   once it is on." / "設計図はオフです。照合と資材はオンにすると表示されます。" /
+   "蓝图已关闭。开启后才会显示核对和材料。". An unreadable file keeps its error
+   first.
+F. **Stale wording:** `schematic.off` still says the menu category is
+   "Show"; it is now "Show and check" (L-238). English "(Show)" becomes
+   "(Show and check)", Japanese 「表示」 becomes 「表示と照合」, Chinese “显示”
+   becomes “显示与核对”.
+
+Done when: build and `LamiumTests` pass; commits per logical change; this
+item and SCHEMATIC.md updated. In-game check for the maintainer: (e) the
+join toast is yellow, starts with "Schematics:"/"設計図:", stays about 6 s,
+and shows with toggle toasts off; (f) the "!" row is yellow including the
+name; (g) the load error sits at the same height on Placed, Check and
+Materials; (h) with Schematics off, Check and Materials say it is off
+instead of "Counting...".
+
 ### L-236 Rebuild only the ghost sections whose visible layer changed
 Kind: Design. Performance follow-up split from L-234 (2026-10-21). The ghost
 cache key is per placement, so moving the cut discards and rebuilds every
