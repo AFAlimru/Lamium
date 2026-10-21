@@ -21,6 +21,22 @@ public history; the DLL SHA-256 in each entry identifies the build that was
 actually run. The binding-display item was renumbered from L-232 to L-235 at
 the same time, because origin took L-232 for the slime chunk indicator.
 
+## PR #35 docked tool panels checked in game (2026-10-22)
+
+Local merge of PR #35 (`cd2a25d`, issue #33) onto `main` after PR #37
+(`1569603`), deployed DLL SHA-256
+`BE6252D707A1F54DE472843C8B1BCBE5E5F6C3B3E80795F72E87C37202794CA3`, default
+release build, local `1.26.51.01 LIP` deployment, Windows x64. Maintainer
+report: docked Schematics keeps "Show all" on its own row below the tabs, and
+the tabs, Show all, Expand and Close respond; on a shorter window the list
+gives up rows and the editor stays reachable (judged likely, not measured);
+every placement field, including the new Keep row, scrolls into view. Seen in
+passing at UI Profile 100%: the docked title "Schematics" ran under the "Key
+settings" link. That bound predates PR #35 and is shared by Shapes and
+Waypoints; it was fixed separately on `main` (`147008f`, not yet checked in
+game). The too-short case (only Close, Expand and the hint) is covered by
+`LamiumTests` only.
+
 ## L-234 second review fixes checked in game (2026-10-22)
 
 Branch `schematic-layers` (`27311d8`), deployed DLL SHA-256
