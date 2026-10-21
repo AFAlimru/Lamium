@@ -1645,6 +1645,12 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"help.key.cyclelayermode", "Cycles the layer display: all, only, up to.", "層の表示を、すべて・この層だけ・この層まで、の順に切り替えます。"},
     {"key.Lamium.togglelayerkeep", "Switch the kept side", "残す側を切り替え"},
     {"help.key.togglelayerkeep", "Switches the side kept by \"up to\": low or high.", "「この層まで」で残す側を、低い側・高い側の間で切り替えます。"},
+    {"schematic.toast.axis", "{}: axis {} (cut {}/{})", "{}: 軸 {}（切断 {}/{}）"},
+    {"schematic.toast.mode", "{}: mode {} (cut {}/{})", "{}: 表示 {}（切断 {}/{}）"},
+    {"schematic.toast.keep", "{}: keep {} (cut {}/{})", "{}: 残す側 {}（切断 {}/{}）"},
+    {"schematic.toast.cut", "{}: cut {}/{} (axis {})", "{}: 切断 {}/{}（軸 {}）"},
+    {"schematic.toast.cutOnly", "{}: showing only the cut layer (cut {}/{}, axis {})", "{}: 切断層だけ表示（切断 {}/{}、軸 {}）"},
+    {"schematic.toast.cutHere", "{}: cut here {}/{} (axis {})", "{}: 視点の位置で切断 {}/{}（軸 {}）"},
 });
 enum class Locale { English, Japanese, SimplifiedChinese };
 inline constexpr std::array locales{Locale::English, Locale::Japanese, Locale::SimplifiedChinese};

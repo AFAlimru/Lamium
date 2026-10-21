@@ -1610,5 +1610,11 @@ inline constexpr auto simplifiedChinese = std::to_array<Text>({
     {"help.key.cyclelayermode", "按全部、仅此层、到此层为止的顺序切换层的显示。"},
     {"key.Lamium.togglelayerkeep", "切换保留侧"},
     {"help.key.togglelayerkeep", "切换「到此层为止」保留的一侧：低侧或高侧。"},
+    {"schematic.toast.axis", "{}：轴 {}（切断 {}/{}）"},
+    {"schematic.toast.mode", "{}：显示 {}（切断 {}/{}）"},
+    {"schematic.toast.keep", "{}：保留侧 {}（切断 {}/{}）"},
+    {"schematic.toast.cut", "{}：切断 {}/{}（轴 {}）"},
+    {"schematic.toast.cutOnly", "{}：仅显示切断层（切断 {}/{}，轴 {}）"},
+    {"schematic.toast.cutHere", "{}：在视点处切断 {}/{}（轴 {}）"},
 });
 }
