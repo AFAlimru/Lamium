@@ -1075,6 +1075,10 @@ then rendering, screen and keys.
   block is missing, red outlines for wrong or extra blocks, yellow for a
   wrong state, orange for unknown block names, block-entity models with an
   outline. Sections rebuild two per frame and refresh every two seconds.
+  The layer part of the ghost key only covers visible fields: All ignores the
+  cut, Only ignores the kept side, UpTo uses both. Changing an unused field
+  updates the UI/save without rebuilding ghosts. Moving the cut still rebuilds
+  the whole placement; L-236 plans per-section reuse.
   Not yet: Verify and material tabs, HUD, placement keys, the translucent
   option, entities, saving areas.
 - Verify and materials (2026-10-03, awaiting the maintainer's check): the

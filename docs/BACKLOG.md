@@ -445,13 +445,27 @@ removed (it duplicated Axis + Cut here and changed Only/Keep as a side
 effect); rotation and mirror are structure-attached.
 Built: pure conversion from every old direction and mode, the `layerView`
 storage form with legacy dual-write, the structure-local Layers menu, and the
-HUD/placed-screen values (Axis, Cut, Mode and Keep). Tests cover the
-all-direction/mode cell match under every rotation and mirror, the legacy
-round-trip, missing-structure saves and placement-attached cuts. In-game check
+HUD/placed-screen values (Axis, Cut, Mode and Keep). Layer toasts name the
+operation and value; the ghost key only covers visible layer fields. Tests
+cover the all-direction/mode cell match under every rotation and mirror, the
+legacy round-trip, missing-structure saves and placement-attached cuts.
+In-game check
 covers the drawing, Check and Materials agreeing on the cut. A new-form cut
 plane blocks turning, resetting and cut number input while the structure is
 missing; legacy-form placements can still turn. L-231 is merged; L-234 follows
 as a separate step.
+
+### L-236 Rebuild only the ghost sections whose visible layer changed
+Kind: Design. Performance follow-up split from L-234 (2026-10-21). The ghost
+cache key is per placement, so moving the cut discards and rebuilds every
+16-block section, including sections whose shown cells did not change. Give
+each section a layer visibility signature (fully shown, fully hidden, or the
+cut boundary inside it) and reuse unchanged sections when the cut moves;
+changing an unused field (Keep under Only, Axis/Cut under All) already avoids
+a rebuild because the key only covers visible fields. Needs a pure
+section-state helper and tests, renderer cache changes, and an in-game frame
+check on a large placement while stepping the cut. Not part of the current
+L-234 branch.
 
 ### L-206 World map recording range is a fixed radius instead of the view distance
 Kind: Ready, implementation built; runtime coverage pending. User report
