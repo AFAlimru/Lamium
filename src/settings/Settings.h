@@ -174,7 +174,8 @@ struct Settings {
         bool hud = false; // The Schematic HUD element; only the player turns it on.
         bool hudVerify = true, hudMaterials = true; // Its two sections.
         int menuBackground = 1;   // The menu's dimming: 0 none, 1 light, 2 dark.
-        bool menuSmall = false;   // Small in the lower right instead of centered.
+        bool menuSmall = true;    // Small in the lower right instead of centered.
+        bool repeatAllSteps = false; // Let the adjust key repeat layer axis/mode too.
         bool menuReopen = false;  // Reopen where it was closed instead of at the list.
         float outlineDistance = 48; // Ghost outlines up to this many blocks away; 0 draws them all.
         // L-186: the light-blue tint over ghost textures in percent (100 is

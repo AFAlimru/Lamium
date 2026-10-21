@@ -19,6 +19,7 @@
 #include "features/map/WaypointSession.h"
 #include "app/SessionIds.h"
 #include "features/schematic/SchematicSession.h"
+#include "features/schematic/SchematicActions.h"
 #include "features/schematic/Preview.h"
 #include "features/schematic/GhostRenderer.h"
 #include "ui/SchematicFiles.h"
@@ -234,7 +235,8 @@ void pickSchematic(SchematicPick pick, int index) {
     schematicDeleteArmed = false;
     // The selected placement is the one keys, the HUD and the Verify tab act on.
     if (pick == SchematicPick::Placement && schematicSet.selected != index)
-        schematic::session::change([&](schematic::PlacementSet& set) { set.selected = index; return true; });
+        if (schematic::session::change([&](schematic::PlacementSet& set) { set.selected = index; return true; }))
+            schematic::actions::placementSelected();
     refreshSchematics(false);
 }
 void selectSchematicTab(SchematicTab tab) {
@@ -287,6 +289,9 @@ void placeSelectedFile() {
         return;
     }
     screen::clearMessage();
+    // The new placement is already selected, so pickSchematic's change check
+    // would not run: reset the move target here.
+    schematic::actions::placementSelected();
     refreshSchematics(false);
     selectSchematicTab(SchematicTab::Placements);
     pickSchematic(SchematicPick::Placement, static_cast<int>(schematicSet.placements.size()) - 1);

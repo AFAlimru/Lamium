@@ -12,6 +12,8 @@
 #include "features/schematic/MaterialAmount.h"
 #include "features/schematic/MenuModel.h"
 #include "features/schematic/MoveDirection.h"
+#include "features/schematic/MoveTarget.h"
+#include "features/schematic/TargetRay.h"
 #include "features/schematic/RestPose.h"
 #include "features/schematic/PreviewView.h"
 #include "features/schematic/GhostFaces.h"
@@ -627,6 +629,13 @@ void menuRules() {
               && !worksWhileOff({"", Command::Corner1Here}) && !worksWhileOff({"", Command::SaveArea})
               && !worksWhileOff({"", Stepper::Rotate}),
           "with Schematics off the menu opens at its switch, and only the switch and screens run");
+    using S = Stepper;
+    check(repeatable(S::ForwardBack) && repeatable(S::Rotate) && repeatable(S::Layer)
+              && !repeatable(S::LayerAxis) && !repeatable(S::LayerMode) && !repeatable(S::Target) && !repeatable(S::Placement),
+          "the adjust key repeats movement, rotation/mirror and the layer index only");
+    check(repeatableAll(S::LayerAxis) && repeatableAll(S::LayerMode) && !repeatableAll(S::Target)
+              && !repeatableAll(S::Placement),
+          "the option adds the layer axis and mode but not target or placement selection");
 
     using lamium::ui::RadialLayout;
     RadialLayout::Sizes sizes{100, 26, 140, 62};
@@ -954,6 +963,48 @@ void moveRules() {
               && orthogonal(std::cos(45 * pi / 180), -std::sin(45 * pi / 180), 0),
           "the six directions always stay one orthogonal unit-axis frame");
 }
+void moveTargetRules() {
+    using namespace lamium::schematic;
+    TargetValidity none{};
+    check(!valid(MoveTarget::Placement, none) && !valid(MoveTarget::Corner1, none)
+              && !valid(MoveTarget::Corner2, none) && !valid(MoveTarget::Area, none) && valid(MoveTarget::None, none),
+          "no target is valid until one exists");
+    check(fallback(none) == MoveTarget::None && nextValid(MoveTarget::None, none) == MoveTarget::None,
+          "an empty set falls back to and cycles to no target");
+    TargetValidity corners{false, true, true, true};
+    check(!valid(MoveTarget::None, corners), "no target stops being valid once a candidate exists");
+    check(fallback(corners) == MoveTarget::Corner1, "the first valid target is the fallback");
+    check(nextValid(MoveTarget::None, corners) == MoveTarget::Corner1
+              && nextValid(MoveTarget::Corner1, corners) == MoveTarget::Corner2
+              && nextValid(MoveTarget::Corner2, corners) == MoveTarget::Area
+              && nextValid(MoveTarget::Area, corners) == MoveTarget::Corner1,
+          "the cycle skips invalid targets and wraps");
+    check(previousValid(MoveTarget::Corner1, corners) == MoveTarget::Area
+              && previousValid(MoveTarget::Area, corners) == MoveTarget::Corner2,
+          "the reverse cycle also skips invalid targets and wraps");
+    TargetValidity placementOnly{true, false, false, false};
+    check(nextValid(MoveTarget::Area, placementOnly) == MoveTarget::Placement
+              && nextValid(MoveTarget::Placement, placementOnly) == MoveTarget::Placement,
+          "a single valid target stays selected while cycling");
+    TargetValidity areaOnly{false, false, false, true};
+    check(fallback(areaOnly) == MoveTarget::Area, "an area alone is a valid target");
+}
+void targetRayRules() {
+    using namespace lamium::schematic;
+    TargetRay through{0.5, 0.5, -2, 0, 0, 1, 256};
+    auto cell = cellEntry(through, 0, 0, 0);
+    check(cell && std::abs(*cell - 2) < 1e-9, "a ray through a cell reports its entry distance");
+    TargetRay inside{0.5, 0.5, 0.5, 0, 0, 1, 256};
+    check(cellEntry(inside, 0, 0, 0) == 0, "an origin inside the cell enters at 0");
+    TargetRay outside{2, 0.5, -2, 0, 0, 1, 256};
+    check(!cellEntry(outside, 0, 0, 0), "a ray beside the cell misses it");
+    TargetRay behind{0.5, 0.5, 2, 0, 0, 1, 256};
+    check(!cellEntry(behind, 0, 0, 0), "a cell behind the ray misses");
+    TargetRay shortReach{0.5, 0.5, -2, 0, 0, 1, 1};
+    check(!cellEntry(shortReach, 0, 0, 0), "a cell past the reach misses");
+    auto area = boxEntry(through, 0, 0, 0, 4, 4, 4);
+    check(area && std::abs(*area - 2) < 1e-9, "an area box uses the same entry distance");
+}
 void schematicTests() {
     rayCells();
     ghostLook();
@@ -967,6 +1018,8 @@ void schematicTests() {
     drawKeys();
     menuRules();
     moveRules();
+    moveTargetRules();
+    targetRayRules();
     ghostFaces();
     placementTransforms();
     entityRules();

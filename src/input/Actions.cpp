@@ -289,6 +289,8 @@ void executeAction(IClientInstance& client, input::Action action) {
         // Emit only once the new state is persisted; a failed save keeps the
         // old settings, so a toast would report a change that never happened.
         emitToggleToast(client, action, value);
+        // Turning the schematic feature off (or on) starts from a clean view state.
+        if (action == input::Action::ToggleSchematic) schematic::actions::resetState();
         if (action == input::Action::FakeOffhand && !value.inventory.fakeOffhand)
             inventory::fakeOffhand::release();
     }

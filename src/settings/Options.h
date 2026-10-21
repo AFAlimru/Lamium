@@ -470,6 +470,7 @@ inline constexpr auto options = std::to_array<Option>({
     choice<&Settings::schematic, &Settings::Schematic::ghostLines, ghostLinesLabels>("schematic.ghostLines", "schematic", "schematicGhostLines"),
     choice<&Settings::schematic, &Settings::Schematic::menuBackground, menuBackgroundLabels>("schematic.menuBackground", "schematicMenu", "schematicMenuBackground"),
     toggle<&Settings::schematic, &Settings::Schematic::menuSmall>("schematic.menuSmall", "schematicMenu", "schematicMenuSmall"),
+    toggle<&Settings::schematic, &Settings::Schematic::repeatAllSteps>("schematic.repeatAllSteps", "schematicRepeat", "schematicRepeatAll"),
     toggle<&Settings::schematic, &Settings::Schematic::menuReopen>("schematic.menuReopen", "schematicMenu", "schematicMenuReopen"),
     {"schematic.outlineDistance", "schematic", "schematicOutlineDistance",
         [](Settings const& s) -> OptionValue { return s.schematic.outlineDistance; },

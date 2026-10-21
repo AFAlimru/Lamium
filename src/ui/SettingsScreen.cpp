@@ -674,8 +674,8 @@ void renderSchematicMenu(MinecraftUIRenderContext& context, glm::vec2 size, glm:
     if (dim > 0) fill(context, 0, 0, size.x, size.y, Rgb{0, 0, 0}, dim);
     float s = preferences.schematic.menuSmall ? menuSmallScale : 1.f;
     auto width = [&](std::string const& text) { return textWidthScaled(context, text, s); };
-    static constexpr std::array<char const*, 4> targets{"schematic.target.placement", "schematic.target.corner1",
-        "schematic.target.corner2", "schematic.target.area"};
+    static constexpr std::array<char const*, 5> targets{"schematic.target.placement", "schematic.target.corner1",
+        "schematic.target.corner2", "schematic.target.area", "schematic.target.none"};
     static constexpr std::array<char const*, 6> hints{"schematic.menu.hintList", "schematic.menu.hintClose", "schematic.menu.hintStep",
         "schematic.menu.hintStepClick", "schematic.menu.hintRun", "schematic.menu.hintBack"};
     // Sizes for every level at once, so nothing moves between levels.
@@ -720,7 +720,8 @@ void renderSchematicMenu(MinecraftUIRenderContext& context, glm::vec2 size, glm:
     // The center: where the menu is, what Move moves, and what each button does.
     std::vector<std::pair<std::string, Rgb>> lines;
     if (!list && schematicMenu->category == menu::moveCategory) {
-        static constexpr std::array<Rgb, 4> colors{palette::accent, Rgb{1.f, .4f, .35f}, Rgb{.45f, .65f, 1.f}, palette::white};
+        static constexpr std::array<Rgb, 5> colors{palette::accent, Rgb{1.f, .4f, .35f}, Rgb{.45f, .65f, 1.f}, palette::white,
+            Rgb{.55f, .55f, .58f}};
         auto t = static_cast<size_t>(schematic::actions::target());
         lines.push_back({translated("schematic.menu.target", translated(targets[t])), colors[t]});
     }

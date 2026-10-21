@@ -1,9 +1,11 @@
 # Schematic controls redesign
 
-Status: design discussion, 2026-10-20; three independent reviews and all
-recommendations adopted by the maintainer the same day. **Nothing
-implemented.** This note records the agreed direction; only the items under
-"Open questions" remain undecided.
+Status: design discussion, 2026-10-20, all recommendations adopted. L-231 is
+implemented on branch `schematic-controls` and its in-game checklist passed on
+2026-10-21 (build `89c7925`); review and merge are pending, and it is not
+merged. L-234 is not started. This note records the agreed direction; the
+items under "Open questions" remain
+undecided.
 
 [SCHEMATIC.md](SCHEMATIC.md) still describes the behavior in the game today;
 [BACKLOG.md](BACKLOG.md) owns task status (L-231 controls, L-234 layer model).
@@ -34,6 +36,12 @@ implemented.** This note records the agreed direction; only the items under
 - The six direction keys, the menu movement steppers and the move toasts act
   on the target. Rotate/mirror and the layer controls stay settings of the
   selected placement.
+- The move-to-feet command uses the view source: the player's feet normally
+  and the camera's virtual feet (its height minus the player's eye height) in
+  Freelook/FreeCamera. Layer-here follows the same rule, and corners are set at
+  the block the view (or camera) hits.
+- The settings group is "Move target and placement"; the target key is
+  "Select the next move target", placed next to "Select the next placement".
 - The move-to-feet key acts on the current target like the menu's item: the
   placement origin, corner 2, or the area (corner 1 to the feet and corner 2
   follows). With no target it toasts. The help says "Move the target to your
@@ -57,22 +65,23 @@ implemented.** This note records the agreed direction; only the items under
 - The looked-at selection extends "select the placement you look at" with the
   ray and distance rules below.
 
-### Repeat the last adjustment
+### Repeat the last menu adjustment
 
-- Repeats movement, rotate/mirror and the layer cut only. Excludes the layer
-  axis/mode, placement selection and the move target.
-- Key actions update the remembered adjustment, not only menu steppers, so
-  the adjust key is consistent across both surfaces.
+- Repeats the adjustment last used in the schematic menu: movement,
+  rotate/mirror and the layer index. Key actions do not replace it, so a menu
+  layer change stays repeatable after a key move.
+- The option **Repeat every menu step** (`schematic.repeatAllSteps`, default
+  off) adds the layer axis and mode. The target picker and placement selection
+  are never repeated.
 - The memory stores the **kind** of adjustment, not its last sign; the wheel
   direction chooses the sign. After a back step, adjust + wheel up moves
   forward. The toast names the value.
 - Clear the memory on target change, another placement selection,
   world/dimension change, feature disable and session reset, so a rotate done
   on the placement cannot repeat after the context changed. A failed operation
-  does not update it. The current code does not clear on stop; the
-  implementation adds it.
-- A successful view slice sets the memory to the layer cut, so the next adjust
-  plus wheel moves the cut.
+  does not update it; stopping the feature clears it.
+- A successful view slice sets the memory to the layer cut (L-234), so the next
+  adjust plus wheel moves the cut.
 - Rotate, mirror and layer operations still act on the selected placement; the
   repeat toast names the operation and what it acts on.
 
@@ -86,6 +95,8 @@ implemented.** This note records the agreed direction; only the items under
   turn-it-on toast. Accepted for this round; revisit when Schematics leaves
   Experimental or if it annoys non-users (gating the input on the feature
   switch is the alternative).
+- The schematic menu defaults to the small lower-right layout
+  (`schematic.menuSmall` default on), so it does not cover the crosshair.
 
 ### Layers: a cut plane
 
@@ -151,21 +162,22 @@ implemented.** This note records the agreed direction; only the items under
 
 ### Looked-at selection
 
-- Use the same drawn view ray as movement (`detachedViewRay` when a detached
-  view owns the view, otherwise the player's eye and view), not the body view
-  in FreeCamera.
-- A corner the crosshair hits directly wins before any distance comparison,
-  including when the camera is inside the placement box. If both corners share
-  the cell, keep the current target when it is one of them, else prefer corner
-  1.
-- Otherwise compare distances first: a placement at its box entry along the
-  ray, and the area only when the crosshair block is inside it, at the hit
-  distance (the box entry is not used, or the area would win over a placement
-  inside it).
-- On equal distance, prefer placement, then area. A corner inside a placement
-  that is not hit directly is reached through the target key, not by looking
-  through the box.
-- Looking at air inside the area selects nothing.
+- Use the same drawn view ray as movement: the detached camera when one owns
+  the view, otherwise the player's eye and view.
+- A corner wins when the ray passes through its **block cell**, even when the
+  cell is air. The nearest corner entry wins; when both corners share a cell,
+  keep the current corner if it is one, else corner 1.
+- Otherwise the nearest placement box entry wins; then the save area when the
+  ray enters its box (in the air too). A placement hit inside the area is
+  therefore chosen over the area.
+- A block that fully hides what is behind it occludes these targets; glass,
+  plants and other see-through blocks do not. A target on, in front of, or
+  overlapping the opaque block stays selectable; only a block strictly between
+  the view and the target hides it. Water and lava are looked through.
+- Rebuilding a ray from the eye is exact for the cell tests; setting a corner
+  keeps using the game's crosshair in normal play so the outlined block and the
+  corner agree at seams.
+- Looking at nothing selectable reports "No move target where you look".
 
 ## Third review (2026-10-20, adopted)
 
@@ -174,8 +186,8 @@ above; nothing remains proposed.
 
 ## Open questions
 
-- Action labels and help for target-based movement (saved action ids stay).
-- Prototype scope and branch.
+- L-234 implementation order and prototype branch (L-231 is implemented and
+  awaits its in-game check).
 
 ## Suggested order
 

@@ -14,7 +14,7 @@ struct Token {
     int code;
     auto operator<=>(Token const&) const = default;
 };
-enum class Action { Settings, Zoom, NightVision, Sort, ChunkBorders, HideOffhand, Hitboxes, ToolSwitch, InfoHud, TargetInfo, DebugView, BreakingRestriction, CaptureBreaking, ResetBreaking, CycleBreakingMode, Freelook, LightOverlay, HandRestock, PermanentSneak, PeriodicAttack, PeriodicUse, ToggleShapes, OpenShapes, FreeCamera, OpenHotkeys, OpenHudLayout, CycleAttackMode, CycleUseMode, AttackHeldOnly, UseHeldOnly, PermanentSprint, EdgeGuard, FakeOffhand, FakeOffhandUse, Transfer, ToolGuard, ElytraSwap, ElytraSwapKey, FreeCameraSpeedUp, FreeCameraSpeedDown, HideWeather, HideParticles, HideBossBars, HideNausea, HideWater, HideLava, HidePowderSnow, Minimap, MinimapZoomIn, MinimapZoomOut, MinimapView, MinimapEnlarge, AddWaypoint, HideWaypoints, OpenWaypoints, OpenWorldMap, TogglePreviews, ToggleDurability, ToggleSorting, ToggleHideEffects, ToggleDurabilityHud, ToggleAutomationStatus, ToggleRadar, ToggleWaypoints, ToggleWorldMap, RadarFaces, ToggleOffhandSlot, ToggleSaturation, ToggleFoodValues, WeaponSwitch, ToggleSchematic, OpenSchematics, ToggleSchematicHud, NearestMistake, SelectLookedPlacement, NextPlacement, MovePlacementForward, MovePlacementBack, MovePlacementHere, RotatePlacement, MirrorPlacement, LayerUp, LayerDown, MovePlacementLeft, MovePlacementRight, MovePlacementUp, MovePlacementDown, LayerHere, OpenSchematicFiles, OpenSchematicCheck, OpenSchematicMaterials, OpenSchematicPlaced, SwapOffhand, ToggleOffhandSwap, SchematicCorner1, SchematicCorner2, SaveSchematicArea, SchematicMenu, AdjustSchematic, ToggleDeathRestore, HideDistanceFog, ToggleLockedTrades, ToggleEnglishSearch, PlayerList, ToggleInventoryHud, ToggleUsedSlots, ToggleConnectedTextures, HidePortal, ToggleStatusEffects, OpenCalculator, ToggleRepeatTrades, ToggleSkipServerPacks, ToggleChatPosition, Count };
+enum class Action { Settings, Zoom, NightVision, Sort, ChunkBorders, HideOffhand, Hitboxes, ToolSwitch, InfoHud, TargetInfo, DebugView, BreakingRestriction, CaptureBreaking, ResetBreaking, CycleBreakingMode, Freelook, LightOverlay, HandRestock, PermanentSneak, PeriodicAttack, PeriodicUse, ToggleShapes, OpenShapes, FreeCamera, OpenHotkeys, OpenHudLayout, CycleAttackMode, CycleUseMode, AttackHeldOnly, UseHeldOnly, PermanentSprint, EdgeGuard, FakeOffhand, FakeOffhandUse, Transfer, ToolGuard, ElytraSwap, ElytraSwapKey, FreeCameraSpeedUp, FreeCameraSpeedDown, HideWeather, HideParticles, HideBossBars, HideNausea, HideWater, HideLava, HidePowderSnow, Minimap, MinimapZoomIn, MinimapZoomOut, MinimapView, MinimapEnlarge, AddWaypoint, HideWaypoints, OpenWaypoints, OpenWorldMap, TogglePreviews, ToggleDurability, ToggleSorting, ToggleHideEffects, ToggleDurabilityHud, ToggleAutomationStatus, ToggleRadar, ToggleWaypoints, ToggleWorldMap, RadarFaces, ToggleOffhandSlot, ToggleSaturation, ToggleFoodValues, WeaponSwitch, ToggleSchematic, OpenSchematics, ToggleSchematicHud, NearestMistake, SelectLookedPlacement, NextPlacement, MovePlacementForward, MovePlacementBack, MovePlacementHere, RotatePlacement, MirrorPlacement, LayerUp, LayerDown, MovePlacementLeft, MovePlacementRight, MovePlacementUp, MovePlacementDown, LayerHere, OpenSchematicFiles, OpenSchematicCheck, OpenSchematicMaterials, OpenSchematicPlaced, SwapOffhand, ToggleOffhandSwap, SchematicCorner1, SchematicCorner2, SaveSchematicArea, SchematicMenu, AdjustSchematic, ToggleDeathRestore, HideDistanceFog, ToggleLockedTrades, ToggleEnglishSearch, PlayerList, ToggleInventoryHud, ToggleUsedSlots, ToggleConnectedTextures, HidePortal, ToggleStatusEffects, OpenCalculator, ToggleRepeatTrades, ToggleSkipServerPacks, ToggleChatPosition, CycleMoveTarget, Count };
 enum class Behavior { Press, Hold, Toggle };
 // Ordinary chords are order-sensitive and yield to a more specific chord
 // completed by the same press. Modifier-like chords (held camera keys) match
@@ -125,7 +125,7 @@ inline constexpr auto actions = std::to_array<ActionInfo>({
     {"schematiccorner2", "schematicSave", Behavior::Press},
     {"saveschematicarea", "schematicSave", Behavior::Press},
     {"schematicmenu", "schematicMenu", Behavior::Press},
-    {"adjustschematic", "schematicMenu", Behavior::Hold},
+    {"adjustschematic", "schematicRepeat", Behavior::Hold},
     {"deathrestore", "deathRestore", Behavior::Toggle},
     {"hidedistancefog", "hideEffects", Behavior::Toggle},
     {"lockedtrades", "lockedTrades", Behavior::Toggle},
@@ -140,6 +140,7 @@ inline constexpr auto actions = std::to_array<ActionInfo>({
     {"repeattrades", "repeatTrades", Behavior::Toggle},
     {"skipserverpacks", "skipServerPacks", Behavior::Toggle},
     {"chatposition", "chatPosition", Behavior::Toggle},
+    {"cyclemovetarget", "schematicPlacement", Behavior::Press},
 });
 static_assert(actions.size() == static_cast<size_t>(Action::Count));
 // Kept for its saved id but no longer shown or dispatched.
@@ -150,6 +151,8 @@ using Chord = std::vector<Token>;
 using Bindings = std::array<std::optional<Chord>, static_cast<size_t>(Action::Count)>;
 
 inline Chord defaultChord(Action action) {
+    if (action == Action::MovePlacementForward) return Chord{{Device::Key, 0x12}, {Device::Wheel, 1}};
+    if (action == Action::MovePlacementBack) return Chord{{Device::Key, 0x12}, {Device::Wheel, -1}};
     if (action == Action::FakeOffhandUse) return Chord{Token{Device::Mouse, 2}};
     if (action == Action::ChunkBorders) return Chord{{Device::Key, 0x72}, {Device::Key, 0x47}};
     if (action == Action::Hitboxes) return Chord{{Device::Key, 0x72}, {Device::Key, 0x42}};

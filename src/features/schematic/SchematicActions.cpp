@@ -2,7 +2,10 @@
 #include "features/camera/CameraSessions.h"
 #include "features/schematic/GhostRenderer.h"
 #include "features/schematic/MoveDirection.h"
+#include "features/schematic/MoveTarget.h"
+#include "features/schematic/TargetRay.h"
 #include "features/schematic/SchematicSession.h"
+#include "app/Runtime.h"
 #include "features/schematic/Selection.h"
 #include "input/Actions.h"
 #include "ui/Localization.h"
@@ -15,6 +18,10 @@
 #include "mc/client/player/LocalPlayer.h"
 #include "mc/client/renderer/screen/MinecraftUIRenderContext.h"
 #include "mc/world/phys/HitResult.h"
+#include "mc/world/level/BlockSource.h"
+#include "mc/world/level/ShapeType.h"
+#include "mc/world/level/block/Block.h"
+#include "mc/world/level/block/BlockType.h"
 #include <atomic>
 #include <cmath>
 #include <limits>
@@ -22,10 +29,47 @@
 namespace lamium::schematic::actions {
 namespace {
 using input::Action;
+MoveTarget moveTarget = MoveTarget::Placement;
+std::optional<menu::Stepper> remembered;
+std::uint64_t lastGeneration = std::numeric_limits<std::uint64_t>::max();
+int lastDimension = std::numeric_limits<int>::min();
+void changeTarget(MoveTarget next);
+std::string targetName(MoveTarget target);
+// The world join and the dimension own the schematic view state: drop the
+// move target and repeat memory when either changes, even if no key is pressed.
+void syncLifecycle(IClientInstance& client) {
+    auto generation = session::generation();
+    auto* player = client.getLocalPlayer();
+    int dimension = player ? static_cast<int>(player->getDimensionId()) : lastDimension;
+    if (lastGeneration == std::numeric_limits<std::uint64_t>::max()) {
+        lastGeneration = generation;
+        lastDimension = dimension;
+        return;
+    }
+    if (generation != lastGeneration || dimension != lastDimension) {
+        lastGeneration = generation;
+        lastDimension = dimension;
+        resetState();
+    }
+}
 std::optional<Point> feet(LocalPlayer& player) {
     auto p = player.getFeetPos();
     if (!std::isfinite(p.x) || !std::isfinite(p.y) || !std::isfinite(p.z)) return std::nullopt;
     return Point{static_cast<int>(std::floor(p.x)), static_cast<int>(std::floor(p.y)), static_cast<int>(std::floor(p.z))};
+}
+// The block the view stands in: the player's feet, or the camera's virtual
+// feet (its position minus the player's eye height) in Freelook / FreeCamera.
+std::optional<Point> viewFeet(IClientInstance& client, LocalPlayer& player) {
+    if (auto ray = CameraSessions::instance().detachedViewRay(client)) {
+        if (!std::isfinite(ray->x) || !std::isfinite(ray->y) || !std::isfinite(ray->z)) return std::nullopt;
+        auto eye = player.getEyePos();
+        auto feet = player.getFeetPos();
+        double eyeHeight = eye.y - feet.y;
+        if (!(eyeHeight > 0)) eyeHeight = 1.62;
+        return Point{static_cast<int>(std::floor(ray->x)), static_cast<int>(std::floor(ray->y - eyeHeight)),
+            static_cast<int>(std::floor(ray->z))};
+    }
+    return feet(player);
 }
 // The drawn view's axes: a detached Freelook or FreeCamera view owns the
 // crosshair, so a step follows it rather than the body (L-230).
@@ -98,25 +142,167 @@ std::optional<double> enter(Vec3 const& eye, Vec3 const& dir, Point low, Size si
     }
     return near;
 }
-// The placement the view ray reaches first. Ghosts are not blocks, so the
-// crosshair hit cannot find them.
-void selectLooked(LocalPlayer& player) {
+// The first block along the drawn view, using the same solid-block filter as
+// the target card so water and lava are looked through. The game's latest hit
+// result follows the body, not a detached camera.
+struct BlockHit {
+    bool tile = false;
+    Point block{};
+    Vec3 pos{};
+    double distance = std::numeric_limits<double>::max();
+};
+BlockHit cameraBlock(LocalPlayer& player, Vec3 const& eye, Vec3 const& dir) {
+    BlockHit result;
+    double length = std::sqrt(static_cast<double>(dir.x) * dir.x + static_cast<double>(dir.y) * dir.y
+        + static_cast<double>(dir.z) * dir.z);
+    if (!(length > 1e-9)) return result;
+    constexpr int reach = 256;
+    Vec3 to{eye.x + static_cast<float>(dir.x / length * reach), eye.y + static_cast<float>(dir.y / length * reach),
+        eye.z + static_cast<float>(dir.z / length * reach)};
+    auto& source = player.getDimensionBlockSource();
+    auto hit = source.clip(eye, to, false, ShapeType::Outline, reach, false, false, nullptr,
+        [](BlockSource const&, Block const& block, bool) {
+            auto name = block.getTypeName();
+            return name != "minecraft:water" && name != "minecraft:flowing_water" && name != "minecraft:lava"
+                && name != "minecraft:flowing_lava";
+        }, false);
+    if (hit.mType != HitResultType::Tile) return result;
+    result.tile = true;
+    result.block = {hit.mBlock.x, hit.mBlock.y, hit.mBlock.z};
+    result.pos = hit.mPos;
+    double dx = hit.mPos.x - eye.x, dy = hit.mPos.y - eye.y, dz = hit.mPos.z - eye.z;
+    result.distance = std::sqrt(dx * dx + dy * dy + dz * dz);
+    return result;
+}
+struct View {
+    Vec3 eye{};
+    Vec3 dir{0, 0, 1};
+    bool detached = false;
+};
+View view(IClientInstance& client, LocalPlayer& player) {
+    View v;
+    v.eye = player.getEyePos();
+    v.dir = player.getViewVector(1.f);
+    if (auto ray = CameraSessions::instance().detachedViewRay(client)) {
+        v.eye = Vec3{static_cast<float>(ray->x), static_cast<float>(ray->y), static_cast<float>(ray->z)};
+        v.dir = Vec3{static_cast<float>(ray->dx), static_cast<float>(ray->dy), static_cast<float>(ray->dz)};
+        v.detached = true;
+    }
+    return v;
+}
+// The block the view picks: the game's crosshair in normal play (so block
+// seams match what is outlined), our own ray for a detached camera.
+BlockHit viewBlock(IClientInstance& client, LocalPlayer& player) {
+    View v = view(client, player);
+    if (v.detached) return cameraBlock(player, v.eye, v.dir);
+    BlockHit result;
+    auto const& latest = client.getLatestHitResult();
+    if (latest.mType != HitResultType::Tile) return result;
+    result.tile = true;
+    result.block = {latest.mBlock.x, latest.mBlock.y, latest.mBlock.z};
+    result.pos = latest.mPos;
+    double dx = latest.mPos.x - v.eye.x, dy = latest.mPos.y - v.eye.y, dz = latest.mPos.z - v.eye.z;
+    result.distance = std::sqrt(dx * dx + dy * dy + dz * dz);
+    return result;
+}
+// The first block that fully hides what is behind it. Glass, plants and other
+// see-through blocks do not count, so a corner behind them stays pickable.
+BlockHit opaqueBlock(LocalPlayer& player, View const& v) {
+    BlockHit result;
+    double length = std::sqrt(static_cast<double>(v.dir.x) * v.dir.x + static_cast<double>(v.dir.y) * v.dir.y
+        + static_cast<double>(v.dir.z) * v.dir.z);
+    if (!(length > 1e-9)) return result;
+    constexpr int reach = 256;
+    Vec3 to{v.eye.x + static_cast<float>(v.dir.x / length * reach), v.eye.y + static_cast<float>(v.dir.y / length * reach),
+        v.eye.z + static_cast<float>(v.dir.z / length * reach)};
+    auto& source = player.getDimensionBlockSource();
+    auto hit = source.clip(v.eye, to, false, ShapeType::Outline, reach, false, false, nullptr,
+        [](BlockSource const&, Block const& block, bool) { return block.getBlockType().mIsOpaqueFullBlock; }, false);
+    if (hit.mType != HitResultType::Tile) return result;
+    result.tile = true;
+    result.block = {hit.mBlock.x, hit.mBlock.y, hit.mBlock.z};
+    result.pos = hit.mPos;
+    double dx = hit.mPos.x - v.eye.x, dy = hit.mPos.y - v.eye.y, dz = hit.mPos.z - v.eye.z;
+    result.distance = std::sqrt(dx * dx + dy * dy + dz * dz);
+    return result;
+}
+// A target that overlaps the opaque block is not hidden by it: only a block
+// strictly between the view and the target hides it.
+bool cellOverlapsBox(Point cell, double lx, double ly, double lz, double hx, double hy, double hz) {
+    return cell.x < hx && cell.x + 1.0 > lx && cell.y < hy && cell.y + 1.0 > ly && cell.z < hz && cell.z + 1.0 > lz;
+}
+// The move target the drawn view points at. A corner cell the ray passes
+// through wins even in the air and behind see-through blocks; then the nearest
+// placement box; then the save area when the ray enters it. A fully opaque
+// block in front hides a target unless the target overlaps that block.
+void selectLooked(IClientInstance& client, LocalPlayer& player) {
     int dimension = static_cast<int>(player.getDimensionId());
-    auto eye = player.getEyePos();
-    auto dir = player.getViewVector(1.f);
+    View v = view(client, player);
+    TargetRay ray{v.eye.x, v.eye.y, v.eye.z, v.dir.x, v.dir.y, v.dir.z, 256};
     auto set = session::current();
+    auto state = selection::current();
+    BlockHit opaque = opaqueBlock(player, v);
+    double opaqueAt = opaque.tile ? opaque.distance : std::numeric_limits<double>::max();
+    // A target on the face of an opaque block is still visible: only something
+    // strictly in front of it hides it.
+    constexpr double face = 1e-6;
+    MoveTarget cornerTarget = MoveTarget::None;
+    if (state.dimension == dimension) {
+        auto first = state.first ? cellEntry(ray, state.first->x, state.first->y, state.first->z) : std::nullopt;
+        auto second = state.second ? cellEntry(ray, state.second->x, state.second->y, state.second->z) : std::nullopt;
+        auto visible = [&](std::optional<Point> const& cell, std::optional<double> const& entry) {
+            if (!entry) return false;
+            return *entry <= opaqueAt + face || (opaque.tile && cell && *cell == opaque.block);
+        };
+        bool firstVisible = visible(state.first, first);
+        bool secondVisible = visible(state.second, second);
+        if (firstVisible && secondVisible && std::abs(*first - *second) < 1e-9) {
+            // Both corners in one cell: keep the current corner if it is one.
+            cornerTarget = moveTarget == MoveTarget::Corner1 || moveTarget == MoveTarget::Corner2 ? moveTarget : MoveTarget::Corner1;
+        } else if (firstVisible && (!secondVisible || *first < *second)) {
+            cornerTarget = MoveTarget::Corner1;
+        } else if (secondVisible) {
+            cornerTarget = MoveTarget::Corner2;
+        }
+    }
+    if (cornerTarget != MoveTarget::None) {
+        changeTarget(cornerTarget);
+        remembered.reset();
+        ui::showMessageToast(ui::translated("schematic.menu.moveTarget") + ": " + targetName(cornerTarget));
+        return;
+    }
     int best = -1;
     double bestDistance = std::numeric_limits<double>::max();
     for (int i = 0; i < static_cast<int>(set.placements.size()); ++i) {
         auto const& p = set.placements[static_cast<size_t>(i)];
         auto structure = p.dimension == dimension && p.visible ? session::structure(p.file) : nullptr;
         if (!structure) continue;
-        auto distance = enter(eye, dir, p.placement.origin, placedSize(structure->size, p.placement.rotation), 256);
-        if (distance && *distance < bestDistance) { best = i; bestDistance = *distance; }
+        auto size = placedSize(structure->size, p.placement.rotation);
+        auto distance = enter(v.eye, v.dir, p.placement.origin, size, 256);
+        bool overlaps = opaque.tile && cellOverlapsBox(opaque.block, p.placement.origin.x, p.placement.origin.y,
+            p.placement.origin.z, p.placement.origin.x + size.x, p.placement.origin.y + size.y, p.placement.origin.z + size.z);
+        if (distance && *distance < bestDistance && (overlaps || *distance <= opaqueAt + face)) { best = i; bestDistance = *distance; }
     }
-    if (best < 0) { ui::showMessageToast(ui::translated("schematic.toast.notLooking")); return; }
-    session::change([&](PlacementSet& s) { s.selected = best; return true; });
-    ui::showMessageToast(ui::translated("schematic.toast.selected", set.placements[static_cast<size_t>(best)].name));
+    if (best >= 0) {
+        session::change([&](PlacementSet& s) { s.selected = best; return true; });
+        placementSelected();
+        ui::showMessageToast(ui::translated("schematic.toast.selected", set.placements[static_cast<size_t>(best)].name));
+        return;
+    }
+    if (state.dimension == dimension && state.first && state.second) {
+        Area area{*state.first, *state.second};
+        auto low = area.low();
+        auto size = area.size();
+        auto entry = boxEntry(ray, low.x, low.y, low.z, low.x + size.x, low.y + size.y, low.z + size.z);
+        bool overlaps = opaque.tile && cellOverlapsBox(opaque.block, low.x, low.y, low.z, low.x + size.x, low.y + size.y, low.z + size.z);
+        if (entry && (overlaps || *entry <= opaqueAt + face)) {
+            changeTarget(MoveTarget::Area);
+            remembered.reset();
+            ui::showMessageToast(ui::translated("schematic.menu.moveTarget") + ": " + targetName(MoveTarget::Area));
+            return;
+        }
+    }
+    ui::showMessageToast(ui::translated("schematic.toast.notLooking"));
 }
 // Always the mistake nearest to where the player is now.
 void nearestMistake(LocalPlayer& player) {
@@ -141,26 +327,63 @@ void nearestMistake(LocalPlayer& player) {
 }
 // A corner of the area to save: the block in the crosshair.
 void setCorner(IClientInstance& client, LocalPlayer& player, int which) {
-    auto const& hit = client.getLatestHitResult();
-    if (hit.mType != HitResultType::Tile) { ui::showMessageToast(ui::translated("schematic.toast.lookAtBlock")); return; }
-    Point at{hit.mBlock.x, hit.mBlock.y, hit.mBlock.z};
+    BlockHit hit = viewBlock(client, player);
+    if (!hit.tile) { ui::showMessageToast(ui::translated("schematic.toast.lookAtBlock")); return; }
+    Point at = hit.block;
     selection::setCorner(which, at, static_cast<int>(player.getDimensionId()));
     if (auto area = selection::current().area()) {
         auto size = area->size();
         ui::showMessageToast(ui::translated("schematic.toast.cornerArea", which + 1, at.x, at.y, at.z, size.x, size.y, size.z));
     } else ui::showMessageToast(ui::translated("schematic.toast.corner", which + 1, at.x, at.y, at.z));
 }
-menu::Target moveTarget = menu::Target::Placement;
-std::optional<menu::Stepper> remembered;
 std::atomic<bool> adjustHeld{false};
 std::atomic<int> pendingWheel{0};
 std::atomic<IClientInstance*> adjustClient{nullptr};
 ll::event::ListenerPtr wheelListener;
 
+std::string targetName(MoveTarget target) {
+    static constexpr std::array<char const*, 5> keys{"schematic.target.placement", "schematic.target.corner1",
+        "schematic.target.corner2", "schematic.target.area", "schematic.target.none"};
+    return ui::translated(keys[static_cast<size_t>(target)]);
+}
+// Which targets exist now: the selected placement and the corners/area must be
+// in the player's dimension.
+TargetValidity validity(LocalPlayer& player) {
+    auto set = session::current();
+    int dimension = static_cast<int>(player.getDimensionId());
+    TargetValidity v;
+    v.placement = set.selected >= 0 && set.selected < static_cast<int>(set.placements.size())
+        && set.placements[static_cast<size_t>(set.selected)].dimension == dimension;
+    auto state = selection::current();
+    bool same = state.dimension == dimension;
+    v.corner1 = same && state.first.has_value();
+    v.corner2 = same && state.second.has_value();
+    v.area = same && state.first && state.second;
+    return v;
+}
+// The target a move acts on; an invalid remembered target falls back to the
+// first valid one and drops the repeat memory.
+MoveTarget resolveTarget(LocalPlayer& player) {
+    TargetValidity v = validity(player);
+    if (valid(moveTarget, v)) return moveTarget;
+    moveTarget = fallback(v);
+    remembered.reset();
+    return moveTarget;
+}
+void changeTarget(MoveTarget next) {
+    if (next == moveTarget) return;
+    moveTarget = next;
+    remembered.reset();
+}
 // Moves the move target by `d`: the selected placement, a corner or both.
 void moveBy(LocalPlayer& player, Point d) {
     auto shifted = [&](Point p) { return Point{p.x + d.x, p.y + d.y, p.z + d.z}; };
-    if (moveTarget == menu::Target::Placement) {
+    MoveTarget target = resolveTarget(player);
+    if (target == MoveTarget::None) {
+        ui::showMessageToast(ui::translated("schematic.toast.noTarget"));
+        return;
+    }
+    if (target == MoveTarget::Placement) {
         changeSelected([&](SavedPlacement& p) { p.placement.origin = shifted(p.placement.origin); }, [](SavedPlacement const& p) {
             return ui::translated("schematic.toast.moved", p.name, p.placement.origin.x, p.placement.origin.y, p.placement.origin.z);
         });
@@ -176,12 +399,40 @@ void moveBy(LocalPlayer& player, Point d) {
         return true;
     };
     bool moved = false;
-    if (moveTarget == menu::Target::Corner1 || moveTarget == menu::Target::Area) moved = corner(state.first, 0) || moved;
-    if (moveTarget == menu::Target::Corner2 || moveTarget == menu::Target::Area) moved = corner(state.second, 1) || moved;
+    if (target == MoveTarget::Corner1 || target == MoveTarget::Area) moved = corner(state.first, 0) || moved;
+    if (target == MoveTarget::Corner2 || target == MoveTarget::Area) moved = corner(state.second, 1) || moved;
     if (!moved) { ui::showMessageToast(ui::translated("schematic.toast.noArea")); return; }
     auto now = selection::current();
-    auto const& shown = moveTarget == menu::Target::Corner2 ? now.second : now.first;
-    if (shown) ui::showMessageToast(ui::translated("schematic.toast.corner", moveTarget == menu::Target::Corner2 ? 2 : 1, shown->x, shown->y, shown->z));
+    auto const& shown = target == MoveTarget::Corner2 ? now.second : now.first;
+    if (shown) ui::showMessageToast(targetName(target) + ": " + ui::translated("schematic.toast.corner",
+        target == MoveTarget::Corner2 ? 2 : 1, shown->x, shown->y, shown->z));
+}
+// Moves the target to the feet: the placement's origin, one corner, or the
+// whole area with corner 1 at the feet (corner 2 follows).
+void moveTargetToFeet(IClientInstance& client, LocalPlayer& player) {
+    auto at = viewFeet(client, player);
+    if (!at) return;
+    MoveTarget target = resolveTarget(player);
+    if (target == MoveTarget::None) {
+        ui::showMessageToast(ui::translated("schematic.toast.noTarget"));
+        return;
+    }
+    int dimension = static_cast<int>(player.getDimensionId());
+    if (target == MoveTarget::Placement) {
+        changeSelected([&](SavedPlacement& p) { p.placement.origin = *at; p.dimension = dimension; }, [](SavedPlacement const& p) {
+            return ui::translated("schematic.toast.moved", p.name, p.placement.origin.x, p.placement.origin.y, p.placement.origin.z);
+        });
+        return;
+    }
+    if (target == MoveTarget::Corner1 || target == MoveTarget::Corner2) {
+        int which = target == MoveTarget::Corner2 ? 1 : 0;
+        selection::setCorner(which, *at, dimension);
+        ui::showMessageToast(targetName(target) + ": " + ui::translated("schematic.toast.corner", which + 1, at->x, at->y, at->z));
+        return;
+    }
+    auto state = selection::current();
+    if (!state.first) { ui::showMessageToast(ui::translated("schematic.toast.noArea")); return; }
+    moveBy(player, {at->x - state.first->x, at->y - state.first->y, at->z - state.first->z});
 }
 std::string mirrorName(Mirror mirror) {
     return ui::translated(mirror == Mirror::X ? "schematic.mirror.x" : mirror == Mirror::Z ? "schematic.mirror.z" : "schematic.mirror.none");
@@ -193,7 +444,7 @@ std::string layerText(Structure const* structure, SavedPlacement const& p) {
 
 bool handles(Action action) {
     switch (action) {
-    case Action::NearestMistake: case Action::SelectLookedPlacement: case Action::NextPlacement:
+    case Action::NearestMistake: case Action::SelectLookedPlacement: case Action::NextPlacement: case Action::CycleMoveTarget:
     case Action::MovePlacementForward: case Action::MovePlacementBack: case Action::MovePlacementHere:
     case Action::MovePlacementLeft: case Action::MovePlacementRight: case Action::MovePlacementUp: case Action::MovePlacementDown:
     case Action::RotatePlacement: case Action::MirrorPlacement: case Action::LayerUp: case Action::LayerDown: case Action::LayerHere:
@@ -206,14 +457,18 @@ bool handles(Action action) {
 void press(IClientInstance& client, Action action) {
     auto* player = client.getLocalPlayer();
     if (!player) return;
-    auto moved = [](SavedPlacement const& p) {
-        return ui::translated("schematic.toast.moved", p.name, p.placement.origin.x, p.placement.origin.y, p.placement.origin.z);
-    };
+    syncLifecycle(client);
     switch (action) {
     case Action::NearestMistake: nearestMistake(*player); return;
-    case Action::SelectLookedPlacement: selectLooked(*player); return;
+    case Action::SelectLookedPlacement: selectLooked(client, *player); return;
     case Action::SchematicCorner1: setCorner(client, *player, 0); return;
     case Action::SchematicCorner2: setCorner(client, *player, 1); return;
+    case Action::CycleMoveTarget: {
+        MoveTarget next = nextValid(moveTarget, validity(*player));
+        changeTarget(next);
+        ui::showMessageToast(ui::translated("schematic.menu.moveTarget") + ": " + targetName(next));
+        return;
+    }
     case Action::NextPlacement: {
         std::string name;
         bool any = session::change([&](PlacementSet& set) {
@@ -223,21 +478,16 @@ void press(IClientInstance& client, Action action) {
             return true;
         });
         ui::showMessageToast(any ? ui::translated("schematic.toast.selected", name) : ui::translated("schematic.toast.noPlacement"));
+        if (any) placementSelected();
         return;
     }
     case Action::MovePlacementForward: case Action::MovePlacementBack: case Action::MovePlacementLeft:
     case Action::MovePlacementRight: case Action::MovePlacementUp: case Action::MovePlacementDown: {
-        auto d = stepFor(client, action);
-        changeSelected([&](SavedPlacement& p) {
-            p.placement.origin.x += d.x; p.placement.origin.y += d.y; p.placement.origin.z += d.z;
-        }, moved);
+        moveBy(*player, stepFor(client, action));
         return;
     }
     case Action::MovePlacementHere: {
-        auto at = feet(*player);
-        if (!at) return;
-        int dimension = static_cast<int>(player->getDimensionId());
-        changeSelected([&](SavedPlacement& p) { p.placement.origin = *at; p.dimension = dimension; }, moved);
+        moveTargetToFeet(client, *player);
         return;
     }
     case Action::RotatePlacement:
@@ -258,7 +508,7 @@ void press(IClientInstance& client, Action action) {
         return;
     }
     case Action::LayerHere: {
-        auto at = feet(*player);
+        auto at = viewFeet(client, *player);
         auto structure = selectedStructure();
         if (!at || !structure) return;
         changeSelected([&](SavedPlacement& p) {
@@ -273,18 +523,52 @@ void press(IClientInstance& client, Action action) {
     }
 }
 
-menu::Target target() { return moveTarget; }
-void setTarget(menu::Target value) { moveTarget = value; }
+MoveTarget target() { return moveTarget; }
+void setTarget(menu::Target value) {
+    MoveTarget next = static_cast<MoveTarget>(value);
+    auto set = session::current();
+    auto state = selection::current();
+    bool exists = false;
+    switch (next) {
+    case MoveTarget::Placement: exists = set.selected >= 0 && set.selected < static_cast<int>(set.placements.size()); break;
+    case MoveTarget::Corner1: exists = state.first.has_value(); break;
+    case MoveTarget::Corner2: exists = state.second.has_value(); break;
+    case MoveTarget::Area: exists = state.first && state.second; break;
+    default: break;
+    }
+    if (!exists) { ui::showMessageToast(ui::translated("schematic.toast.targetUnset")); return; }
+    changeTarget(next);
+    ui::showMessageToast(ui::translated("schematic.menu.moveTarget") + ": " + targetName(next));
+}
+void placementSelected() {
+    moveTarget = MoveTarget::Placement;
+    remembered.reset();
+}
+void resetState() { placementSelected(); }
 
 void step(IClientInstance& client, menu::Stepper stepper, int amount) {
     using S = menu::Stepper;
     auto* player = client.getLocalPlayer();
     if (!player || !amount) return;
-    if (menu::repeatable(stepper)) remembered = stepper;
+    syncLifecycle(client);
+    bool all = Runtime::instance().preferences().schematic.repeatAllSteps;
+    if (all ? menu::repeatableAll(stepper) : menu::repeatable(stepper)) {
+        // Resolve a fallback target before remembering the step, or the
+        // fallback would clear the adjustment this very move should remember.
+        bool moving = stepper == S::ForwardBack || stepper == S::LeftRight || stepper == S::UpDown;
+        if (moving && resolveTarget(*player) == MoveTarget::None) remembered.reset();
+        else remembered = stepper;
+    }
     switch (stepper) {
     case S::Target: {
-        moveTarget = static_cast<menu::Target>(((static_cast<int>(moveTarget) + amount) % 4 + 4) % 4);
-        ui::showMessageToast(ui::translated("schematic.menu.moveTarget") + ": " + value(S::Target));
+        TargetValidity v = validity(*player);
+        if (v.placement || v.corner1 || v.corner2 || v.area) {
+            int turns = std::abs(amount);
+            for (int i = 0; i < turns; ++i)
+                moveTarget = amount > 0 ? nextValid(moveTarget, v) : previousValid(moveTarget, v);
+        } else moveTarget = MoveTarget::None;
+        remembered.reset();
+        ui::showMessageToast(ui::translated("schematic.menu.moveTarget") + ": " + targetName(moveTarget));
         return;
     }
     case S::ForwardBack: case S::LeftRight: {
@@ -325,6 +609,7 @@ void step(IClientInstance& client, menu::Stepper stepper, int amount) {
             return true;
         });
         ui::showMessageToast(any ? ui::translated("schematic.toast.selected", name) : ui::translated("schematic.toast.noPlacement"));
+        if (any) placementSelected();
         return;
     }
     }
@@ -335,16 +620,9 @@ void run(IClientInstance& client, menu::Command command) {
     auto* player = client.getLocalPlayer();
     if (!player) return;
     switch (command) {
-    case C::ToFeet: {
-        auto at = feet(*player);
-        if (!at) return;
-        if (moveTarget == menu::Target::Placement) { press(client, Action::MovePlacementHere); return; }
-        auto state = selection::current();
-        // A corner goes to the feet; the whole area moves with corner 1 there.
-        Point from = moveTarget == menu::Target::Corner2 ? state.second.value_or(*at) : state.first.value_or(*at);
-        moveBy(*player, {at->x - from.x, at->y - from.y, at->z - from.z});
+    case C::ToFeet:
+        moveTargetToFeet(client, *player);
         return;
-    }
     case C::ResetTurn:
         changeSelected([](SavedPlacement& p) { p.placement.rotation = 0; p.placement.mirror = Mirror::None; },
             [](SavedPlacement const& p) { return ui::translated("schematic.toast.rotated", p.name, 0); });
@@ -370,6 +648,8 @@ void run(IClientInstance& client, menu::Command command) {
     case C::Corner2Here: press(client, Action::SchematicCorner2); return;
     case C::ClearArea:
         selection::clear();
+        changeTarget(fallback(validity(*player)));
+        remembered.reset();
         ui::showMessageToast(ui::translated("schematic.toast.areaCleared"));
         return;
     case C::SelectLooked: press(client, Action::SelectLookedPlacement); return;
@@ -384,11 +664,7 @@ std::string value(menu::Stepper stepper) {
     SavedPlacement const* p = set.selected >= 0 && set.selected < static_cast<int>(set.placements.size())
         ? &set.placements[static_cast<size_t>(set.selected)] : nullptr;
     switch (stepper) {
-    case S::Target: {
-        static constexpr std::array<char const*, 4> targets{"schematic.target.placement", "schematic.target.corner1",
-            "schematic.target.corner2", "schematic.target.area"};
-        return ui::translated(targets[static_cast<size_t>(moveTarget)]);
-    }
+    case S::Target: return targetName(moveTarget);
     case S::Placement: return p ? p->name : std::string{};
     case S::Rotate: return p ? std::format("{}°", p->placement.rotation * 90) : std::string{};
     case S::Mirror: return p ? mirrorName(p->placement.mirror) : std::string{};
@@ -447,14 +723,23 @@ void stopAdjust() {
     }
     adjustHeld = false;
     pendingWheel = 0;
+    remembered.reset();
+    moveTarget = MoveTarget::Placement;
 }
 void adjustFrame(MinecraftUIRenderContext& context, float, float) {
     IClientInstance& client = context.mClient;
     adjustClient = &client;
+    syncLifecycle(client);
     if (!adjustHeld.load()) return;
     // One toast: what the wheel repeats, then what the step reported, so the
     // step's own toast does not replace the first at once.
     if (int turns = pendingWheel.exchange(0); turns && remembered) {
+        bool all = Runtime::instance().preferences().schematic.repeatAllSteps;
+        if (!(all ? menu::repeatableAll(*remembered) : menu::repeatable(*remembered))) {
+            remembered.reset();
+            ui::showMessageToast(ui::translated("schematic.adjust.none"));
+            return;
+        }
         step(client, *remembered, turns);
         auto shown = ui::currentToggleToast(ui::toastNow());
         auto prefix = adjustText();

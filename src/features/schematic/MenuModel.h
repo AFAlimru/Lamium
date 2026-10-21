@@ -79,8 +79,19 @@ inline constexpr bool choosesTarget(Command command, Target& target) {
     default: return false;
     }
 }
-// Steppers the adjust key may repeat: not the one that only picks the target.
-inline constexpr bool repeatable(Stepper stepper) { return stepper != Stepper::Target; }
+// Steppers the adjust key may repeat: movement, rotation/mirror and the layer
+// index. Target and placement pick something, and the layer axis/mode are
+// view changes, not adjustments (the option `repeatAllSteps` adds them).
+inline constexpr bool repeatable(Stepper stepper) {
+    switch (stepper) {
+    case Stepper::ForwardBack: case Stepper::LeftRight: case Stepper::UpDown:
+    case Stepper::Rotate: case Stepper::Mirror: case Stepper::Layer: return true;
+    default: return false;
+    }
+}
+inline constexpr bool repeatableAll(Stepper stepper) {
+    return repeatable(stepper) || stepper == Stepper::LayerAxis || stepper == Stepper::LayerMode;
+}
 // Where the menu opens: the category list, or (an option) the level shown
 // when it was last closed.
 inline constexpr int openAt(bool whereClosed, int closedAt) {

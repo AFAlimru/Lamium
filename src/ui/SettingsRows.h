@@ -86,6 +86,7 @@ inline constexpr auto features = std::to_array<FeatureInfo>({
     {"schematic", "feature.schematic", "help.schematic", "schematic.enabled", true, input::Action::ToggleSchematic},
     // The menu and the adjust key first: where to start (L-93, 2026-10-07).
     {"schematicMenu", "feature.schematicMenu", "help.schematicMenu", "", false, input::Action::SchematicMenu},
+    {"schematicRepeat", "key.Lamium.adjustschematic", "help.key.adjustschematic", "", false, input::Action::AdjustSchematic},
     {"schematicHud", "feature.schematicHud", "help.schematicHud", "schematic.hud", true, input::Action::ToggleSchematicHud},
     // Key groups without a switch of their own (DESIGN: a keyless group heading).
     {"schematicPlacement", "feature.schematicPlacement", "help.schematicPlacement", ""},
@@ -108,7 +109,7 @@ inline int actionRank(input::Action action) {
     using A = input::Action;
     static constexpr A order[] = {A::SchematicMenu, A::AdjustSchematic, A::OpenSchematics, A::OpenSchematicFiles, A::OpenSchematicPlaced, A::OpenSchematicCheck,
         A::OpenSchematicMaterials,
-        A::SelectLookedPlacement, A::NextPlacement, A::MovePlacementForward, A::MovePlacementBack, A::MovePlacementLeft,
+        A::SelectLookedPlacement, A::NextPlacement, A::CycleMoveTarget, A::MovePlacementForward, A::MovePlacementBack, A::MovePlacementLeft,
         A::MovePlacementRight, A::MovePlacementUp, A::MovePlacementDown, A::MovePlacementHere, A::RotatePlacement,
         A::MirrorPlacement, A::LayerUp, A::LayerDown, A::LayerHere, A::SchematicCorner1, A::SchematicCorner2, A::SaveSchematicArea};
     for (size_t i = 0; i < std::size(order); ++i) if (order[i] == action) return static_cast<int>(i);
