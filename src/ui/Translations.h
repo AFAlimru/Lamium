@@ -635,7 +635,6 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"schematic.menu.layerKeep", "Keep side", "残す側"},
     {"schematic.menu.layer", "Layer", "層"},
     {"schematic.menu.layerHere", "Cut here", "ここで切る"},
-    {"schematic.menu.showAll", "Show all layers", "すべて表示"},
     {"schematic.menu.toggleShown", "This placement", "この配置"},
     {"schematic.menu.toggleExtras", "Extra blocks", "余計なブロック"},
     {"schematic.menu.toggleEntities", "Entities", "エンティティ"},

@@ -19,6 +19,7 @@ int integer(Json const& value, int fallback) {
     return static_cast<int>(number);
 }
 bool flag(Json const& value, bool fallback) { return value.is_boolean() ? value.get<bool>() : fallback; }
+std::string textOf(Json const& value) { return value.is_string() ? value.get<std::string>() : std::string{}; }
 char const* axisName(LayerAxis axis) {
     return axis == LayerAxis::Y ? "y" : axis == LayerAxis::X ? "x" : "z";
 }
@@ -126,12 +127,12 @@ PlacementSet decodePlacements(std::string_view text) {
             p.layers.legacyMode = static_cast<LayerMode>(std::clamp(integer(entry.value("layerMode", Json()), 0), 0, 2));
             p.layers.legacyIndex = integer(entry.value("layer", Json()), 0);
             auto view = entry.find("layerView");
-            if (view != entry.end() && view->is_object() && view->value("space", std::string{}) == "structure") {
+            if (view != entry.end() && view->is_object() && textOf(view->value("space", Json())) == "structure") {
                 p.layers.legacy = false;
-                p.layers.axis = axisFromName(view->value("axis", std::string("y")));
+                p.layers.axis = axisFromName(textOf(view->value("axis", Json())));
                 p.layers.cut = integer(view->value("cut", Json()), 0);
-                p.layers.keep = keepFromName(view->value("keep", std::string("low")));
-                p.layers.mode = modeFromName(view->value("mode", std::string("all")));
+                p.layers.keep = keepFromName(textOf(view->value("keep", Json())));
+                p.layers.mode = modeFromName(textOf(view->value("mode", Json())));
             } else {
                 // No space marker: an old placed-box layerView from the first
                 // cut-plane build. Its old fields carry the same view.

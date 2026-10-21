@@ -326,11 +326,9 @@ std::optional<ui::hud_editor::Box> drawSchematicHud(MinecraftUIRenderContext& co
     if (selected) {
         auto structure = schematic::session::structure(selected->file);
         if (structure) {
-            auto view = selected->layers.legacy ? schematic::fromLegacy(selected->layers, structure->size, selected->placement)
-                                                : selected->layers;
+            auto view = schematic::resolvedLayers(selected->layers, structure->size, selected->placement);
             if (view.mode != schematic::LayerMode::All) {
                 int count = std::max(1, schematic::layerCount(structure->size, view.axis));
-                view.cut = std::clamp(view.cut, 0, count - 1);
                 layers = ui::translated("schematic.layerValue", view.cut + 1, count);
             }
         }

@@ -24,7 +24,7 @@ inline std::optional<int> paletteAt(session::Shown const& shown, int dimension, 
     auto local = toLocal(structure.size, placement, cell);
     if (!local) return std::nullopt;
     Point offset{cell.x - placement.origin.x, cell.y - placement.origin.y, cell.z - placement.origin.z};
-    if (!layerShown(shown.placement.layers, structure.size, placement, offset)) return std::nullopt;
+    if (!layerShown(shown.placement.layers, structure.size, placement, offset, *local)) return std::nullopt;
     auto at = static_cast<size_t>(structure.cell(local->x, local->y, local->z));
     if (at >= structure.blocks.size()) return std::nullopt;
     auto index = structure.blocks[at];

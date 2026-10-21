@@ -24,6 +24,10 @@ void resetState();
 // The block the view stands in: the player's feet, or the camera's virtual
 // feet in Freelook/FreeCamera. Used by the screen's layer edits too.
 std::optional<Point> viewFeet(IClientInstance& client);
+// Translated names of the layer view's values, shared with the screen.
+std::string axisText(LayerAxis axis);
+std::string modeText(LayerMode mode);
+std::string keepText(LayerKeep keep);
 void step(IClientInstance& client, menu::Stepper stepper, int amount);
 void run(IClientInstance& client, menu::Command command);
 // The value an item shows under its name; empty when it has none.

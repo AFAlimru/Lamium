@@ -268,17 +268,13 @@ void changeSchematic(std::function<void(schematic::SavedPlacement&)> const& appl
 int placedLayers(schematic::SavedPlacement const& p) {
     auto structure = schematic::session::structure(p.file);
     if (!structure) return 1;
-    auto view = p.layers.legacy ? schematic::fromLegacy(p.layers, structure->size, p.placement) : p.layers;
-    return std::max(1, schematic::layerCount(structure->size, view.axis));
+    return std::max(1, schematic::layerCount(structure->size, schematic::resolvedLayers(p.layers, structure->size, p.placement).axis));
 }
 // The cut plane as stored, converted from the old six-direction form when the
 // file predates layerView and the structure is loaded.
 schematic::Layers shownLayers(schematic::SavedPlacement const& p) {
     auto structure = schematic::session::structure(p.file);
-    if (!structure) return p.layers;
-    auto view = p.layers.legacy ? schematic::fromLegacy(p.layers, structure->size, p.placement) : p.layers;
-    view.cut = std::clamp(view.cut, 0, std::max(0, schematic::layerCount(structure->size, view.axis) - 1));
-    return view;
+    return structure ? schematic::resolvedLayers(p.layers, structure->size, p.placement) : p.layers;
 }
 // A large file is loaded only after the player confirms it.
 bool waitsForLoad(schematic::session::FileEntry const& f) {
@@ -376,9 +372,8 @@ void activateSchematicField(int index, int part) {
         auto structure = schematic::session::structure(p->file);
         if (!structure && !p->layers.legacy) { screen::setMessage(translated("schematic.rotationNeedsStructure")); return; }
         changeSchematic([&](schematic::SavedPlacement& t) {
-            t.placement.rotation = schematic::quarterTurns(t.placement.rotation + direction);
-            if (structure && !t.layers.legacy)
-                schematic::dualWrite(t.layers, structure->size, t.placement);
+            schematic::turnPlacement(t.placement, t.layers, structure ? &structure->size : nullptr,
+                [&](schematic::Placement& turned) { turned.rotation = schematic::quarterTurns(turned.rotation + direction); });
         });
         return;
     }
@@ -386,9 +381,9 @@ void activateSchematicField(int index, int part) {
         auto structure = schematic::session::structure(p->file);
         if (!structure && !p->layers.legacy) { screen::setMessage(translated("schematic.rotationNeedsStructure")); return; }
         changeSchematic([&](schematic::SavedPlacement& t) {
-            t.placement.mirror = static_cast<schematic::Mirror>((static_cast<int>(t.placement.mirror) + direction + 3) % 3);
-            if (structure && !t.layers.legacy)
-                schematic::dualWrite(t.layers, structure->size, t.placement);
+            schematic::turnPlacement(t.placement, t.layers, structure ? &structure->size : nullptr, [&](schematic::Placement& turned) {
+                turned.mirror = static_cast<schematic::Mirror>((static_cast<int>(turned.mirror) + direction + 3) % 3);
+            });
         });
         return;
     }
@@ -426,8 +421,7 @@ void activateSchematicField(int index, int part) {
         int count = placedLayers(*p);
         auto structure = schematic::session::structure(p->file);
         if (!structure) { screen::setMessage(translated("schematic.layerNeedsStructure")); return; }
-        auto view = schematic::fromLegacy(p->layers, structure->size, p->placement);
-        if (!p->layers.legacy) view = p->layers;
+        auto view = schematic::resolvedLayers(p->layers, structure->size, p->placement);
         if (part == 0) { editingSchematicField = index; screen::number().beginPrecise(view.cut + 1); screen::clearMessage(); return; }
         changeSchematic([&](schematic::SavedPlacement& t) {
             if (t.layers.legacy) t.layers = schematic::fromLegacy(t.layers, structure->size, t.placement);
@@ -689,19 +683,10 @@ std::string fieldValue(schematic::SavedPlacement const& p, SchematicField field)
     case SchematicField::Mirror:
         return translated(p.placement.mirror == schematic::Mirror::X ? "schematic.mirror.x"
             : p.placement.mirror == schematic::Mirror::Z ? "schematic.mirror.z" : "schematic.mirror.none");
-    case SchematicField::LayerAxis: {
-        auto axis = shownLayers(p).axis;
-        return translated(axis == schematic::LayerAxis::Y ? "schematic.axis.y"
-            : axis == schematic::LayerAxis::X ? "schematic.axis.x" : "schematic.axis.z");
-    }
-    case SchematicField::LayerMode: {
-        auto mode = shownLayers(p).mode;
-        return translated(mode == schematic::LayerMode::Only ? "schematic.mode.only"
-            : mode == schematic::LayerMode::UpTo ? "schematic.mode.upTo" : "schematic.mode.all");
-    }
+    case SchematicField::LayerAxis: return schematic::actions::axisText(shownLayers(p).axis);
+    case SchematicField::LayerMode: return schematic::actions::modeText(shownLayers(p).mode);
     case SchematicField::Layer: return translated("schematic.layerValue", shownLayers(p).cut + 1, placedLayers(p));
-    case SchematicField::Keep:
-        return translated(shownLayers(p).keep == schematic::LayerKeep::High ? "schematic.keep.high" : "schematic.keep.low");
+    case SchematicField::Keep: return schematic::actions::keepText(shownLayers(p).keep);
     case SchematicField::Extras: return translated(p.countExtras ? "schematic.extras.show" : "schematic.extras.ignore");
     default: return {};
     }

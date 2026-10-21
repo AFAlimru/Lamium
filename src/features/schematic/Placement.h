@@ -88,21 +88,28 @@ inline int toWorldFace(int face, Placement const& placement) {
     for (int i = 0; i < quarterTurns(placement.rotation); ++i) face = clockwise[face];
     return face;
 }
-// World cell -> structure-local cell, or nullopt outside the placed box.
-inline std::optional<Point> toLocal(Size size, Placement const& placement, Point world) {
-    Size placed = placedSize(size, placement.rotation);
-    int x = world.x - placement.origin.x, y = world.y - placement.origin.y, z = world.z - placement.origin.z;
-    if (x < 0 || y < 0 || z < 0 || x >= placed.x || y >= placed.y || z >= placed.z) return std::nullopt;
-    int width = placed.x, depth = placed.z;
+// The placement transform without bounds: a placed-box offset (world - origin)
+// to a structure-local offset. Accepts points outside the box, which a cut
+// plane may need while the view is outside.
+inline Point placedToLocal(Size structure, Placement const& placement, Point placed) {
+    int x = placed.x, z = placed.z;
+    int width = placedSize(structure, placement.rotation).x, depth = placedSize(structure, placement.rotation).z;
     for (int i = 0; i < quarterTurns(placement.rotation); ++i) {
         // Inverse of one clockwise turn: (x, z) -> (z, width-1-x).
         int localX = z, localZ = width - 1 - x;
         x = localX; z = localZ;
         std::swap(width, depth);
     }
-    if (placement.mirror == Mirror::X) x = size.x - 1 - x;
-    if (placement.mirror == Mirror::Z) z = size.z - 1 - z;
-    return Point{x, y, z};
+    if (placement.mirror == Mirror::X) x = structure.x - 1 - x;
+    if (placement.mirror == Mirror::Z) z = structure.z - 1 - z;
+    return {x, placed.y, z};
+}
+// World cell -> structure-local cell, or nullopt outside the placed box.
+inline std::optional<Point> toLocal(Size size, Placement const& placement, Point world) {
+    Size placed = placedSize(size, placement.rotation);
+    int x = world.x - placement.origin.x, y = world.y - placement.origin.y, z = world.z - placement.origin.z;
+    if (x < 0 || y < 0 || z < 0 || x >= placed.x || y >= placed.y || z >= placed.z) return std::nullopt;
+    return placedToLocal(size, placement, {x, y, z});
 }
 
 // The cut plane is attached to the structure: `cut` is a structure-local
@@ -170,23 +177,7 @@ inline LegacyLayerAxis highLegacyAxis(LayerAxis axis) {
     return axis == LayerAxis::Y ? LegacyLayerAxis::DownFromTop
         : axis == LayerAxis::X ? LegacyLayerAxis::WestFromEast : LegacyLayerAxis::NorthFromSouth;
 }
-// The placement transform without bounds: a placed-box offset (world - origin)
-// and a structure-local offset. Unlike toLocal/toWorld these accept points
-// outside the box, which a cut plane may need while the view is outside.
-inline Point placedToLocal(Size structure, Placement const& placement, Point placed) {
-    int x = placed.x, z = placed.z;
-    int width = placedSize(structure, placement.rotation).x;
-    int depth = placedSize(structure, placement.rotation).z;
-    for (int i = 0; i < quarterTurns(placement.rotation); ++i) {
-        // Inverse of one clockwise turn: (x, z) -> (z, width-1-x).
-        int localX = z, localZ = width - 1 - x;
-        x = localX; z = localZ;
-        std::swap(width, depth);
-    }
-    if (placement.mirror == Mirror::X) x = structure.x - 1 - x;
-    if (placement.mirror == Mirror::Z) z = structure.z - 1 - z;
-    return {x, placed.y, z};
-}
+// The inverse of placedToLocal, also without bounds.
 inline Point localToPlaced(Size structure, Placement const& placement, Point local) {
     int x = local.x, z = local.z;
     if (placement.mirror == Mirror::X) x = structure.x - 1 - x;
@@ -286,25 +277,46 @@ inline Layers withAxis(Layers layers, Size structure, LayerAxis next) {
     layers.cut = std::clamp(layers.cut, 0, std::max(0, layerCount(structure, next) - 1));
     return layers;
 }
-// `placedOffset` is the cell's world position minus the placement origin.
-// A legacy view is still read the old way; a new view is cut in structure
-// space, so turning the placement does not change the shown cells.
-inline bool layerShown(Layers const& layers, Size structure, Placement const& placement, Point placedOffset) {
+// The view as a cut plane: converted from the legacy form, cut clamped.
+inline Layers resolvedLayers(Layers const& layers, Size structure, Placement const& placement) {
+    Layers view = layers.legacy ? fromLegacy(layers, structure, placement) : layers;
+    view.cut = std::clamp(view.cut, 0, std::max(0, layerCount(structure, view.axis) - 1));
+    return view;
+}
+// `placedOffset` is the cell's world position minus the placement origin and
+// `local` the same cell in structure space (callers that already ran toLocal
+// pass it). A legacy view is still read the old way; a new view is cut in
+// structure space, so turning the placement does not change the shown cells.
+inline bool layerShown(Layers const& layers, Size structure, Placement const& placement, Point placedOffset, Point local) {
     if (layers.legacy) {
+        if (layers.legacyMode == LayerMode::All) return true;
         Size placed = placedSize(structure, placement.rotation);
         LayerAxis axis = layerAxisOf(layers.legacyAxis);
         int layer = legacyHighSide(layers.legacyAxis)
             ? layerCount(placed, axis) - 1 - layerOf(placed, axis, placedOffset)
             : layerOf(placed, axis, placedOffset);
-        if (layers.legacyMode == LayerMode::All) return true;
         return layers.legacyMode == LayerMode::Only ? layer == layers.legacyIndex : layer <= layers.legacyIndex;
     }
     if (layers.mode == LayerMode::All) return true;
-    Point local = placedToLocal(structure, placement, placedOffset);
     int cut = std::clamp(layers.cut, 0, std::max(0, layerCount(structure, layers.axis) - 1));
     int at = layerOf(structure, layers.axis, local);
     if (layers.mode == LayerMode::Only) return at == cut;
     return layers.keep == LayerKeep::Low ? at <= cut : at >= cut;
+}
+inline bool layerShown(Layers const& layers, Size structure, Placement const& placement, Point placedOffset) {
+    bool cutInStructure = !layers.legacy && layers.mode != LayerMode::All;
+    return layerShown(layers, structure, placement, placedOffset,
+        cutInStructure ? placedToLocal(structure, placement, placedOffset) : placedOffset);
+}
+// Turns or mirrors a placement. With the structure known, a legacy view
+// becomes a cut plane first so it stays on the same build cells, and the old
+// fields are rewritten for the new turn. Without it a legacy view keeps its
+// placed-box meaning; callers refuse to turn a new view then.
+template <class Turn>
+void turnPlacement(Placement& placement, Layers& layers, Size const* structure, Turn&& turn) {
+    if (structure && layers.legacy) layers = fromLegacy(layers, *structure, placement);
+    turn(placement);
+    if (structure && !layers.legacy) dualWrite(layers, *structure, placement);
 }
 }
 

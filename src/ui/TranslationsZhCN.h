@@ -627,7 +627,6 @@ inline constexpr auto simplifiedChinese = std::to_array<Text>({
     {"schematic.menu.layerKeep", "保留侧"},
     {"schematic.menu.layer", "层"},
     {"schematic.menu.layerHere", "在此切断"},
-    {"schematic.menu.showAll", "显示全部"},
     {"schematic.menu.toggleShown", "此放置"},
     {"schematic.menu.toggleExtras", "多余的方块"},
     {"schematic.menu.toggleEntities", "实体"},

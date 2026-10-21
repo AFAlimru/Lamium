@@ -11,7 +11,7 @@
 namespace lamium::schematic::menu {
 enum class Stepper : std::uint8_t { ForwardBack, LeftRight, UpDown, Rotate, Mirror, LayerAxis, LayerMode, Layer, LayerKeep, Placement, Target };
 enum class Command : std::uint8_t {
-    ToFeet, ResetTurn, LayerHere, ShowAll, ToggleShown, ToggleExtras, ToggleEntities, ToggleHud, ToggleFeature,
+    ToFeet, ResetTurn, LayerHere, ToggleShown, ToggleExtras, ToggleEntities, ToggleHud, ToggleFeature,
     Corner1Here, Corner2Here, MoveCorner1, MoveCorner2, MoveArea, MovePlacement, SaveArea, ClearArea,
     SelectLooked, PlaceFile, DeletePlacement, NearestMistake, CheckTab, MaterialsTab, FilesTab, PlacedTab, KeySettings,
 };

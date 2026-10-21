@@ -660,6 +660,34 @@ void layerRules() {
     Layers back = fromLegacy(old, structure, rotated);
     check(back.axis == view.axis && back.mode == view.mode && back.keep == view.keep && back.cut == view.cut,
           "a structure-local view survives the old fields and back under a rotation");
+    Placement turned{{0, 0, 0}, 0, Mirror::None};
+    Layers legacyCut;
+    legacyCut.legacy = true;
+    legacyCut.legacyAxis = LegacyLayerAxis::EastFromWest;
+    legacyCut.legacyMode = LayerMode::Only;
+    legacyCut.legacyIndex = 1;
+    std::vector<bool> before;
+    for (int x = 0; x < structure.x; ++x)
+        for (int y = 0; y < structure.y; ++y)
+            for (int z = 0; z < structure.z; ++z)
+                before.push_back(layerShown(legacyCut, structure, turned, localToPlaced(structure, turned, {x, y, z})));
+    turnPlacement(turned, legacyCut, &structure, [](Placement& t) { t.rotation = 1; t.mirror = Mirror::Z; });
+    bool kept = !legacyCut.legacy;
+    size_t i = 0;
+    for (int x = 0; x < structure.x; ++x)
+        for (int y = 0; y < structure.y; ++y)
+            for (int z = 0; z < structure.z; ++z)
+                kept = kept && layerShown(legacyCut, structure, turned, localToPlaced(structure, turned, {x, y, z})) == before[i++];
+    check(kept, "turning a legacy view with the structure known converts it and keeps the build cells");
+    Layers unknown;
+    unknown.legacy = true;
+    Placement plain{};
+    turnPlacement(plain, unknown, nullptr, [](Placement& t) { t.rotation = 2; });
+    check(unknown.legacy && plain.rotation == 2, "without the structure a legacy view turns unconverted");
+    Layers far{LayerAxis::X, LayerMode::Only, LayerKeep::Low, 99};
+    check(resolvedLayers(far, structure, plain).cut == structure.x - 1
+              && resolvedLayers(legacyCut, structure, turned) == legacyCut,
+          "a resolved view clamps the cut and leaves a converted view alone");
 }
 
 void verifyRules() {
@@ -933,6 +961,12 @@ void placementDocuments() {
         "layerView":{"axis":"z","cut":2,"keep":"high","mode":"upTo"}}]})");
     check(unmarked.placements.size() == 1 && unmarked.placements[0].layers.legacy,
           "an unmarked layerView falls back to the old fields");
+    auto mistyped = decodePlacements(R"({"version":1,"placements":[{"file":"a.mcstructure","layerView":{"space":1}},
+        {"file":"b.mcstructure","layerView":{"space":"structure","axis":0,"cut":"2","keep":[],"mode":{}}}]})");
+    check(mistyped.placements.size() == 2 && mistyped.placements[0].layers.legacy && !mistyped.placements[1].layers.legacy
+              && mistyped.placements[1].layers.axis == LayerAxis::Y && mistyped.placements[1].layers.cut == 0
+              && mistyped.placements[1].layers.keep == LayerKeep::Low && mistyped.placements[1].layers.mode == LayerMode::All,
+          "mistyped layerView fields take defaults instead of failing the document");
     auto tolerant = decodePlacements(R"({"version":1,"placements":[{"file":"a.mcstructure"},{"file":"../x.mcstructure"},
         {"file":"C:/x.mcstructure"},{"name":"no file"}],"selected":7})");
     check(tolerant.placements.size() == 1 && tolerant.placements[0].name == "a.mcstructure" && tolerant.placements[0].visible
