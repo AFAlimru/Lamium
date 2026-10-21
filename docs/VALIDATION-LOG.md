@@ -21,6 +21,15 @@ public history; the DLL SHA-256 in each entry identifies the build that was
 actually run. The binding-display item was renumbered from L-232 to L-235 at
 the same time, because origin took L-232 for the slime chunk indicator.
 
+## Docked tool titles checked in game (2026-10-22)
+
+`main` (`18a1102`, fix in `147008f`), deployed DLL SHA-256
+`C792A060D2A7B23FF4506138C7ECF16EECA55394A09060C0872ECD9951AB4A5B`, default
+release build, local `1.26.51.01 LIP` deployment, Windows x64. Maintainer
+report: at UI Profile 100%, docked Schematics shortens its title before the
+"Key settings" link instead of running under it; docked Shapes and Waypoints
+titles no longer overlap the link either.
+
 ## PR #35 docked tool panels checked in game (2026-10-22)
 
 Local merge of PR #35 (`cd2a25d`, issue #33) onto `main` after PR #37
