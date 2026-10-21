@@ -133,8 +133,18 @@ struct Layers {
     LegacyLayerAxis legacyAxis = LegacyLayerAxis::UpFromBottom;
     LayerMode legacyMode = LayerMode::All;
     int legacyIndex = 0;
+    LayerMode lastShown = LayerMode::Only; // world-session memory, not saved
     bool operator==(Layers const&) const = default;
 };
+inline void setLayerMode(Layers& layers, LayerMode next) {
+    if (next == LayerMode::All && layers.mode != LayerMode::All) layers.lastShown = layers.mode;
+    layers.mode = next;
+}
+inline bool leaveAll(Layers& layers) {
+    if (layers.mode != LayerMode::All) return false;
+    layers.mode = layers.lastShown;
+    return true;
+}
 inline int layerCount(Size structure, LayerAxis axis) {
     switch (axis) {
     case LayerAxis::Y: return structure.y;

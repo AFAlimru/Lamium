@@ -9,7 +9,8 @@ follow-up; L-237 (missing-structure warning) is done. L-238 (menu and key parity
 agreed direction; the items under "Open questions" remain undecided.
 
 [SCHEMATIC.md](SCHEMATIC.md) still describes the behavior in the game today;
-[BACKLOG.md](BACKLOG.md) owns task status (L-231 controls, L-234 layer model, L-238 menu and keys).
+[BACKLOG.md](BACKLOG.md) owns task status (L-231 controls, L-234 layer model,
+L-238 menu and keys, L-239 mode memory).
 
 ## Problems seen in game
 
@@ -117,7 +118,14 @@ agreed direction; the items under "Open questions" remain undecided.
   only/all it has no visible effect but stays editable for "up to".
 - Cut here keeps the axis and keep, sets the cut to the view source's layer
   along that axis (the player's feet in normal play, the camera's virtual feet
-  in FreeLook/FreeCamera), and switches All to Only so the change shows.
+  in FreeLook/FreeCamera), then leaves All for the last Only or Up to mode
+  (Only by default; L-239, implemented, in-game check pending). The memory
+  belongs to each placement for the world session and is not saved.
+- Menu Cut steps, Layer up/down keys and screen Cut +/- first leave All
+  without moving the cut. The screen's match-layer command and typed cut
+  set the cut, then leave All like Cut here. A key/menu cut operation that
+  leaves All announces the resulting mode; the screen keeps its own message
+  line. Rejoining forgets the remembered mode and defaults to Only.
 - Changing the axis **keeps the Cut**, clamped to the new extent. Only Cut here
   moves the plane to the view source.
 - **View slice is removed** (2026-10-21): it overlapped Axis and Cut here,

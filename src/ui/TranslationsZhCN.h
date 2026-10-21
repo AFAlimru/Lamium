@@ -1618,7 +1618,6 @@ inline constexpr auto simplifiedChinese = std::to_array<Text>({
     {"schematic.toast.mode", "{}：显示 {}（切断 {}/{}）"},
     {"schematic.toast.keep", "{}：保留侧 {}（切断 {}/{}）"},
     {"schematic.toast.cut", "{}：切断 {}/{}（轴 {}）"},
-    {"schematic.toast.cutOnly", "{}：仅显示切断层（切断 {}/{}，轴 {}）"},
     {"schematic.toast.cutHere", "{}：在视点处切断 {}/{}（轴 {}）"},
 });
 }

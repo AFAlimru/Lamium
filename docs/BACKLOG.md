@@ -383,12 +383,17 @@ wheel subset only. L-169 owns transfer extensions; do not start without
 choosing the subset and model.
 
 ### L-239 Leaving "All" returns to the last layer mode
-Kind: Ready (decided with the maintainer 2026-10-22). Today a cut change made
-while the layer mode is All switches the mode to Only (L-234): the first Cut
-step from the menu or the Layer up/down keys only switches, and Cut here sets
-the cut and switches. Users who work with Up to then have to change the mode
-back each time. The Schematics screen is also inconsistent: its Cut +/- and
-typed cut keep All, and only "Match the layer you are in" switches.
+Kind: Ready, implemented; in-game check pending (2026-10-22).
+Steps 1-5 are implemented; `xmake build Lamium` and
+`xmake build LamiumTests` / `xmake run LamiumTests` passed on the working
+tree based on `9c1d5ae`. No in-game check has been performed.
+The following describes the pre-change behavior and the accepted spec.
+Decided with the maintainer 2026-10-22. Previously a cut change made
+while the layer mode was All switched the mode to Only (L-234): the first Cut
+step from the menu or the Layer up/down keys only switched, and Cut here set
+the cut and switched. Users who worked with Up to then had to change the mode
+back each time. The Schematics screen was also inconsistent: its Cut +/- and
+typed cut kept All, and only "Match the layer you are in" switched.
 
 Decided: leaving All returns to the mode used before All (Only or Up to);
 Only when there is none. The memory lasts for the world session; the

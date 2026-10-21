@@ -562,6 +562,41 @@ void entityRules() {
     check(lines[0].name == "Dirt" && lines[1].name == "Stone" && lines[2].entity, "entity lines come after all block lines");
 }
 
+void layerModeMemory() {
+    Layers layers;
+    layers.cut = 2;
+    check(leaveAll(layers) && layers.mode == LayerMode::Only && layers.cut == 2,
+          "leaving All defaults to Only and keeps the cut");
+    setLayerMode(layers, LayerMode::UpTo);
+    auto upTo = layers;
+    check(!leaveAll(layers) && layers == upTo, "leaving a non-All mode changes nothing");
+    setLayerMode(layers, LayerMode::All);
+    setLayerMode(layers, LayerMode::All);
+    check(layers.lastShown == LayerMode::UpTo && leaveAll(layers) && layers.mode == LayerMode::UpTo,
+          "All remembers UpTo, including when All is selected again");
+    setLayerMode(layers, LayerMode::Only);
+    auto only = layers;
+    check(!leaveAll(layers) && layers == only, "leaving Only changes nothing");
+    setLayerMode(layers, LayerMode::All);
+    check(layers.lastShown == LayerMode::Only && leaveAll(layers) && layers.mode == LayerMode::Only,
+          "All remembers Only after UpTo");
+    for (int direction : {-1, 1}) {
+        layers = {};
+        for (int i = 0; i < 3; ++i)
+            setLayerMode(layers, static_cast<LayerMode>((static_cast<int>(layers.mode) + direction + 3) % 3));
+        auto previous = direction > 0 ? LayerMode::UpTo : LayerMode::Only;
+        check(layers.mode == LayerMode::All && layers.lastShown == previous
+                  && leaveAll(layers) && layers.mode == previous,
+              "cycling through All in either direction remembers the mode it left");
+    }
+    Layers old;
+    old.legacy = true;
+    old.legacyMode = LayerMode::UpTo;
+    old.lastShown = LayerMode::UpTo;
+    check(fromLegacy(old, {4, 6, 3}, {}).lastShown == LayerMode::Only,
+          "legacy conversion starts with the default mode memory");
+}
+
 void layerRules() {
     Size structure{4, 6, 3};
     Placement identity{};
@@ -970,6 +1005,11 @@ void drawKeys() {
     check(drawKey(only) != drawKey(onlyCut), "moving the cut under Only rebuilds");
     check(drawKey(only) != drawKey(upTo) && drawKey(upTo) != drawKey(upToKeep),
           "UpTo uses its own key and the kept side matters there");
+    for (auto const& placement : {a, only, upTo}) {
+        auto remembered = placement;
+        remembered.layers.lastShown = LayerMode::UpTo;
+        check(drawKey(placement) == drawKey(remembered), "mode memory does not rebuild ghosts in any mode");
+    }
     auto legacy = a;
     legacy.layers.legacy = true;
     legacy.layers.legacyMode = LayerMode::All;
@@ -1046,6 +1086,20 @@ void placementDocuments() {
           && p.placement.origin == Point{124, 64, -38} && p.placement.rotation == 3 && p.placement.mirror == Mirror::Z
           && p.layers == hut.layers && !p.visible && !p.countExtras && p.entities,
           "placements round-trip");
+    auto remembered = set;
+    remembered.placements[0].layers.lastShown = LayerMode::UpTo;
+    check(encodePlacements(remembered) == encodePlacements(set), "mode memory is not written to the placement document");
+    auto all = remembered;
+    setLayerMode(all.placements[0].layers, LayerMode::All);
+    dualWrite(all.placements[0].layers, Size{4, 6, 3}, hut.placement);
+    auto rejoined = decodePlacements(encodePlacements(all));
+    check(rejoined.placements[0].layers.lastShown == LayerMode::Only
+              && leaveAll(rejoined.placements[0].layers) && rejoined.placements[0].layers.mode == LayerMode::Only,
+          "reloading a placement in All forgets UpTo and leaves All for Only");
+    auto suppliedMemory = decodePlacements(R"({"version":1,"placements":[{"file":"a.mcstructure","lastShown":2,
+        "layerView":{"space":"structure","mode":"all","lastShown":"upTo"}}]})");
+    check(suppliedMemory.placements[0].layers.lastShown == LayerMode::Only,
+          "placement documents cannot supply mode memory");
     auto legacy = decodePlacements(R"({"version":1,"placements":[{"file":"a.mcstructure","layerAxis":3,"layerMode":2,"layer":1}]})");
     check(legacy.placements.size() == 1 && legacy.placements[0].layers.legacy
               && legacy.placements[0].layers.legacyAxis == LegacyLayerAxis::WestFromEast
@@ -1376,6 +1430,7 @@ void schematicTests() {
     previewRules();
     saveRules();
     savePromptHits();
+    layerModeMemory();
     layerRules();
     verifyRules();
     nbtBasics();

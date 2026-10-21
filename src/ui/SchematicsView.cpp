@@ -412,7 +412,7 @@ void activateSchematicField(int index, int part) {
         if (!structure) { screen::setMessage(translated("schematic.layerNeedsStructure")); return; }
         changeSchematic([&](schematic::SavedPlacement& t) {
             if (t.layers.legacy) t.layers = schematic::fromLegacy(t.layers, structure->size, t.placement);
-            t.layers.mode = static_cast<schematic::LayerMode>((static_cast<int>(t.layers.mode) + direction + 3) % 3);
+            schematic::setLayerMode(t.layers, static_cast<schematic::LayerMode>((static_cast<int>(t.layers.mode) + direction + 3) % 3));
             schematic::dualWrite(t.layers, structure->size, t.placement);
         });
         return;
@@ -425,7 +425,7 @@ void activateSchematicField(int index, int part) {
         if (part == 0) { editingSchematicField = index; screen::number().beginPrecise(view.cut + 1); screen::clearMessage(); return; }
         changeSchematic([&](schematic::SavedPlacement& t) {
             if (t.layers.legacy) t.layers = schematic::fromLegacy(t.layers, structure->size, t.placement);
-            t.layers.cut = std::clamp(t.layers.cut + direction, 0, count - 1);
+            if (!schematic::leaveAll(t.layers)) t.layers.cut = std::clamp(t.layers.cut + direction, 0, count - 1);
             schematic::dualWrite(t.layers, structure->size, t.placement);
         });
         return;
@@ -441,8 +441,6 @@ void activateSchematicField(int index, int part) {
         return;
     }
     case SchematicField::MatchLayer: {
-        // The layer the player stands in, along the chosen axis; showing all
-        // layers switches to "this layer only".
         auto place = screen::client() ? schematic::actions::viewFeet(*screen::client()) : std::nullopt;
         auto structure = schematic::session::structure(p->file);
         if (!structure) { screen::setMessage(translated("schematic.layerNeedsStructure")); return; }
@@ -450,7 +448,7 @@ void activateSchematicField(int index, int part) {
         changeSchematic([&](schematic::SavedPlacement& t) {
             if (t.layers.legacy) t.layers = schematic::fromLegacy(t.layers, structure->size, t.placement);
             t.layers.cut = schematic::cutAlong(structure->size, t.placement, t.layers.axis, {place->x, place->y, place->z});
-            if (t.layers.mode == schematic::LayerMode::All) t.layers.mode = schematic::LayerMode::Only;
+            schematic::leaveAll(t.layers);
             schematic::dualWrite(t.layers, structure->size, t.placement);
         });
         return;
@@ -1446,6 +1444,7 @@ void applyNumber() {
         if (field == 9) {
             if (p.layers.legacy) p.layers = schematic::fromLegacy(p.layers, structure->size, p.placement);
             p.layers.cut = value - 1;
+            schematic::leaveAll(p.layers);
             schematic::dualWrite(p.layers, structure->size, p.placement);
         }
         else (field == 0 ? p.placement.origin.x : field == 1 ? p.placement.origin.y : p.placement.origin.z) = value;

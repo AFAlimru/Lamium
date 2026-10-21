@@ -1653,7 +1653,6 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"schematic.toast.mode", "{}: mode {} (cut {}/{})", "{}: 表示 {}（切断 {}/{}）"},
     {"schematic.toast.keep", "{}: keep {} (cut {}/{})", "{}: 残す側 {}（切断 {}/{}）"},
     {"schematic.toast.cut", "{}: cut {}/{} (axis {})", "{}: 切断 {}/{}（軸 {}）"},
-    {"schematic.toast.cutOnly", "{}: showing only the cut layer (cut {}/{}, axis {})", "{}: 切断層だけ表示（切断 {}/{}、軸 {}）"},
     {"schematic.toast.cutHere", "{}: cut here {}/{} (axis {})", "{}: 視点の位置で切断 {}/{}（軸 {}）"},
 });
 enum class Locale { English, Japanese, SimplifiedChinese };

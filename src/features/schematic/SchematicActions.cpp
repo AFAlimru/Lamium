@@ -467,7 +467,7 @@ std::string keepText(LayerKeep keep) {
     return ui::translated(keep == LayerKeep::High ? "schematic.keep.high" : "schematic.keep.low");
 }
 namespace {
-std::string layerChangeText(Structure const* structure, SavedPlacement const& p, menu::Stepper stepper, bool becameOnly) {
+std::string layerChangeText(Structure const* structure, SavedPlacement const& p, menu::Stepper stepper, bool leftAll) {
     if (!structure) return p.name;
     Layers view = resolvedLayers(p.layers, structure->size, p.placement);
     int count = std::max(1, layerCount(structure->size, view.axis));
@@ -479,11 +479,12 @@ std::string layerChangeText(Structure const* structure, SavedPlacement const& p,
     case menu::Stepper::LayerKeep:
         return ui::translated("schematic.toast.keep", p.name, keepText(view.keep), view.cut + 1, count);
     default:
-        return becameOnly ? ui::translated("schematic.toast.cutOnly", p.name, view.cut + 1, count, axisText(view.axis))
-                          : ui::translated("schematic.toast.cut", p.name, view.cut + 1, count, axisText(view.axis));
+        return leftAll ? ui::translated("schematic.toast.mode", p.name, modeText(view.mode), view.cut + 1, count)
+                       : ui::translated("schematic.toast.cut", p.name, view.cut + 1, count, axisText(view.axis));
     }
 }
-std::string cutHereText(Structure const* structure, SavedPlacement const& p) {
+std::string cutHereText(Structure const* structure, SavedPlacement const& p, bool leftAll) {
+    if (leftAll) return layerChangeText(structure, p, menu::Stepper::LayerMode, false);
     if (!structure) return p.name;
     Layers view = resolvedLayers(p.layers, structure->size, p.placement);
     int count = std::max(1, layerCount(structure->size, view.axis));
@@ -498,28 +499,26 @@ Layers effectiveLayers(SavedPlacement const& p) {
 void applyLayerStep(menu::Stepper stepper, int amount) {
     auto structure = selectedStructure();
     if (!structure) { ui::showMessageToast(ui::translated("schematic.layerNeedsStructure")); return; }
-    bool becameOnly = false;
+    bool leftAll = false;
     changeSelected([&](SavedPlacement& p) {
         if (p.layers.legacy) p.layers = fromLegacy(p.layers, structure->size, p.placement);
         if (stepper == menu::Stepper::LayerAxis) {
             // Changing the axis keeps the cut; only Cut here moves it.
             p.layers.axis = static_cast<LayerAxis>(((static_cast<int>(p.layers.axis) + amount) % 3 + 3) % 3);
         } else if (stepper == menu::Stepper::LayerMode) {
-            p.layers.mode = static_cast<LayerMode>(((static_cast<int>(p.layers.mode) + amount) % 3 + 3) % 3);
+            setLayerMode(p.layers, static_cast<LayerMode>(((static_cast<int>(p.layers.mode) + amount) % 3 + 3) % 3));
         } else if (stepper == menu::Stepper::LayerKeep) {
             // A wheel can deliver several notches in one frame; keep the side
             // for an even count, toggle for an odd one.
             if (amount % 2 != 0)
                 p.layers.keep = p.layers.keep == LayerKeep::Low ? LayerKeep::High : LayerKeep::Low;
-        } else if (p.layers.mode == LayerMode::All) {
-            p.layers.mode = LayerMode::Only;
-            becameOnly = true;
         } else {
-            p.layers.cut += amount;
+            leftAll = leaveAll(p.layers);
+            if (!leftAll) p.layers.cut += amount;
         }
         p.layers.cut = std::clamp(p.layers.cut, 0, std::max(0, layerCount(structure->size, p.layers.axis) - 1));
         dualWrite(p.layers, structure->size, p.placement);
-    }, [&](SavedPlacement const& p) { return layerChangeText(structure.get(), p, stepper, becameOnly); });
+    }, [&](SavedPlacement const& p) { return layerChangeText(structure.get(), p, stepper, leftAll); });
 }
 }
 
@@ -600,17 +599,15 @@ void press(IClientInstance& client, Action action) {
         int direction = action == Action::LayerUp ? 1 : -1;
         auto structure = selectedStructure();
         if (!structure) { ui::showMessageToast(ui::translated("schematic.layerNeedsStructure")); return; }
-        bool becameOnly = false;
+        bool leftAll = false;
         changeSelected([&](SavedPlacement& p) {
             if (p.layers.legacy) p.layers = fromLegacy(p.layers, structure->size, p.placement);
-            if (p.layers.mode == LayerMode::All) {
-                p.layers.mode = LayerMode::Only;
-                becameOnly = true;
-            } else {
+            leftAll = leaveAll(p.layers);
+            if (!leftAll) {
                 p.layers.cut = std::clamp(p.layers.cut + direction, 0, std::max(0, layerCount(structure->size, p.layers.axis) - 1));
             }
             dualWrite(p.layers, structure->size, p.placement);
-        }, [&](SavedPlacement const& p) { return layerChangeText(structure.get(), p, menu::Stepper::Layer, becameOnly); });
+        }, [&](SavedPlacement const& p) { return layerChangeText(structure.get(), p, menu::Stepper::Layer, leftAll); });
         return;
     }
     case Action::LayerHere: {
@@ -618,12 +615,13 @@ void press(IClientInstance& client, Action action) {
         auto structure = selectedStructure();
         if (!structure) { ui::showMessageToast(ui::translated("schematic.layerNeedsStructure")); return; }
         if (!at) return;
+        bool leftAll = false;
         changeSelected([&](SavedPlacement& p) {
             if (p.layers.legacy) p.layers = fromLegacy(p.layers, structure->size, p.placement);
             p.layers.cut = cutAlong(structure->size, p.placement, p.layers.axis, *at);
-            if (p.layers.mode == LayerMode::All) p.layers.mode = LayerMode::Only;
+            leftAll = leaveAll(p.layers);
             dualWrite(p.layers, structure->size, p.placement);
-        }, [&](SavedPlacement const& p) { return cutHereText(structure.get(), p); });
+        }, [&](SavedPlacement const& p) { return cutHereText(structure.get(), p, leftAll); });
         return;
     }
     case Action::CycleLayerAxis: applyLayerStep(menu::Stepper::LayerAxis, 1); return;

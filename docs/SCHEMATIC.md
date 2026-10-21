@@ -980,7 +980,15 @@ Decided 2026-10-03 after the first mockup
   / up to this layer. Rotating or mirroring the placement keeps the same build
   cells visible; the world plane turns with it. The Layers menu has Axis, Cut,
   Mode, Keep and "Cut here" (cut at the current axis and view source). Axis
-  changes keep the cut. A single plane cannot express a compound X+Y cut; this
+  changes keep the cut. Leaving All through a cut operation returns to the
+  last Only or Up to mode, defaulting to Only (L-239, implemented; in-game
+  check pending). Each placement remembers that mode only for the world
+  session; it is not saved and does not affect the ghost key. Menu Cut steps,
+  Layer up/down keys and screen Cut +/- first leave All without moving the
+  cut. Cut here, the screen's "Match the layer you are in" and a typed cut
+  set the cut and then leave All. Keys/menu announce the resulting mode;
+  the screen keeps its message line. Rejoining resets the memory to Only.
+  A single plane cannot express a compound X+Y cut; this
   is a known limitation. The old six-direction form is only a
   storage/rollback representation; see the JSON note below.
 - The file browser shows a rotatable 3D preview of the schematic with
