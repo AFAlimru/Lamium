@@ -88,6 +88,7 @@ Toast activeToast;
 }
 void showToggleToast(std::string feature, bool on) { activeToast.show(std::move(feature), on, toastNow()); }
 void showMessageToast(std::string message, double seconds) { activeToast.show(std::move(message), false, toastNow(), true, seconds); }
+void showWarningToast(std::string message, double seconds) { activeToast.show(std::move(message), false, toastNow(), true, seconds, true); }
 std::optional<Toast::Visible> currentToggleToast(double now) { return activeToast.current(now); }
 }
 namespace lamium::information {
@@ -1545,10 +1546,10 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
             box(ui::HudElementId::Magnification) = drawElement(context, width, height, hud.magnification,
                 {{std::format("\u00d7{:.1f}", *level), std::nullopt, ui::palette::dim}});
     }
-    if (preview || runtime.ui.toggleToasts) {
+    {
         auto toast = ui::currentToggleToast(ui::toastNow());
         if (!toast && preview) toast = ui::Toast::Visible{ui::translated("feature.toolSwitch"), true, 1.f};
-        if (toast) {
+        if (toast && (preview || runtime.ui.toggleToasts || toast->warning)) {
             float zoom = elementZoom(hud.toast);
             // A message may hold several lines ("\n"), each centered in the box;
             // a line wider than most of the screen wraps.
@@ -1576,7 +1577,7 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
             if (!toast->plain) ui::toggleSwitch(context, placement.x, placement.y + (14 * zoom - ui::switchHeight) / 2, toast->on);
             for (size_t i = 0; i < parts.size(); ++i)
                 ui::labelScaled(context, placement.x + lead, placement.y + 14 * zoom * static_cast<float>(i), textWidth + 2,
-                    parts[i], zoom, toast->opacity < 1 ? ui::palette::dim : ui::palette::text,
+                    parts[i], zoom, toast->opacity < 1 ? ui::palette::dim : toast->warning ? ui::palette::warning : ui::palette::text,
                     parts.size() > 1 ? ui::Align::Center : ui::Align::Left, hud.toast.shadow);
             context.flushText(0, std::nullopt);
         }

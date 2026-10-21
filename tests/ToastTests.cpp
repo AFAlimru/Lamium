@@ -23,5 +23,18 @@ void toastTests() {
     check(!toast.current(std::numeric_limits<double>::infinity()), "invalid time shows nothing");
     toast.clear();
     check(!toast.current(21.2), "clear hides the toast");
+    toast.show("Unreadable file", false, 30, true, 6, true);
+    auto warning = toast.current(35.6);
+    check(warning && warning->warning && warning->plain && warning->opacity == 1.f,
+          "a warning message keeps its flag and stays opaque until the six-second fade");
+    warning = toast.current(35.85);
+    check(warning && warning->warning && warning->opacity > 0.f && warning->opacity < 1.f,
+          "a warning keeps its flag while fading");
+    check(!toast.current(36), "a six-second warning expires on time");
+    toast.show("Message", false, 40, true);
+    check(!toast.current(40)->warning, "an ordinary message resets the warning flag");
+    toast.show("Unreadable file", false, 41, true, 6, true);
+    toast.show("Zoom", true, 42);
+    check(!toast.current(42)->warning && !toast.current(42)->plain, "a toggle resets the warning and message flags");
     check(toastNow() > 0, "toast clock advances");
 }

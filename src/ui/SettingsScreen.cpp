@@ -779,7 +779,8 @@ void renderSchematicMenu(MinecraftUIRenderContext& context, glm::vec2 size, glm:
     // The game's toasts are not drawn over this screen: what an item just
     // did (or why it did nothing, such as no area yet) shows under the ring.
     if (auto toast = currentToggleToast(toastNow()))
-        note(toast->plain ? toast->text : toast->text + ": " + translated(toast->on ? "on" : "off"), palette::text, true, false);
+        note(toast->plain ? toast->text : toast->text + ": " + translated(toast->on ? "on" : "off"),
+            toast->warning ? palette::warning : palette::text, true, false);
     // Above the ring: the hovered item's keys, and a quiet pointer to the
     // adjust key while it is unbound.
     std::string overRing = hovered ? keyLine(*hovered) : std::string{};
