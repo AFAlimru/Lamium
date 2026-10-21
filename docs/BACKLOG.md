@@ -426,29 +426,32 @@ choosing the subset and model.
 Kind: Design. Implemented on branch `schematic-layers` 2026-10-21; build and
 pure tests pass, in-game check pending. Maintainer 2026-10-20: the six
 directions will not last; move to Axis (Y/X/Z) + Cut + Keep + Mode as
-recorded in [SCHEMATIC-CONTROLS.md](SCHEMATIC-CONTROLS.md). Cut is a local
-offset along the axis (the world coordinate is display only), so moving a
-placement keeps its slice; check and materials keep reading the same region.
+recorded in [SCHEMATIC-CONTROLS.md](SCHEMATIC-CONTROLS.md). Cut is a
+structure-local offset along the axis, so moving, rotating or mirroring a
+placement keeps the same build cells; check and materials keep reading the
+same region. A single plane cannot express a compound X+Y cut; documented
+limitation.
 Decided 2026-10-20: storage keeps document `version: 1` with a per-placement
 `layerView` object (the old six-direction `layerAxis` cannot be reused) and
-always dual-writes the exact legacy fields when the placed size is known; cut
-edits wait until the size is known, so the legacy fields never go stale. The
-Layers menu is Axis / Cut / Mode / Keep / Slice from view / Cut here; Show all
-is dropped because Mode has All. Keep is a stepper. The slice cuts at the feet
-in normal play and at the camera's virtual feet in Freelook/FreeCamera, on the
-dominant full-view axis with Y/X/Z tie order, and sets the remembered
-adjustment to the cut. Third review, adopted 2026-10-20: Cut here keeps the
-axis and keep and sets the cut at the view source's layer (switching All to
-Only); changing the axis sets the cut at the view source's layer along the new
-axis, clamped and toasted. Check and materials keep reading the same region.
+always dual-writes the exact legacy fields when the size is known; the old
+fields are placed-box based and are mapped through the current rotation and
+mirror. Cut edits wait until the size is known, so the legacy fields never go
+stale. The Layers menu is Axis / Cut / Mode / Keep / Cut here; Show all is
+dropped because Mode has All. Keep is a stepper. Cut here keeps the axis and
+keep and sets the cut at the view source's layer (switching All to Only).
+Changing the axis keeps the cut, clamped to the new extent. Check and
+materials keep reading the same region. Decided 2026-10-21: the view slice is
+removed (it duplicated Axis + Cut here and changed Only/Keep as a side
+effect); rotation and mirror are structure-attached.
 Built: pure conversion from every old direction and mode, the `layerView`
-storage form with legacy dual-write, the Layers menu and slice, and the
+storage form with legacy dual-write, the structure-local Layers menu, and the
 HUD/placed-screen values (Axis, Cut, Mode and Keep). Tests cover the
-all-direction/mode cell match, the legacy round-trip, missing-structure saves
-and post-rotation extents. In-game check covers the drawing, Check and
-Materials agreeing on the cut. A new-form cut plane blocks turning, resetting
-and cut number input while the structure is missing; legacy-form placements
-can still turn. L-231 is merged; L-234 follows as a separate step.
+all-direction/mode cell match under every rotation and mirror, the legacy
+round-trip, missing-structure saves and placement-attached cuts. In-game check
+covers the drawing, Check and Materials agreeing on the cut. A new-form cut
+plane blocks turning, resetting and cut number input while the structure is
+missing; legacy-form placements can still turn. L-231 is merged; L-234 follows
+as a separate step.
 
 ### L-206 World map recording range is a fixed radius instead of the view distance
 Kind: Ready, implementation built; runtime coverage pending. User report

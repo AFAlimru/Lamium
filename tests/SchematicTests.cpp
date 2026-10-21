@@ -493,83 +493,105 @@ void entityRules() {
 }
 
 void layerRules() {
-    Size placed{4, 6, 3};
+    Size structure{4, 6, 3};
+    Placement identity{};
     Layers layers;
-    check(layerShown(layers, placed, {3, 5, 2}), "all layers show everything");
+    check(layerShown(layers, structure, identity, {3, 5, 2}), "all layers show everything");
     layers = {LayerAxis::Y, LayerMode::Only, LayerKeep::Low, 2};
-    check(layerShown(layers, placed, {0, 2, 0}) && !layerShown(layers, placed, {0, 3, 0}), "only one Y layer at the cut");
+    check(layerShown(layers, structure, identity, {0, 2, 0}) && !layerShown(layers, structure, identity, {0, 3, 0}),
+          "only one Y layer at the cut");
     layers = {LayerAxis::Y, LayerMode::UpTo, LayerKeep::High, 4};
-    check(layerShown(layers, placed, {0, 5, 0}) && layerShown(layers, placed, {0, 4, 0}) && !layerShown(layers, placed, {0, 3, 0}),
+    check(layerShown(layers, structure, identity, {0, 5, 0}) && layerShown(layers, structure, identity, {0, 4, 0})
+              && !layerShown(layers, structure, identity, {0, 3, 0}),
           "up to with the high side keeps the top");
     layers = {LayerAxis::X, LayerMode::Only, LayerKeep::Low, 3};
-    check(layerShown(layers, placed, {3, 0, 0}) && !layerShown(layers, placed, {0, 0, 0}), "the X cut is local to the placement");
+    check(layerShown(layers, structure, identity, {3, 0, 0}) && !layerShown(layers, structure, identity, {0, 0, 0}),
+          "the X cut is structure-local");
     layers = {LayerAxis::Z, LayerMode::UpTo, LayerKeep::Low, 1};
-    check(layerShown(layers, placed, {0, 0, 0}) && layerShown(layers, placed, {0, 0, 1}) && !layerShown(layers, placed, {0, 0, 2}),
+    check(layerShown(layers, structure, identity, {0, 0, 0}) && layerShown(layers, structure, identity, {0, 0, 1})
+              && !layerShown(layers, structure, identity, {0, 0, 2}),
           "Z up to the low side");
-    check(layerCount(placed, LayerAxis::Z) == 3 && layerCount(placed, LayerAxis::X) == 4, "layer counts follow the axis");
-    check(withAxis({LayerAxis::X, LayerMode::Only, LayerKeep::Low, 3}, placed, LayerAxis::Z).cut == 2,
-          "an axis change clamps the cut to the new extent");
-    check(cutAlong(placed, {10, 20, 30}, LayerAxis::Y, {12, 24, 31}) == 4
-              && cutAlong(placed, {10, 20, 30}, LayerAxis::X, {99, 20, 30}) == 3,
-          "the cut comes from the world offset and clamps");
-    check(dominantAxis(0, -2, 0.1) == LayerAxis::Y && dominantAxis(2, 1.5, 0) == LayerAxis::X
-              && dominantAxis(0.5, 0.5, -3) == LayerAxis::Z,
-          "the slice axis is the dominant view axis");
-    check(dominantAxis(1, 1, 1) == LayerAxis::Y && dominantAxis(1, 0, 1) == LayerAxis::X,
-          "ties keep Y, then X");
+    check(layerCount(structure, LayerAxis::Z) == 3 && layerCount(structure, LayerAxis::X) == 4, "layer counts follow the structure");
+    check(withAxis({LayerAxis::X, LayerMode::Only, LayerKeep::Low, 3}, structure, LayerAxis::Z).cut == 2,
+          "an axis change keeps the cut and clamps it to the new extent");
+    check(cutAlong(structure, identity, LayerAxis::Y, {2, 24, 1}) == 5
+              && cutAlong(structure, identity, LayerAxis::X, {99, 20, 30}) == 3,
+          "the cut comes from the world position and clamps in structure space");
 
-    auto oldCount = [&](LegacyLayerAxis axis) {
-        switch (axis) {
-        case LegacyLayerAxis::UpFromBottom: case LegacyLayerAxis::DownFromTop: return placed.y;
-        case LegacyLayerAxis::EastFromWest: case LegacyLayerAxis::WestFromEast: return placed.x;
-        default: return placed.z;
+    // The cut is attached to the build: the same structure cells are shown
+    // for every rotation and mirror.
+    bool attached = true;
+    Layers cut{LayerAxis::X, LayerMode::UpTo, LayerKeep::Low, 2};
+    for (int r = 0; r < 4; ++r)
+        for (int m = 0; m < 3; ++m) {
+            Placement p{{10, 20, 30}, r, static_cast<Mirror>(m)};
+            for (int x = 0; x < structure.x; ++x)
+                for (int y = 0; y < structure.y; ++y)
+                    for (int z = 0; z < structure.z; ++z) {
+                        bool expected = x <= 2;
+                        attached = attached && layerShown(cut, structure, p, localToPlaced(structure, p, {x, y, z})) == expected;
+                    }
         }
-    };
-    auto oldLayer = [&](LegacyLayerAxis axis, Point offset) {
-        int count = oldCount(axis);
-        switch (axis) {
-        case LegacyLayerAxis::UpFromBottom: return offset.y;
-        case LegacyLayerAxis::DownFromTop: return count - 1 - offset.y;
-        case LegacyLayerAxis::EastFromWest: return offset.x;
-        case LegacyLayerAxis::WestFromEast: return count - 1 - offset.x;
-        case LegacyLayerAxis::SouthFromNorth: return offset.z;
-        default: return count - 1 - offset.z;
+    check(attached, "the cut follows the placement through rotation and mirror");
+    bool roundTrip = true;
+    for (int r = 0; r < 4; ++r)
+        for (int m = 0; m < 3; ++m) {
+            Placement p{{10, 20, 30}, r, static_cast<Mirror>(m)};
+            for (int x = 0; x < structure.x; ++x)
+                for (int y = 0; y < structure.y; ++y)
+                    for (int z = 0; z < structure.z; ++z) {
+                        Point local{x, y, z};
+                        roundTrip = roundTrip && placedToLocal(structure, p, localToPlaced(structure, p, local)) == local;
+                    }
         }
+    check(roundTrip, "placed and structure-local offsets round-trip under every rotation and mirror");
+
+    auto oldShown = [&](Layers const& old, Size placed, Point offset) {
+        int count = layerAxisOf(old.legacyAxis) == LayerAxis::Y ? placed.y
+            : layerAxisOf(old.legacyAxis) == LayerAxis::X ? placed.x : placed.z;
+        int layer = legacyHighSide(old.legacyAxis) ? count - 1 - layerOf(placed, layerAxisOf(old.legacyAxis), offset)
+                                                   : layerOf(placed, layerAxisOf(old.legacyAxis), offset);
+        return old.legacyMode == LayerMode::All
+            || (old.legacyMode == LayerMode::Only ? layer == old.legacyIndex : layer <= old.legacyIndex);
     };
     bool same = true;
-    for (int a = 0; a < 6; ++a) {
-        auto axis = static_cast<LegacyLayerAxis>(a);
+    for (int r = 0; r < 4; ++r)
         for (int m = 0; m < 3; ++m) {
-            auto mode = static_cast<LayerMode>(m);
-            int count = oldCount(axis);
-            for (int index = 0; index < count; ++index) {
-                Layers old;
-                old.legacy = true;
-                old.legacyAxis = axis;
-                old.legacyMode = mode;
-                old.legacyIndex = index;
-                Layers converted = fromLegacy(old, placed);
-                for (int x = 0; x < placed.x; ++x)
-                    for (int y = 0; y < placed.y; ++y)
-                        for (int z = 0; z < placed.z; ++z) {
-                            int layer = oldLayer(axis, {x, y, z});
-                            bool was = mode == LayerMode::All || (mode == LayerMode::Only ? layer == index : layer <= index);
-                            same = same && layerShown(converted, placed, {x, y, z}) == was;
-                        }
+            Placement p{{10, 20, 30}, r, static_cast<Mirror>(m)};
+            Size placed = placedSize(structure, r);
+            for (int a = 0; a < 6; ++a) {
+                auto axis = static_cast<LegacyLayerAxis>(a);
+                int count = layerAxisOf(axis) == LayerAxis::Y ? placed.y
+                    : layerAxisOf(axis) == LayerAxis::X ? placed.x : placed.z;
+                for (int mode = 0; mode < 3; ++mode)
+                    for (int index = 0; index < count; ++index) {
+                        Layers old;
+                        old.legacy = true;
+                        old.legacyAxis = axis;
+                        old.legacyMode = static_cast<LayerMode>(mode);
+                        old.legacyIndex = index;
+                        Layers converted = fromLegacy(old, structure, p);
+                        for (int x = 0; x < structure.x; ++x)
+                            for (int y = 0; y < structure.y; ++y)
+                                for (int z = 0; z < structure.z; ++z) {
+                                    Point placedOffset = localToPlaced(structure, p, {x, y, z});
+                                    same = same && layerShown(converted, structure, p, placedOffset) == oldShown(old, placed, placedOffset);
+                                }
+                    }
             }
         }
-    }
-    check(same, "every old direction and mode converts to the same shown cells");
+    check(same, "every old direction and mode converts under every rotation and mirror");
+    Placement rotated{{1, 2, 3}, 1, Mirror::X};
     Layers view{LayerAxis::X, LayerMode::UpTo, LayerKeep::High, 1};
-    dualWrite(view, placed);
+    dualWrite(view, structure, rotated);
     Layers old;
     old.legacy = true;
     old.legacyAxis = view.legacyAxis;
     old.legacyMode = view.legacyMode;
     old.legacyIndex = view.legacyIndex;
-    Layers back = fromLegacy(old, placed);
+    Layers back = fromLegacy(old, structure, rotated);
     check(back.axis == view.axis && back.mode == view.mode && back.keep == view.keep && back.cut == view.cut,
-          "a cut-plane view survives the old fields and back");
+          "a structure-local view survives the old fields and back under a rotation");
 }
 
 void verifyRules() {
@@ -788,7 +810,7 @@ void placementDocuments() {
     hut.dimension = 1;
     hut.placement = {{124, 64, -38}, 3, Mirror::Z};
     hut.layers = {LayerAxis::X, LayerMode::UpTo, LayerKeep::High, 1};
-    dualWrite(hut.layers, Size{4, 6, 3});
+    dualWrite(hut.layers, Size{4, 6, 3}, hut.placement);
     hut.visible = false;
     hut.countExtras = false;
     set.placements.push_back(hut);
@@ -805,11 +827,15 @@ void placementDocuments() {
               && legacy.placements[0].layers.legacyMode == LayerMode::UpTo && legacy.placements[0].layers.legacyIndex == 1,
           "an old document keeps its six-direction view until the size is known");
     auto converted = decodePlacements(R"({"version":1,"placements":[{"file":"a.mcstructure","layerAxis":0,"layerMode":0,"layer":0,
-        "layerView":{"axis":"z","cut":2,"keep":"high","mode":"upTo"}}]})");
+        "layerView":{"space":"structure","axis":"z","cut":2,"keep":"high","mode":"upTo"}}]})");
     check(converted.placements.size() == 1 && !converted.placements[0].layers.legacy
               && converted.placements[0].layers.axis == LayerAxis::Z && converted.placements[0].layers.cut == 2
               && converted.placements[0].layers.keep == LayerKeep::High && converted.placements[0].layers.mode == LayerMode::UpTo,
-          "a layerView document loads the cut plane");
+          "a structure-space layerView loads the cut plane");
+    auto unmarked = decodePlacements(R"({"version":1,"placements":[{"file":"a.mcstructure","layerAxis":0,"layerMode":0,"layer":0,
+        "layerView":{"axis":"z","cut":2,"keep":"high","mode":"upTo"}}]})");
+    check(unmarked.placements.size() == 1 && unmarked.placements[0].layers.legacy,
+          "an unmarked layerView falls back to the old fields");
     auto tolerant = decodePlacements(R"({"version":1,"placements":[{"file":"a.mcstructure"},{"file":"../x.mcstructure"},
         {"file":"C:/x.mcstructure"},{"name":"no file"}],"selected":7})");
     check(tolerant.placements.size() == 1 && tolerant.placements[0].name == "a.mcstructure" && tolerant.placements[0].visible

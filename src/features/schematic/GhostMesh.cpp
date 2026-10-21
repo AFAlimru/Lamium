@@ -67,7 +67,7 @@ bool ghostOpaqueAt(BlockSource& region, session::Shown const& shown, Resolved co
     Size placed = placedSize(structure.size, placement.placement.rotation);
     Point const& origin = placement.placement.origin;
     auto local = toLocal(structure.size, placement.placement, n);
-    if (!local || !layerShown(placement.layers, placed, {n.x - origin.x, n.y - origin.y, n.z - origin.z})) return false;
+    if (!local || !layerShown(placement.layers, structure.size, placement.placement, {n.x - origin.x, n.y - origin.y, n.z - origin.z})) return false;
     auto index = structure.blocks[static_cast<size_t>(structure.cell(local->x, local->y, local->z))];
     if (index == voidCell || static_cast<size_t>(index) >= blocks.blocks.size()) return false;
     Block const* ghost = blocks.blocks[static_cast<size_t>(index)];
@@ -83,7 +83,7 @@ NeighborGhost ghostAt(BlockSource& region, session::Shown const& shown, Resolved
     Size placed = placedSize(structure.size, placement.placement.rotation);
     Point const& origin = placement.placement.origin;
     auto local = toLocal(structure.size, placement.placement, n);
-    if (!local || !layerShown(placement.layers, placed, {n.x - origin.x, n.y - origin.y, n.z - origin.z})) return {};
+    if (!local || !layerShown(placement.layers, structure.size, placement.placement, {n.x - origin.x, n.y - origin.y, n.z - origin.z})) return {};
     auto index = structure.blocks[static_cast<size_t>(structure.cell(local->x, local->y, local->z))];
     if (index == voidCell || static_cast<size_t>(index) >= blocks.blocks.size() || static_cast<size_t>(index) >= blocks.sideMasks.size()) return {};
     Block const* block = blocks.blocks[static_cast<size_t>(index)];
@@ -109,7 +109,7 @@ liquids::Cell liquidAt(BlockSource& region, session::Shown const& shown, Resolve
     Size placed = placedSize(structure.size, placement.placement.rotation);
     Point const& origin = placement.placement.origin;
     auto local = toLocal(structure.size, placement.placement, n);
-    if (local && layerShown(placement.layers, placed, {n.x - origin.x, n.y - origin.y, n.z - origin.z})) {
+    if (local && layerShown(placement.layers, structure.size, placement.placement, {n.x - origin.x, n.y - origin.y, n.z - origin.z})) {
         auto cell = static_cast<size_t>(structure.cell(local->x, local->y, local->z));
         bool said = false, solid = false;
         for (auto const* layer : {&structure.blocks, &structure.liquids}) {
@@ -272,7 +272,7 @@ Block const* ghostNeighbor(BlockSource& region, session::Shown const& shown, Res
     Size placed = placedSize(structure.size, placement.placement.rotation);
     Point const& origin = placement.placement.origin;
     auto local = toLocal(structure.size, placement.placement, n);
-    if (!local || !layerShown(placement.layers, placed, {n.x - origin.x, n.y - origin.y, n.z - origin.z})) return nullptr;
+    if (!local || !layerShown(placement.layers, structure.size, placement.placement, {n.x - origin.x, n.y - origin.y, n.z - origin.z})) return nullptr;
     auto index = structure.blocks[static_cast<size_t>(structure.cell(local->x, local->y, local->z))];
     if (index == voidCell || static_cast<size_t>(index) >= blocks.blocks.size()) return nullptr;
     Block const* ghost = blocks.blocks[static_cast<size_t>(index)];
@@ -366,7 +366,7 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
         for (int y = std::max(low.y, origin.y); y < std::min(low.y + sectionSize, origin.y + placed.y); ++y)
             for (int z = std::max(low.z, origin.z); z < std::min(low.z + sectionSize, origin.z + placed.z); ++z) {
                 Point offset{x - origin.x, y - origin.y, z - origin.z};
-                if (!layerShown(placement.layers, placed, offset)) continue;
+                if (!layerShown(placement.layers, structure.size, placement.placement, offset)) continue;
                 auto local = toLocal(structure.size, placement.placement, {x, y, z});
                 if (!local) continue;
                 auto paletteIndex = structure.blocks[static_cast<size_t>(structure.cell(local->x, local->y, local->z))];
@@ -492,7 +492,7 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
         for (int x = std::max(low.x, origin.x); x < std::min(low.x + sectionSize, origin.x + placed.x); ++x)
             for (int y = std::max(low.y, origin.y); y < std::min(low.y + sectionSize, origin.y + placed.y); ++y)
                 for (int z = std::max(low.z, origin.z); z < std::min(low.z + sectionSize, origin.z + placed.z); ++z) {
-                    if (!layerShown(placement.layers, placed, {x - origin.x, y - origin.y, z - origin.z})) continue;
+                    if (!layerShown(placement.layers, structure.size, placement.placement, {x - origin.x, y - origin.y, z - origin.z})) continue;
                     if (owned && owned({x, y, z})) continue;
                     auto local = toLocal(structure.size, placement.placement, {x, y, z});
                     if (!local) continue;

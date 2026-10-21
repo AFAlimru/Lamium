@@ -465,7 +465,6 @@ inline constexpr auto simplifiedChinese = std::to_array<Text>({
     {"schematic.keep", "保留侧"},
     {"schematic.layer", "切断位置"},
     {"schematic.layerValue", "{} / {}"},
-    {"schematic.toast.slice", "{}：在 {} 轴的 {} 处切断"},
     {"schematic.extras", "多余的方块"},
     {"schematic.extras.show", "红色标出"},
     {"schematic.extras.ignore", "忽略"},
@@ -627,7 +626,6 @@ inline constexpr auto simplifiedChinese = std::to_array<Text>({
     {"schematic.menu.layerMode", "显示模式"},
     {"schematic.menu.layerKeep", "保留侧"},
     {"schematic.menu.layer", "层"},
-    {"schematic.menu.sliceView", "从视角切片"},
     {"schematic.menu.layerHere", "在此切断"},
     {"schematic.menu.showAll", "显示全部"},
     {"schematic.menu.toggleShown", "此放置"},
@@ -1605,8 +1603,6 @@ inline constexpr auto simplifiedChinese = std::to_array<Text>({
     {"key.Lamium.cyclemovetarget", "选择下一个移动对象"},
     {"help.key.cyclemovetarget", "按顺序切换有效的移动对象：蓝图、角1、角2或保存范围。"},
     {"schematic.layerNeedsStructure", "变更层之前请先加载蓝图。"},
-    {"schematic.rotationNeedsStructure", "设置切断面后旋转放置前，请先加载蓝图。"},
-    {"key.Lamium.slicefromview", "从视角切片蓝图"},
-    {"help.key.slicefromview", "沿视线的主轴，在相机的虚拟脚下处切开所选放置。只显示该层，并保留远离相机的一侧。"},
+    {"schematic.rotationNeedsStructure", "设置切断面后旋转或镜像放置前，请先加载蓝图。"},
 });
 }

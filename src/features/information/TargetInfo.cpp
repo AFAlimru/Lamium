@@ -411,8 +411,7 @@ std::optional<TargetInfo> collectTargetInfo(IClientInstance& client, bool includ
             schematic::Point offset{hit.mBlock.x - placement.placement.origin.x,
                 hit.mBlock.y - placement.placement.origin.y, hit.mBlock.z - placement.placement.origin.z};
             if (shown.structure && placement.visible && placement.dimension == static_cast<int>(player->getDimensionId())
-                && schematic::layerShown(placement.layers,
-                    schematic::placedSize(shown.structure->size, placement.placement.rotation), offset)) {
+                && schematic::layerShown(placement.layers, shown.structure->size, placement.placement, offset)) {
                 // Read just this cell now; the capped background list may be old or omit it.
                 if (auto m = schematic::ghosts::mismatchAt(source, {hit.mBlock.x, hit.mBlock.y, hit.mBlock.z});
                     m && !m->entity) {

@@ -84,7 +84,7 @@ std::string encodePlacements(PlacementSet const& set) {
         // A placement still on the old form keeps only the old fields until its
         // size is known; a converted view carries both for rollback.
         if (!p.layers.legacy)
-            entry["layerView"] = {{"axis", axisName(p.layers.axis)}, {"cut", p.layers.cut},
+            entry["layerView"] = {{"space", "structure"}, {"axis", axisName(p.layers.axis)}, {"cut", p.layers.cut},
                 {"keep", keepName(p.layers.keep)}, {"mode", modeName(p.layers.mode)}};
         list.push_back(std::move(entry));
     }
@@ -115,13 +115,15 @@ PlacementSet decodePlacements(std::string_view text) {
             p.layers.legacyMode = static_cast<LayerMode>(std::clamp(integer(entry.value("layerMode", Json()), 0), 0, 2));
             p.layers.legacyIndex = integer(entry.value("layer", Json()), 0);
             auto view = entry.find("layerView");
-            if (view != entry.end() && view->is_object()) {
+            if (view != entry.end() && view->is_object() && view->value("space", std::string{}) == "structure") {
                 p.layers.legacy = false;
                 p.layers.axis = axisFromName(view->value("axis", std::string("y")));
                 p.layers.cut = integer(view->value("cut", Json()), 0);
                 p.layers.keep = keepFromName(view->value("keep", std::string("low")));
                 p.layers.mode = modeFromName(view->value("mode", std::string("all")));
             } else {
+                // No space marker: an old placed-box layerView from the first
+                // cut-plane build. Its old fields carry the same view.
                 p.layers.legacy = true;
             }
             p.visible = flag(entry.value("visible", Json()), true);

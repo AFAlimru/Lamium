@@ -105,10 +105,10 @@ inline std::optional<Point> toLocal(Size size, Placement const& placement, Point
     return Point{x, y, z};
 }
 
-// Which layers are shown: a cut plane along one placed-box axis. `cut` is a
-// local offset from the low corner, so moving or rotating the placement keeps
-// the same physical slice. The six-direction fields stay for older readers and
-// for files written before `layerView` existed (L-234).
+// The cut plane is attached to the structure: `cut` is a structure-local
+// offset from the low corner along one of the structure's own axes, so turning
+// or mirroring a placement keeps the same build cells. The old six-direction
+// fields remain for older readers and for files written before `layerView`.
 enum class LayerAxis : std::uint8_t { Y, X, Z };
 enum class LayerKeep : std::uint8_t { Low, High };
 enum class LayerMode : std::uint8_t { All, Only, UpTo };
@@ -120,28 +120,37 @@ struct Layers {
     LayerAxis axis = LayerAxis::Y;
     LayerMode mode = LayerMode::All;
     LayerKeep keep = LayerKeep::Low;
-    int cut = 0;          // 0 = the low layer along the axis
-    bool legacy = false;  // still the old six-direction form; needs the placed size
+    int cut = 0;          // 0 = the low layer along the structure axis
+    bool legacy = false;  // still the old six-direction form; needs the placement
     LegacyLayerAxis legacyAxis = LegacyLayerAxis::UpFromBottom;
     LayerMode legacyMode = LayerMode::All;
     int legacyIndex = 0;
     bool operator==(Layers const&) const = default;
 };
-inline int layerCount(Size placed, LayerAxis axis) {
+inline int layerCount(Size structure, LayerAxis axis) {
     switch (axis) {
-    case LayerAxis::Y: return placed.y;
-    case LayerAxis::X: return placed.x;
-    default: return placed.z;
+    case LayerAxis::Y: return structure.y;
+    case LayerAxis::X: return structure.x;
+    default: return structure.z;
     }
 }
-// `offset` is the cell's position inside the placed box.
-inline int layerOf(Size, LayerAxis axis, Point offset) {
+// A cell's coordinate along an axis, in structure-local space.
+inline int axisValue(Point local, LayerAxis axis) {
     switch (axis) {
-    case LayerAxis::Y: return offset.y;
-    case LayerAxis::X: return offset.x;
-    default: return offset.z;
+    case LayerAxis::Y: return local.y;
+    case LayerAxis::X: return local.x;
+    default: return local.z;
     }
 }
+// The same coordinate as a point (other axes 0), for mapping a plane.
+inline Point axisPoint(LayerAxis axis, int value) {
+    switch (axis) {
+    case LayerAxis::Y: return {0, value, 0};
+    case LayerAxis::X: return {value, 0, 0};
+    default: return {0, 0, value};
+    }
+}
+inline int layerOf(Size, LayerAxis axis, Point local) { return axisValue(local, axis); }
 inline LayerAxis layerAxisOf(LegacyLayerAxis axis) {
     switch (axis) {
     case LegacyLayerAxis::UpFromBottom: case LegacyLayerAxis::DownFromTop: return LayerAxis::Y;
@@ -161,62 +170,139 @@ inline LegacyLayerAxis highLegacyAxis(LayerAxis axis) {
     return axis == LayerAxis::Y ? LegacyLayerAxis::DownFromTop
         : axis == LayerAxis::X ? LegacyLayerAxis::WestFromEast : LegacyLayerAxis::NorthFromSouth;
 }
-// The old reader's fields for the current cut plane. Call with the placed size
-// so `layer` can be expressed from the side the old direction names.
-inline void dualWrite(Layers& layers, Size placed) {
-    int count = std::max(1, layerCount(placed, layers.axis));
-    layers.cut = std::clamp(layers.cut, 0, count - 1);
-    bool high = layers.keep == LayerKeep::High;
-    layers.legacyAxis = high ? highLegacyAxis(layers.axis) : lowLegacyAxis(layers.axis);
-    layers.legacyMode = layers.mode;
-    layers.legacyIndex = high ? count - 1 - layers.cut : layers.cut;
+// The placement transform without bounds: a placed-box offset (world - origin)
+// and a structure-local offset. Unlike toLocal/toWorld these accept points
+// outside the box, which a cut plane may need while the view is outside.
+inline Point placedToLocal(Size structure, Placement const& placement, Point placed) {
+    int x = placed.x, z = placed.z;
+    int width = placedSize(structure, placement.rotation).x;
+    int depth = placedSize(structure, placement.rotation).z;
+    for (int i = 0; i < quarterTurns(placement.rotation); ++i) {
+        // Inverse of one clockwise turn: (x, z) -> (z, width-1-x).
+        int localX = z, localZ = width - 1 - x;
+        x = localX; z = localZ;
+        std::swap(width, depth);
+    }
+    if (placement.mirror == Mirror::X) x = structure.x - 1 - x;
+    if (placement.mirror == Mirror::Z) z = structure.z - 1 - z;
+    return {x, placed.y, z};
 }
-// The old six-direction view as a cut plane. The cut is local to the placed
-// box, so the conversion happens only where the placed size is known.
-inline Layers fromLegacy(Layers const& old, Size placed) {
+inline Point localToPlaced(Size structure, Placement const& placement, Point local) {
+    int x = local.x, z = local.z;
+    if (placement.mirror == Mirror::X) x = structure.x - 1 - x;
+    if (placement.mirror == Mirror::Z) z = structure.z - 1 - z;
+    int width = structure.x, depth = structure.z;
+    for (int i = 0; i < quarterTurns(placement.rotation); ++i) {
+        int turnedX = depth - 1 - z, turnedZ = x;
+        x = turnedX; z = turnedZ;
+        std::swap(width, depth);
+    }
+    return {x, local.y, z};
+}
+// Which structure axis a placed-box axis maps to, and the sign of increasing
+// coordinates; used to translate the old side-based fields.
+struct AxisMap {
+    LayerAxis axis = LayerAxis::Y;
+    int sign = 1;
+};
+inline AxisMap placedToLocalAxis(LayerAxis placedAxis, Size structure, Placement const& placement) {
+    auto a = placedToLocal(structure, placement, axisPoint(placedAxis, 0));
+    auto b = placedToLocal(structure, placement, axisPoint(placedAxis, 1));
+    int dx = b.x - a.x, dy = b.y - a.y, dz = b.z - a.z;
+    if (dx) return {LayerAxis::X, dx};
+    if (dy) return {LayerAxis::Y, dy};
+    return {LayerAxis::Z, dz};
+}
+inline AxisMap localToPlacedAxis(LayerAxis localAxis, Size structure, Placement const& placement) {
+    auto a = localToPlaced(structure, placement, axisPoint(localAxis, 0));
+    auto b = localToPlaced(structure, placement, axisPoint(localAxis, 1));
+    int dx = b.x - a.x, dy = b.y - a.y, dz = b.z - a.z;
+    if (dx) return {LayerAxis::X, dx};
+    if (dy) return {LayerAxis::Y, dy};
+    return {LayerAxis::Z, dz};
+}
+// The old reader's fields for the current cut plane, with the current
+// placement's rotation and mirror.
+inline void dualWrite(Layers& layers, Size structure, Placement const& placement) {
+    int count = std::max(1, layerCount(structure, layers.axis));
+    layers.cut = std::clamp(layers.cut, 0, count - 1);
+    if (layers.mode == LayerMode::All) {
+        layers.legacyAxis = LegacyLayerAxis::UpFromBottom;
+        layers.legacyMode = LayerMode::All;
+        layers.legacyIndex = 0;
+        return;
+    }
+    AxisMap map = localToPlacedAxis(layers.axis, structure, placement);
+    Size placed = placedSize(structure, placement.rotation);
+    int extent = std::max(1, layerCount(placed, map.axis));
+    Point placedPlane = localToPlaced(structure, placement, axisPoint(layers.axis, layers.cut));
+    int p = std::clamp(axisValue(placedPlane, map.axis), 0, extent - 1);
+    bool localLow = layers.keep == LayerKeep::Low;
+    bool placedLow = map.sign > 0 ? localLow : !localLow;
+    layers.legacyAxis = placedLow ? lowLegacyAxis(map.axis) : highLegacyAxis(map.axis);
+    layers.legacyIndex = placedLow ? p : extent - 1 - p;
+    layers.legacyMode = layers.mode;
+}
+// The old six-direction view as a structure-local cut plane. The old fields
+// are placed-box based; the plane is mapped through the current placement.
+inline Layers fromLegacy(Layers const& old, Size structure, Placement const& placement) {
     Layers out;
     out.legacy = false;
     out.legacyAxis = old.legacyAxis;
     out.legacyMode = old.legacyMode;
     out.legacyIndex = old.legacyIndex;
-    out.axis = layerAxisOf(old.legacyAxis);
     out.mode = old.legacyMode;
-    int count = std::max(1, layerCount(placed, out.axis));
-    int index = std::clamp(old.legacyIndex, 0, count - 1);
-    bool high = legacyHighSide(old.legacyAxis);
-    out.keep = high ? LayerKeep::High : LayerKeep::Low;
-    out.cut = high ? count - 1 - index : index;
-    dualWrite(out, placed);
+    if (out.mode == LayerMode::All) {
+        out.axis = LayerAxis::Y;
+        out.cut = 0;
+        out.keep = LayerKeep::Low;
+        dualWrite(out, structure, placement);
+        return out;
+    }
+    LayerAxis placedAxis = layerAxisOf(old.legacyAxis);
+    Size placed = placedSize(structure, placement.rotation);
+    int extent = std::max(1, layerCount(placed, placedAxis));
+    int index = std::clamp(old.legacyIndex, 0, extent - 1);
+    bool oldHigh = legacyHighSide(old.legacyAxis);
+    int p = oldHigh ? extent - 1 - index : index;
+    AxisMap map = placedToLocalAxis(placedAxis, structure, placement);
+    Point localPlane = placedToLocal(structure, placement, axisPoint(placedAxis, p));
+    out.axis = map.axis;
+    int count = std::max(1, layerCount(structure, map.axis));
+    out.cut = std::clamp(axisValue(localPlane, map.axis), 0, count - 1);
+    bool localLow = oldHigh ? map.sign < 0 : map.sign > 0;
+    out.keep = localLow ? LayerKeep::Low : LayerKeep::High;
+    dualWrite(out, structure, placement);
     return out;
 }
-// The drawn view's dominant axis: largest |x|, |y| or |z|; ties keep Y, then X.
-inline LayerAxis dominantAxis(double dx, double dy, double dz) {
-    double ax = std::abs(dx), ay = std::abs(dy), az = std::abs(dz);
-    if (ay >= ax && ay >= az) return LayerAxis::Y;
-    if (ax >= az) return LayerAxis::X;
-    return LayerAxis::Z;
+// A world position's structure-local cut along the axis, clamped.
+inline int cutAlong(Size structure, Placement const& placement, LayerAxis axis, Point world) {
+    Point placed{world.x - placement.origin.x, world.y - placement.origin.y, world.z - placement.origin.z};
+    Point local = placedToLocal(structure, placement, placed);
+    return std::clamp(axisValue(local, axis), 0, std::max(0, layerCount(structure, axis) - 1));
 }
-// A world position's layer along the axis, clamped to the placed box.
-inline int cutAlong(Size placed, Point origin, LayerAxis axis, Point world) {
-    int value = axis == LayerAxis::Y ? world.y - origin.y : axis == LayerAxis::X ? world.x - origin.x : world.z - origin.z;
-    return std::clamp(value, 0, std::max(0, layerCount(placed, axis) - 1));
-}
-inline Layers withAxis(Layers layers, Size placed, LayerAxis next) {
+inline Layers withAxis(Layers layers, Size structure, LayerAxis next) {
     layers.axis = next;
-    layers.cut = std::clamp(layers.cut, 0, std::max(0, layerCount(placed, next) - 1));
+    layers.cut = std::clamp(layers.cut, 0, std::max(0, layerCount(structure, next) - 1));
     return layers;
 }
-inline bool layerShown(Layers const& layers, Size placed, Point offset) {
+// `placedOffset` is the cell's world position minus the placement origin.
+// A legacy view is still read the old way; a new view is cut in structure
+// space, so turning the placement does not change the shown cells.
+inline bool layerShown(Layers const& layers, Size structure, Placement const& placement, Point placedOffset) {
     if (layers.legacy) {
+        Size placed = placedSize(structure, placement.rotation);
+        LayerAxis axis = layerAxisOf(layers.legacyAxis);
         int layer = legacyHighSide(layers.legacyAxis)
-            ? layerCount(placed, layerAxisOf(layers.legacyAxis)) - 1 - layerOf(placed, layerAxisOf(layers.legacyAxis), offset)
-            : layerOf(placed, layerAxisOf(layers.legacyAxis), offset);
+            ? layerCount(placed, axis) - 1 - layerOf(placed, axis, placedOffset)
+            : layerOf(placed, axis, placedOffset);
         if (layers.legacyMode == LayerMode::All) return true;
         return layers.legacyMode == LayerMode::Only ? layer == layers.legacyIndex : layer <= layers.legacyIndex;
     }
     if (layers.mode == LayerMode::All) return true;
-    int cut = std::clamp(layers.cut, 0, std::max(0, layerCount(placed, layers.axis) - 1));
-    int at = layerOf(placed, layers.axis, offset);
+    Point local = placedToLocal(structure, placement, placedOffset);
+    int cut = std::clamp(layers.cut, 0, std::max(0, layerCount(structure, layers.axis) - 1));
+    int at = layerOf(structure, layers.axis, local);
     if (layers.mode == LayerMode::Only) return at == cut;
     return layers.keep == LayerKeep::Low ? at <= cut : at >= cut;
 }

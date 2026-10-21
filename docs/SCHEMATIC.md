@@ -955,12 +955,14 @@ Decided 2026-10-03 after the first mockup
   default off and changes only when the player switches it (setting, key
   or the screen's switch); placing a schematic never turns it on. Large
   builds would not fit the HUD, and the screen is one key away.
-- Layers are a cut plane: axis Y/X/Z, a local cut offset from the low corner,
-  a keep side (low/high) and all / this layer only / up to this layer. The
-  Layers menu also has "Slice from view" (dominant view axis, cut at the
-  view's virtual feet, only, far side) and "Cut here" (same cut at the
-  current axis). The old six-direction form is only a storage/rollback
-  representation; see the JSON note below.
+- Layers are a cut plane attached to the structure: its own axis Y/X/Z, a
+  structure-local cut offset, a keep side (low/high) and all / this layer only
+  / up to this layer. Rotating or mirroring the placement keeps the same build
+  cells visible; the world plane turns with it. The Layers menu has Axis, Cut,
+  Mode, Keep and "Cut here" (cut at the current axis and view source). Axis
+  changes keep the cut. A single plane cannot express a compound X+Y cut; this
+  is a known limitation. The old six-direction form is only a
+  storage/rollback representation; see the JSON note below.
 - The file browser shows a rotatable 3D preview of the schematic with
   "up to layer N". It depends on the same research as the ghost look; if
   real block models cannot be drawn there, fall back to a top-down
@@ -1058,8 +1060,10 @@ then rendering, screen and keys.
   saved per world beside the waypoints (`schematics.json`). The document stays
   `version: 1`; a placement keeps the old `layerAxis`/`layerMode`/`layer`
   fields and, after its cut plane is edited with a known size, also carries
-  `layerView` (`axis`, `cut`, `keep`, `mode`). Old readers use the old fields;
-  a placement still on the old form is written back unchanged until edited.
+  `layerView` (`space: "structure"`, `axis`, `cut`, `keep`, `mode`). Old readers
+  use the old fields; a still-legacy placement is written back unchanged until
+  edited. An unmarked `layerView` from the first cut-plane build falls back to
+  the old fields.
   Ghosts are drawn per 16-block section (`GhostRenderer.cpp`): tinted ghosts
   where a
   block is missing, red outlines for wrong or extra blocks, yellow for a

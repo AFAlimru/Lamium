@@ -242,7 +242,7 @@ void drawEntities(ScreenContext& screen, IClientInstance& client, session::Snaps
         Size placed = placedSize(shown.structure->size, shown.placement.placement.rotation);
         auto const& r = resolved[i];
         for (size_t e = 0; e < r.entities.size(); ++e) {
-            if (r.entityPlaced[e] != false || !layerShown(shown.placement.layers, placed, r.entities[e].offset)) continue;
+            if (r.entityPlaced[e] != false || !layerShown(shown.placement.layers, shown.structure->size, shown.placement.placement, r.entities[e].offset)) continue;
             auto const& at = r.entities[e].at;
             double dx = at.x - camera.x, dy = at.y - camera.y, dz = at.z - camera.z, distance = dx * dx + dy * dy + dz * dz;
             if (distance > drawDistance * drawDistance) continue;

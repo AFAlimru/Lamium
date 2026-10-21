@@ -473,7 +473,6 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"schematic.keep", "Keep", "残す側"},
     {"schematic.layer", "Cut", "切断位置"},
     {"schematic.layerValue", "{} / {}", "{} / {}"},
-    {"schematic.toast.slice", "{}: cut on {} at {}", "{}: {} 軸の {} で切る"},
     {"schematic.extras", "Extra blocks", "余計なブロック"},
     {"schematic.extras.show", "Show red", "赤で示す"},
     {"schematic.extras.ignore", "Ignore", "数えない"},
@@ -635,7 +634,6 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"schematic.menu.layerMode", "Mode", "表示モード"},
     {"schematic.menu.layerKeep", "Keep side", "残す側"},
     {"schematic.menu.layer", "Layer", "層"},
-    {"schematic.menu.sliceView", "Slice from view", "視点でスライス"},
     {"schematic.menu.layerHere", "Cut here", "ここで切る"},
     {"schematic.menu.showAll", "Show all layers", "すべて表示"},
     {"schematic.menu.toggleShown", "This placement", "この配置"},
@@ -1640,9 +1638,7 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"key.Lamium.cyclemovetarget", "Select the next move target", "次の移動対象を選ぶ"},
     {"help.key.cyclemovetarget", "Selects the next valid move target: placement, corner 1, corner 2 or the save area.", "有効な移動対象（配置・角1・角2・範囲）を順に切り替えます。"},
     {"schematic.layerNeedsStructure", "Load the schematic before changing its layers.", "層を変更するには設計図を読み込んでください。"},
-    {"schematic.rotationNeedsStructure", "Load the schematic before turning it while a cut plane is set.", "切断面を設定した配置を回すには、設計図を読み込んでください。"},
-    {"key.Lamium.slicefromview", "Slice the schematic from the view", "視点で設計図をスライス"},
-    {"help.key.slicefromview", "Cuts the selected placement on the dominant axis you look along, at the view's virtual feet. Shows only that layer and keeps the side away from the camera.", "選択中の配置を、見ている方向の主軸で、視点の仮想足元の位置で切ります。その層だけを表示し、カメラから遠い側を残します。"},
+    {"schematic.rotationNeedsStructure", "Load the schematic before turning or mirroring it while a cut plane is set.", "切断面を設定した配置を回す・鏡にするには、設計図を読み込んでください。"},
 });
 enum class Locale { English, Japanese, SimplifiedChinese };
 inline constexpr std::array locales{Locale::English, Locale::Japanese, Locale::SimplifiedChinese};

@@ -14,7 +14,6 @@ enum class Command : std::uint8_t {
     ToFeet, ResetTurn, LayerHere, ShowAll, ToggleShown, ToggleExtras, ToggleEntities, ToggleHud, ToggleFeature,
     Corner1Here, Corner2Here, MoveCorner1, MoveCorner2, MoveArea, MovePlacement, SaveArea, ClearArea,
     SelectLooked, PlaceFile, DeletePlacement, NearestMistake, CheckTab, MaterialsTab, FilesTab, PlacedTab, KeySettings,
-    SliceFromView,
 };
 // What the Move category moves.
 enum class Target : std::uint8_t { Placement, Corner1, Corner2, Area };
@@ -36,9 +35,9 @@ inline constexpr std::array<Item, 5> move{{{"schematic.menu.forwardBack", S::For
     {"schematic.menu.upDown", S::UpDown}, {"schematic.menu.toFeet", C::ToFeet}, {"schematic.menu.moveTarget", S::Target}}};
 inline constexpr std::array<Item, 3> turn{{{"schematic.menu.rotate", S::Rotate}, {"schematic.menu.mirror", S::Mirror},
     {"schematic.menu.resetTurn", C::ResetTurn}}};
-inline constexpr std::array<Item, 6> layers{{{"schematic.menu.layerAxis", S::LayerAxis}, {"schematic.menu.layerCut", S::Layer},
+inline constexpr std::array<Item, 5> layers{{{"schematic.menu.layerAxis", S::LayerAxis}, {"schematic.menu.layerCut", S::Layer},
     {"schematic.menu.layerMode", S::LayerMode}, {"schematic.menu.layerKeep", S::LayerKeep},
-    {"schematic.menu.sliceView", C::SliceFromView}, {"schematic.menu.layerHere", C::LayerHere}}};
+    {"schematic.menu.layerHere", C::LayerHere}}};
 inline constexpr std::array<Item, 5> show{{{"schematic.menu.toggleShown", C::ToggleShown}, {"schematic.menu.toggleExtras", C::ToggleExtras},
     {"schematic.menu.toggleEntities", C::ToggleEntities}, {"schematic.menu.toggleHud", C::ToggleHud},
     {"schematic.menu.toggleFeature", C::ToggleFeature}}};

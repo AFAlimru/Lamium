@@ -102,65 +102,57 @@ undecided.
 
 - Replace the six-direction model with **Axis** (Y / X / Z), **Cut**,
   **Keep** (low/high) and **Mode** (all / only / up to).
-- **Cut** is stored as an offset from the placement's low corner along the
-  axis, so moving the placement keeps the same slice. The screen shows the
-  world coordinate (origin + offset) and the index within the extent. This is
-  why the world coordinate is only a display: a world-space cut would be left
-  behind when the placement moves.
+- The plane is attached to the **structure**: Cut is a structure-local offset
+  from the low corner along the structure's own axis. Moving, rotating or
+  mirroring the placement keeps the same build cells visible; the world plane
+  turns with the placement. The screen shows the layer number and the extent;
+  no world coordinate is stored.
 - **Keep** is used by "up to": low shows cells at or below the cut, high at or
   above. "Only" shows the one layer at the cut; "all" ignores the cut. The
   placed screen has its own Keep row, so both sides can be chosen without the
   radial menu.
-- The Layers menu is **Axis / Cut / Mode / Keep / Slice from view / Cut here**.
-  Show all is dropped because Mode already has All. Keep is a stepper (low /
-  high); in only/all it has no visible effect but stays editable for "up to".
-  The slice is also available as an unbound key.
+- The Layers menu is **Axis / Cut / Mode / Keep / Cut here**. Show all is
+  dropped because Mode already has All. Keep is a stepper (low / high); in
+  only/all it has no visible effect but stays editable for "up to".
 - Cut here keeps the axis and keep, sets the cut to the view source's layer
   along that axis (the player's feet in normal play, the camera's virtual feet
   in FreeLook/FreeCamera), and switches All to Only so the change shows.
-- Changing the axis sets the cut to the view source's layer along the new
-  axis, clamped and toasted; the numeric offset is not carried across axes.
-- **View slice** is one-shot. The axis is the dominant axis of the full view
-  vector (largest |x|, |y| or |z|), not the 60-degree movement rule: looking 30
-  degrees down at a wall still slices on X/Z, while looking 70 degrees down
-  slices on Y. Ties use the order Y, X, Z.
-- The slice's cut is the view source's layer along that axis: the player's feet
-  in normal play and the camera's virtual feet in Freelook or FreeCamera (the
-  same view source as the movement direction). It is clamped to the placement
-  and a toast names the world coordinate. The crosshair is not used: it can
-  point at a ghost, inside a placement or outside the build, and building from
-  the bottom needs a stable reference.
-- The slice sets mode to only and keep to the side away from the camera. The
-  axis stays fixed until the command runs again; adjust plus wheel moves the
-  cut. No continuous view sync, which would restart the check on every look.
-- Examples: standing at Y=64 looking east slices on X at the player's X;
-  looking 70 degrees down slices on Y at Y=64; FreeCamera far away looking
-  down slices on Y at the camera's Y, not the body's; a 90-degree rotation
-  swaps the X/Z extent and clamps the local cut.
+- Changing the axis **keeps the Cut**, clamped to the new extent. Only Cut here
+  moves the plane to the view source.
+- **View slice is removed** (2026-10-21): it overlapped Axis and Cut here,
+  changed Only/Keep as a side effect, and the axis has only three values. A
+  later "Axis from view" shortcut can be considered separately.
+- A single plane cannot express a compound cut (for example X here and Y
+  here). This is a documented limitation, not something this round adds.
 - Check and Materials read the same cut region; a change restarts the check
   once.
 
 ### Storage and migration
 
 - Keep the document at `version: 1`. Add a separate per-placement object,
-  `layerView: { axis: "y"|"x"|"z", cut: <offset>, keep: "low"|"high",
-  mode: "all"|"only"|"upTo" }`. The old six-direction `layerAxis` key cannot be
-  reused: an older Lamium would read a different direction.
+  `layerView: { space: "structure", axis: "y"|"x"|"z", cut: <offset>,
+  keep: "low"|"high", mode: "all"|"only"|"upTo" }`, in **structure-local**
+  coordinates. The old six-direction `layerAxis` key cannot be reused: an older
+  Lamium would read a different direction.
+- A `layerView` without `space: "structure"` (written by the first cut-plane
+  build) is ignored in favor of its old fields, which carry the same view; the
+  next layer edit writes the marked form.
 - Leave the legacy `layerAxis`/`layerMode`/`layer` fields for older readers.
   Older Lamium ignores `layerView`; the new reader prefers it.
-- When the placed size is known, **always** dual-write the exact legacy
-  fields: all is size-independent; only or up-to low uses the low direction
-  with `index = cut`; up-to high uses the high direction with
-  `index = extent - 1 - cut`. An older Lamium then shows the same cells.
+- When the structure is known, **always** dual-write the exact legacy fields.
+  They are placed-box based, so the structure-local plane is mapped through
+  the current rotation and mirror: low/only uses the low or high direction
+  with `index` counted from that side. An older Lamium then shows the same
+  cells under the same placement.
 - Never convert without the size: a placement whose structure is missing keeps
   its legacy fields and is written back unchanged; other placements can still
   be saved. `layerView` is added when the layer view is next edited while the
   size is known; unrelated saves keep the legacy fields.
-- Cut edits are allowed only while the placed size is known, so the legacy
-  fields are never stale. Without the size the screen says the layer view
-  cannot be edited yet. The same applies to turning or resetting a placement
-  whose cut plane is in the new form: the old `layer` index depends on the
-  extent, so the command refuses without the structure. A still-legacy
+- Cut edits are allowed only while the size is known, so the legacy fields are
+  never stale. Without the size the screen says the layer view cannot be edited
+  yet. The same applies to turning or resetting a placement whose cut plane is
+  in the new form: the old `layer` index depends on the extent and the
+  rotation, so the command refuses without the structure. A still-legacy
   placement can turn normally because old and new readers both use its old
   fields.
 - A mixed file round-trips both forms. Rollback to an older Lamium reads the
