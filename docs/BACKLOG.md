@@ -77,9 +77,9 @@ choices live in the L-items. An L-item wins if a summary drifts.
    L-91 shield glint and L-132 inventory-screen movement; respect each
    item's stop/resume conditions. L-181 trident pose is low priority.
 2. **Small and medium work before large features/integration** (maintainer
-   2026-10-10): L-196 license/provenance evidence; L-231 controls UX is
-   merged; L-234 cut-plane layer model is implemented and checked, awaiting
-   review and merge; L-236/L-237 are follow-ups;
+   2026-10-10): L-196 license/provenance evidence; L-231 controls UX and
+   L-234 cut-plane layers are merged; L-238 menu/key parity is agreed and
+   waits for implementation; L-236/L-237 are follow-ups;
    L-232 slime chunk indicator (needs in-game
    verification of the rule first); remaining Design/Research in L-166 trade
    helpers,
@@ -423,43 +423,21 @@ only context, conflicts with other actions, and whether to start with the
 wheel subset only. L-169 owns transfer extensions; do not start without
 choosing the subset and model.
 
-### L-234 Replace the six-direction layer model with a cut plane
-Kind: Design. Implemented on branch `schematic-layers` 2026-10-21; in-game
-check passed 2026-10-21 on DLL
-`109C3201AB961F9231F4C66B8FDA8927D5C3FA97E05A3E971F58AB00A2AB585C`. Review
-and merge pending. Maintainer 2026-10-20: the six
-directions will not last; move to Axis (Y/X/Z) + Cut + Keep + Mode as
-recorded in [SCHEMATIC-CONTROLS.md](SCHEMATIC-CONTROLS.md). Cut is a
-structure-local offset along the axis, so moving, rotating or mirroring a
-placement keeps the same build cells; check and materials keep reading the
-same region. A single plane cannot express a compound X+Y cut; documented
-limitation.
-Decided 2026-10-20: storage keeps document `version: 1` with a per-placement
-`layerView` object (the old six-direction `layerAxis` cannot be reused) and
-always dual-writes the exact legacy fields when the size is known; the old
-fields are placed-box based and are mapped through the current rotation and
-mirror. Cut edits wait until the size is known, so the legacy fields never go
-stale. The Layers menu is Axis / Cut / Mode / Keep / Cut here; Show all is
-dropped because Mode has All. Keep is a stepper. Cut here keeps the axis and
-keep and sets the cut at the view source's layer (switching All to Only).
-Changing the axis keeps the cut, clamped to the new extent. Check and
-materials keep reading the same region. Decided 2026-10-21: the view slice is
-removed (it duplicated Axis + Cut here and changed Only/Keep as a side
-effect); rotation and mirror are structure-attached.
-Built: pure conversion from every old direction and mode, the `layerView`
-storage form with legacy dual-write, the structure-local Layers menu, and the
-HUD/placed-screen values (Axis, Cut, Mode and Keep). Layer toasts name the
-operation and value; the ghost key only covers visible layer fields. Tests
-cover the all-direction/mode cell match under every rotation and mirror, the
-legacy round-trip, missing-structure saves and placement-attached cuts.
-In-game check passed: structure-local cuts, axis changes keeping the cut,
-attached rotation/mirror, the five-item Layers menu, the three layer keys,
-operation-naming toasts, and no rebuild for layer fields that do not affect
-visibility. A new-form cut plane blocks turning, resetting, layer keys and cut
-number input while the structure is missing; the saved layer view stayed put.
-A missing structure is still only reported after selecting the placement, not
-on world join or in the Placed list (L-237). L-231 is merged; L-234 awaits
-review and merge. L-236 covers per-section ghost reuse.
+### L-238 One set of schematic operations for the menu and the keys
+Kind: Design (strong model). Maintainer 2026-10-22: make the complex
+schematic operations easy to understand and use whether the player works
+from the radial menu, from keys, or both; neither path may be required for
+an operation. The adopted principles, menu layout and key groups are in
+[SCHEMATIC-CONTROLS.md](SCHEMATIC-CONTROLS.md) ("Menu and key parity").
+In short: every operation is reachable from the menu alone and from keys
+alone; accelerators for one path (open menu, Repeat, cycle target) need no
+counterpart; the menu and the key settings share names, groups and order;
+a menu item shows its bound key. The menu goes from eight categories to six
+of five or six items; eight new actions are appended, all unbound. Default
+keys stay Alt+Wheel only. Watch long names: every ring plate takes the
+widest label, so one long label grows the whole ring (see the spec).
+Remaining: implement after the maintainer's go-ahead, then judge in game;
+the maintainer expects further adjustments only from use.
 
 ### L-237 Report a missing schematic structure without selecting it
 Kind: Design. User report 2026-10-21 during the L-234 missing-structure test:
@@ -1315,8 +1293,8 @@ Open work, to choose with the maintainer rather than implement as one batch:
 - Bugs: L-177 stale mismatch highlight (fix built, reporter check pending),
   L-117 Japanese entity-name text, and paused drawing work L-192/L-193/L-194.
 - Controls: L-230 view-directed movement (checked in game 2026-10-20),
-  L-231 control rework (merged in PR #36) and L-234 cut-plane layer model
-  (implemented and checked, review pending; L-236/L-237 follow-ups). The design is in
+  L-231 control rework (merged in PR #36), L-234 cut-plane layer model
+  (merged in PR #37; L-236/L-237 follow-ups) and L-238 menu/key parity. The design is in
   [SCHEMATIC-CONTROLS.md](SCHEMATIC-CONTROLS.md).
 - Inspection and checking: L-183 mismatch suppression, L-184 saved ghost/
   container data, L-190 multi-selection; permission-gated world load L-185.

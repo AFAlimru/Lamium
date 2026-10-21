@@ -2,14 +2,14 @@
 
 Status: design discussion, 2026-10-20, all recommendations adopted. L-231 is
 implemented and merged (PR #36, merge commit `780bfba`); its in-game checklist
-passed on 2026-10-21 (build `89c7925`). L-234 is implemented on branch
-`schematic-layers`; its in-game check passed on 2026-10-21 (DLL
-`109C3201…`), and it awaits review and merge. L-236 (per-section ghost reuse)
-and L-237 (missing-structure warning) are follow-ups. This note records the
+passed on 2026-10-21 (build `89c7925`). L-234 is merged (PR #37, merge commit
+`75152f1`) after in-game checks. L-236 (per-section ghost reuse) and L-237
+(missing-structure warning) are follow-ups. L-238 (menu and key parity,
+2026-10-22) is agreed and waits for implementation. This note records the
 agreed direction; the items under "Open questions" remain undecided.
 
 [SCHEMATIC.md](SCHEMATIC.md) still describes the behavior in the game today;
-[BACKLOG.md](BACKLOG.md) owns task status (L-231 controls, L-234 layer model).
+[BACKLOG.md](BACKLOG.md) owns task status (L-231 controls, L-234 layer model, L-238 menu and keys).
 
 ## Problems seen in game
 
@@ -183,10 +183,84 @@ agreed direction; the items under "Open questions" remain undecided.
 The four points were adopted the same day and are folded into the sections
 above; nothing remains proposed.
 
+## Menu and key parity (2026-10-22, adopted, L-238)
+
+Goal (maintainer): the schematic operations are easy to understand and use
+from the radial menu, from keys, or both, as the player chooses. Neither path
+is required for any operation.
+
+### Principles
+
+1. **Either path completes every operation.** Each operation has a bindable
+   action and a menu route. An operation counts as reachable when its path
+   achieves it, directly or not: keys reach corners and the area as move
+   targets through the looked-at selection and the target cycle, so no
+   per-target key is added.
+2. **Accelerators need no counterpart.** Opening the menu and Repeat speed up
+   the menu path; cycling the move target speeds up the key path. Repeat
+   stays a key only: it exists to avoid reopening the menu.
+3. **One vocabulary.** The menu and the key settings use the same names, the
+   same groups and the same order.
+4. **The menu teaches the keys.** A menu item shows its bound key, if any.
+
+### Menu: six categories of five or six items
+
+Eight categories of three to seven items felt either sparse or crowded; the
+target is five or six per category.
+
+| Category | Items |
+|---|---|
+| Move | Forward/back, Left/right, Up/down, To feet, Move target, Select what you look at |
+| Placement | Selected placement (stepper), Rotate, Mirror, Reset rotation and mirror, Move placement → |
+| Layers | Axis, Cut, Mode, Keep, Cut here |
+| Show and check | Schematics on/off, HUD, Show selected placement, Entities, Extra blocks, Nearest mistake |
+| Area | Corner 1 at the looked block, Corner 2 at the looked block, Move area →, Save, Clear |
+| Screen | Place from a file…, Placed list…, Check tab, Materials tab, Key settings |
+
+- Turn merges into Placement: rotation and mirror are settings of the
+  selected placement.
+- Area drops "Move corner 1/2 →"; the Move category's target stepper and the
+  looked-at selection choose a corner.
+- Check splits: Extra blocks and Nearest mistake go to Show and check; the
+  tab openers go to Screen. The duplicated Check and Materials tab items in
+  Screen go away; "Place from a file…" and "Placed list…" (was "Delete a
+  placement…") stand for the Files and Placed tabs.
+- Renames: "This placement" becomes "Show selected placement"; "Corner 1/2
+  here" names the looked block (the command always used it).
+- Menu items are not saved ids, so reordering only moves the remembered
+  open level.
+
+### Keys: the same groups plus General
+
+General (open the menu, open the Schematics screen, Repeat), then Move,
+Placement, Layers, Show and check, Area, Screen, in the menu's order. Groups
+are display only; saved bindings are unaffected.
+
+New actions, appended and unbound: Reset rotation and mirror, Rotate
+counterclockwise, Previous placement, Show selected placement, Extra blocks,
+Entities, Clear area, Open key settings. No reverse keys for Mirror, Axis,
+Mode or Keep: they cycle two or three states, so the forward key reaches
+every state in one or two presses.
+
+Default keys stay Alt+Wheel only (move the target away/closer). Lamium binds
+few keys by default; that one exists because a wheel binding is hard to
+discover in the key settings.
+
+### Long names
+
+Every ring plate takes the width of the widest label of all categories
+(`renderSchematicMenu`), and the ring radius grows with that width
+(`RadialLayout::at`), so one long label enlarges the whole ring in that
+language. The ring is not clamped to the screen. Keep menu labels short in
+English, Japanese and Chinese (they are separate keys from the longer key
+setting labels), and add a pure check that the ring for the widest label
+still fits a small GUI screen (for example 480x253) before relying on it.
+
 ## Open questions
 
-- L-234's review and merge; L-236 (per-section ghost reuse) and L-237
-  (missing-structure warning) are separate follow-ups.
+- L-236 (per-section ghost reuse) and L-237 (missing-structure warning) are
+  separate follow-ups. L-238 waits for the go-ahead to implement; finer
+  adjustments are expected only from use.
 
 ## Suggested order
 
@@ -197,9 +271,10 @@ From the 2026-10-20 reviews, for the maintainer to confirm:
    model changes. Merged in PR #36.
 2. **L-234 as a separate step**: prove with pure logic that the conversion from
    every old direction and mode shows the same cells, then implement the cut
-   plane and the storage form. Implemented on `schematic-layers`; in-game check
-   passed 2026-10-21, review and merge pending.
-3. **Then inspection work**: L-183's single-row ignore first; L-190's
+   plane and the storage form. Merged in PR #37 (2026-10-22).
+3. **L-238 menu and key parity** (2026-10-22): one set of operations for
+   the radial menu and the keys; see "Menu and key parity".
+4. **Then inspection work**: L-183's single-row ignore first; L-190's
    multi-selection after it, sharing only the parts that fit. L-185 stays a
    separate, larger task.
 
