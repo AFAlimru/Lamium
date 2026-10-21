@@ -845,7 +845,7 @@ void adjustFrame(MinecraftUIRenderContext& context, float, float) {
         std::string shown = names.front();
         if (names.size() > 1) shown += ", " + names[1];
         if (names.size() > 2) shown += "...";
-        ui::showMessageToast(ui::translated("schematic.toast.unreadable", names.size(), shown));
+        ui::showWarningToast(ui::translated("schematic.toast.unreadable", names.size(), shown));
     }
     if (!adjustHeld.load()) return;
     // One toast: what the wheel repeats, then what the step reported, so the

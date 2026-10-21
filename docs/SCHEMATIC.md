@@ -13,18 +13,26 @@ Experimental, default off; included in 0.1.7. Files live in
 Check and Materials tabs. It opens the file folder and warns before loading
 a file over 2 MB. Placements persist per world/server and dimension.
 
-Missing or unreadable structure files (L-237, implemented 2026-10-22;
-in-game check pending): failures are cached with the same two-second
+Missing or unreadable structure files (L-237, follow-up implemented
+2026-10-22; initial checks (a)-(d) passed on `1fd201b`, follow-up checks
+(e)-(h) pending): failures are cached with the same two-second
 file-time recheck as successful loads. A changed or restored file is retried;
 only a new or changed error is logged. While Schematics is on, unreadable
 placements are announced once per world generation, grouped into one toast
-per frame with the count and at most two names. Joining with Schematics off
-defers the notice until it is turned on. The Placed list marks affected names
-with a warning-colored "!"; the selected placement's HUD layer cell says
+per frame with the count and at most two names. The warning starts with
+"Schematics:", lasts six seconds and shows even with toggle toasts off.
+Its text is warning-colored in the HUD and schematic menu; the HUD keeps
+the dim color during the fade. Joining with Schematics off defers the notice
+until it is turned on. The Placed list draws both the "!" and affected names
+in the warning color; the selected placement's HUD layer cell says
 "File unreadable" in every layer mode. Its detail pane keeps the error reason.
 Restoring the file clears the marker after the next check; recovery and
 failure again in the same world do not repeat the toast. No replacement
-ghosts are drawn without the structure's size.
+ghosts are drawn without the structure's size. Load-error paragraphs start
+at the same height on Placed, Check and Materials. With Schematics off, Check
+and Materials show an off-state explanation instead of "Counting..." for a
+loadable selection; an unreadable file keeps its error first. The off-state
+key help names the current "Show and check" menu category.
 
 One selected placement controls movement, turn/mirror, cut-plane layer
 selection, checking and materials. A radial menu exposes placement and

@@ -79,7 +79,7 @@ choices live in the L-items. An L-item wins if a summary drifts.
 2. **Small and medium work before large features/integration** (maintainer
    2026-10-10): L-196 license/provenance evidence; L-231 controls UX and
    L-234 cut-plane layers are merged; L-238 menu/key parity is done;
-   L-237 missing-structure notice is implemented (in-game check pending); L-236 is
+   L-237 missing-structure follow-up is implemented (checks (e)-(h) pending); L-236 is
    a follow-up; L-232 slime chunk indicator (needs in-game
    verification of the rule first); remaining Design/Research in L-166 trade
    helpers,
@@ -424,11 +424,12 @@ wheel subset only. L-169 owns transfer extensions; do not start without
 choosing the subset and model.
 
 ### L-237 Report a missing schematic structure without selecting it
-Kind: Ready, implemented 2026-10-22; in-game check pending. Spec agreed with
+Kind: Ready, follow-up implemented 2026-10-22; in-game checks (e)-(h) pending. Spec agreed with
 the maintainer 2026-10-22. Failure caching and read-only queries, the tested
 per-generation notice rule, batched toast, Placed warning marker and HUD
 message are implemented with English, Japanese and Simplified Chinese text.
-The maintainer's checks (a)-(d) below remain pending. User report 2026-10-21
+The maintainer's checks (a)-(d) passed on `1fd201b`; follow-up checks (e)-(h)
+below remain pending. User report 2026-10-21
 during the L-234 missing-structure test: when a placement's `.mcstructure`
 cannot be loaded, its ghosts are simply absent and the error appears only
 after the placement is selected in the Schematics screen.
@@ -505,7 +506,10 @@ SCHEMATIC.md's missing-structure note). Hand back for the in-game check:
 (d) the log has one line per failure, not one per frame.
 
 Checks (a)-(d) passed on `1fd201b` (VALIDATION-LOG). **Follow-up, decided
-with the maintainer 2026-10-22 from that check** (Ready, for Codex):
+with the maintainer 2026-10-22 from that check** (Ready, implemented;
+in-game checks (e)-(h) pending): warning toasts and their timing/flag tests,
+feature-prefixed text, yellow placement names, aligned error paragraphs,
+off-state Check/Materials messages and current menu wording are implemented.
 
 A. **Warning toasts.** Add a warning kind to the shared toast
    (`src/ui/Toast.h`: `Visible` gains `bool warning`; a new

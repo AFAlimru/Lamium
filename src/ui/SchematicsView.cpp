@@ -192,7 +192,7 @@ void refreshSchematics(bool files) {
     verification = schematic::ghosts::verification();
     verifyRows.clear();
     materialRows.clear();
-    if (verification->placement >= 0 && verification->placement == schematicSet.selected) {
+    if (Runtime::instance().preferences().schematic.enabled && verification->placement >= 0 && verification->placement == schematicSet.selected) {
         for (auto const& m : verification->mismatches) if (verifyMatches(m)) verifyRows.push_back(&m);
         for (auto const& line : materialsShownOnly ? verification->visibleMaterials : verification->materials) materialRows.push_back(&line);
         std::stable_partition(materialRows.begin(), materialRows.end(), [](auto const* line) { return !line->entity; });
@@ -774,7 +774,8 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
     std::string loadProblem;
     bool unloadable = checked && (schematicTab == SchematicTab::Verify || schematicTab == SchematicTab::Materials)
         && !schematic::session::structure(checked->file, &loadProblem);
-    bool counting = checked && !unloadable && (!verification->complete || verification->placement != schematicSet.selected);
+    bool checkOff = !preferences.schematic.enabled;
+    bool counting = checked && !unloadable && (checkOff || !verification->complete || verification->placement != schematicSet.selected);
     // Column positions for the Verify and Materials lists.
     // A narrow list (a large UI) drops the columns it can do without, so the
     // names keep their room: the position in Check, "placed" in Materials.
@@ -851,6 +852,7 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
         else if (schematicTab == SchematicTab::Files) empty = translated("schematic.empty");
         else if (!checked) empty = translated("schematic.noSelection");
         else if (unloadable) empty = translated("schematic.notLoaded", loadProblem);
+        else if (checkOff) empty = translated("schematic.offCheck");
         else if (counting) empty = translated("schematic.counting");
         else empty = translated(schematicTab == SchematicTab::Verify ? "schematic.noMistakes" : "schematic.noMaterials");
         paragraph(context,left,l.rowsTop+3,l.listWidth-2*ShapesLayout::pad,empty,4,palette::faint);
@@ -879,12 +881,13 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
             if (i == schematicSet.selected) fill(context,l.listLeft+1,y,2,ShapesLayout::rowHeight,palette::accent);
             float nameEnd = showCoords ? coordsX - 4 : progressX - 4;
             float nameX = left;
-            if (!schematic::session::loadError(p.file).empty()) {
+            bool unreadable = !schematic::session::loadError(p.file).empty();
+            if (unreadable) {
                 float markW = textWidth(context,"! ");
                 label(context,nameX,y+3,markW,"!",palette::warning);
                 nameX += markW;
             }
-            label(context,nameX,y+3,nameEnd-nameX,p.name,here ? palette::text : palette::faint);
+            label(context,nameX,y+3,nameEnd-nameX,p.name,unreadable ? palette::warning : here ? palette::text : palette::faint);
             if (showCoords)
                 label(context,coordsX,y+3,coordsW,here ? std::format("{}, {}, {}", p.placement.origin.x, p.placement.origin.y, p.placement.origin.z)
                     : screen::dimensionName(p.dimension),palette::dim,Align::Right);
@@ -1121,7 +1124,8 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
         float pvTop = l.previewY - 2, pvHeight = std::clamp((l.actionsY - pvTop) * .55f, 60.f, 240.f);
         float textTop = pvTop + pvHeight + 5, textEnd = l.actionsY - 6;
         auto fits = [&](float y) { return y + 10 <= textEnd; };
-        if (unloadable) paragraph(context,dx,pvTop,dw,translated("schematic.notLoaded", loadProblem),3,palette::warning);
+        if (unloadable) paragraph(context,dx,l.previewY,dw,translated("schematic.notLoaded", loadProblem),3,palette::warning);
+        else if (checkOff) paragraph(context,dx,l.previewY,dw,translated("schematic.offCheck"),3,palette::faint);
         else {
             fill(context,dx,pvTop,dw,pvHeight,Rgb{0,0,0},.25f);
             frame(context,dx,pvTop,dw,pvHeight,palette::white,.1f);
@@ -1261,6 +1265,7 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
         if (!checked) { paragraph(context,dx,l.detailTop+6,dw,translated("schematic.noSelection"),4,palette::faint); break; }
         label(context,dx,l.nameY+1+boxTextInset(),dw,checked->name);
         if (unloadable) paragraph(context,dx,l.previewY,dw,translated("schematic.notLoaded", loadProblem),3,palette::warning);
+        else if (checkOff) paragraph(context,dx,l.previewY,dw,translated("schematic.offCheck"),3,palette::faint);
         else if (counting) label(context,dx,l.previewY,dw,translated("schematic.counting"),palette::dim);
         else {
             auto carried = carriedItems();
