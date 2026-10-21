@@ -108,7 +108,9 @@ undecided.
   why the world coordinate is only a display: a world-space cut would be left
   behind when the placement moves.
 - **Keep** is used by "up to": low shows cells at or below the cut, high at or
-  above. "Only" shows the one layer at the cut; "all" ignores the cut.
+  above. "Only" shows the one layer at the cut; "all" ignores the cut. The
+  placed screen has its own Keep row, so both sides can be chosen without the
+  radial menu.
 - The Layers menu is **Axis / Cut / Mode / Keep / Slice from view / Cut here**.
   Show all is dropped because Mode already has All. Keep is a stepper (low /
   high); in only/all it has no visible effect but stays editable for "up to".
@@ -156,7 +158,11 @@ undecided.
   size is known; unrelated saves keep the legacy fields.
 - Cut edits are allowed only while the placed size is known, so the legacy
   fields are never stale. Without the size the screen says the layer view
-  cannot be edited yet.
+  cannot be edited yet. The same applies to turning or resetting a placement
+  whose cut plane is in the new form: the old `layer` index depends on the
+  extent, so the command refuses without the structure. A still-legacy
+  placement can turn normally because old and new readers both use its old
+  fields.
 - A mixed file round-trips both forms. Rollback to an older Lamium reads the
   last legacy fields and shows the same view.
 

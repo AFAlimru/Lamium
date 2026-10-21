@@ -443,10 +443,12 @@ Only); changing the axis sets the cut at the view source's layer along the new
 axis, clamped and toasted. Check and materials keep reading the same region.
 Built: pure conversion from every old direction and mode, the `layerView`
 storage form with legacy dual-write, the Layers menu and slice, and the
-HUD/placed-screen values. Tests cover the all-direction/mode cell match, the
-legacy round-trip, missing-structure saves and post-rotation extents. In-game
-check covers the drawing, Check and Materials agreeing on the cut. L-231 is
-merged; L-234 follows as a separate step.
+HUD/placed-screen values (Axis, Cut, Mode and Keep). Tests cover the
+all-direction/mode cell match, the legacy round-trip, missing-structure saves
+and post-rotation extents. In-game check covers the drawing, Check and
+Materials agreeing on the cut. A new-form cut plane blocks turning, resetting
+and cut number input while the structure is missing; legacy-form placements
+can still turn. L-231 is merged; L-234 follows as a separate step.
 
 ### L-206 World map recording range is a fixed radius instead of the view distance
 Kind: Ready, implementation built; runtime coverage pending. User report
