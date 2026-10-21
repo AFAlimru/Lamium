@@ -34,6 +34,9 @@ std::shared_ptr<Structure const> structure(std::string const& relative, std::str
 std::shared_ptr<Structure const> loaded(std::string const& relative);
 
 PlacementSet current();
+// Changes when the joined world changes (or the session stops), so view
+// state such as the move target can be dropped without polling placements.
+std::uint64_t generation();
 // Applies a change to a copy, saves it and publishes it. False when the
 // change declined (returned false) or saving failed.
 bool change(std::function<bool(PlacementSet&)> const& mutation);

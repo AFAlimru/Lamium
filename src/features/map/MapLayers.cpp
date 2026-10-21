@@ -1,5 +1,6 @@
 #include "features/map/MapLayers.h"
 #include "features/schematic/SchematicSession.h"
+#include "features/schematic/SchematicActions.h"
 #include "overlay/ShapeSession.h"
 #include "app/Runtime.h"
 #include "app/SessionIds.h"
@@ -59,11 +60,14 @@ bool toggleVisible(MarkKey key) {
 }
 bool selectPlacement(MarkKey key) {
     if (key.layer != MarkLayer::Placement) return false;
-    return schematic::session::change([&](schematic::PlacementSet& set) {
-        int index = indexOfId(set.placements, key.id);
-        if (index < 0) return false;
-        set.selected = index;
-        return true;
-    });
+    if (!schematic::session::change([&](schematic::PlacementSet& set) {
+            int index = indexOfId(set.placements, key.id);
+            if (index < 0) return false;
+            set.selected = index;
+            return true;
+        })) return false;
+    // Choosing a placement also makes it the movement target (L-231).
+    schematic::actions::placementSelected();
+    return true;
 }
 }

@@ -217,6 +217,7 @@ void adjustOption_(settings::Option const& option, int direction) {
     auto value = Runtime::instance().preferences();
     option.adjust(value, direction);
     screen::setMessage(Runtime::instance().save(value) ? std::string{} : translated("saveError"));
+    if (option.id == "schematic.enabled") schematic::actions::resetState();
     // The stepper of a row being typed into shows the typed text; replace it
     // with the stepped value so -/+ are visible at once.
     if (editingNumber_ == &option) {

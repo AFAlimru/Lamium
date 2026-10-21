@@ -20,6 +20,7 @@ std::optional<std::filesystem::path> destination;
 unsigned world = 0;
 bool loadFailed = false; // Never overwrite a file that could not be read.
 std::uint64_t revision = 1;
+std::uint64_t worldGeneration = 0; // world join / session stop, for view state
 std::uint64_t nextId = 1; // never reset: ids are not reused within the session
 struct Cached {
     std::filesystem::file_time_type modified;
@@ -38,6 +39,7 @@ void follow() {
     auto place = map::waypoints::place();
     if (place.world == world && (place.active || set.placements.empty())) return;
     world = place.world;
+    ++worldGeneration;
     set = {};
     destination.reset();
     loadFailed = false;
@@ -146,6 +148,12 @@ PlacementSet current() {
     return set;
 }
 
+std::uint64_t generation() {
+    std::lock_guard lock(mutex);
+    follow();
+    return worldGeneration;
+}
+
 bool change(std::function<bool(PlacementSet&)> const& mutation) {
     std::lock_guard lock(mutex);
     follow();
@@ -187,6 +195,7 @@ void stop() {
     destination.reset();
     cache.clear();
     world = 0;
+    ++worldGeneration;
     ++revision;
 }
 }

@@ -31,8 +31,27 @@ namespace {
 using input::Action;
 MoveTarget moveTarget = MoveTarget::Placement;
 std::optional<menu::Stepper> remembered;
+std::uint64_t lastGeneration = std::numeric_limits<std::uint64_t>::max();
+int lastDimension = std::numeric_limits<int>::min();
 void changeTarget(MoveTarget next);
 std::string targetName(MoveTarget target);
+// The world join and the dimension own the schematic view state: drop the
+// move target and repeat memory when either changes, even if no key is pressed.
+void syncLifecycle(IClientInstance& client) {
+    auto generation = session::generation();
+    auto* player = client.getLocalPlayer();
+    int dimension = player ? static_cast<int>(player->getDimensionId()) : lastDimension;
+    if (lastGeneration == std::numeric_limits<std::uint64_t>::max()) {
+        lastGeneration = generation;
+        lastDimension = dimension;
+        return;
+    }
+    if (generation != lastGeneration || dimension != lastDimension) {
+        lastGeneration = generation;
+        lastDimension = dimension;
+        resetState();
+    }
+}
 std::optional<Point> feet(LocalPlayer& player) {
     auto p = player.getFeetPos();
     if (!std::isfinite(p.x) || !std::isfinite(p.y) || !std::isfinite(p.z)) return std::nullopt;
@@ -438,6 +457,7 @@ bool handles(Action action) {
 void press(IClientInstance& client, Action action) {
     auto* player = client.getLocalPlayer();
     if (!player) return;
+    syncLifecycle(client);
     switch (action) {
     case Action::NearestMistake: nearestMistake(*player); return;
     case Action::SelectLookedPlacement: selectLooked(client, *player); return;
@@ -524,11 +544,13 @@ void placementSelected() {
     moveTarget = MoveTarget::Placement;
     remembered.reset();
 }
+void resetState() { placementSelected(); }
 
 void step(IClientInstance& client, menu::Stepper stepper, int amount) {
     using S = menu::Stepper;
     auto* player = client.getLocalPlayer();
     if (!player || !amount) return;
+    syncLifecycle(client);
     bool all = Runtime::instance().preferences().schematic.repeatAllSteps;
     if (all ? menu::repeatableAll(stepper) : menu::repeatable(stepper)) {
         // Resolve a fallback target before remembering the step, or the
@@ -707,6 +729,7 @@ void stopAdjust() {
 void adjustFrame(MinecraftUIRenderContext& context, float, float) {
     IClientInstance& client = context.mClient;
     adjustClient = &client;
+    syncLifecycle(client);
     if (!adjustHeld.load()) return;
     // One toast: what the wheel repeats, then what the step reported, so the
     // step's own toast does not replace the first at once.

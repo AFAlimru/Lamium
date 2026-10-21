@@ -18,6 +18,8 @@ MoveTarget target();
 void setTarget(menu::Target);
 // A placement was selected or placed: movement goes back to it.
 void placementSelected();
+// Drop the move target and repeat memory (feature off, world/dimension change).
+void resetState();
 void step(IClientInstance& client, menu::Stepper stepper, int amount);
 void run(IClientInstance& client, menu::Command command);
 // The value an item shows under its name; empty when it has none.
