@@ -582,7 +582,7 @@ void renderShapesDocked(MinecraftUIRenderContext& context, glm::vec2 size, glm::
         shapeListFirst, fieldCount, shapeFieldFirst, shapeDraft.has_value(), shapePicking);
     shapesDisplayed = l;
     shapeListFirst = l.listFirst; shapeFieldFirst = l.fieldFirst;
-    if (!l.usable()) {
+    if (l.width <= 0) {
         label(context, 4, 4, std::max(1.0f, size.x - 8), translated("smallWindow"));
         context.flushText(0, std::nullopt);
         return;
@@ -595,7 +595,8 @@ void renderShapesDocked(MinecraftUIRenderContext& context, glm::vec2 size, glm::
     drawSmallButton(context,l.closeX,l.top+4,ShapesLayout::closeWidth,12,translated("closeButton"),closeHover,
         palette::keyFill,palette::keyEdge,closeHover ? palette::text : palette::dim);
     fill(context,l.left,l.top+ShapesLayout::headerHeight-1,l.width,1,palette::white,.14f);
-    drawShapesBody(context, l, pointer, definition);
+    if (l.usable()) drawShapesBody(context, l, pointer, definition);
+    else drawDockedTooShort(context, l, pointer.x, pointer.y);
     context.flushText(0,std::nullopt);
 }
 

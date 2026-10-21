@@ -15,6 +15,12 @@ void drawSmallButton(MinecraftUIRenderContext& context, float x, float y, float 
     frame(context,x,y,w,h,edge);
     label(context,x,y+(h-10)/2+boxTextInset()-1,w,std::move(text),textColor,Align::Center);
 }
+void drawDockedTooShort(MinecraftUIRenderContext& context, ShapesLayout const& l, float pointerX, float pointerY) {
+    drawSmallButton(context,l.dockX,l.top+4,ShapesLayout::dockWidth,12,translated("shape.undock"),
+        l.hit(pointerX, pointerY).zone == ShapesLayout::Zone::Dock);
+    float pad = ShapesLayout::pad;
+    paragraph(context,l.left+pad,l.top+ShapesLayout::headerHeight+6,l.width-2*pad,translated("smallWindow"),3,palette::faint);
+}
 void drawShapeStepper(MinecraftUIRenderContext& context, ShapesLayout const& l, float y, bool numeric, std::string text,
                       NumberInput const* editing) {
     float x = l.stepperX(), w = l.stepperWidth(), aw = ShapesLayout::arrowWidth, h = ShapesLayout::rowHeight - 2;

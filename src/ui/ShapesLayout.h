@@ -25,8 +25,11 @@ struct ShapesLayout {
     float detailLeft{}, detailWidth{}, detailTop{}, nameY{}, previewY{}, fieldsTop{}, actionsY{}, footerTop{};
     int fieldVisible{}, fieldFirst{}, fieldCount{};
 
+    // fullToolbar: the toolbar is taken across its width (the Schematics tabs),
+    // so a docked draw-all switch gets a row of its own below it.
     static ShapesLayout fit(SettingsTable const& table, float screenWidth, float screenHeight, bool docked,
-                            int listCount, int listFirst, int fieldCount, int fieldFirst, bool draft, bool picking) {
+                            int listCount, int listFirst, int fieldCount, int fieldFirst, bool draft, bool picking,
+                            bool fullToolbar = false) {
         ShapesLayout l;
         l.docked = docked; l.draft = draft; l.picking = picking;
         l.listCount = std::max(0, listCount); l.fieldCount = std::max(0, fieldCount);
@@ -57,24 +60,32 @@ struct ShapesLayout {
         l.toolbarTop = bodyTop;
         // Docked panels are narrow: the draw-all switch moves to the toolbar.
         l.drawAllX = docked ? l.listLeft + l.listWidth - pad - drawAllWidth : l.keysX - 4 - drawAllWidth;
-        l.drawAllY = docked ? l.toolbarTop + 2 : l.top + 4;
-        l.theadTop = bodyTop + toolbarHeight;
+        bool ownRow = docked && fullToolbar;
+        l.drawAllY = !docked ? l.top + 4 : ownRow ? l.toolbarTop + toolbarHeight + 2 : l.toolbarTop + 2;
+        l.theadTop = bodyTop + (ownRow ? 2 : 1) * toolbarHeight;
         l.rowsTop = l.theadTop + theadHeight;
-        if (docked) {
-            l.listVisible = dockedListRows;
-            l.detailLeft = l.left; l.detailWidth = l.width;
-            l.detailTop = l.rowsTop + dockedListRows * rowHeight + 2;
-        } else {
-            l.listVisible = std::max(0, static_cast<int>((bodyBottom - l.rowsTop - 2) / rowHeight));
-            l.detailTop = bodyTop;
-        }
-        l.listFirst = std::clamp(listFirst, 0, std::max(0, l.listCount - l.listVisible));
-        l.nameY = l.detailTop + 4 + (draft ? 12 : 0);
-        l.previewY = l.nameY + rowHeight + 4;
-        l.fieldsTop = picking ? l.nameY + rowHeight : l.previewY + previewSize + 4;
         l.actionsY = bodyBottom - actionsHeight - 2;
         float pitch = picking ? pickHeight : rowHeight;
-        l.fieldVisible = std::max(0, static_cast<int>((l.actionsY - 2 - l.fieldsTop) / pitch));
+        auto placeDetail = [&](float detailTop) {
+            l.detailTop = detailTop;
+            l.nameY = l.detailTop + 4 + (draft ? 12 : 0);
+            l.previewY = l.nameY + rowHeight + 4;
+            l.fieldsTop = picking ? l.nameY + rowHeight : l.previewY + previewSize + 4;
+            l.fieldVisible = std::max(0, static_cast<int>((l.actionsY - 2 - l.fieldsTop) / pitch));
+        };
+        if (docked) {
+            l.detailLeft = l.left; l.detailWidth = l.width;
+            // On a short screen the list gives up rows (down to two) so the
+            // editor below keeps at least two of its own.
+            for (l.listVisible = dockedListRows; ; --l.listVisible) {
+                placeDetail(l.rowsTop + l.listVisible * rowHeight + 2);
+                if (l.fieldVisible >= 2 || l.listVisible <= 2) break;
+            }
+        } else {
+            l.listVisible = std::max(0, static_cast<int>((bodyBottom - l.rowsTop - 2) / rowHeight));
+            placeDetail(bodyTop);
+        }
+        l.listFirst = std::clamp(listFirst, 0, std::max(0, l.listCount - l.listVisible));
         l.fieldFirst = std::clamp(fieldFirst, 0, std::max(0, l.fieldCount - l.fieldVisible));
         return l;
     }
@@ -84,7 +95,7 @@ struct ShapesLayout {
     // a press there or a drag puts the first row where the pointer is.
     bool onScrollbar(float x, float y) const {
         float right = listLeft + listWidth;
-        return listCount > listVisible && x >= right - 8 && x < right && y >= rowsTop && y < rowsTop + listVisible * rowHeight;
+        return usable() && listCount > listVisible && x >= right - 8 && x < right && y >= rowsTop && y < rowsTop + listVisible * rowHeight;
     }
     int firstAt(float y) const {
         float track = listVisible * rowHeight;
@@ -117,9 +128,18 @@ struct ShapesLayout {
     // The delete action sits at the right edge.
     float deleteX() const { return detailLeft + detailWidth - pad - deleteWidth; }
 
+    // Hits follow what is drawn. A view that is not usable() draws no list or
+    // editor; docked, it still draws Close and Expand (drawDockedTooShort), so
+    // those two answer and the panel can always be left.
     Hit hit(float x, float y) const {
-        if (!usable() || !std::isfinite(x) || !std::isfinite(y)) return {};
+        if (!(width > 0) || !std::isfinite(x) || !std::isfinite(y)) return {};
         if (x < left || x >= left + width || y < top || y >= top + height) return {};
+        if (!usable()) {
+            if (!docked || y >= top + headerHeight) return {};
+            if (x >= closeX && x < closeX + closeWidth) return {Zone::Close};
+            if (x >= dockX && x < dockX + dockWidth) return {Zone::Dock};
+            return {};
+        }
         if (y < top + headerHeight) {
             if (x >= closeX && x < closeX + closeWidth) return {Zone::Close};
             if (x >= dockX && x < dockX + dockWidth) return {Zone::Dock};
@@ -130,10 +150,10 @@ struct ShapesLayout {
         if (y >= footerTop) return {Zone::Footer};
         bool inList = x >= listLeft && x < listLeft + listWidth && (!docked || y < detailTop);
         if (inList) {
-            if (y >= toolbarTop && y < toolbarTop + toolbarHeight) {
-                if (docked && x >= drawAllX && x < drawAllX + drawAllWidth) return {Zone::DrawAll};
+            if (docked && x >= drawAllX && x < drawAllX + drawAllWidth && y >= drawAllY - 2 && y < drawAllY - 2 + toolbarHeight)
+                return {Zone::DrawAll};
+            if (y >= toolbarTop && y < toolbarTop + toolbarHeight)
                 return x < listLeft + pad + newWidth ? Hit{Zone::NewShape} : Hit{};
-            }
             if (y < rowsTop) return {};
             int offset = static_cast<int>((y - rowsTop) / rowHeight);
             int row = listFirst + offset;

@@ -11,6 +11,9 @@ class MinecraftUIRenderContext;
 namespace lamium::ui {
 void drawSmallButton(MinecraftUIRenderContext& context, float x, float y, float w, float h, std::string text,
                      bool hovered, Rgb fillColor = palette::keyFill, Rgb edge = palette::keyEdge, Rgb textColor = palette::text);
+// The body of a docked view too short for its editor (!l.usable()): Expand and
+// a hint under the header, which matches what ShapesLayout::hit() answers then.
+void drawDockedTooShort(MinecraftUIRenderContext& context, ShapesLayout const& l, float pointerX, float pointerY);
 // A value stepper in a view's editor column; while `editing` it shows the
 // number being typed.
 void drawShapeStepper(MinecraftUIRenderContext& context, ShapesLayout const& l, float y, bool numeric, std::string text,
