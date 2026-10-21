@@ -69,7 +69,7 @@ bool opensMenu(Action action) {
     return action == Action::Settings || action == Action::OpenShapes || action == Action::OpenHotkeys
         || action == Action::OpenHudLayout || action == Action::OpenSchematics || action == Action::OpenSchematicFiles
         || action == Action::OpenSchematicCheck || action == Action::OpenSchematicMaterials || action == Action::OpenSchematicPlaced
-        || action == Action::SaveSchematicArea || action == Action::SchematicMenu;
+        || action == Action::OpenSchematicKeys || action == Action::SaveSchematicArea || action == Action::SchematicMenu;
 }
 void invalidate() {
     inventory::repeatTrades::cancel();

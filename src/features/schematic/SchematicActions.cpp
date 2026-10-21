@@ -536,6 +536,9 @@ bool handles(Action action) {
     case Action::LayerUp: case Action::LayerDown: case Action::LayerHere: case Action::CycleLayerAxis:
     case Action::CycleLayerMode: case Action::ToggleLayerKeep:
     case Action::SchematicCorner1: case Action::SchematicCorner2:
+    case Action::ResetPlacementTurn: case Action::RotatePlacementBack: case Action::PreviousPlacement:
+    case Action::TogglePlacementShown: case Action::TogglePlacementExtras: case Action::TogglePlacementEntities:
+    case Action::ClearSchematicArea:
         return true;
     default: return false;
     }
@@ -556,11 +559,15 @@ void press(IClientInstance& client, Action action) {
         ui::showMessageToast(ui::translated("schematic.menu.moveTarget") + ": " + targetName(next));
         return;
     }
-    case Action::NextPlacement: {
+    case Action::NextPlacement: case Action::PreviousPlacement: {
+        int direction = action == Action::NextPlacement ? 1 : -1;
         std::string name;
         bool any = session::change([&](PlacementSet& set) {
             if (set.placements.empty()) return false;
-            set.selected = (set.selected + 1) % static_cast<int>(set.placements.size());
+            int count = static_cast<int>(set.placements.size());
+            // From no selection, Previous starts at the last placement.
+            int from = set.selected < 0 && direction < 0 ? 0 : set.selected;
+            set.selected = ((from + direction) % count + count) % count;
             name = set.placements[static_cast<size_t>(set.selected)].name;
             return true;
         });
@@ -577,10 +584,12 @@ void press(IClientInstance& client, Action action) {
         moveTargetToFeet(client, *player);
         return;
     }
-    case Action::RotatePlacement:
-        changeTurn([](Placement& t) { t.rotation = quarterTurns(t.rotation + 1); },
+    case Action::RotatePlacement: case Action::RotatePlacementBack: {
+        int turns = action == Action::RotatePlacement ? 1 : -1;
+        changeTurn([turns](Placement& t) { t.rotation = quarterTurns(t.rotation + turns); },
             [](SavedPlacement const& p) { return ui::translated("schematic.toast.rotated", p.name, p.placement.rotation * 90); });
         return;
+    }
     case Action::MirrorPlacement:
         changeTurn([](Placement& t) { t.mirror = static_cast<Mirror>((static_cast<int>(t.mirror) + 1) % 3); },
             [](SavedPlacement const& p) { return ui::translated("schematic.toast.mirror", p.name, mirrorName(p.placement.mirror)); });
@@ -618,6 +627,12 @@ void press(IClientInstance& client, Action action) {
     case Action::CycleLayerAxis: applyLayerStep(menu::Stepper::LayerAxis, 1); return;
     case Action::CycleLayerMode: applyLayerStep(menu::Stepper::LayerMode, 1); return;
     case Action::ToggleLayerKeep: applyLayerStep(menu::Stepper::LayerKeep, 1); return;
+    // The menu's commands, as keys (L-238).
+    case Action::ResetPlacementTurn: run(client, menu::Command::ResetTurn); return;
+    case Action::TogglePlacementShown: run(client, menu::Command::ToggleShown); return;
+    case Action::TogglePlacementExtras: run(client, menu::Command::ToggleExtras); return;
+    case Action::TogglePlacementEntities: run(client, menu::Command::ToggleEntities); return;
+    case Action::ClearSchematicArea: run(client, menu::Command::ClearArea); return;
     default: return;
     }
 }
@@ -727,15 +742,15 @@ void run(IClientInstance& client, menu::Command command) {
     case C::LayerHere: press(client, Action::LayerHere); return;
     case C::ToggleShown:
         changeSelected([](SavedPlacement& p) { p.visible = !p.visible; },
-            [](SavedPlacement const& p) { return p.name + ": " + ui::translated(p.visible ? "on" : "off"); });
+            [](SavedPlacement const& p) { return p.name + ": " + ui::translated("schematic.menu.toggleShown") + " " + ui::translated(p.visible ? "on" : "off"); });
         return;
     case C::ToggleExtras:
         changeSelected([](SavedPlacement& p) { p.countExtras = !p.countExtras; },
-            [](SavedPlacement const& p) { return p.name + ": " + ui::translated(p.countExtras ? "schematic.extras.show" : "schematic.extras.ignore"); });
+            [](SavedPlacement const& p) { return p.name + ": " + ui::translated("schematic.menu.toggleExtras") + " " + ui::translated(p.countExtras ? "schematic.extras.show" : "schematic.extras.ignore"); });
         return;
     case C::ToggleEntities:
         changeSelected([](SavedPlacement& p) { p.entities = !p.entities; },
-            [](SavedPlacement const& p) { return p.name + ": " + ui::translated(p.entities ? "on" : "off"); });
+            [](SavedPlacement const& p) { return p.name + ": " + ui::translated("schematic.menu.toggleEntities") + " " + ui::translated(p.entities ? "on" : "off"); });
         return;
     case C::Corner1Here: press(client, Action::SchematicCorner1); return;
     case C::Corner2Here: press(client, Action::SchematicCorner2); return;

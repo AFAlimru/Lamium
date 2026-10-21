@@ -78,8 +78,8 @@ choices live in the L-items. An L-item wins if a summary drifts.
    item's stop/resume conditions. L-181 trident pose is low priority.
 2. **Small and medium work before large features/integration** (maintainer
    2026-10-10): L-196 license/provenance evidence; L-231 controls UX and
-   L-234 cut-plane layers are merged; L-238 menu/key parity is agreed and
-   waits for implementation; L-236/L-237 are follow-ups;
+   L-234 cut-plane layers are merged; L-238 menu/key parity is implemented,
+   in-game check pending; L-236/L-237 are follow-ups;
    L-232 slime chunk indicator (needs in-game
    verification of the rule first); remaining Design/Research in L-166 trade
    helpers,
@@ -436,8 +436,10 @@ a menu item shows its bound key. The menu goes from eight categories to six
 of five or six items; eight new actions are appended, all unbound. Default
 keys stay Alt+Wheel only. Watch long names: every ring plate takes the
 widest label, so one long label grows the whole ring (see the spec).
-Remaining: implement after the maintainer's go-ahead, then judge in game;
-the maintainer expects further adjustments only from use.
+Implemented 2026-10-22 on `main` (as-built notes in the spec); build and
+pure tests pass, including the parity check and a long-name check that the
+ring fits 480x253 GUI units in English, Japanese and Chinese. Remaining: the
+in-game check; the maintainer expects further adjustments only from use.
 
 ### L-237 Report a missing schematic structure without selecting it
 Kind: Design. User report 2026-10-21 during the L-234 missing-structure test:

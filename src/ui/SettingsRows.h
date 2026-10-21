@@ -88,11 +88,14 @@ inline constexpr auto features = std::to_array<FeatureInfo>({
     {"schematicMenu", "feature.schematicMenu", "help.schematicMenu", "", false, input::Action::SchematicMenu},
     {"schematicRepeat", "key.Lamium.adjustschematic", "help.key.adjustschematic", "", false, input::Action::AdjustSchematic},
     {"schematicHud", "feature.schematicHud", "help.schematicHud", "schematic.hud", true, input::Action::ToggleSchematicHud},
-    // Key groups without a switch of their own (DESIGN: a keyless group heading).
-    {"schematicPlacement", "feature.schematicPlacement", "help.schematicPlacement", ""},
-    {"schematicLayers", "feature.schematicLayers", "help.schematicLayers", ""},
-    {"schematicCheck", "feature.schematicCheck", "help.schematicCheck", ""},
-    {"schematicSave", "feature.schematicSave", "help.schematicSave", ""},
+    // Key groups without a switch of their own (DESIGN: a keyless group
+    // heading), named and ordered like the menu's categories (L-238).
+    {"schematicMove", "schematic.menu.cat.move", "help.schematicMove", ""},
+    {"schematicPlacement", "schematic.menu.cat.placement", "help.schematicPlacement", ""},
+    {"schematicLayers", "schematic.menu.cat.layers", "help.schematicLayers", ""},
+    {"schematicShow", "schematic.menu.cat.show", "help.schematicShow", ""},
+    {"schematicSave", "schematic.menu.cat.area", "help.schematicSave", ""},
+    {"schematicScreen", "schematic.menu.cat.screen", "help.schematicScreen", ""},
     {"automationStatus", "feature.automationStatus", "help.automationStatus", "interface.automationStatus", false, input::Action::ToggleAutomationStatus},
     {"settings", "feature.settings", "help.settings", "", false, input::Action::Settings},
     {"gameLanguage", "feature.gameLanguage", "help.gameLanguage", "", true},
@@ -107,12 +110,15 @@ inline constexpr auto features = std::to_array<FeatureInfo>({
 // would scatter related keys; others keep catalog order after these.
 inline int actionRank(input::Action action) {
     using A = input::Action;
-    static constexpr A order[] = {A::SchematicMenu, A::AdjustSchematic, A::OpenSchematics, A::OpenSchematicFiles, A::OpenSchematicPlaced, A::OpenSchematicCheck,
-        A::OpenSchematicMaterials,
-        A::SelectLookedPlacement, A::NextPlacement, A::CycleMoveTarget, A::MovePlacementForward, A::MovePlacementBack, A::MovePlacementLeft,
-        A::MovePlacementRight, A::MovePlacementUp, A::MovePlacementDown, A::MovePlacementHere, A::RotatePlacement,
-        A::MirrorPlacement, A::LayerUp, A::LayerDown, A::LayerHere, A::CycleLayerAxis, A::CycleLayerMode, A::ToggleLayerKeep,
-        A::SchematicCorner1, A::SchematicCorner2, A::SaveSchematicArea};
+    // Schematic keys follow their menu items (L-238).
+    static constexpr A order[] = {A::SchematicMenu, A::AdjustSchematic, A::OpenSchematics,
+        A::MovePlacementForward, A::MovePlacementBack, A::MovePlacementLeft, A::MovePlacementRight, A::MovePlacementUp,
+        A::MovePlacementDown, A::MovePlacementHere, A::CycleMoveTarget, A::SelectLookedPlacement,
+        A::NextPlacement, A::PreviousPlacement, A::RotatePlacement, A::RotatePlacementBack, A::MirrorPlacement, A::ResetPlacementTurn,
+        A::CycleLayerAxis, A::LayerUp, A::LayerDown, A::CycleLayerMode, A::ToggleLayerKeep, A::LayerHere,
+        A::TogglePlacementShown, A::TogglePlacementEntities, A::TogglePlacementExtras, A::NearestMistake,
+        A::SchematicCorner1, A::SchematicCorner2, A::SaveSchematicArea, A::ClearSchematicArea,
+        A::OpenSchematicFiles, A::OpenSchematicPlaced, A::OpenSchematicCheck, A::OpenSchematicMaterials, A::OpenSchematicKeys};
     for (size_t i = 0; i < std::size(order); ++i) if (order[i] == action) return static_cast<int>(i);
     return static_cast<int>(std::size(order)) + static_cast<int>(action);
 }

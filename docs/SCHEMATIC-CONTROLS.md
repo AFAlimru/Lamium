@@ -5,7 +5,7 @@ implemented and merged (PR #36, merge commit `780bfba`); its in-game checklist
 passed on 2026-10-21 (build `89c7925`). L-234 is merged (PR #37, merge commit
 `75152f1`) after in-game checks. L-236 (per-section ghost reuse) and L-237
 (missing-structure warning) are follow-ups. L-238 (menu and key parity,
-2026-10-22) is agreed and waits for implementation. This note records the
+2026-10-22) is implemented; its in-game check is pending. This note records the
 agreed direction; the items under "Open questions" remain undecided.
 
 [SCHEMATIC.md](SCHEMATIC.md) still describes the behavior in the game today;
@@ -256,11 +256,29 @@ English, Japanese and Chinese (they are separate keys from the longer key
 setting labels), and add a pure check that the ring for the widest label
 still fits a small GUI screen (for example 480x253) before relying on it.
 
+### As built (2026-10-22)
+
+- Each menu item names its keys in `MenuModel.h`; a test checks that every
+  schematic key has an item and every item a key, except the accelerators
+  (menu, screen, Repeat; "Move placement/area →").
+- The hovered item's bound keys show **above the ring**, with the Repeat
+  pointer, not in the center: a long chord would otherwise widen the center
+  and with it the whole ring.
+- The Schematics on/off and HUD keys stay on their switch rows at the top of
+  the key settings (with the menu, Repeat and screen keys); the key groups
+  below follow the menu: Move, Placement, Layers, Show and check, Area,
+  Screen. Group names reuse the menu's category labels.
+- The long-name check estimates text (ASCII about 6 units, CJK about 9) and
+  sizes the ring as the menu does; at 480x253 it failed for English, so the
+  longest labels became "Current placement", "Move placement >", "Looked-at
+  target" and "Place a file...".
+- Placement-toggle toasts now name what changed ("Show placement on").
+
 ## Open questions
 
 - L-236 (per-section ghost reuse) and L-237 (missing-structure warning) are
-  separate follow-ups. L-238 waits for the go-ahead to implement; finer
-  adjustments are expected only from use.
+  separate follow-ups. L-238 is implemented; finer adjustments are expected
+  only from use.
 
 ## Suggested order
 

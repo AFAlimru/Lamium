@@ -612,8 +612,8 @@ void runMenuItem(schematic::menu::Item const& item, int amount) {
         savePrompt->name.selectAll();
         return;
     }
-    case C::PlaceFile: case C::FilesTab: openSchematicTab(schematics_view::Tab::Files); return;
-    case C::DeletePlacement: case C::PlacedTab: openSchematicTab(schematics_view::Tab::Placements); return;
+    case C::PlaceFile: openSchematicTab(schematics_view::Tab::Files); return;
+    case C::PlacedList: openSchematicTab(schematics_view::Tab::Placements); return;
     case C::CheckTab: openSchematicTab(schematics_view::Tab::Verify); return;
     case C::MaterialsTab: openSchematicTab(schematics_view::Tab::Materials); return;
     case C::KeySettings: leaveMenu(); screen::showFeatureKeys("schematic"); return;
@@ -685,6 +685,18 @@ void renderSchematicMenu(MinecraftUIRenderContext& context, glm::vec2 size, glm:
         centerWide = std::max(centerWide, width(translated(category.label)) + 16 * s);
         for (auto const& item : category.items) widest = std::max(widest, width(translated(item.label)) + 16 * s);
     }
+    // The keys for an item (L-238): bound ones only, forward / back. Drawn
+    // above the ring, not in the center, so a long chord cannot widen it.
+    auto keyLine = [&](menu::Item const& item) {
+        std::string text;
+        for (auto action : {item.key, item.keyBack}) {
+            if (action == menu::noKey || !client) continue;
+            auto chord = input::effectiveChord(preferences.bindings, action);
+            if (chord.empty()) continue;
+            text += (text.empty() ? "" : " / ") + bindingChordName(*client, chord);
+        }
+        return text.empty() ? text : translated("schematic.menu.key", text);
+    };
     for (auto const* key : hints) centerWide = std::max(centerWide, width(translated(key)) + 16 * s);
     for (auto const* key : targets) centerWide = std::max(centerWide, width(translated("schematic.menu.target", translated(key))) + 16 * s);
     float line = 11 * s, title = 16 * s;
@@ -768,10 +780,13 @@ void renderSchematicMenu(MinecraftUIRenderContext& context, glm::vec2 size, glm:
     // did (or why it did nothing, such as no area yet) shows under the ring.
     if (auto toast = currentToggleToast(toastNow()))
         note(toast->plain ? toast->text : toast->text + ": " + translated(toast->on ? "on" : "off"), palette::text, true, false);
-    // A quiet pointer to the adjust key while it is unbound.
+    // Above the ring: the hovered item's keys, and a quiet pointer to the
+    // adjust key while it is unbound.
+    std::string overRing = hovered ? keyLine(*hovered) : std::string{};
     if (hovered && hovered->stepper() && schematic::menu::repeatable(std::get<menu::Stepper>(hovered->what))
         && input::effectiveChord(preferences.bindings, input::Action::AdjustSchematic).empty())
-        note(translated("schematic.menu.hintAdjust"), palette::faint, false, true);
+        overRing += (overRing.empty() ? "" : "\n") + translated("schematic.menu.hintAdjust");
+    if (!overRing.empty()) note(overRing, palette::dim, false, true);
     context.flushText(0, std::nullopt);
 }
 // ---- Schematic save prompt ----
@@ -1301,6 +1316,11 @@ void openSchematics(IClientInstance& current, int tab) {
     selectNav(schematicsNav, true);
     schematics_view::refresh(true);
     if (tab >= 0 && tab < 4) schematics_view::show(static_cast<schematics_view::Tab>(tab));
+}
+void openSchematicKeys(IClientInstance& current) {
+    std::lock_guard lock(mutex);
+    if (!scene) open(current);
+    if (scene && !prompt && !savePrompt) screen::showFeatureKeys("schematic");
 }
 void openSchematicSave(IClientInstance& current) {
     std::lock_guard lock(mutex);

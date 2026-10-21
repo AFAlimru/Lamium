@@ -8,6 +8,7 @@
 #include "features/schematic/SaveArea.h"
 #include "ui/SavePromptLayout.h"
 #include "ui/RadialLayout.h"
+#include "ui/Translations.h"
 #include "ui/SchematicFiles.h"
 #include "features/schematic/MaterialAmount.h"
 #include "features/schematic/MenuModel.h"
@@ -830,8 +831,29 @@ void menuRules() {
     check(sized && labeled && categories[moveCategory].label == "schematic.menu.cat.move",
           "every menu category has one to eight labeled items, Move first");
     Target target = Target::Placement;
-    check(choosesTarget(Command::MoveCorner2, target) && target == Target::Corner2 && !choosesTarget(Command::ClearArea, target),
+    check(choosesTarget(Command::MoveArea, target) && target == Target::Area && !choosesTarget(Command::ClearArea, target),
           "only the move commands choose a target");
+    // L-238: every schematic key has a menu item and every menu item a key,
+    // except accelerators of one path (opening the menu or screen, Repeat;
+    // choosing a target to move, which keys do by looking or cycling).
+    std::set<lamium::input::Action> inMenu;
+    bool keyed = true, sizedWell = true;
+    for (auto const& c : categories) {
+        sizedWell = sizedWell && c.items.size() >= 5 && c.items.size() <= 6;
+        for (auto const& item : c.items) {
+            for (auto key : {item.key, item.keyBack}) if (key != noKey) keyed = keyed && inMenu.insert(key).second;
+            Target ignored{};
+            keyed = keyed && (item.key != noKey || (!item.stepper() && choosesTarget(std::get<Command>(item.what), ignored)));
+        }
+    }
+    bool covered = true;
+    for (size_t i = 0; i < lamium::input::actions.size(); ++i) {
+        auto action = static_cast<lamium::input::Action>(i);
+        bool schematicKey = lamium::input::actions[i].feature.starts_with("schematic");
+        covered = covered && (!schematicKey || inMenu.contains(action) || keyOnlyAccelerator(action));
+    }
+    check(keyed && covered, "every schematic key has a menu item and every menu item a key, accelerators aside");
+    check(categories.size() == 6 && sizedWell, "six menu categories of five or six items");
     check(openAt(false, 3) == -1 && openAt(true, 3) == 3 && openAt(true, -1) == -1 && openAt(true, 99) == -1,
           "the menu opens at the list unless set to reopen where it was closed");
     bool switchThere = false;
@@ -875,6 +897,48 @@ void menuRules() {
     check(small.cx > ring.cx && small.cy > ring.cy && small.cx + small.rx + sizes.itemWidth / 2 <= 640
           && fewer.cx == small.cx && fewer.cy == small.cy, "the small menu sits in the lower right, inside the screen, and stays put");
     check(repeatable(Stepper::Layer) && !repeatable(Stepper::Target), "the adjust key does not repeat choosing the target");
+
+    // Long names: every plate takes the widest label and the ring grows with
+    // it, unclamped. Estimate the text like the game font does (ASCII about
+    // 6 units, CJK about 9) and size the menu as renderSchematicMenu does; the
+    // ring must fit a small GUI screen (1920x1012 at GUI scale 4) in every
+    // language.
+    auto estimate = [](std::string_view text) {
+        float w = 0;
+        for (size_t i = 0; i < text.size();) {
+            auto c = static_cast<unsigned char>(text[i]);
+            int length = c < 0x80 ? 1 : c < 0xE0 ? 2 : c < 0xF0 ? 3 : 4;
+            w += c >= 0x80 ? 9.f : c == ' ' ? 4.f : std::string_view("il.,:;!|'").find(static_cast<char>(c)) != std::string_view::npos ? 3.f : 6.f;
+            i += static_cast<size_t>(length);
+        }
+        return w;
+    };
+    using lamium::ui::translations::find;
+    bool fits = true;
+    std::string tooWide;
+    for (auto locale : {"en_US", "ja_JP", "zh_CN"}) {
+        float widest = 72, centerWide = 100;
+        for (auto const& c : categories) {
+            widest = std::max(widest, estimate(find(c.label, locale)) + 16);
+            centerWide = std::max(centerWide, estimate(find(c.label, locale)) + 16);
+            for (auto const& item : c.items) widest = std::max(widest, estimate(find(item.label, locale)) + 16);
+        }
+        for (auto key : {"schematic.menu.hintList", "schematic.menu.hintClose", "schematic.menu.hintStep",
+                 "schematic.menu.hintStepClick", "schematic.menu.hintRun", "schematic.menu.hintBack"})
+            centerWide = std::max(centerWide, estimate(find(key, locale)) + 16);
+        // The hovered item's keys are drawn above the ring, not in the center.
+        RadialLayout::Sizes sized{widest, RadialLayout::itemHeight(1), centerWide, 16 + 3 + 4 * 11 + 3};
+        for (bool corner : {false, true}) {
+            auto r = RadialLayout::at(480, 253, 6, sized, corner);
+            bool inside = r.cx - r.rx - widest / 2 >= 0 && r.cx + r.rx + widest / 2 <= 480
+                && r.cy - r.ry - sized.itemHeight / 2 >= 0 && r.cy + r.ry + sized.itemHeight / 2 <= 253;
+            if (!inside) tooWide += std::string(locale) + (corner ? " small " : " ") + std::to_string(static_cast<int>(widest)) + "/"
+                + std::to_string(static_cast<int>(centerWide)) + "; ";
+            fits = fits && inside;
+        }
+    }
+    if (!fits) std::cout << "menu too wide: " << tooWide << '\n';
+    check(fits, "the menu's ring fits a 480x253 GUI screen in English, Japanese and Chinese");
 }
 
 void drawKeys() {

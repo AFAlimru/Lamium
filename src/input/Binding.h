@@ -14,7 +14,7 @@ struct Token {
     int code;
     auto operator<=>(Token const&) const = default;
 };
-enum class Action { Settings, Zoom, NightVision, Sort, ChunkBorders, HideOffhand, Hitboxes, ToolSwitch, InfoHud, TargetInfo, DebugView, BreakingRestriction, CaptureBreaking, ResetBreaking, CycleBreakingMode, Freelook, LightOverlay, HandRestock, PermanentSneak, PeriodicAttack, PeriodicUse, ToggleShapes, OpenShapes, FreeCamera, OpenHotkeys, OpenHudLayout, CycleAttackMode, CycleUseMode, AttackHeldOnly, UseHeldOnly, PermanentSprint, EdgeGuard, FakeOffhand, FakeOffhandUse, Transfer, ToolGuard, ElytraSwap, ElytraSwapKey, FreeCameraSpeedUp, FreeCameraSpeedDown, HideWeather, HideParticles, HideBossBars, HideNausea, HideWater, HideLava, HidePowderSnow, Minimap, MinimapZoomIn, MinimapZoomOut, MinimapView, MinimapEnlarge, AddWaypoint, HideWaypoints, OpenWaypoints, OpenWorldMap, TogglePreviews, ToggleDurability, ToggleSorting, ToggleHideEffects, ToggleDurabilityHud, ToggleAutomationStatus, ToggleRadar, ToggleWaypoints, ToggleWorldMap, RadarFaces, ToggleOffhandSlot, ToggleSaturation, ToggleFoodValues, WeaponSwitch, ToggleSchematic, OpenSchematics, ToggleSchematicHud, NearestMistake, SelectLookedPlacement, NextPlacement, MovePlacementForward, MovePlacementBack, MovePlacementHere, RotatePlacement, MirrorPlacement, LayerUp, LayerDown, MovePlacementLeft, MovePlacementRight, MovePlacementUp, MovePlacementDown, LayerHere, OpenSchematicFiles, OpenSchematicCheck, OpenSchematicMaterials, OpenSchematicPlaced, SwapOffhand, ToggleOffhandSwap, SchematicCorner1, SchematicCorner2, SaveSchematicArea, SchematicMenu, AdjustSchematic, ToggleDeathRestore, HideDistanceFog, ToggleLockedTrades, ToggleEnglishSearch, PlayerList, ToggleInventoryHud, ToggleUsedSlots, ToggleConnectedTextures, HidePortal, ToggleStatusEffects, OpenCalculator, ToggleRepeatTrades, ToggleSkipServerPacks, ToggleChatPosition, CycleMoveTarget, CycleLayerAxis, CycleLayerMode, ToggleLayerKeep, Count };
+enum class Action { Settings, Zoom, NightVision, Sort, ChunkBorders, HideOffhand, Hitboxes, ToolSwitch, InfoHud, TargetInfo, DebugView, BreakingRestriction, CaptureBreaking, ResetBreaking, CycleBreakingMode, Freelook, LightOverlay, HandRestock, PermanentSneak, PeriodicAttack, PeriodicUse, ToggleShapes, OpenShapes, FreeCamera, OpenHotkeys, OpenHudLayout, CycleAttackMode, CycleUseMode, AttackHeldOnly, UseHeldOnly, PermanentSprint, EdgeGuard, FakeOffhand, FakeOffhandUse, Transfer, ToolGuard, ElytraSwap, ElytraSwapKey, FreeCameraSpeedUp, FreeCameraSpeedDown, HideWeather, HideParticles, HideBossBars, HideNausea, HideWater, HideLava, HidePowderSnow, Minimap, MinimapZoomIn, MinimapZoomOut, MinimapView, MinimapEnlarge, AddWaypoint, HideWaypoints, OpenWaypoints, OpenWorldMap, TogglePreviews, ToggleDurability, ToggleSorting, ToggleHideEffects, ToggleDurabilityHud, ToggleAutomationStatus, ToggleRadar, ToggleWaypoints, ToggleWorldMap, RadarFaces, ToggleOffhandSlot, ToggleSaturation, ToggleFoodValues, WeaponSwitch, ToggleSchematic, OpenSchematics, ToggleSchematicHud, NearestMistake, SelectLookedPlacement, NextPlacement, MovePlacementForward, MovePlacementBack, MovePlacementHere, RotatePlacement, MirrorPlacement, LayerUp, LayerDown, MovePlacementLeft, MovePlacementRight, MovePlacementUp, MovePlacementDown, LayerHere, OpenSchematicFiles, OpenSchematicCheck, OpenSchematicMaterials, OpenSchematicPlaced, SwapOffhand, ToggleOffhandSwap, SchematicCorner1, SchematicCorner2, SaveSchematicArea, SchematicMenu, AdjustSchematic, ToggleDeathRestore, HideDistanceFog, ToggleLockedTrades, ToggleEnglishSearch, PlayerList, ToggleInventoryHud, ToggleUsedSlots, ToggleConnectedTextures, HidePortal, ToggleStatusEffects, OpenCalculator, ToggleRepeatTrades, ToggleSkipServerPacks, ToggleChatPosition, CycleMoveTarget, CycleLayerAxis, CycleLayerMode, ToggleLayerKeep, ResetPlacementTurn, RotatePlacementBack, PreviousPlacement, TogglePlacementShown, TogglePlacementExtras, TogglePlacementEntities, ClearSchematicArea, OpenSchematicKeys, Count };
 enum class Behavior { Press, Hold, Toggle };
 // Ordinary chords are order-sensitive and yield to a more specific chord
 // completed by the same press. Modifier-like chords (held camera keys) match
@@ -99,25 +99,25 @@ inline constexpr auto actions = std::to_array<ActionInfo>({
     {"schematic", "schematic", Behavior::Toggle},
     {"openschematics", "schematic", Behavior::Press},
     {"schematichud", "schematicHud", Behavior::Toggle},
-    {"nearestmistake", "schematicCheck", Behavior::Press},
-    {"selectlookedplacement", "schematicPlacement", Behavior::Press},
+    {"nearestmistake", "schematicShow", Behavior::Press},
+    {"selectlookedplacement", "schematicMove", Behavior::Press},
     {"nextplacement", "schematicPlacement", Behavior::Press},
-    {"moveplacementforward", "schematicPlacement", Behavior::Press},
-    {"moveplacementback", "schematicPlacement", Behavior::Press},
-    {"moveplacementhere", "schematicPlacement", Behavior::Press},
+    {"moveplacementforward", "schematicMove", Behavior::Press},
+    {"moveplacementback", "schematicMove", Behavior::Press},
+    {"moveplacementhere", "schematicMove", Behavior::Press},
     {"rotateplacement", "schematicPlacement", Behavior::Press},
     {"mirrorplacement", "schematicPlacement", Behavior::Press},
     {"layerup", "schematicLayers", Behavior::Press},
     {"layerdown", "schematicLayers", Behavior::Press},
-    {"moveplacementleft", "schematicPlacement", Behavior::Press},
-    {"moveplacementright", "schematicPlacement", Behavior::Press},
-    {"moveplacementup", "schematicPlacement", Behavior::Press},
-    {"moveplacementdown", "schematicPlacement", Behavior::Press},
+    {"moveplacementleft", "schematicMove", Behavior::Press},
+    {"moveplacementright", "schematicMove", Behavior::Press},
+    {"moveplacementup", "schematicMove", Behavior::Press},
+    {"moveplacementdown", "schematicMove", Behavior::Press},
     {"layerhere", "schematicLayers", Behavior::Press},
-    {"openschematicfiles", "schematic", Behavior::Press},
-    {"openschematiccheck", "schematic", Behavior::Press},
-    {"openschematicmaterials", "schematic", Behavior::Press},
-    {"openschematicplaced", "schematic", Behavior::Press},
+    {"openschematicfiles", "schematicScreen", Behavior::Press},
+    {"openschematiccheck", "schematicScreen", Behavior::Press},
+    {"openschematicmaterials", "schematicScreen", Behavior::Press},
+    {"openschematicplaced", "schematicScreen", Behavior::Press},
     // F as in Java: Bedrock has no swap key of its own (L-94, maintainer 2026-10-06).
     {"swapoffhand", "offhandSwap", Behavior::Press, 0x46},
     {"offhandswap", "offhandSwap", Behavior::Toggle},
@@ -140,10 +140,18 @@ inline constexpr auto actions = std::to_array<ActionInfo>({
     {"repeattrades", "repeatTrades", Behavior::Toggle},
     {"skipserverpacks", "skipServerPacks", Behavior::Toggle},
     {"chatposition", "chatPosition", Behavior::Toggle},
-    {"cyclemovetarget", "schematicPlacement", Behavior::Press},
+    {"cyclemovetarget", "schematicMove", Behavior::Press},
     {"cyclelayeraxis", "schematicLayers", Behavior::Press},
     {"cyclelayermode", "schematicLayers", Behavior::Press},
     {"togglelayerkeep", "schematicLayers", Behavior::Press},
+    {"resetplacementturn", "schematicPlacement", Behavior::Press},
+    {"rotateplacementback", "schematicPlacement", Behavior::Press},
+    {"previousplacement", "schematicPlacement", Behavior::Press},
+    {"toggleplacementshown", "schematicShow", Behavior::Press},
+    {"toggleplacementextras", "schematicShow", Behavior::Press},
+    {"toggleplacemententities", "schematicShow", Behavior::Press},
+    {"clearschematicarea", "schematicSave", Behavior::Press},
+    {"openschematickeys", "schematicScreen", Behavior::Press},
 });
 static_assert(actions.size() == static_cast<size_t>(Action::Count));
 // Kept for its saved id but no longer shown or dispatched.
