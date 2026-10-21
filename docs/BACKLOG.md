@@ -378,7 +378,8 @@ awaits a look in game.
 Kind: Design. Combines two maintainer UX notes from 2026-10-20 in the
 [Notion idea inbox](https://app.notion.com/p/3f7c12ab5b2d8121b2a0db32608f6b7a).
 Status: implemented on branch `schematic-controls` 2026-10-21; build and pure
-tests pass, in-game check pending. The Open button part of this item is
+tests pass, and the in-game checklist passed on build `89c7925`. Review and
+merge are pending; it is not merged. The Open button part of this item is
 implemented and checked in game; the control rework is in the branch.
 Decided there: one move target shared by keys and menu (placement, corner 1,
 corner 2, area) with a target key and a looked-at target; cycle only valid
@@ -399,7 +400,7 @@ placement"; the failure message names the move target; setting corners uses
 the camera's view, and move-to-feet/layer-here use the camera's virtual feet
 in Freelook/FreeCamera; the schematic menu's small lower-right layout is the
 default.
-Open: in-game check and merge; L-234 follows as a separate step.
+Open: review and merge; L-234 follows as a separate step.
 Existing controls include wheel steppers in the radial menu, a held Repeat
 the last adjustment key plus wheel, six one-block directional Press actions
 and move-to-feet. Dedicated actions are unbound by default and grouped as
