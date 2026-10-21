@@ -429,7 +429,7 @@ constexpr int schematicTabCount = 4;
 float schematicTabWidth(ShapesLayout const& l) { return (l.listWidth - 2 * ShapesLayout::pad - 3 * 2) / schematicTabCount; }
 float schematicTabX(ShapesLayout const& l, int tab) { return l.listLeft + ShapesLayout::pad + tab * (schematicTabWidth(l) + 2); }
 int schematicTabAt(ShapesLayout const& l, float x, float y) {
-    if (!(l.width > 0) || y < l.toolbarTop || y >= l.toolbarTop + ShapesLayout::toolbarHeight) return -1;
+    if (!l.usable() || y < l.toolbarTop || y >= l.toolbarTop + ShapesLayout::toolbarHeight) return -1;
     for (int i = 0; i < schematicTabCount; ++i)
         if (x >= schematicTabX(l, i) && x < schematicTabX(l, i) + schematicTabWidth(l)) return i;
     return -1;
@@ -478,6 +478,14 @@ void pickInPreview(glm::vec2 at) {
 }
 void handleSchematicClick(float x, float y, bool right) {
     screen::finishEditing();
+    // Too short for the body: only the sidebar, or docked Close and Expand, are drawn.
+    if (!schematicsDisplayed.usable()) {
+        if (!schematicsDocked && screen::navClick(x, y)) return;
+        auto zone = schematicsDisplayed.hit(x, y).zone;
+        if (zone == ShapeZone::Close) screen::close();
+        else if (zone == ShapeZone::Dock) schematicsDocked = !schematicsDocked;
+        return;
+    }
     if (!right && screen::pressScrollbar(schematicsDisplayed, schematicListFirst, x, y)) return;
     auto& t = previewTurn;
     // The peel line across the top of the preview resets the cut.
@@ -1279,7 +1287,8 @@ ShapesLayout fitSchematics(SettingsTable const& t, glm::vec2 size, bool docked) 
 }
 void renderSchematicsContent(MinecraftUIRenderContext& context, glm::vec2 size, glm::vec2 pointer, SettingsTable const& t) {
     auto l = fitSchematics(t, size, false);
-    if (l.width > 0) drawSchematicsBody(context, l, pointer);
+    if (l.usable()) drawSchematicsBody(context, l, pointer);
+    else previewTurn.w = 0; // no preview drawn, so none to turn
     context.flushText(0,std::nullopt);
 }
 void renderSchematicsDocked(MinecraftUIRenderContext& context, glm::vec2 size, glm::vec2 pointer) {
@@ -1296,7 +1305,11 @@ void renderSchematicsDocked(MinecraftUIRenderContext& context, glm::vec2 size, g
     drawSmallButton(context,l.closeX,l.top+4,ShapesLayout::closeWidth,12,translated("closeButton"),
         closeHover,palette::keyFill,palette::keyEdge,closeHover ? palette::text : palette::dim);
     fill(context,l.left,l.top+ShapesLayout::headerHeight-1,l.width,1,palette::white,.14f);
-    drawSchematicsBody(context, l, pointer);
+    if (l.usable()) drawSchematicsBody(context, l, pointer);
+    else {
+        previewTurn.w = 0;
+        drawDockedTooShort(context, l, pointer.x, pointer.y);
+    }
     context.flushText(0,std::nullopt);
 }
 }

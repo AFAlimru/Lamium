@@ -95,7 +95,7 @@ struct ShapesLayout {
     // a press there or a drag puts the first row where the pointer is.
     bool onScrollbar(float x, float y) const {
         float right = listLeft + listWidth;
-        return listCount > listVisible && x >= right - 8 && x < right && y >= rowsTop && y < rowsTop + listVisible * rowHeight;
+        return usable() && listCount > listVisible && x >= right - 8 && x < right && y >= rowsTop && y < rowsTop + listVisible * rowHeight;
     }
     int firstAt(float y) const {
         float track = listVisible * rowHeight;
@@ -128,12 +128,18 @@ struct ShapesLayout {
     // The delete action sits at the right edge.
     float deleteX() const { return detailLeft + detailWidth - pad - deleteWidth; }
 
-    // Hits do not need usable(): when the editor has no room for its rows the
-    // header, list and actions still work, so the panel can always be undocked
-    // or closed. Field rows are only hit while they are visible.
+    // Hits follow what is drawn. A view that is not usable() draws no list or
+    // editor; docked, it still draws Close and Expand (drawDockedTooShort), so
+    // those two answer and the panel can always be left.
     Hit hit(float x, float y) const {
         if (!(width > 0) || !std::isfinite(x) || !std::isfinite(y)) return {};
         if (x < left || x >= left + width || y < top || y >= top + height) return {};
+        if (!usable()) {
+            if (!docked || y >= top + headerHeight) return {};
+            if (x >= closeX && x < closeX + closeWidth) return {Zone::Close};
+            if (x >= dockX && x < dockX + dockWidth) return {Zone::Dock};
+            return {};
+        }
         if (y < top + headerHeight) {
             if (x >= closeX && x < closeX + closeWidth) return {Zone::Close};
             if (x >= dockX && x < dockX + dockWidth) return {Zone::Dock};

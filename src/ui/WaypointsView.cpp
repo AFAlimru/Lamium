@@ -469,7 +469,7 @@ ShapesLayout fitWaypoints(SettingsTable const& t, glm::vec2 size, bool docked) {
 }
 void renderWaypointsContent(MinecraftUIRenderContext& context, glm::vec2 size, glm::vec2 pointer, SettingsTable const& t) {
     auto l = fitWaypoints(t, size, false);
-    if (l.width > 0) drawWaypointsBody(context, l, pointer);
+    if (l.usable()) drawWaypointsBody(context, l, pointer);
     context.flushText(0,std::nullopt);
 }
 void renderWaypointsDocked(MinecraftUIRenderContext& context, glm::vec2 size, glm::vec2 pointer) {
@@ -486,7 +486,8 @@ void renderWaypointsDocked(MinecraftUIRenderContext& context, glm::vec2 size, gl
     drawSmallButton(context,l.closeX,l.top+4,ShapesLayout::closeWidth,12,translated(fromMapFlag ? "worldMap.back" : "closeButton"),
         closeHover,palette::keyFill,palette::keyEdge,closeHover ? palette::text : palette::dim);
     fill(context,l.left,l.top+ShapesLayout::headerHeight-1,l.width,1,palette::white,.14f);
-    drawWaypointsBody(context, l, pointer);
+    if (l.usable()) drawWaypointsBody(context, l, pointer);
+    else drawDockedTooShort(context, l, pointer.x, pointer.y);
     context.flushText(0,std::nullopt);
 }
 

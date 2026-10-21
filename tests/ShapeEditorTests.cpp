@@ -1,6 +1,7 @@
 #include "ui/ShapeEditor.h"
 #include "ui/ShapesLayout.h"
 #include "ui/Translations.h"
+#include <format>
 void check(bool, char const*);
 void shapeEditorTests() {
     using namespace lamium;
@@ -135,6 +136,35 @@ void shapeEditorTests() {
     check(cramped.hit(cramped.dockX + 2, cramped.top + 8).zone == ui::ShapesLayout::Zone::Dock
         && cramped.hit(cramped.closeX + 2, cramped.top + 8).zone == ui::ShapesLayout::Zone::Close,
         "it can still be undocked or closed");
+    // Nothing else is drawn then (drawDockedTooShort), so nothing else answers.
+    bool nothingElse = cramped.hit(cramped.keysX + 2, cramped.top + 8).zone == ui::ShapesLayout::Zone::None
+        && cramped.hit(cramped.drawAllX + 2, cramped.drawAllY + 4).zone == ui::ShapesLayout::Zone::None
+        && cramped.hit(cramped.listLeft + 10, cramped.rowsTop + 3).zone == ui::ShapesLayout::Zone::None
+        && cramped.hit(cramped.deleteX() + 2, cramped.actionsY + 4).zone == ui::ShapesLayout::Zone::None
+        && cramped.hit(cramped.left + 10, cramped.footerTop + 4).zone == ui::ShapesLayout::Zone::None
+        && !cramped.onScrollbar(cramped.listLeft + cramped.listWidth - 2, cramped.rowsTop + 3);
+    check(nothingElse, "a panel too short for its body answers only Close and Expand");
+    // Whenever a layout is usable, its parts stack without overlapping: the list
+    // above the detail pane, the preview above the fields, the fields above the
+    // actions, the actions above the footer. The Check tab's 60-unit preview and
+    // one text line also fit above the actions.
+    int usableLayouts = 0;
+    for (bool dockedView : {true, false})
+        for (bool full : {false, true})
+            for (bool draft : {false, true})
+                for (float h : {150.f, 180.f, 200.f, 253.f, 300.f, 360.f, 480.f}) {
+                    auto l = ui::ShapesLayout::fit(table, 480, h, dockedView, 12, 0, 13, 0, draft, false, full);
+                    if (!l.usable()) continue;
+                    ++usableLayouts;
+                    bool listAbove = !dockedView || l.rowsTop + l.listVisible * ui::ShapesLayout::rowHeight <= l.detailTop;
+                    bool stacked = listAbove && l.previewY + ui::ShapesLayout::previewSize <= l.fieldsTop
+                        && l.fieldY(l.fieldFirst + l.fieldVisible) <= l.actionsY - 2
+                        && l.actionsY + ui::ShapesLayout::actionsHeight <= l.footerTop
+                        && l.actionsY - 6 >= l.previewY - 2 + 60 + 5 + 10;
+                    check(stacked, std::format("usable layout stacks without overlap (docked={} full={} draft={} h={})",
+                        dockedView, full, draft, h).c_str());
+                }
+    check(usableLayouts >= 40, "most of those sizes fit their body");
     check(docked.hit(docked.actionX(1) + 2, docked.actionsY + 4).zone == ui::ShapesLayout::Zone::Action
         && docked.hit(docked.actionX(1) + 2, docked.actionsY + 4).index == 1, "draft cancel action");
     auto picking = ui::ShapesLayout::fit(table, 640, 360, false, 0, 0, 4, 0, false, true);
