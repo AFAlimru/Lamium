@@ -13,9 +13,8 @@ Experimental, default off; included in 0.1.7. Files live in
 Check and Materials tabs. It opens the file folder and warns before loading
 a file over 2 MB. Placements persist per world/server and dimension.
 
-Missing or unreadable structure files (L-237, follow-up implemented
-2026-10-22; initial checks (a)-(d) passed on `1fd201b`, follow-up checks
-(e)-(h) pending): failures are cached with the same two-second
+Missing or unreadable structure files (L-237, checked in game
+2026-10-22 on `1fd201b` and `1bf531e`): failures are cached with the same two-second
 file-time recheck as successful loads. A changed or restored file is retried;
 only a new or changed error is logged. While Schematics is on, unreadable
 placements are announced once per world generation, grouped into one toast

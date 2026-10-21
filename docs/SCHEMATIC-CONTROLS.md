@@ -3,8 +3,8 @@
 Status: design discussion, 2026-10-20, all recommendations adopted. L-231 is
 implemented and merged (PR #36, merge commit `780bfba`); its in-game checklist
 passed on 2026-10-21 (build `89c7925`). L-234 is merged (PR #37, merge commit
-`75152f1`) after in-game checks. L-236 (per-section ghost reuse) and L-237
-(missing-structure warning) are follow-ups. L-238 (menu and key parity,
+`75152f1`) after in-game checks. L-236 (per-section ghost reuse) is a
+follow-up; L-237 (missing-structure warning) is done. L-238 (menu and key parity,
 2026-10-22) is implemented and its in-game check passed (`41d3ea7`). This note records the
 agreed direction; the items under "Open questions" remain undecided.
 
@@ -276,8 +276,8 @@ still fits a small GUI screen (for example 480x253) before relying on it.
 
 ## Open questions
 
-- L-236 (per-section ghost reuse) and L-237 (missing-structure warning) are
-  separate follow-ups. L-238 is done; finer adjustments are expected only
+- L-236 (per-section ghost reuse) is a separate follow-up; L-237
+  (missing-structure warning) is done. L-238 is done; finer adjustments are expected only
   from use.
 
 ## Suggested order

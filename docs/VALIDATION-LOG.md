@@ -21,6 +21,17 @@ public history; the DLL SHA-256 in each entry identifies the build that was
 actually run. The binding-display item was renumbered from L-232 to L-235 at
 the same time, because origin took L-232 for the slime chunk indicator.
 
+## L-237 presentation follow-up checked in game (2026-10-22)
+
+`main` (`1bf531e`, implemented by Codex, reviewed before commit), deployed
+DLL SHA-256 `E091F246F080526E4CD53B7ECF6BA814482FE860BF92972C5C05F6EFD28F3FE5`,
+default release build, local `1.26.51.01 LIP` deployment, Windows x64.
+Maintainer report: checks (e)-(h) passed: the join toast is yellow, starts
+with the feature name, stays about six seconds and shows with toggle toasts
+off; the unreadable Placed row is yellow including its name; the load error
+sits at the same height on Placed, Check and Materials; with Schematics off,
+Check and Materials say it is off instead of "Counting...".
+
 ## L-237 unreadable schematic notice checked in game (2026-10-22)
 
 `main` (`1fd201b`, implemented by Codex, reviewed before commit), deployed
