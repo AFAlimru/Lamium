@@ -1064,6 +1064,12 @@ then rendering, screen and keys.
   use the old fields; a still-legacy placement is written back unchanged until
   edited. An unmarked `layerView` from the first cut-plane build falls back to
   the old fields.
+  Migration check: set `LAMIUM_MIGRATE_PLACEMENTS` to a world's
+  `lamium/schematics.json` and `LAMIUM_MIGRATE_SCHEMATICS` to
+  `mods/Lamium/schematics`, then run `LamiumTests`. It reports each placement's
+  old/new visible-cell counts, mismatches and dual-write result. This compares
+  the data semantics; rendering and the Check/Materials screens still need a
+  spot check.
   Ghosts are drawn per 16-block section (`GhostRenderer.cpp`): tinted ghosts
   where a
   block is missing, red outlines for wrong or extra blocks, yellow for a

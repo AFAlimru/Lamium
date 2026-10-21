@@ -20,6 +20,8 @@
 #include "features/schematic/PlacementOverlap.h"
 #include <algorithm>
 #include <array>
+#include <iostream>
+#include <span>
 #include <set>
 #include <cstdlib>
 #include <filesystem>
@@ -232,6 +234,72 @@ void sampleFiles() {
         }
         check(root.compound.find("format_version")->integer(version) && version == writtenFormatVersion, "a written export says version 2");
     }
+}
+
+// Optional: LAMIUM_MIGRATE_PLACEMENTS names a world's schematics.json and
+// LAMIUM_MIGRATE_SCHEMATICS the folder its file paths resolve in. Compares the
+// old six-direction view and the new structure-local view cell by cell, and
+// checks that the dual-written old fields survive back through fromLegacy.
+void migrationFiles() {
+    char* docValue = nullptr;
+    char* folderValue = nullptr;
+    size_t length = 0;
+    if (_dupenv_s(&docValue, &length, "LAMIUM_MIGRATE_PLACEMENTS") || !docValue) return;
+    std::unique_ptr<char, decltype(&std::free)> docOwned(docValue, &std::free);
+    if (_dupenv_s(&folderValue, &length, "LAMIUM_MIGRATE_SCHEMATICS") || !folderValue) return;
+    std::unique_ptr<char, decltype(&std::free)> folderOwned(folderValue, &std::free);
+    std::ifstream docStream(std::filesystem::path(docValue), std::ios::binary);
+    check(docStream.good(), "a migration placement document opens");
+    if (!docStream) return;
+    std::string doc{std::istreambuf_iterator<char>(docStream), {}};
+    PlacementSet set;
+    try { set = decodePlacements(doc); }
+    catch (std::exception const&) { check(false, "a migration placement document decodes"); return; }
+    int totalMismatch = 0, totalMissing = 0, totalDual = 0;
+    std::cout << "migration check: " << set.placements.size() << " placements\n";
+    for (auto const& p : set.placements) {
+        auto path = std::filesystem::path(folderValue) / std::filesystem::path(p.file);
+        std::ifstream file(path, std::ios::binary);
+        if (!file) { ++totalMissing; std::cout << "  missing: " << p.name << " (" << p.file << ")\n"; continue; }
+        std::string bytes{std::istreambuf_iterator<char>(file), {}};
+        Structure structure;
+        try { structure = parseStructure(span(bytes)); }
+        catch (std::exception const&) { ++totalMissing; std::cout << "  unreadable: " << p.name << "\n"; continue; }
+        Layers newView = p.layers.legacy ? fromLegacy(p.layers, structure.size, p.placement) : p.layers;
+        Layers oldView;
+        if (p.layers.legacy) {
+            oldView = p.layers;
+        } else {
+            oldView.legacy = true;
+            oldView.legacyAxis = p.layers.legacyAxis;
+            oldView.legacyMode = p.layers.legacyMode;
+            oldView.legacyIndex = p.layers.legacyIndex;
+        }
+        int visibleOld = 0, visibleNew = 0, mismatch = 0;
+        for (int x = 0; x < structure.size.x; ++x)
+            for (int y = 0; y < structure.size.y; ++y)
+                for (int z = 0; z < structure.size.z; ++z) {
+                    Point placed = localToPlaced(structure.size, p.placement, {x, y, z});
+                    bool oldShown = layerShown(oldView, structure.size, p.placement, placed);
+                    bool newShown = layerShown(newView, structure.size, p.placement, placed);
+                    visibleOld += oldShown;
+                    visibleNew += newShown;
+                    mismatch += oldShown != newShown;
+                }
+        Layers copy = newView;
+        dualWrite(copy, structure.size, p.placement);
+        Layers back = fromLegacy(copy, structure.size, p.placement);
+        bool dual = back.axis == newView.axis && back.mode == newView.mode && back.keep == newView.keep && back.cut == newView.cut;
+        totalMismatch += mismatch;
+        totalDual += !dual;
+        std::cout << "  " << p.name << " [" << (p.layers.legacy ? "old" : "new") << "] "
+                  << structure.size.x << "x" << structure.size.y << "x" << structure.size.z << " visible "
+                  << visibleOld << " -> " << visibleNew << " mismatches " << mismatch << " dual " << (dual ? "ok" : "FAIL") << "\n";
+    }
+    std::cout << "migration check: " << totalMismatch << " mismatched cells, " << totalDual
+              << " bad dual writes, " << totalMissing << " missing structures\n";
+    check(totalMismatch == 0 && totalDual == 0 && totalMissing == 0,
+          "actual placements keep their shown cells and dual-write");
 }
 
 void placementTransforms() {
@@ -1130,4 +1198,5 @@ void schematicTests() {
     structureRejects();
     structureWrittenShape();
     sampleFiles();
+    migrationFiles();
 }

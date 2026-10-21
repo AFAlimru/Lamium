@@ -21,6 +21,18 @@ public history; the DLL SHA-256 in each entry identifies the build that was
 actually run. The binding-display item was renumbered from L-232 to L-235 at
 the same time, because origin took L-232 for the slime chunk indicator.
 
+## L-234 migration cell check on real worlds (2026-10-21)
+
+Branch `schematic-layers`, `LamiumTests` with the migration harness
+(`LAMIUM_MIGRATE_PLACEMENTS` / `LAMIUM_MIGRATE_SCHEMATICS`), default release
+build, Windows x64. Three local worlds (8 placements: 6 old six-direction,
+2 structure-space). For every cell the old-form view and the new
+structure-local view were compared, and each new view was dual-written and
+read back. Result: 0 mismatched cells, 0 bad dual writes, 0 missing
+structures. This is a data/cell comparison, not in-game rendering, Check or
+Materials. The one-placement and three-placement worlds were old-form only;
+the four-placement world mixed two old and two new placements.
+
 ## L-231 move-target controls checked (2026-10-21)
 
 Build `89c7925` (branch `schematic-controls`), deployed DLL SHA-256
