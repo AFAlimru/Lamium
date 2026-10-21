@@ -3,9 +3,10 @@
 Status: design discussion, 2026-10-20, all recommendations adopted. L-231 is
 implemented and merged (PR #36, merge commit `780bfba`); its in-game checklist
 passed on 2026-10-21 (build `89c7925`). L-234 is implemented on branch
-`schematic-layers` and awaits its in-game check. This note records the agreed
-direction; the items under "Open questions" remain
-undecided.
+`schematic-layers`; its in-game check passed on 2026-10-21 (DLL
+`109C3201…`), and it awaits review and merge. L-236 (per-section ghost reuse)
+and L-237 (missing-structure warning) are follow-ups. This note records the
+agreed direction; the items under "Open questions" remain undecided.
 
 [SCHEMATIC.md](SCHEMATIC.md) still describes the behavior in the game today;
 [BACKLOG.md](BACKLOG.md) owns task status (L-231 controls, L-234 layer model).
@@ -184,7 +185,8 @@ above; nothing remains proposed.
 
 ## Open questions
 
-- L-234's in-game check and merge (L-231 is merged).
+- L-234's review and merge; L-236 (per-section ghost reuse) and L-237
+  (missing-structure warning) are separate follow-ups.
 
 ## Suggested order
 
@@ -196,7 +198,7 @@ From the 2026-10-20 reviews, for the maintainer to confirm:
 2. **L-234 as a separate step**: prove with pure logic that the conversion from
    every old direction and mode shows the same cells, then implement the cut
    plane and the storage form. Implemented on `schematic-layers`; in-game check
-   pending.
+   passed 2026-10-21, review and merge pending.
 3. **Then inspection work**: L-183's single-row ignore first; L-190's
    multi-selection after it, sharing only the parts that fit. L-185 stays a
    separate, larger task.

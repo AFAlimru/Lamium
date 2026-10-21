@@ -78,7 +78,8 @@ choices live in the L-items. An L-item wins if a summary drifts.
    item's stop/resume conditions. L-181 trident pose is low priority.
 2. **Small and medium work before large features/integration** (maintainer
    2026-10-10): L-196 license/provenance evidence; L-231 controls UX is
-   merged; L-234 layer model follows as a separate step and is not started;
+   merged; L-234 cut-plane layer model is implemented and checked, awaiting
+   review and merge; L-236/L-237 are follow-ups;
    L-232 slime chunk indicator (needs in-game
    verification of the rule first); remaining Design/Research in L-166 trade
    helpers,
@@ -423,8 +424,10 @@ wheel subset only. L-169 owns transfer extensions; do not start without
 choosing the subset and model.
 
 ### L-234 Replace the six-direction layer model with a cut plane
-Kind: Design. Implemented on branch `schematic-layers` 2026-10-21; build and
-pure tests pass, in-game check pending. Maintainer 2026-10-20: the six
+Kind: Design. Implemented on branch `schematic-layers` 2026-10-21; in-game
+check passed 2026-10-21 on DLL
+`109C3201AB961F9231F4C66B8FDA8927D5C3FA97E05A3E971F58AB00A2AB585C`. Review
+and merge pending. Maintainer 2026-10-20: the six
 directions will not last; move to Axis (Y/X/Z) + Cut + Keep + Mode as
 recorded in [SCHEMATIC-CONTROLS.md](SCHEMATIC-CONTROLS.md). Cut is a
 structure-local offset along the axis, so moving, rotating or mirroring a
@@ -449,11 +452,23 @@ HUD/placed-screen values (Axis, Cut, Mode and Keep). Layer toasts name the
 operation and value; the ghost key only covers visible layer fields. Tests
 cover the all-direction/mode cell match under every rotation and mirror, the
 legacy round-trip, missing-structure saves and placement-attached cuts.
-In-game check
-covers the drawing, Check and Materials agreeing on the cut. A new-form cut
-plane blocks turning, resetting and cut number input while the structure is
-missing; legacy-form placements can still turn. L-231 is merged; L-234 follows
-as a separate step.
+In-game check passed: structure-local cuts, axis changes keeping the cut,
+attached rotation/mirror, the five-item Layers menu, the three layer keys,
+operation-naming toasts, and no rebuild for layer fields that do not affect
+visibility. A new-form cut plane blocks turning, resetting, layer keys and cut
+number input while the structure is missing; the saved layer view stayed put.
+A missing structure is still only reported after selecting the placement, not
+on world join or in the Placed list (L-237). L-231 is merged; L-234 awaits
+review and merge. L-236 covers per-section ghost reuse.
+
+### L-237 Report a missing schematic structure without selecting it
+Kind: Design. User report 2026-10-21 during the L-234 missing-structure test:
+when a placement's `.mcstructure` cannot be loaded, keys/menu/settings refuse
+to change it and the saved layer state is kept, but nothing warns on world
+join, in Settings, or in the Placed list; the error appears only after the
+placement is selected. Want a bounded one-per-world warning and a marker in
+the list/settings, using the cached load error rather than rescanning files.
+Follows L-234.
 
 ### L-236 Rebuild only the ghost sections whose visible layer changed
 Kind: Design. Performance follow-up split from L-234 (2026-10-21). The ghost
@@ -1301,7 +1316,7 @@ Open work, to choose with the maintainer rather than implement as one batch:
   L-117 Japanese entity-name text, and paused drawing work L-192/L-193/L-194.
 - Controls: L-230 view-directed movement (checked in game 2026-10-20),
   L-231 control rework (merged in PR #36) and L-234 cut-plane layer model
-  (not started). The design is in
+  (implemented and checked, review pending; L-236/L-237 follow-ups). The design is in
   [SCHEMATIC-CONTROLS.md](SCHEMATIC-CONTROLS.md).
 - Inspection and checking: L-183 mismatch suppression, L-184 saved ghost/
   container data, L-190 multi-selection; permission-gated world load L-185.

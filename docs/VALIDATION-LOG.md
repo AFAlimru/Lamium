@@ -21,6 +21,25 @@ public history; the DLL SHA-256 in each entry identifies the build that was
 actually run. The binding-display item was renumbered from L-232 to L-235 at
 the same time, because origin took L-232 for the slime chunk indicator.
 
+## L-234 cut-plane layers checked in game (2026-10-21)
+
+Branch `schematic-layers` (`3d68fd3`), deployed DLL SHA-256
+`109C3201AB961F9231F4C66B8FDA8927D5C3FA97E05A3E971F58AB00A2AB585C`, default
+release build (no trace/probe options), local `1.26.51.01 LIP` deployment,
+Windows x64. Maintainer report: the structure-local cut plane, axis changes
+keeping the cut, attached rotation/mirror, the five-item Layers menu
+(Axis/Cut/Mode/Keep/Cut here), the three layer keys, operation-naming toasts,
+and the no-rebuild behavior for layer fields that do not affect visibility
+all matched the intended behavior. Missing structure: with
+`broken_village_house.mcstructure` renamed away, keys, menu and the settings
+screen refused to change the placement and the saved layer view stayed put;
+restoring the file and reloading worked normally. After the restore the
+placement was edited normally, so the placement document differs from the
+pre-test backup; that is not a guard failure. The missing file is only
+reported after selecting the placement, not on world join or in the Placed
+list (L-237). Per-section ghost reuse (L-236) and Check reuse after a cut move
+are not checked.
+
 ## L-234 migration cell check on real worlds (2026-10-21)
 
 Branch `schematic-layers`, `LamiumTests` with the migration harness
