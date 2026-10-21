@@ -1604,5 +1604,11 @@ inline constexpr auto simplifiedChinese = std::to_array<Text>({
     {"help.key.cyclemovetarget", "按顺序切换有效的移动对象：蓝图、角1、角2或保存范围。"},
     {"schematic.layerNeedsStructure", "变更层之前请先加载蓝图。"},
     {"schematic.rotationNeedsStructure", "设置切断面后旋转或镜像放置前，请先加载蓝图。"},
+    {"key.Lamium.cyclelayeraxis", "切换切断轴"},
+    {"help.key.cyclelayeraxis", "按结构的 Y、X、Z 顺序切换切断轴。切断位置不变。"},
+    {"key.Lamium.cyclelayermode", "切换层的显示模式"},
+    {"help.key.cyclelayermode", "按全部、仅此层、到此层为止的顺序切换层的显示。"},
+    {"key.Lamium.togglelayerkeep", "切换保留侧"},
+    {"help.key.togglelayerkeep", "切换「到此层为止」保留的一侧：低侧或高侧。"},
 });
 }

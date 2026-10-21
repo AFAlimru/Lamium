@@ -459,6 +459,32 @@ Layers effectiveLayers(SavedPlacement const& p) {
     view.cut = std::clamp(view.cut, 0, std::max(0, layerCount(structure->size, view.axis) - 1));
     return view;
 }
+// One layer stepper step. The menu remembers it for Repeat; the dedicated keys
+// do not (Repeat is menu-only).
+void applyLayerStep(menu::Stepper stepper, int amount) {
+    auto structure = selectedStructure();
+    if (!structure) { ui::showMessageToast(ui::translated("schematic.layerNeedsStructure")); return; }
+    changeSelected([&](SavedPlacement& p) {
+        if (p.layers.legacy) p.layers = fromLegacy(p.layers, structure->size, p.placement);
+        if (stepper == menu::Stepper::LayerAxis) {
+            // Changing the axis keeps the cut; only Cut here moves it.
+            p.layers.axis = static_cast<LayerAxis>(((static_cast<int>(p.layers.axis) + amount) % 3 + 3) % 3);
+        } else if (stepper == menu::Stepper::LayerMode) {
+            p.layers.mode = static_cast<LayerMode>(((static_cast<int>(p.layers.mode) + amount) % 3 + 3) % 3);
+        } else if (stepper == menu::Stepper::LayerKeep) {
+            // A wheel can deliver several notches in one frame; keep the side
+            // for an even count, toggle for an odd one.
+            if (amount % 2 != 0)
+                p.layers.keep = p.layers.keep == LayerKeep::Low ? LayerKeep::High : LayerKeep::Low;
+        } else if (p.layers.mode == LayerMode::All) {
+            p.layers.mode = LayerMode::Only;
+        } else {
+            p.layers.cut += amount;
+        }
+        p.layers.cut = std::clamp(p.layers.cut, 0, std::max(0, layerCount(structure->size, p.layers.axis) - 1));
+        dualWrite(p.layers, structure->size, p.placement);
+    }, [&](SavedPlacement const& p) { return layerText(structure.get(), p); });
+}
 }
 
 std::optional<Point> viewFeet(IClientInstance& client) {
@@ -473,7 +499,8 @@ bool handles(Action action) {
     case Action::MovePlacementForward: case Action::MovePlacementBack: case Action::MovePlacementHere:
     case Action::MovePlacementLeft: case Action::MovePlacementRight: case Action::MovePlacementUp: case Action::MovePlacementDown:
     case Action::RotatePlacement: case Action::MirrorPlacement:
-    case Action::LayerUp: case Action::LayerDown: case Action::LayerHere:
+    case Action::LayerUp: case Action::LayerDown: case Action::LayerHere: case Action::CycleLayerAxis:
+    case Action::CycleLayerMode: case Action::ToggleLayerKeep:
     case Action::SchematicCorner1: case Action::SchematicCorner2:
         return true;
     default: return false;
@@ -565,6 +592,9 @@ void press(IClientInstance& client, Action action) {
         }, [&](SavedPlacement const& p) { return layerText(structure.get(), p); });
         return;
     }
+    case Action::CycleLayerAxis: applyLayerStep(menu::Stepper::LayerAxis, 1); return;
+    case Action::CycleLayerMode: applyLayerStep(menu::Stepper::LayerMode, 1); return;
+    case Action::ToggleLayerKeep: applyLayerStep(menu::Stepper::LayerKeep, 1); return;
     default: return;
     }
 }
@@ -662,31 +692,9 @@ void step(IClientInstance& client, menu::Stepper stepper, int amount) {
         }, [](SavedPlacement const& p) { return ui::translated("schematic.toast.mirror", p.name, mirrorName(p.placement.mirror)); });
         return;
     }
-    case S::LayerAxis: case S::LayerMode: case S::Layer: case S::LayerKeep: {
-        auto structure = selectedStructure();
-        if (!structure) { ui::showMessageToast(ui::translated("schematic.layerNeedsStructure")); return; }
-        changeSelected([&](SavedPlacement& p) {
-            if (p.layers.legacy) p.layers = fromLegacy(p.layers, structure->size, p.placement);
-            if (stepper == S::LayerAxis) {
-                // Changing the axis keeps the cut; only Cut here moves it.
-                p.layers.axis = static_cast<LayerAxis>(((static_cast<int>(p.layers.axis) + amount) % 3 + 3) % 3);
-            } else if (stepper == S::LayerMode) {
-                p.layers.mode = static_cast<LayerMode>(((static_cast<int>(p.layers.mode) + amount) % 3 + 3) % 3);
-            } else if (stepper == S::LayerKeep) {
-                // A wheel can deliver several notches in one frame; keep the
-                // side for an even count, toggle for an odd one.
-                if (amount % 2 != 0)
-                    p.layers.keep = p.layers.keep == LayerKeep::Low ? LayerKeep::High : LayerKeep::Low;
-            } else if (p.layers.mode == LayerMode::All) {
-                p.layers.mode = LayerMode::Only;
-            } else {
-                p.layers.cut += amount;
-            }
-            p.layers.cut = std::clamp(p.layers.cut, 0, std::max(0, layerCount(structure->size, p.layers.axis) - 1));
-            dualWrite(p.layers, structure->size, p.placement);
-        }, [&](SavedPlacement const& p) { return layerText(structure.get(), p); });
+    case S::LayerAxis: case S::LayerMode: case S::Layer: case S::LayerKeep:
+        applyLayerStep(stepper, amount);
         return;
-    }
     case S::Placement: {
         std::string name;
         bool any = session::change([&](PlacementSet& set) {

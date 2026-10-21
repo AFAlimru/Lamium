@@ -1639,6 +1639,12 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"help.key.cyclemovetarget", "Selects the next valid move target: placement, corner 1, corner 2 or the save area.", "有効な移動対象（配置・角1・角2・範囲）を順に切り替えます。"},
     {"schematic.layerNeedsStructure", "Load the schematic before changing its layers.", "層を変更するには設計図を読み込んでください。"},
     {"schematic.rotationNeedsStructure", "Load the schematic before turning or mirroring it while a cut plane is set.", "切断面を設定した配置を回す・鏡にするには、設計図を読み込んでください。"},
+    {"key.Lamium.cyclelayeraxis", "Cycle the cut axis", "切断面の軸を切り替え"},
+    {"help.key.cyclelayeraxis", "Cycles the cut plane through the structure's Y, X and Z axes. The cut position stays.", "切断面の軸を、構造物の Y・X・Z の順に切り替えます。切断位置は変わりません。"},
+    {"key.Lamium.cyclelayermode", "Cycle the layer mode", "層の表示モードを切り替え"},
+    {"help.key.cyclelayermode", "Cycles the layer display: all, only, up to.", "層の表示を、すべて・この層だけ・この層まで、の順に切り替えます。"},
+    {"key.Lamium.togglelayerkeep", "Switch the kept side", "残す側を切り替え"},
+    {"help.key.togglelayerkeep", "Switches the side kept by \"up to\": low or high.", "「この層まで」で残す側を、低い側・高い側の間で切り替えます。"},
 });
 enum class Locale { English, Japanese, SimplifiedChinese };
 inline constexpr std::array locales{Locale::English, Locale::Japanese, Locale::SimplifiedChinese};
