@@ -23,9 +23,10 @@ std::uint64_t revision = 1;
 std::uint64_t worldGeneration = 0; // world join / session stop, for view state
 std::uint64_t nextId = 1; // never reset: ids are not reused within the session
 struct Cached {
-    std::filesystem::file_time_type modified;
+    std::optional<std::filesystem::file_time_type> modified;
     std::chrono::steady_clock::time_point checked;
     std::shared_ptr<Structure const> structure;
+    std::string error;
 };
 std::map<std::string, Cached> cache;
 constexpr size_t maxFiles = 2000;
@@ -69,22 +70,30 @@ bool commit(PlacementSet candidate) {
     return true;
 }
 std::shared_ptr<Structure const> load(std::string const& relative, std::string* error) {
+    auto now = std::chrono::steady_clock::now();
+    auto found = cache.find(relative);
+    auto cached = [&]() {
+        if (error) *error = found->second.error;
+        return found->second.structure;
+    };
+    // Snapshots run every frame: look at the file's time at most every two seconds.
+    if (found != cache.end() && now - found->second.checked < std::chrono::seconds(2)) return cached();
+    std::optional<std::filesystem::file_time_type> modified;
     auto fail = [&](std::string const& why) -> std::shared_ptr<Structure const> {
+        if (found == cache.end() || found->second.error != why) log(relative + ": " + why);
+        cache[relative] = {modified, now, nullptr, why};
         if (error) *error = why;
         return nullptr;
     };
     if (!safeSchematicPath(relative)) return fail("unsafe path");
-    // Snapshots run every frame: look at the file's time at most every two seconds.
-    auto now = std::chrono::steady_clock::now();
-    if (auto found = cache.find(relative); found != cache.end() && now - found->second.checked < std::chrono::seconds(2))
-        return found->second.structure;
     auto path = folder() / std::filesystem::u8path(relative);
     std::error_code code;
-    auto modified = std::filesystem::last_write_time(path, code);
+    auto time = std::filesystem::last_write_time(path, code);
     if (code) return fail("file not found");
-    if (auto found = cache.find(relative); found != cache.end() && found->second.modified == modified) {
+    modified = time;
+    if (found != cache.end() && found->second.modified == modified) {
         found->second.checked = now;
-        return found->second.structure;
+        return cached();
     }
     auto size = std::filesystem::file_size(path, code);
     if (code || size > maxFileSize) return fail("file too large");
@@ -93,10 +102,10 @@ std::shared_ptr<Structure const> load(std::string const& relative, std::string* 
     if (!file.read(reinterpret_cast<char*>(bytes.data()), static_cast<std::streamsize>(bytes.size()))) return fail("could not read the file");
     try {
         auto structure = std::make_shared<Structure const>(parseStructure(bytes));
-        cache[relative] = {modified, now, structure};
+        cache[relative] = {modified, now, structure, {}};
+        if (error) error->clear();
         return structure;
     } catch (std::exception const& problem) {
-        log(relative + ": " + problem.what());
         return fail(problem.what());
     }
 }
@@ -140,6 +149,23 @@ std::shared_ptr<Structure const> loaded(std::string const& relative) {
     std::lock_guard lock(mutex);
     auto found = cache.find(relative);
     return found == cache.end() ? nullptr : found->second.structure;
+}
+
+std::string loadError(std::string const& relative) {
+    std::lock_guard lock(mutex);
+    auto found = cache.find(relative);
+    return found == cache.end() ? std::string{} : found->second.error;
+}
+
+std::vector<Unreadable> unreadable() {
+    std::lock_guard lock(mutex);
+    std::vector<Unreadable> out;
+    for (auto const& p : set.placements) {
+        auto found = cache.find(p.file);
+        if (found != cache.end() && !found->second.error.empty())
+            out.push_back({p.id, p.name, p.file, found->second.error});
+    }
+    return out;
 }
 
 PlacementSet current() {

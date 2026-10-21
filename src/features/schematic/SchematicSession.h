@@ -32,6 +32,13 @@ inline constexpr std::uintmax_t largeFileBytes = 2ull * 1024 * 1024;
 std::shared_ptr<Structure const> structure(std::string const& relative, std::string* error = nullptr);
 // Only what is already loaded; never reads the disk.
 std::shared_ptr<Structure const> loaded(std::string const& relative);
+// Cached failures only; these queries never load a file.
+std::string loadError(std::string const& relative);
+struct Unreadable {
+    std::uint64_t id = 0;
+    std::string name, file, error;
+};
+std::vector<Unreadable> unreadable();
 
 PlacementSet current();
 // Changes when the joined world changes (or the session stops), so view
