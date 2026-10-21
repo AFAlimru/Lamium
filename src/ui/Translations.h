@@ -589,7 +589,7 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"schematicMenuSmall", "Small menu in the lower right: {}", "小さく右下に出す: {}"},
     {"help.schematic.menuSmall", "Shows the schematic menu smaller in the lower right, so the view around the crosshair stays free.", "設計図メニューを右下に小さく出し、照準のまわりを見えるままにします。"},
     {"schematicRepeatAll", "Repeat every menu step: {}", "メニューの全操作を Repeat: {}"},
-    {"help.schematicRepeatAll", "When on, Repeat also covers the layer axis and mode. Movement, rotation, mirror and the layer index are always repeatable.", "オンにすると、Repeat が層の向きと表示モードも繰り返します。移動・回転・ミラー・層番号は常に繰り返せます。"},
+    {"help.schematic.repeatAllSteps", "When on, Repeat also covers the layer axis and mode. Movement, rotation, mirror and the layer index are always repeatable.", "オンにすると、Repeat が層の向きと表示モードも繰り返します。移動・回転・ミラー・層番号は常に繰り返せます。"},
     {"schematicMenuReopen", "Reopen where it was closed: {}", "閉じたときの画面で開く: {}"},
     {"help.schematic.menuReopen", "Off: the menu opens at its category list. On: it opens at the level shown when it was closed.", "オフ: メニューは分類の一覧から開きます。オン: 閉じたときに表示していた段で開きます。"},
     {"schematicOutlineDistance", "Ghost outlines up to: {:.0f} blocks", "ゴーストの枠線を描く距離: {:.0f} ブロック"},

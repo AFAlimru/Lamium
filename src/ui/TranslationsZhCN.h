@@ -581,7 +581,7 @@ inline constexpr auto simplifiedChinese = std::to_array<Text>({
     {"schematicMenuSmall", "在右下角缩小显示: {}"},
     {"help.schematic.menuSmall", "在右下角缩小显示蓝图菜单，保持准星周围可见。"},
     {"schematicRepeatAll", "重复菜单的所有操作: {}"},
-    {"help.schematicRepeatAll", "开启后，重复也会涵盖层的方向和显示模式。移动、旋转、镜像和层编号始终可重复。"},
+    {"help.schematic.repeatAllSteps", "开启后，重复也会涵盖层的方向和显示模式。移动、旋转、镜像和层编号始终可重复。"},
     {"schematicMenuReopen", "在关闭时的位置打开: {}"},
     {"help.schematic.menuReopen", "关: 菜单从分类列表打开。开: 在关闭时显示的那一层打开。"},
     {"schematicOutlineDistance", "幽灵轮廓线绘制范围: {:.0f} 格以内"},
