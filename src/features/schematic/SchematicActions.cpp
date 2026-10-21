@@ -4,6 +4,7 @@
 #include "features/schematic/MoveDirection.h"
 #include "features/schematic/MoveTarget.h"
 #include "features/schematic/TargetRay.h"
+#include "features/schematic/UnreadableNotice.h"
 #include "features/schematic/SchematicSession.h"
 #include "app/Runtime.h"
 #include "features/schematic/Selection.h"
@@ -31,6 +32,7 @@ namespace {
 using input::Action;
 MoveTarget moveTarget = MoveTarget::Placement;
 std::optional<menu::Stepper> remembered;
+UnreadableNotice unreadableNotice;
 std::uint64_t lastGeneration = std::numeric_limits<std::uint64_t>::max();
 int lastDimension = std::numeric_limits<int>::min();
 void changeTarget(MoveTarget next);
@@ -836,6 +838,15 @@ void adjustFrame(MinecraftUIRenderContext& context, float, float) {
     IClientInstance& client = context.mClient;
     adjustClient = &client;
     syncLifecycle(client);
+    std::vector<UnreadablePlacement> unreadable;
+    for (auto const& p : session::unreadable()) unreadable.push_back({p.id, p.name});
+    auto names = unreadableNotice.update(session::generation(), Runtime::instance().preferences().schematic.enabled, unreadable);
+    if (!names.empty()) {
+        std::string shown = names.front();
+        if (names.size() > 1) shown += ", " + names[1];
+        if (names.size() > 2) shown += "...";
+        ui::showMessageToast(ui::translated("schematic.toast.unreadable", names.size(), shown));
+    }
     if (!adjustHeld.load()) return;
     // One toast: what the wheel repeats, then what the step reported, so the
     // step's own toast does not replace the first at once.

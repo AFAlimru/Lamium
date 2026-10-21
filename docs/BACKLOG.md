@@ -79,7 +79,7 @@ choices live in the L-items. An L-item wins if a summary drifts.
 2. **Small and medium work before large features/integration** (maintainer
    2026-10-10): L-196 license/provenance evidence; L-231 controls UX and
    L-234 cut-plane layers are merged; L-238 menu/key parity is done;
-   L-237 missing-structure notice is specified (Ready, for Codex); L-236 is
+   L-237 missing-structure notice is implemented (in-game check pending); L-236 is
    a follow-up; L-232 slime chunk indicator (needs in-game
    verification of the rule first); remaining Design/Research in L-166 trade
    helpers,
@@ -424,13 +424,16 @@ wheel subset only. L-169 owns transfer extensions; do not start without
 choosing the subset and model.
 
 ### L-237 Report a missing schematic structure without selecting it
-Kind: Ready (spec agreed with the maintainer 2026-10-22; to be implemented
-by Codex, then checked in game by the maintainer). User report 2026-10-21
+Kind: Ready, implemented 2026-10-22; in-game check pending. Spec agreed with
+the maintainer 2026-10-22. Failure caching and read-only queries, the tested
+per-generation notice rule, batched toast, Placed warning marker and HUD
+message are implemented with English, Japanese and Simplified Chinese text.
+The maintainer's checks (a)-(d) below remain pending. User report 2026-10-21
 during the L-234 missing-structure test: when a placement's `.mcstructure`
 cannot be loaded, its ghosts are simply absent and the error appears only
 after the placement is selected in the Schematics screen.
 
-Found while specifying (2026-10-22): `session::load()`
+Found before implementation while specifying (2026-10-22): `session::load()`
 (`src/features/schematic/SchematicSession.cpp`) caches only successes. A
 failure is retried on every call, and `session::snapshot()` runs several
 times per frame (ghost renderer, verify, map layers, target info), so a

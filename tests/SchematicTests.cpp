@@ -15,6 +15,7 @@
 #include "features/schematic/MoveDirection.h"
 #include "features/schematic/MoveTarget.h"
 #include "features/schematic/TargetRay.h"
+#include "features/schematic/UnreadableNotice.h"
 #include "features/schematic/RestPose.h"
 #include "features/schematic/PreviewView.h"
 #include "features/schematic/GhostFaces.h"
@@ -1332,7 +1333,29 @@ void targetRayRules() {
     auto area = boxEntry(through, 0, 0, 0, 4, 4, 4);
     check(area && std::abs(*area - 2) < 1e-9, "an area box uses the same entry distance");
 }
+void unreadableNoticeRules() {
+    using namespace lamium::schematic;
+    UnreadableNotice notice;
+    std::vector<UnreadablePlacement> failed{{1, "House"}, {2, "Tower"}, {3, "Bridge"}};
+    std::vector<std::string> names{"House", "Tower", "Bridge"};
+    check(notice.update(1, true, {}).empty(), "no unreadable placements means no announcement");
+    check(notice.update(1, true, failed) == names, "new failures in one frame form one announcement");
+    check(notice.update(1, true, failed).empty(), "a placement is announced only once per generation");
+    notice.update(1, true, {});
+    check(notice.update(1, true, failed).empty(), "recovery and failure again do not repeat the announcement");
+    failed.push_back({4, "House"});
+    check(notice.update(1, true, failed) == std::vector<std::string>{"House"}, "placement identity is its id, not its name");
+    failed.pop_back();
+    check(notice.update(2, true, failed) == names, "a new world generation forgets announcements");
+    check(notice.update(3, false, failed).empty(), "Schematics off announces nothing");
+    check(notice.update(3, true, failed) == names, "Schematics off does not mark failures as announced");
+    check(notice.update(3, false, failed).empty() && notice.update(3, true, failed).empty(),
+          "switching Schematics off and on keeps announcements in the same world");
+    notice.update(4, false, {});
+    check(notice.update(5, true, failed) == names, "session stop and rejoin forget announcements");
+}
 void schematicTests() {
+    unreadableNoticeRules();
     rayCells();
     ghostLook();
     otherHalves();

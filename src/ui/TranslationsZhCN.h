@@ -706,6 +706,8 @@ inline constexpr auto simplifiedChinese = std::to_array<Text>({
     {"schematic.toast.mirror", "{}: 镜像 {}"},
     {"schematic.toast.noMistakes", "没有发现错误"},
     {"schematic.toast.counting", "仍在统计"},
+    {"schematic.toast.unreadable", "无法读取文件的放置: {} 个（{}）"},
+    {"schematic.hud.unreadable", "无法读取文件"},
     {"schematic.hud.left", "剩余材料"},
     {"schematic.hud.correct", "正确"},
     {"schematic.hud.wrong", "错误/多余"},

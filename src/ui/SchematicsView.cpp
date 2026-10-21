@@ -878,7 +878,13 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
             // The selected placement: the accent bar, like the sidebar's current entry.
             if (i == schematicSet.selected) fill(context,l.listLeft+1,y,2,ShapesLayout::rowHeight,palette::accent);
             float nameEnd = showCoords ? coordsX - 4 : progressX - 4;
-            label(context,left,y+3,nameEnd-left,p.name,here ? palette::text : palette::faint);
+            float nameX = left;
+            if (!schematic::session::loadError(p.file).empty()) {
+                float markW = textWidth(context,"! ");
+                label(context,nameX,y+3,markW,"!",palette::warning);
+                nameX += markW;
+            }
+            label(context,nameX,y+3,nameEnd-nameX,p.name,here ? palette::text : palette::faint);
             if (showCoords)
                 label(context,coordsX,y+3,coordsW,here ? std::format("{}, {}, {}", p.placement.origin.x, p.placement.origin.y, p.placement.origin.z)
                     : screen::dimensionName(p.dimension),palette::dim,Align::Right);

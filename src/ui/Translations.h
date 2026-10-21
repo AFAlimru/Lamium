@@ -714,6 +714,8 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"schematic.toast.mirror", "{}: mirror {}", "{}: 反転 {}"},
     {"schematic.toast.noMistakes", "No mistakes found", "間違いはありません"},
     {"schematic.toast.counting", "Still counting", "まだ集計中です"},
+    {"schematic.toast.unreadable", "Can't read the file of {} placement(s): {}", "設計図ファイルを読めない配置: {} 件（{}）"},
+    {"schematic.hud.unreadable", "File unreadable", "ファイルを読めない"},
     {"schematic.hud.left", "Materials left", "残りの資材"},
     {"schematic.hud.correct", "Correct", "正しい"},
     {"schematic.hud.wrong", "Wrong/extra", "違う・余計"},
