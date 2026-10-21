@@ -78,7 +78,8 @@ choices live in the L-items. An L-item wins if a summary drifts.
    item's stop/resume conditions. L-181 trident pose is low priority.
 2. **Small and medium work before large features/integration** (maintainer
    2026-10-10): L-196 license/provenance evidence; L-231 controls UX is
-   merged; L-234 layer model follows as a separate step and is not started;
+   merged; L-234 cut-plane layer model is implemented and checked, awaiting
+   review and merge; L-236/L-237 are follow-ups;
    L-232 slime chunk indicator (needs in-game
    verification of the rule first); remaining Design/Research in L-166 trade
    helpers,
@@ -423,29 +424,63 @@ wheel subset only. L-169 owns transfer extensions; do not start without
 choosing the subset and model.
 
 ### L-234 Replace the six-direction layer model with a cut plane
-Kind: Design, no implementation selected. Maintainer 2026-10-20: the six
+Kind: Design. Implemented on branch `schematic-layers` 2026-10-21; in-game
+check passed 2026-10-21 on DLL
+`109C3201AB961F9231F4C66B8FDA8927D5C3FA97E05A3E971F58AB00A2AB585C`. Review
+and merge pending. Maintainer 2026-10-20: the six
 directions will not last; move to Axis (Y/X/Z) + Cut + Keep + Mode as
-recorded in [SCHEMATIC-CONTROLS.md](SCHEMATIC-CONTROLS.md). Cut is a local
-offset along the axis (the world coordinate is display only), so moving a
-placement keeps its slice; check and materials keep reading the same region.
+recorded in [SCHEMATIC-CONTROLS.md](SCHEMATIC-CONTROLS.md). Cut is a
+structure-local offset along the axis, so moving, rotating or mirroring a
+placement keeps the same build cells; check and materials keep reading the
+same region. A single plane cannot express a compound X+Y cut; documented
+limitation.
 Decided 2026-10-20: storage keeps document `version: 1` with a per-placement
 `layerView` object (the old six-direction `layerAxis` cannot be reused) and
-always dual-writes the exact legacy fields when the placed size is known; cut
-edits wait until the size is known, so the legacy fields never go stale. The
-Layers menu is Axis / Cut / Mode / Keep / Slice from view / Cut here; Show all
-is dropped because Mode has All. Keep is a stepper. The slice cuts at the feet
-in normal play and at the detached camera in Freelook/FreeCamera, on the
-dominant full-view axis with Y/X/Z tie order, and sets the remembered
-adjustment to the cut. Third review, adopted 2026-10-20: Cut here keeps the
-axis and keep and sets the cut at the view source's layer (switching All to
-Only); changing the axis sets the cut at the view source's layer along the new
-axis, clamped and toasted. Check and materials keep reading the same region.
-Remaining: prove with pure tests that converting every old direction and mode
-shows the same cells, then implement. Include the post-rotation extents, a
-missing structure file, and an old-version save → new-version → old-version
-round-trip, and confirm the drawing, Check and Materials agree. The 2026-10-20
-reviews recommend L-231
-first and L-234 as a separate step; a prototype may use a separate branch.
+always dual-writes the exact legacy fields when the size is known; the old
+fields are placed-box based and are mapped through the current rotation and
+mirror. Cut edits wait until the size is known, so the legacy fields never go
+stale. The Layers menu is Axis / Cut / Mode / Keep / Cut here; Show all is
+dropped because Mode has All. Keep is a stepper. Cut here keeps the axis and
+keep and sets the cut at the view source's layer (switching All to Only).
+Changing the axis keeps the cut, clamped to the new extent. Check and
+materials keep reading the same region. Decided 2026-10-21: the view slice is
+removed (it duplicated Axis + Cut here and changed Only/Keep as a side
+effect); rotation and mirror are structure-attached.
+Built: pure conversion from every old direction and mode, the `layerView`
+storage form with legacy dual-write, the structure-local Layers menu, and the
+HUD/placed-screen values (Axis, Cut, Mode and Keep). Layer toasts name the
+operation and value; the ghost key only covers visible layer fields. Tests
+cover the all-direction/mode cell match under every rotation and mirror, the
+legacy round-trip, missing-structure saves and placement-attached cuts.
+In-game check passed: structure-local cuts, axis changes keeping the cut,
+attached rotation/mirror, the five-item Layers menu, the three layer keys,
+operation-naming toasts, and no rebuild for layer fields that do not affect
+visibility. A new-form cut plane blocks turning, resetting, layer keys and cut
+number input while the structure is missing; the saved layer view stayed put.
+A missing structure is still only reported after selecting the placement, not
+on world join or in the Placed list (L-237). L-231 is merged; L-234 awaits
+review and merge. L-236 covers per-section ghost reuse.
+
+### L-237 Report a missing schematic structure without selecting it
+Kind: Design. User report 2026-10-21 during the L-234 missing-structure test:
+when a placement's `.mcstructure` cannot be loaded, keys/menu/settings refuse
+to change it and the saved layer state is kept, but nothing warns on world
+join, in Settings, or in the Placed list; the error appears only after the
+placement is selected. Want a bounded one-per-world warning and a marker in
+the list/settings, using the cached load error rather than rescanning files.
+Follows L-234.
+
+### L-236 Rebuild only the ghost sections whose visible layer changed
+Kind: Design. Performance follow-up split from L-234 (2026-10-21). The ghost
+cache key is per placement, so moving the cut discards and rebuilds every
+16-block section, including sections whose shown cells did not change. Give
+each section a layer visibility signature (fully shown, fully hidden, or the
+cut boundary inside it) and reuse unchanged sections when the cut moves;
+changing an unused field (Keep under Only, Axis/Cut under All) already avoids
+a rebuild because the key only covers visible fields. Needs a pure
+section-state helper and tests, renderer cache changes, and an in-game frame
+check on a large placement while stepping the cut. Not part of the current
+L-234 branch.
 
 ### L-206 World map recording range is a fixed radius instead of the view distance
 Kind: Ready, implementation built; runtime coverage pending. User report
@@ -1281,7 +1316,7 @@ Open work, to choose with the maintainer rather than implement as one batch:
   L-117 Japanese entity-name text, and paused drawing work L-192/L-193/L-194.
 - Controls: L-230 view-directed movement (checked in game 2026-10-20),
   L-231 control rework (merged in PR #36) and L-234 cut-plane layer model
-  (not started). The design is in
+  (implemented and checked, review pending; L-236/L-237 follow-ups). The design is in
   [SCHEMATIC-CONTROLS.md](SCHEMATIC-CONTROLS.md).
 - Inspection and checking: L-183 mismatch suppression, L-184 saved ghost/
   container data, L-190 multi-selection; permission-gated world load L-185.

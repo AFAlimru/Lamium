@@ -28,7 +28,6 @@
 #include "features/information/SchematicTarget.h"
 #include "features/schematic/SchematicItems.h"
 #include "features/schematic/Selection.h"
-#include "features/schematic/SchematicActions.h"
 #include "features/schematic/MenuModel.h"
 #include "mc/deps/nbt/CompoundTag.h"
 #include "mc/deps/nbt/ListTag.h"
@@ -150,10 +149,11 @@ void changeSchematic(std::function<void(schematic::SavedPlacement&)> const& appl
 // ---- Schematics view (L-93) ----
 // Four tabs share the list-and-detail layout: placements, files, the
 // verification of the selected placement, and its materials.
-enum class SchematicField { X, Y, Z, Rotation, Mirror, MoveHere, Visible, LayerAxis, LayerMode, Layer, MatchLayer, Extras, Entities };
+enum class SchematicField { X, Y, Z, Rotation, Mirror, MoveHere, Visible, LayerAxis, LayerMode, Layer, Keep, MatchLayer, Extras, Entities };
 constexpr auto schematicFields = std::to_array<SchematicField>({SchematicField::X, SchematicField::Y, SchematicField::Z,
     SchematicField::Rotation, SchematicField::Mirror, SchematicField::MoveHere, SchematicField::Visible, SchematicField::LayerAxis,
-    SchematicField::LayerMode, SchematicField::Layer, SchematicField::MatchLayer, SchematicField::Extras, SchematicField::Entities});
+    SchematicField::LayerMode, SchematicField::Layer, SchematicField::Keep, SchematicField::MatchLayer, SchematicField::Extras,
+    SchematicField::Entities});
 int verifyFilter = 0; // 0 mistakes, 1 wrong or extra, 2 wrong state, 3 not placed
 int verifySelected = -1;
 bool materialsShownOnly = false;
@@ -268,7 +268,13 @@ void changeSchematic(std::function<void(schematic::SavedPlacement&)> const& appl
 int placedLayers(schematic::SavedPlacement const& p) {
     auto structure = schematic::session::structure(p.file);
     if (!structure) return 1;
-    return std::max(1, schematic::layerCount(schematic::placedSize(structure->size, p.placement.rotation), p.layers.axis));
+    return std::max(1, schematic::layerCount(structure->size, schematic::resolvedLayers(p.layers, structure->size, p.placement).axis));
+}
+// The cut plane as stored, converted from the old six-direction form when the
+// file predates layerView and the structure is loaded.
+schematic::Layers shownLayers(schematic::SavedPlacement const& p) {
+    auto structure = schematic::session::structure(p.file);
+    return structure ? schematic::resolvedLayers(p.layers, structure->size, p.placement) : p.layers;
 }
 // A large file is loaded only after the player confirms it.
 bool waitsForLoad(schematic::session::FileEntry const& f) {
@@ -362,14 +368,25 @@ void activateSchematicField(int index, int part) {
         });
         return;
     }
-    case SchematicField::Rotation:
-        changeSchematic([&](schematic::SavedPlacement& t) { t.placement.rotation = schematic::quarterTurns(t.placement.rotation + direction); });
-        return;
-    case SchematicField::Mirror:
+    case SchematicField::Rotation: {
+        auto structure = schematic::session::structure(p->file);
+        if (!structure && schematic::turnNeedsStructure(p->layers)) { screen::setMessage(translated("schematic.rotationNeedsStructure")); return; }
         changeSchematic([&](schematic::SavedPlacement& t) {
-            t.placement.mirror = static_cast<schematic::Mirror>((static_cast<int>(t.placement.mirror) + direction + 3) % 3);
+            schematic::turnPlacement(t.placement, t.layers, structure ? &structure->size : nullptr,
+                [&](schematic::Placement& turned) { turned.rotation = schematic::quarterTurns(turned.rotation + direction); });
         });
         return;
+    }
+    case SchematicField::Mirror: {
+        auto structure = schematic::session::structure(p->file);
+        if (!structure && schematic::turnNeedsStructure(p->layers)) { screen::setMessage(translated("schematic.rotationNeedsStructure")); return; }
+        changeSchematic([&](schematic::SavedPlacement& t) {
+            schematic::turnPlacement(t.placement, t.layers, structure ? &structure->size : nullptr, [&](schematic::Placement& turned) {
+                turned.mirror = static_cast<schematic::Mirror>((static_cast<int>(turned.mirror) + direction + 3) % 3);
+            });
+        });
+        return;
+    }
     case SchematicField::MoveHere:
         if (auto place = screen::standingPlace())
             changeSchematic([&](schematic::SavedPlacement& t) {
@@ -380,37 +397,61 @@ void activateSchematicField(int index, int part) {
     case SchematicField::Visible: changeSchematic([](schematic::SavedPlacement& t) { t.visible = !t.visible; }); return;
     case SchematicField::LayerAxis: {
         auto structure = schematic::session::structure(p->file);
-        auto placed = structure ? schematic::placedSize(structure->size, p->placement.rotation) : schematic::Size{1, 1, 1};
+        if (!structure) { screen::setMessage(translated("schematic.layerNeedsStructure")); return; }
         changeSchematic([&](schematic::SavedPlacement& t) {
-            t.layers = schematic::withAxis(t.layers, placed,
-                static_cast<schematic::LayerAxis>((static_cast<int>(t.layers.axis) + direction + 6) % 6));
+            if (t.layers.legacy) t.layers = schematic::fromLegacy(t.layers, structure->size, t.placement);
+            auto axis = static_cast<schematic::LayerAxis>((static_cast<int>(t.layers.axis) + direction + 3) % 3);
+            // Changing the axis keeps the cut; only Cut here moves it.
+            t.layers = schematic::withAxis(t.layers, structure->size, axis);
+            schematic::dualWrite(t.layers, structure->size, t.placement);
         });
         return;
     }
-    case SchematicField::LayerMode:
+    case SchematicField::LayerMode: {
+        auto structure = schematic::session::structure(p->file);
+        if (!structure) { screen::setMessage(translated("schematic.layerNeedsStructure")); return; }
         changeSchematic([&](schematic::SavedPlacement& t) {
+            if (t.layers.legacy) t.layers = schematic::fromLegacy(t.layers, structure->size, t.placement);
             t.layers.mode = static_cast<schematic::LayerMode>((static_cast<int>(t.layers.mode) + direction + 3) % 3);
+            schematic::dualWrite(t.layers, structure->size, t.placement);
         });
         return;
+    }
     case SchematicField::Layer: {
         int count = placedLayers(*p);
-        if (part == 0) { editingSchematicField = index; screen::number().beginPrecise(p->layers.index + 1); screen::clearMessage(); return; }
-        changeSchematic([&](schematic::SavedPlacement& t) { t.layers.index = std::clamp(t.layers.index + direction, 0, count - 1); });
+        auto structure = schematic::session::structure(p->file);
+        if (!structure) { screen::setMessage(translated("schematic.layerNeedsStructure")); return; }
+        auto view = schematic::resolvedLayers(p->layers, structure->size, p->placement);
+        if (part == 0) { editingSchematicField = index; screen::number().beginPrecise(view.cut + 1); screen::clearMessage(); return; }
+        changeSchematic([&](schematic::SavedPlacement& t) {
+            if (t.layers.legacy) t.layers = schematic::fromLegacy(t.layers, structure->size, t.placement);
+            t.layers.cut = std::clamp(t.layers.cut + direction, 0, count - 1);
+            schematic::dualWrite(t.layers, structure->size, t.placement);
+        });
+        return;
+    }
+    case SchematicField::Keep: {
+        auto structure = schematic::session::structure(p->file);
+        if (!structure) { screen::setMessage(translated("schematic.layerNeedsStructure")); return; }
+        changeSchematic([&](schematic::SavedPlacement& t) {
+            if (t.layers.legacy) t.layers = schematic::fromLegacy(t.layers, structure->size, t.placement);
+            t.layers.keep = t.layers.keep == schematic::LayerKeep::Low ? schematic::LayerKeep::High : schematic::LayerKeep::Low;
+            schematic::dualWrite(t.layers, structure->size, t.placement);
+        });
         return;
     }
     case SchematicField::MatchLayer: {
-        // The layer the player stands in, along the chosen direction; showing
-        // all layers switches to "this layer only".
-        auto place = screen::standingPlace();
+        // The layer the player stands in, along the chosen axis; showing all
+        // layers switches to "this layer only".
+        auto place = screen::client() ? schematic::actions::viewFeet(*screen::client()) : std::nullopt;
         auto structure = schematic::session::structure(p->file);
-        if (!place || !structure) return;
-        auto placed = schematic::placedSize(structure->size, p->placement.rotation);
-        schematic::Point offset{place->x - p->placement.origin.x, place->y - p->placement.origin.y, place->z - p->placement.origin.z};
-        int layer = schematic::layerOf(placed, p->layers.axis, offset);
-        int count = schematic::layerCount(placed, p->layers.axis);
+        if (!structure) { screen::setMessage(translated("schematic.layerNeedsStructure")); return; }
+        if (!place) return;
         changeSchematic([&](schematic::SavedPlacement& t) {
-            t.layers.index = std::clamp(layer, 0, count - 1);
+            if (t.layers.legacy) t.layers = schematic::fromLegacy(t.layers, structure->size, t.placement);
+            t.layers.cut = schematic::cutAlong(structure->size, t.placement, t.layers.axis, {place->x, place->y, place->z});
             if (t.layers.mode == schematic::LayerMode::All) t.layers.mode = schematic::LayerMode::Only;
+            schematic::dualWrite(t.layers, structure->size, t.placement);
         });
         return;
     }
@@ -642,23 +683,24 @@ std::string fieldValue(schematic::SavedPlacement const& p, SchematicField field)
     case SchematicField::Mirror:
         return translated(p.placement.mirror == schematic::Mirror::X ? "schematic.mirror.x"
             : p.placement.mirror == schematic::Mirror::Z ? "schematic.mirror.z" : "schematic.mirror.none");
-    case SchematicField::LayerAxis: {
-        static constexpr std::array<std::string_view, 6> axes{"schematic.axis.up", "schematic.axis.down", "schematic.axis.east",
-            "schematic.axis.west", "schematic.axis.south", "schematic.axis.north"};
-        return translated(axes[static_cast<size_t>(p.layers.axis)]);
-    }
-    case SchematicField::LayerMode:
-        return translated(p.layers.mode == schematic::LayerMode::Only ? "schematic.mode.only"
-            : p.layers.mode == schematic::LayerMode::UpTo ? "schematic.mode.upTo" : "schematic.mode.all");
-    case SchematicField::Layer: return translated("schematic.layerValue", p.layers.index + 1, placedLayers(p));
+    case SchematicField::LayerAxis: return schematic::actions::axisText(shownLayers(p).axis);
+    case SchematicField::LayerMode: return schematic::actions::modeText(shownLayers(p).mode);
+    case SchematicField::Layer: return translated("schematic.layerValue", shownLayers(p).cut + 1, placedLayers(p));
+    case SchematicField::Keep: return schematic::actions::keepText(shownLayers(p).keep);
     case SchematicField::Extras: return translated(p.countExtras ? "schematic.extras.show" : "schematic.extras.ignore");
     default: return {};
     }
 }
+// Drawn for every list row each frame: resolve the view once.
 std::string layersText(schematic::SavedPlacement const& p) {
-    if (p.layers.mode == schematic::LayerMode::All) return translated("schematic.mode.all");
-    return fieldValue(p, SchematicField::LayerAxis) + " " + fieldValue(p, SchematicField::Layer) + " "
-        + fieldValue(p, SchematicField::LayerMode);
+    if (schematic::showsAllLayers(p.layers)) return translated("schematic.mode.all");
+    auto structure = schematic::session::structure(p.file);
+    auto view = structure ? schematic::resolvedLayers(p.layers, structure->size, p.placement) : p.layers;
+    int count = structure ? std::max(1, schematic::layerCount(structure->size, view.axis)) : 1;
+    std::string text = schematic::actions::axisText(view.axis) + " " + translated("schematic.layerValue", view.cut + 1, count)
+        + " " + schematic::actions::modeText(view.mode);
+    if (view.mode == schematic::LayerMode::UpTo) text += " " + schematic::actions::keepText(view.keep);
+    return text;
 }
 void drawItemIcon(MinecraftUIRenderContext& context, std::string const& icon, float x, float y, float size) {
     auto const* stack = schematic::items::iconStack(icon);
@@ -968,9 +1010,9 @@ void drawSchematicsBody(MinecraftUIRenderContext& context, ShapesLayout const& l
                 float y = l.fieldY(i);
                 auto field = schematicFields[static_cast<size_t>(i)];
                 rowBackground(context,l.detailLeft+1,y,l.detailWidth-2,ShapesLayout::rowHeight,schematicFieldSelected == i,over(ShapeZone::Field,i));
-                static constexpr std::array<std::string_view, 13> labels{"X", "Y", "Z", "schematic.rotation", "schematic.mirror",
+                static constexpr std::array<std::string_view, 14> labels{"X", "Y", "Z", "schematic.rotation", "schematic.mirror",
                     "schematic.moveHere", "schematic.shown", "schematic.layerAxis", "schematic.layerMode", "schematic.layer",
-                    "schematic.matchLayer", "schematic.extras", "schematic.showEntities"};
+                    "schematic.keep", "schematic.matchLayer", "schematic.extras", "schematic.showEntities"};
                 std::string text = i < 3 ? std::string(labels[static_cast<size_t>(i)]) : translated(labels[static_cast<size_t>(i)]);
                 label(context,dx,y+3,l.stepperX()-dx-4,text,palette::dim);
                 switch (field) {
@@ -1369,8 +1411,18 @@ void applyNumber() {
     auto parsed = screen::number().parsedPrecise(low, limit, true);
     if (!parsed) { screen::warnRange(translated("integerRange", low, limit)); return; }
     int value = static_cast<int>(*parsed);
+    // Fetch the structure before changeSchematic takes the session lock: the
+    // structure lookup locks the same mutex.
+    auto const* selected = selectedPlacement();
+    std::shared_ptr<schematic::Structure const> structure;
+    if (field == 9 && selected) structure = schematic::session::structure(selected->file);
+    if (field == 9 && !structure) { screen::setMessage(translated("schematic.layerNeedsStructure")); return; }
     changeSchematic([&](schematic::SavedPlacement& p) {
-        if (field == 9) p.layers.index = value - 1;
+        if (field == 9) {
+            if (p.layers.legacy) p.layers = schematic::fromLegacy(p.layers, structure->size, p.placement);
+            p.layers.cut = value - 1;
+            schematic::dualWrite(p.layers, structure->size, p.placement);
+        }
         else (field == 0 ? p.placement.origin.x : field == 1 ? p.placement.origin.y : p.placement.origin.z) = value;
     });
 }

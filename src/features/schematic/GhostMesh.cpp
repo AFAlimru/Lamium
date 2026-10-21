@@ -64,10 +64,9 @@ void finishColors(Tessellator& batch, float r, float g, float b) {
 bool ghostOpaqueAt(BlockSource& region, session::Shown const& shown, Resolved const& blocks, Point n) {
     auto const& structure = *shown.structure;
     auto const& placement = shown.placement;
-    Size placed = placedSize(structure.size, placement.placement.rotation);
     Point const& origin = placement.placement.origin;
     auto local = toLocal(structure.size, placement.placement, n);
-    if (!local || !layerShown(placement.layers, placed, {n.x - origin.x, n.y - origin.y, n.z - origin.z})) return false;
+    if (!local || !layerShown(placement.layers, structure.size, placement.placement, {n.x - origin.x, n.y - origin.y, n.z - origin.z}, *local)) return false;
     auto index = structure.blocks[static_cast<size_t>(structure.cell(local->x, local->y, local->z))];
     if (index == voidCell || static_cast<size_t>(index) >= blocks.blocks.size()) return false;
     Block const* ghost = blocks.blocks[static_cast<size_t>(index)];
@@ -80,10 +79,9 @@ bool ghostOpaqueAt(BlockSource& region, session::Shown const& shown, Resolved co
 NeighborGhost ghostAt(BlockSource& region, session::Shown const& shown, Resolved const& blocks, Point n) {
     auto const& structure = *shown.structure;
     auto const& placement = shown.placement;
-    Size placed = placedSize(structure.size, placement.placement.rotation);
     Point const& origin = placement.placement.origin;
     auto local = toLocal(structure.size, placement.placement, n);
-    if (!local || !layerShown(placement.layers, placed, {n.x - origin.x, n.y - origin.y, n.z - origin.z})) return {};
+    if (!local || !layerShown(placement.layers, structure.size, placement.placement, {n.x - origin.x, n.y - origin.y, n.z - origin.z}, *local)) return {};
     auto index = structure.blocks[static_cast<size_t>(structure.cell(local->x, local->y, local->z))];
     if (index == voidCell || static_cast<size_t>(index) >= blocks.blocks.size() || static_cast<size_t>(index) >= blocks.sideMasks.size()) return {};
     Block const* block = blocks.blocks[static_cast<size_t>(index)];
@@ -106,10 +104,9 @@ bool ghostBoxAt(BlockSource& region, session::Shown const& shown, Resolved const
 liquids::Cell liquidAt(BlockSource& region, session::Shown const& shown, Resolved const& blocks, Point n) {
     auto const& structure = *shown.structure;
     auto const& placement = shown.placement;
-    Size placed = placedSize(structure.size, placement.placement.rotation);
     Point const& origin = placement.placement.origin;
     auto local = toLocal(structure.size, placement.placement, n);
-    if (local && layerShown(placement.layers, placed, {n.x - origin.x, n.y - origin.y, n.z - origin.z})) {
+    if (local && layerShown(placement.layers, structure.size, placement.placement, {n.x - origin.x, n.y - origin.y, n.z - origin.z}, *local)) {
         auto cell = static_cast<size_t>(structure.cell(local->x, local->y, local->z));
         bool said = false, solid = false;
         for (auto const* layer : {&structure.blocks, &structure.liquids}) {
@@ -269,10 +266,9 @@ Block const* ghostNeighbor(BlockSource& region, session::Shown const& shown, Res
     }
     auto const& structure = *shown.structure;
     auto const& placement = shown.placement;
-    Size placed = placedSize(structure.size, placement.placement.rotation);
     Point const& origin = placement.placement.origin;
     auto local = toLocal(structure.size, placement.placement, n);
-    if (!local || !layerShown(placement.layers, placed, {n.x - origin.x, n.y - origin.y, n.z - origin.z})) return nullptr;
+    if (!local || !layerShown(placement.layers, structure.size, placement.placement, {n.x - origin.x, n.y - origin.y, n.z - origin.z}, *local)) return nullptr;
     auto index = structure.blocks[static_cast<size_t>(structure.cell(local->x, local->y, local->z))];
     if (index == voidCell || static_cast<size_t>(index) >= blocks.blocks.size()) return nullptr;
     Block const* ghost = blocks.blocks[static_cast<size_t>(index)];
@@ -336,6 +332,7 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
     auto const& placement = shown.placement;
     Size placed = placedSize(structure.size, placement.placement.rotation);
     Point const& origin = placement.placement.origin;
+    auto const slab = placedSlab(placement.layers, structure.size, placement.placement);
     auto [index, sx, sy, sz] = key;
     Point low{sx * sectionSize, sy * sectionSize, sz * sectionSize};
     // Reset in place: meshes cannot be copied or assigned.
@@ -365,8 +362,7 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
     for (int x = std::max(low.x, origin.x); x < std::min(low.x + sectionSize, origin.x + placed.x); ++x)
         for (int y = std::max(low.y, origin.y); y < std::min(low.y + sectionSize, origin.y + placed.y); ++y)
             for (int z = std::max(low.z, origin.z); z < std::min(low.z + sectionSize, origin.z + placed.z); ++z) {
-                Point offset{x - origin.x, y - origin.y, z - origin.z};
-                if (!layerShown(placement.layers, placed, offset)) continue;
+                if (!slab.shown({x - origin.x, y - origin.y, z - origin.z})) continue;
                 auto local = toLocal(structure.size, placement.placement, {x, y, z});
                 if (!local) continue;
                 auto paletteIndex = structure.blocks[static_cast<size_t>(structure.cell(local->x, local->y, local->z))];
@@ -492,7 +488,7 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
         for (int x = std::max(low.x, origin.x); x < std::min(low.x + sectionSize, origin.x + placed.x); ++x)
             for (int y = std::max(low.y, origin.y); y < std::min(low.y + sectionSize, origin.y + placed.y); ++y)
                 for (int z = std::max(low.z, origin.z); z < std::min(low.z + sectionSize, origin.z + placed.z); ++z) {
-                    if (!layerShown(placement.layers, placed, {x - origin.x, y - origin.y, z - origin.z})) continue;
+                    if (!slab.shown({x - origin.x, y - origin.y, z - origin.z})) continue;
                     if (owned && owned({x, y, z})) continue;
                     auto local = toLocal(structure.size, placement.placement, {x, y, z});
                     if (!local) continue;

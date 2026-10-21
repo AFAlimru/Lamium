@@ -133,12 +133,11 @@ namespace {
 // and a "not placed" row for each one missing in the shown layers.
 void addEntityResults(Verification& result, session::Shown const& shown, Resolved const& r) {
     if (!shown.placement.entities) return;
-    Size placed = placedSize(shown.structure->size, shown.placement.placement.rotation);
     std::map<std::string, MaterialLine> all, visible;
     for (size_t e = 0; e < r.entities.size(); ++e) {
         auto const& ghost = r.entities[e];
         bool here = r.entityPlaced[e].value_or(false);
-        bool inLayer = layerShown(shown.placement.layers, placed, ghost.offset);
+        bool inLayer = layerShown(shown.placement.layers, shown.structure->size, shown.placement.placement, ghost.offset);
         for (auto* lines : {&all, &visible}) {
             if (lines == &visible && !inLayer) continue;
             auto& line = (*lines)[ghost.identifier];
@@ -174,7 +173,7 @@ Cell classifyCell(BlockSource& region, session::Shown const& shown, Resolved con
     c.palette = static_cast<int>(paletteIndex);
     c.air = structure.palette[static_cast<size_t>(paletteIndex)].isAir();
     c.expected = blocks.blocks[static_cast<size_t>(paletteIndex)];
-    c.visible = layerShown(placement.layers, placed, c.offset);
+    c.visible = layerShown(placement.layers, structure.size, placement.placement, c.offset, *local);
     BlockPos pos{c.world.x, c.world.y, c.world.z};
     auto* chunk = region.getChunkAt(pos);
     if (!chunk || chunk->mLoadState->load() < ChunkState::Loaded) { c.state = CellState::Unknown; return c; }

@@ -56,7 +56,10 @@ void translationTests() {
             else if (entry.key == "schematic.size") rendered = std::vformat(pattern, std::make_format_args(remaining, remaining, remaining));
             else if (entry.key == "schematic.toast.moved")
                 rendered = std::vformat(pattern, std::make_format_args(key, remaining, remaining, remaining));
-            else if (entry.key == "schematic.toast.layer") rendered = std::vformat(pattern, std::make_format_args(key, remaining, remaining));
+            else if (entry.key == "schematic.toast.axis" || entry.key == "schematic.toast.mode" || entry.key == "schematic.toast.keep")
+                rendered = std::vformat(pattern, std::make_format_args(key, key, remaining, remaining));
+            else if (entry.key == "schematic.toast.cut" || entry.key == "schematic.toast.cutOnly" || entry.key == "schematic.toast.cutHere")
+                rendered = std::vformat(pattern, std::make_format_args(key, remaining, remaining, key));
             else if (entry.key == "schematic.previewLayers") rendered = std::vformat(pattern, std::make_format_args(remaining, remaining, key));
             else if (entry.key == "schematic.toast.rotated" || entry.key == "schematic.toast.mirror" || entry.key == "schematic.toast.nearest")
                 rendered = std::vformat(pattern, std::make_format_args(key, remaining));

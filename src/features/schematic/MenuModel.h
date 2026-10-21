@@ -9,9 +9,9 @@
 // categories, each a ring of items. A stepper changes a value with the wheel
 // (a click steps once); a command runs on a click. What they do is glue.
 namespace lamium::schematic::menu {
-enum class Stepper : std::uint8_t { ForwardBack, LeftRight, UpDown, Rotate, Mirror, LayerAxis, LayerMode, Layer, Placement, Target };
+enum class Stepper : std::uint8_t { ForwardBack, LeftRight, UpDown, Rotate, Mirror, LayerAxis, LayerMode, Layer, LayerKeep, Placement, Target };
 enum class Command : std::uint8_t {
-    ToFeet, ResetTurn, LayerHere, ShowAll, ToggleShown, ToggleExtras, ToggleEntities, ToggleHud, ToggleFeature,
+    ToFeet, ResetTurn, LayerHere, ToggleShown, ToggleExtras, ToggleEntities, ToggleHud, ToggleFeature,
     Corner1Here, Corner2Here, MoveCorner1, MoveCorner2, MoveArea, MovePlacement, SaveArea, ClearArea,
     SelectLooked, PlaceFile, DeletePlacement, NearestMistake, CheckTab, MaterialsTab, FilesTab, PlacedTab, KeySettings,
 };
@@ -35,8 +35,9 @@ inline constexpr std::array<Item, 5> move{{{"schematic.menu.forwardBack", S::For
     {"schematic.menu.upDown", S::UpDown}, {"schematic.menu.toFeet", C::ToFeet}, {"schematic.menu.moveTarget", S::Target}}};
 inline constexpr std::array<Item, 3> turn{{{"schematic.menu.rotate", S::Rotate}, {"schematic.menu.mirror", S::Mirror},
     {"schematic.menu.resetTurn", C::ResetTurn}}};
-inline constexpr std::array<Item, 5> layers{{{"schematic.menu.layerAxis", S::LayerAxis}, {"schematic.menu.layerMode", S::LayerMode},
-    {"schematic.menu.layer", S::Layer}, {"schematic.menu.layerHere", C::LayerHere}, {"schematic.menu.showAll", C::ShowAll}}};
+inline constexpr std::array<Item, 5> layers{{{"schematic.menu.layerAxis", S::LayerAxis}, {"schematic.menu.layerCut", S::Layer},
+    {"schematic.menu.layerMode", S::LayerMode}, {"schematic.menu.layerKeep", S::LayerKeep},
+    {"schematic.menu.layerHere", C::LayerHere}}};
 inline constexpr std::array<Item, 5> show{{{"schematic.menu.toggleShown", C::ToggleShown}, {"schematic.menu.toggleExtras", C::ToggleExtras},
     {"schematic.menu.toggleEntities", C::ToggleEntities}, {"schematic.menu.toggleHud", C::ToggleHud},
     {"schematic.menu.toggleFeature", C::ToggleFeature}}};
@@ -90,7 +91,8 @@ inline constexpr bool repeatable(Stepper stepper) {
     }
 }
 inline constexpr bool repeatableAll(Stepper stepper) {
-    return repeatable(stepper) || stepper == Stepper::LayerAxis || stepper == Stepper::LayerMode;
+    return repeatable(stepper) || stepper == Stepper::LayerAxis || stepper == Stepper::LayerMode
+        || stepper == Stepper::LayerKeep;
 }
 // Where the menu opens: the category list, or (an option) the level shown
 // when it was last closed.

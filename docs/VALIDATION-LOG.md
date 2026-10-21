@@ -21,6 +21,63 @@ public history; the DLL SHA-256 in each entry identifies the build that was
 actually run. The binding-display item was renumbered from L-232 to L-235 at
 the same time, because origin took L-232 for the slime chunk indicator.
 
+## L-234 second review fixes checked in game (2026-10-22)
+
+Branch `schematic-layers` (`27311d8`), deployed DLL SHA-256
+`5DE1B13A1525830C18CD0F0DE6D361524024AFE9DACF2FD76B360DA501C9E1BF`, default
+release build, local `1.26.51.01 LIP` deployment, Windows x64. Maintainer
+report: typing a cut in the Schematics screen for a placement other than the
+HUD-selected one changed that placement within its own layer range; with the
+schematic file renamed, a converted placement back on All could be rotated
+and mirrored while Only refused with the message; Only and Up to (low and
+high side) showed the same ghosts as before under rotation and mirror (the
+section build now rejects hidden cells with a placed slab first). HUD and
+list lookup savings and the translation cleanup were not measured or checked
+separately.
+
+## L-234 review fixes checked in game (2026-10-21)
+
+Branch `schematic-layers` (`ec8a76e`), deployed DLL SHA-256
+`7693CA222849ECBA691EA8BD0192C829B581CE0B33F8A690822A5F15F2CD4A4F`, default
+release build, local `1.26.51.01 LIP` deployment, Windows x64. Maintainer
+report: a placement still on the old six-direction layer view, set to Only
+and then rotated and mirrored, kept the same build cells (the view is
+converted on the turn); the three layer keys now sit after Layer up/down/here
+in the key settings; ghosts and layer changes behaved as before. The
+mistyped-`layerView` load fallback is covered by `LamiumTests` only, not
+checked in game.
+
+## L-234 cut-plane layers checked in game (2026-10-21)
+
+Branch `schematic-layers` (`3d68fd3`), deployed DLL SHA-256
+`109C3201AB961F9231F4C66B8FDA8927D5C3FA97E05A3E971F58AB00A2AB585C`, default
+release build (no trace/probe options), local `1.26.51.01 LIP` deployment,
+Windows x64. Maintainer report: the structure-local cut plane, axis changes
+keeping the cut, attached rotation/mirror, the five-item Layers menu
+(Axis/Cut/Mode/Keep/Cut here), the three layer keys, operation-naming toasts,
+and the no-rebuild behavior for layer fields that do not affect visibility
+all matched the intended behavior. Missing structure: with
+`broken_village_house.mcstructure` renamed away, keys, menu and the settings
+screen refused to change the placement and the saved layer view stayed put;
+restoring the file and reloading worked normally. After the restore the
+placement was edited normally, so the placement document differs from the
+pre-test backup; that is not a guard failure. The missing file is only
+reported after selecting the placement, not on world join or in the Placed
+list (L-237). Per-section ghost reuse (L-236) and Check reuse after a cut move
+are not checked.
+
+## L-234 migration cell check on real worlds (2026-10-21)
+
+Branch `schematic-layers`, `LamiumTests` with the migration harness
+(`LAMIUM_MIGRATE_PLACEMENTS` / `LAMIUM_MIGRATE_SCHEMATICS`), default release
+build, Windows x64. Three local worlds (8 placements: 6 old six-direction,
+2 structure-space). For every cell the old-form view and the new
+structure-local view were compared, and each new view was dual-written and
+read back. Result: 0 mismatched cells, 0 bad dual writes, 0 missing
+structures. This is a data/cell comparison, not in-game rendering, Check or
+Materials. The one-placement and three-placement worlds were old-form only;
+the four-placement world mixed two old and two new placements.
+
 ## L-231 move-target controls checked (2026-10-21)
 
 Build `89c7925` (branch `schematic-controls`), deployed DLL SHA-256
