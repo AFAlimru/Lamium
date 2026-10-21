@@ -487,6 +487,12 @@ void sliceFromView(IClientInstance& client, LocalPlayer& player) {
 }
 }
 
+std::optional<Point> viewFeet(IClientInstance& client) {
+    auto* player = client.getLocalPlayer();
+    if (!player) return std::nullopt;
+    return viewFeet(client, *player);
+}
+
 bool handles(Action action) {
     switch (action) {
     case Action::NearestMistake: case Action::SelectLookedPlacement: case Action::NextPlacement: case Action::CycleMoveTarget:
@@ -703,10 +709,15 @@ void run(IClientInstance& client, menu::Command command) {
     case C::ToFeet:
         moveTargetToFeet(client, *player);
         return;
-    case C::ResetTurn:
-        changeSelected([](SavedPlacement& p) { p.placement.rotation = 0; p.placement.mirror = Mirror::None; },
-            [](SavedPlacement const& p) { return ui::translated("schematic.toast.rotated", p.name, 0); });
+    case C::ResetTurn: {
+        auto structure = selectedStructure();
+        changeSelected([&](SavedPlacement& p) {
+            p.placement.rotation = 0;
+            p.placement.mirror = Mirror::None;
+            if (structure && !p.layers.legacy) dualWrite(p.layers, placedSize(structure->size, p.placement.rotation));
+        }, [](SavedPlacement const& p) { return ui::translated("schematic.toast.rotated", p.name, 0); });
         return;
+    }
     case C::LayerHere: press(client, Action::LayerHere); return;
     case C::ShowAll: {
         auto structure = selectedStructure();

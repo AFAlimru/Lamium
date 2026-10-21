@@ -1,6 +1,7 @@
 #pragma once
 #include "features/schematic/MenuModel.h"
 #include "features/schematic/MoveTarget.h"
+#include "features/schematic/Placement.h"
 #include "input/Binding.h"
 #include <optional>
 #include <string>
@@ -20,6 +21,9 @@ void setTarget(menu::Target);
 void placementSelected();
 // Drop the move target and repeat memory (feature off, world/dimension change).
 void resetState();
+// The block the view stands in: the player's feet, or the camera's virtual
+// feet in Freelook/FreeCamera. Used by the screen's layer edits too.
+std::optional<Point> viewFeet(IClientInstance& client);
 void step(IClientInstance& client, menu::Stepper stepper, int amount);
 void run(IClientInstance& client, menu::Command command);
 // The value an item shows under its name; empty when it has none.

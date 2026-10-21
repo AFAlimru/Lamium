@@ -28,7 +28,6 @@
 #include "features/information/SchematicTarget.h"
 #include "features/schematic/SchematicItems.h"
 #include "features/schematic/Selection.h"
-#include "features/schematic/SchematicActions.h"
 #include "features/schematic/MenuModel.h"
 #include "mc/deps/nbt/CompoundTag.h"
 #include "mc/deps/nbt/ListTag.h"
@@ -402,7 +401,7 @@ void activateSchematicField(int index, int part) {
         auto structure = schematic::session::structure(p->file);
         if (!structure) { screen::setMessage(translated("schematic.layerNeedsStructure")); return; }
         auto placed = schematic::placedSize(structure->size, p->placement.rotation);
-        auto place = screen::standingPlace();
+        auto place = screen::client() ? schematic::actions::viewFeet(*screen::client()) : std::nullopt;
         changeSchematic([&](schematic::SavedPlacement& t) {
             if (t.layers.legacy) t.layers = schematic::fromLegacy(t.layers, placed);
             auto axis = static_cast<schematic::LayerAxis>((static_cast<int>(t.layers.axis) + direction + 3) % 3);
@@ -440,7 +439,7 @@ void activateSchematicField(int index, int part) {
     case SchematicField::MatchLayer: {
         // The layer the player stands in, along the chosen axis; showing all
         // layers switches to "this layer only".
-        auto place = screen::standingPlace();
+        auto place = screen::client() ? schematic::actions::viewFeet(*screen::client()) : std::nullopt;
         auto structure = schematic::session::structure(p->file);
         if (!structure) { screen::setMessage(translated("schematic.layerNeedsStructure")); return; }
         if (!place) return;
@@ -686,16 +685,18 @@ std::string fieldValue(schematic::SavedPlacement const& p, SchematicField field)
         return translated(axis == schematic::LayerAxis::Y ? "schematic.axis.y"
             : axis == schematic::LayerAxis::X ? "schematic.axis.x" : "schematic.axis.z");
     }
-    case SchematicField::LayerMode:
-        return translated(p.layers.mode == schematic::LayerMode::Only ? "schematic.mode.only"
-            : p.layers.mode == schematic::LayerMode::UpTo ? "schematic.mode.upTo" : "schematic.mode.all");
+    case SchematicField::LayerMode: {
+        auto mode = shownLayers(p).mode;
+        return translated(mode == schematic::LayerMode::Only ? "schematic.mode.only"
+            : mode == schematic::LayerMode::UpTo ? "schematic.mode.upTo" : "schematic.mode.all");
+    }
     case SchematicField::Layer: return translated("schematic.layerValue", shownLayers(p).cut + 1, placedLayers(p));
     case SchematicField::Extras: return translated(p.countExtras ? "schematic.extras.show" : "schematic.extras.ignore");
     default: return {};
     }
 }
 std::string layersText(schematic::SavedPlacement const& p) {
-    if (p.layers.mode == schematic::LayerMode::All) return translated("schematic.mode.all");
+    if (shownLayers(p).mode == schematic::LayerMode::All) return translated("schematic.mode.all");
     return fieldValue(p, SchematicField::LayerAxis) + " " + fieldValue(p, SchematicField::Layer) + " "
         + fieldValue(p, SchematicField::LayerMode);
 }
@@ -1408,9 +1409,13 @@ void applyNumber() {
     auto parsed = screen::number().parsedPrecise(low, limit, true);
     if (!parsed) { screen::warnRange(translated("integerRange", low, limit)); return; }
     int value = static_cast<int>(*parsed);
+    // Fetch the structure before changeSchematic takes the session lock: the
+    // structure lookup locks the same mutex.
+    auto const* selected = checkedPlacement();
+    std::shared_ptr<schematic::Structure const> structure;
+    if (field == 9 && selected) structure = schematic::session::structure(selected->file);
     changeSchematic([&](schematic::SavedPlacement& p) {
         if (field == 9) {
-            auto structure = schematic::session::structure(p.file);
             auto placed = structure ? schematic::placedSize(structure->size, p.placement.rotation) : schematic::Size{1, 1, 1};
             if (p.layers.legacy) p.layers = schematic::fromLegacy(p.layers, placed);
             p.layers.cut = value - 1;
