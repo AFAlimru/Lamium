@@ -121,6 +121,9 @@ struct ShapesLayout {
             if (x >= swatchX(i, count) - swatchGap / 2 && x < swatchX(i, count) + swatchSize(count) + swatchGap / 2) return i;
         return -1;
     }
+    // A docked header's title stops before the key settings link; the draw-all
+    // switch is in the toolbar then, so it cannot bound the title.
+    float dockedTitleWidth() const { return std::max(0.f, keysX - left - pad - 4); }
     float layerStepperX() const { return detailLeft + pad + previewSize + 8; }
     float layerY() const { return previewY + 30; }
     static constexpr float actionWidth = 56, deleteWidth = 96;

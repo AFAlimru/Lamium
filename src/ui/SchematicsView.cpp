@@ -1347,7 +1347,7 @@ void renderSchematicsDocked(MinecraftUIRenderContext& context, glm::vec2 size, g
     }
     panel(context,l.left,l.top,l.width,l.height,.82f);
     frame(context,l.left,l.top,l.width,l.height,palette::white,.14f);
-    label(context,l.left+ShapesLayout::pad,l.top+6,l.drawAllX-l.left-10,translated("nav.schematics"));
+    label(context,l.left+ShapesLayout::pad,l.top+6,l.dockedTitleWidth(),translated("nav.schematics"));
     bool closeHover = l.hit(pointer.x, pointer.y).zone == ShapeZone::Close;
     drawSmallButton(context,l.closeX,l.top+4,ShapesLayout::closeWidth,12,translated("closeButton"),
         closeHover,palette::keyFill,palette::keyEdge,closeHover ? palette::text : palette::dim);

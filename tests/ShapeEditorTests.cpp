@@ -116,6 +116,9 @@ void shapeEditorTests() {
     check(docked.usable() && docked.left > 640 * .5f && docked.detailTop > docked.rowsTop, "docked panel sits right, list above editor");
     check(docked.hit(docked.drawAllX + 2, docked.drawAllY + 4).zone == ui::ShapesLayout::Zone::DrawAll,
         "docked draw-all switch moves to the toolbar");
+    auto narrow = ui::ShapesLayout::fit(table, 480, 253, true, 8, 0, 16, 0, false, false, true);
+    check(narrow.left + ui::ShapesLayout::pad + narrow.dockedTitleWidth() <= narrow.keysX,
+        "a docked title stops before the key settings link");
     // Schematics fills the toolbar with its tabs: docked, the switch gets its own row
     // below the toolbar, clear of the tabs and above the column headings.
     auto tabs = ui::ShapesLayout::fit(table, 640, 360, true, 8, 0, 16, 0, false, false, true);

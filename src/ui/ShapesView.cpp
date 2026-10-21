@@ -590,7 +590,7 @@ void renderShapesDocked(MinecraftUIRenderContext& context, glm::vec2 size, glm::
     // Docked: the world stays visible; only the panel is drawn.
     panel(context,l.left,l.top,l.width,l.height,.82f);
     frame(context,l.left,l.top,l.width,l.height,palette::white,.14f);
-    label(context,l.left+ShapesLayout::pad,l.top+6,l.drawAllX-l.left-10,translated("nav.shapes"));
+    label(context,l.left+ShapesLayout::pad,l.top+6,l.dockedTitleWidth(),translated("nav.shapes"));
     bool closeHover = l.hit(pointer.x, pointer.y).zone == ShapeZone::Close;
     drawSmallButton(context,l.closeX,l.top+4,ShapesLayout::closeWidth,12,translated("closeButton"),closeHover,
         palette::keyFill,palette::keyEdge,closeHover ? palette::text : palette::dim);

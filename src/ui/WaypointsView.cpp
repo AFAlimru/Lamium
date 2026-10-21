@@ -481,7 +481,7 @@ void renderWaypointsDocked(MinecraftUIRenderContext& context, glm::vec2 size, gl
     }
     panel(context,l.left,l.top,l.width,l.height,.82f);
     frame(context,l.left,l.top,l.width,l.height,palette::white,.14f);
-    label(context,l.left+ShapesLayout::pad,l.top+6,l.drawAllX-l.left-10,translated("nav.waypoints"));
+    label(context,l.left+ShapesLayout::pad,l.top+6,l.dockedTitleWidth(),translated("nav.waypoints"));
     bool closeHover = l.hit(pointer.x, pointer.y).zone == ShapeZone::Close;
     drawSmallButton(context,l.closeX,l.top+4,ShapesLayout::closeWidth,12,translated(fromMapFlag ? "worldMap.back" : "closeButton"),
         closeHover,palette::keyFill,palette::keyEdge,closeHover ? palette::text : palette::dim);
