@@ -1,9 +1,10 @@
 # Schematic controls redesign
 
 Status: design discussion, 2026-10-20, all recommendations adopted. L-231 is
-implemented on branch `schematic-controls`; in-game checks are pending. L-234
-is not started. This note records the agreed direction; the items under "Open
-questions" remain undecided.
+implemented on branch `schematic-controls` and its in-game checklist passed on
+2026-10-21 (build `89c7925`); merging is pending. L-234 is not started. This
+note records the agreed direction; the items under "Open questions" remain
+undecided.
 
 [SCHEMATIC.md](SCHEMATIC.md) still describes the behavior in the game today;
 [BACKLOG.md](BACKLOG.md) owns task status (L-231 controls, L-234 layer model).

@@ -21,6 +21,26 @@ public history; the DLL SHA-256 in each entry identifies the build that was
 actually run. The binding-display item was renumbered from L-232 to L-235 at
 the same time, because origin took L-232 for the slime chunk indicator.
 
+## L-231 move-target controls checked (2026-10-21)
+
+Build `89c7925` (branch `schematic-controls`), deployed DLL SHA-256
+`20580b8179fce9e24984a4c4969f24872196075f732bd36067154ea562a49073`,
+default release build (no trace/probe options), local `1.26.51.01 LIP`
+deployment, Windows x64. Maintainer report: the L-231 checklist passed.
+Rounds: `25cd13fd68c4e2a79c8cbbf7641573d3420fdfa9907742bbee5a8a3febc5ed3e`
+passed the first 1-10; `b3626aa2a27bfa79d4e7b5efc9d0dbe961ee42fe5befe3335ad3a387225af834`
+passed the overlap, camera-feet, repeat-option and small-menu checks;
+`20580b8179fce9e24984a4c4969f24872196075f732bd36067154ea562a49073`
+passed the settings parent/child layout and the regression items. Seen:
+valid-target cycling with a no-target state and fallback; direction keys,
+Alt+Wheel and move-to-feet on the shared target; looked-at selection of
+corner cells in the air, behind glass/plants and overlapping an opaque block,
+then placements and the save area; FreeCamera picking, corner setting and
+virtual feet; menu-only repeat with the "Repeat every menu step" option; the
+small menu default; labels and settings hierarchy. Not seen/not implemented:
+the target HUD line or world frame emphasis; repeat clearing on a
+same-dimension world change; L-234.
+
 ## Open World map world check passed (2026-10-20)
 
 Build `de8335f`, deployed DLL SHA-256
