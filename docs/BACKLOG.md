@@ -333,46 +333,6 @@ chunk, or draw the faces with a material that does not write depth.
 
 ## Feature work and research
 
-### L-230 Move schematics with view-directed steps
-Kind: Ready (rule decided 2026-10-20). Maintainer feedback, 2026-10-20, from
-the [Notion idea inbox](https://app.notion.com/p/3f7c12ab5b2d8121b2a0db32608f6b7a).
-Status: rule decided and built 2026-10-20; the first rule was checked in game
-the same day and reworked after it. The all-six rule then passed every
-checklist item on `dcab6ce` (pitch boundary, up/down taking the horizontal
-direction, 45-degree yaw, four move targets, rotated/mirrored placement,
-Freelook/FreeCamera, layer keys, wheel chords), with no problems found. The
-old behavior picked a horizontal X/Z axis, so looking up or down never moved
-the target on Y.
-Rule (maintainer 2026-10-20, revised after the first check):
-- All six directions come from one camera frame. Forward is the view's
-  dominant world axis; past 60 degrees up or down (`|y| > tan 60 *
-  horizontal`) it is Y, signed by the view, otherwise the dominant horizontal
-  axis (x or z). Right is the horizontal perpendicular. Up is right x
-  forward, so it is world Y with a level-ish view and the horizontal
-  direction the camera faces once forward has turned vertical.
-- The maintainer's revision: up/down must follow the view too. Keeping them
-  on world Y removed horizontal forward/back while looking up or down, so
-  every direction now follows the same frame and none disappears at the
-  steep boundary (up and forward trade places there).
-- Decided per step from the current view: no gesture lock, no hysteresis. A
-  turn changes the next step at once, and the radial menu blocks looking
-  while it is open, so a burst cannot drift.
-- The selected placement, corner 1, corner 2 and the whole area share the
-  rule (`moveBy`).
-- Camera-based: a detached Freelook or FreeCamera view owns the direction
-  (`detachedViewRay`); otherwise the body's view.
-- Default behavior, no setting yet. Add an on/off option only if horizontal
-  building is disturbed in practice.
-Built: `src/features/schematic/MoveDirection.h` (pure, tested in
-SchematicTests), used by `SchematicActions.cpp` for the menu steppers and the
-six directional keys. Contract: [SCHEMATIC.md](SCHEMATIC.md).
-Explained (decided 2026-10-20): the directional key help now says that
-looking steeply up or down moves forward/back on Y, and that up/down follow
-the view and become horizontal then. No degree number is shown. A 45-degree
-option is declined for now; the threshold stays one constant and can be
-revisited if it feels wrong in use. The help text was added on 2026-10-20 and
-awaits a look in game.
-
 ### L-232 Slime chunk indicator (Bedrock slime chunks do not depend on the seed)
 Kind: Ready (HUD lines only; map and overlay deferred). Reported
 2026-10-19 as issue #30 (the reporter offers a PR: HUD line first, overlay
@@ -1266,7 +1226,7 @@ history. Runtime coverage remains in VALIDATION.md.
 Open work, to choose with the maintainer rather than implement as one batch:
 - Bugs: L-177 stale mismatch highlight (fix built, reporter check pending),
   L-117 Japanese entity-name text, and paused drawing work L-192/L-193/L-194.
-- Controls: L-230 view-directed movement (checked in game 2026-10-20),
+- Controls: L-230 view-directed movement (done),
   L-231 control rework (merged in PR #36), L-234 cut-plane layer model
   (merged in PR #37; L-236 follow-up; L-237 done) and L-238 menu/key parity. The design is in
   [SCHEMATIC-CONTROLS.md](SCHEMATIC-CONTROLS.md).
