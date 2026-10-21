@@ -370,7 +370,7 @@ void activateSchematicField(int index, int part) {
     }
     case SchematicField::Rotation: {
         auto structure = schematic::session::structure(p->file);
-        if (!structure && !p->layers.legacy) { screen::setMessage(translated("schematic.rotationNeedsStructure")); return; }
+        if (!structure && schematic::turnNeedsStructure(p->layers)) { screen::setMessage(translated("schematic.rotationNeedsStructure")); return; }
         changeSchematic([&](schematic::SavedPlacement& t) {
             schematic::turnPlacement(t.placement, t.layers, structure ? &structure->size : nullptr,
                 [&](schematic::Placement& turned) { turned.rotation = schematic::quarterTurns(turned.rotation + direction); });
@@ -379,7 +379,7 @@ void activateSchematicField(int index, int part) {
     }
     case SchematicField::Mirror: {
         auto structure = schematic::session::structure(p->file);
-        if (!structure && !p->layers.legacy) { screen::setMessage(translated("schematic.rotationNeedsStructure")); return; }
+        if (!structure && schematic::turnNeedsStructure(p->layers)) { screen::setMessage(translated("schematic.rotationNeedsStructure")); return; }
         changeSchematic([&](schematic::SavedPlacement& t) {
             schematic::turnPlacement(t.placement, t.layers, structure ? &structure->size : nullptr, [&](schematic::Placement& turned) {
                 turned.mirror = static_cast<schematic::Mirror>((static_cast<int>(turned.mirror) + direction + 3) % 3);
@@ -691,12 +691,15 @@ std::string fieldValue(schematic::SavedPlacement const& p, SchematicField field)
     default: return {};
     }
 }
+// Drawn for every list row each frame: resolve the view once.
 std::string layersText(schematic::SavedPlacement const& p) {
-    auto view = shownLayers(p);
-    if (view.mode == schematic::LayerMode::All) return translated("schematic.mode.all");
-    std::string text = fieldValue(p, SchematicField::LayerAxis) + " " + fieldValue(p, SchematicField::Layer) + " "
-        + fieldValue(p, SchematicField::LayerMode);
-    if (view.mode == schematic::LayerMode::UpTo) text += " " + fieldValue(p, SchematicField::Keep);
+    if (schematic::showsAllLayers(p.layers)) return translated("schematic.mode.all");
+    auto structure = schematic::session::structure(p.file);
+    auto view = structure ? schematic::resolvedLayers(p.layers, structure->size, p.placement) : p.layers;
+    int count = structure ? std::max(1, schematic::layerCount(structure->size, view.axis)) : 1;
+    std::string text = schematic::actions::axisText(view.axis) + " " + translated("schematic.layerValue", view.cut + 1, count)
+        + " " + schematic::actions::modeText(view.mode);
+    if (view.mode == schematic::LayerMode::UpTo) text += " " + schematic::actions::keepText(view.keep);
     return text;
 }
 void drawItemIcon(MinecraftUIRenderContext& context, std::string const& icon, float x, float y, float size) {
@@ -1410,7 +1413,7 @@ void applyNumber() {
     int value = static_cast<int>(*parsed);
     // Fetch the structure before changeSchematic takes the session lock: the
     // structure lookup locks the same mutex.
-    auto const* selected = checkedPlacement();
+    auto const* selected = selectedPlacement();
     std::shared_ptr<schematic::Structure const> structure;
     if (field == 9 && selected) structure = schematic::session::structure(selected->file);
     if (field == 9 && !structure) { screen::setMessage(translated("schematic.layerNeedsStructure")); return; }

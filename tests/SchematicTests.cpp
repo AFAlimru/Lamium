@@ -617,8 +617,8 @@ void layerRules() {
     auto oldShown = [&](Layers const& old, Size placed, Point offset) {
         int count = layerAxisOf(old.legacyAxis) == LayerAxis::Y ? placed.y
             : layerAxisOf(old.legacyAxis) == LayerAxis::X ? placed.x : placed.z;
-        int layer = legacyHighSide(old.legacyAxis) ? count - 1 - layerOf(placed, layerAxisOf(old.legacyAxis), offset)
-                                                   : layerOf(placed, layerAxisOf(old.legacyAxis), offset);
+        int layer = legacyHighSide(old.legacyAxis) ? count - 1 - axisValue(offset, layerAxisOf(old.legacyAxis))
+                                                   : axisValue(offset, layerAxisOf(old.legacyAxis));
         return old.legacyMode == LayerMode::All
             || (old.legacyMode == LayerMode::Only ? layer == old.legacyIndex : layer <= old.legacyIndex);
     };
@@ -649,6 +649,37 @@ void layerRules() {
             }
         }
     check(same, "every old direction and mode converts under every rotation and mirror");
+    bool slabSame = true;
+    for (int r = 0; r < 4; ++r)
+        for (int m = 0; m < 3; ++m) {
+            Placement p{{10, 20, 30}, r, static_cast<Mirror>(m)};
+            std::vector<Layers> views;
+            for (int a = 0; a < 3; ++a)
+                for (int mode = 0; mode < 3; ++mode)
+                    for (int keep = 0; keep < 2; ++keep)
+                        for (int cut = 0; cut < 4; ++cut)
+                            views.push_back({static_cast<LayerAxis>(a), static_cast<LayerMode>(mode), static_cast<LayerKeep>(keep), cut});
+            for (int a = 0; a < 6; ++a)
+                for (int mode = 0; mode < 3; ++mode)
+                    for (int index = 0; index < 3; ++index) {
+                        Layers old;
+                        old.legacy = true;
+                        old.legacyAxis = static_cast<LegacyLayerAxis>(a);
+                        old.legacyMode = static_cast<LayerMode>(mode);
+                        old.legacyIndex = index;
+                        views.push_back(old);
+                    }
+            for (auto const& view : views) {
+                auto slab = placedSlab(view, structure, p);
+                for (int x = 0; x < structure.x; ++x)
+                    for (int y = 0; y < structure.y; ++y)
+                        for (int z = 0; z < structure.z; ++z) {
+                            Point placedOffset = localToPlaced(structure, p, {x, y, z});
+                            slabSame = slabSame && slab.shown(placedOffset) == layerShown(view, structure, p, placedOffset);
+                        }
+            }
+        }
+    check(slabSame, "the placed slab shows exactly the cells layerShown shows, in both forms");
     Placement rotated{{1, 2, 3}, 1, Mirror::X};
     Layers view{LayerAxis::X, LayerMode::UpTo, LayerKeep::High, 1};
     dualWrite(view, structure, rotated);
@@ -684,6 +715,10 @@ void layerRules() {
     Placement plain{};
     turnPlacement(plain, unknown, nullptr, [](Placement& t) { t.rotation = 2; });
     check(unknown.legacy && plain.rotation == 2, "without the structure a legacy view turns unconverted");
+    Layers allView{LayerAxis::X, LayerMode::All, LayerKeep::High, 2}, onlyView{LayerAxis::X, LayerMode::Only, LayerKeep::Low, 2};
+    check(!turnNeedsStructure(allView) && turnNeedsStructure(onlyView) && !turnNeedsStructure(unknown)
+              && showsAllLayers(allView) && showsAllLayers(unknown) && !showsAllLayers(onlyView),
+          "only a set cut plane needs the structure to turn; All in either form does not");
     Layers far{LayerAxis::X, LayerMode::Only, LayerKeep::Low, 99};
     check(resolvedLayers(far, structure, plain).cut == structure.x - 1
               && resolvedLayers(legacyCut, structure, turned) == legacyCut,

@@ -2,6 +2,7 @@
 #include "features/schematic/Structure.h"
 #include <algorithm>
 #include <cstdint>
+#include <limits>
 #include <optional>
 
 // Where a schematic sits in the world and which part of it is shown
@@ -157,7 +158,6 @@ inline Point axisPoint(LayerAxis axis, int value) {
     default: return {0, 0, value};
     }
 }
-inline int layerOf(Size, LayerAxis axis, Point local) { return axisValue(local, axis); }
 inline LayerAxis layerAxisOf(LegacyLayerAxis axis) {
     switch (axis) {
     case LegacyLayerAxis::UpFromBottom: case LegacyLayerAxis::DownFromTop: return LayerAxis::Y;
@@ -196,21 +196,20 @@ struct AxisMap {
     LayerAxis axis = LayerAxis::Y;
     int sign = 1;
 };
-inline AxisMap placedToLocalAxis(LayerAxis placedAxis, Size structure, Placement const& placement) {
-    auto a = placedToLocal(structure, placement, axisPoint(placedAxis, 0));
-    auto b = placedToLocal(structure, placement, axisPoint(placedAxis, 1));
+// The axis along which two images of neighboring cells differ.
+inline AxisMap axisStep(Point a, Point b) {
     int dx = b.x - a.x, dy = b.y - a.y, dz = b.z - a.z;
     if (dx) return {LayerAxis::X, dx};
     if (dy) return {LayerAxis::Y, dy};
     return {LayerAxis::Z, dz};
 }
+inline AxisMap placedToLocalAxis(LayerAxis placedAxis, Size structure, Placement const& placement) {
+    return axisStep(placedToLocal(structure, placement, axisPoint(placedAxis, 0)),
+        placedToLocal(structure, placement, axisPoint(placedAxis, 1)));
+}
 inline AxisMap localToPlacedAxis(LayerAxis localAxis, Size structure, Placement const& placement) {
-    auto a = localToPlaced(structure, placement, axisPoint(localAxis, 0));
-    auto b = localToPlaced(structure, placement, axisPoint(localAxis, 1));
-    int dx = b.x - a.x, dy = b.y - a.y, dz = b.z - a.z;
-    if (dx) return {LayerAxis::X, dx};
-    if (dy) return {LayerAxis::Y, dy};
-    return {LayerAxis::Z, dz};
+    return axisStep(localToPlaced(structure, placement, axisPoint(localAxis, 0)),
+        localToPlaced(structure, placement, axisPoint(localAxis, 1)));
 }
 // The old reader's fields for the current cut plane, with the current
 // placement's rotation and mirror.
@@ -293,13 +292,13 @@ inline bool layerShown(Layers const& layers, Size structure, Placement const& pl
         Size placed = placedSize(structure, placement.rotation);
         LayerAxis axis = layerAxisOf(layers.legacyAxis);
         int layer = legacyHighSide(layers.legacyAxis)
-            ? layerCount(placed, axis) - 1 - layerOf(placed, axis, placedOffset)
-            : layerOf(placed, axis, placedOffset);
+            ? layerCount(placed, axis) - 1 - axisValue(placedOffset, axis)
+            : axisValue(placedOffset, axis);
         return layers.legacyMode == LayerMode::Only ? layer == layers.legacyIndex : layer <= layers.legacyIndex;
     }
     if (layers.mode == LayerMode::All) return true;
     int cut = std::clamp(layers.cut, 0, std::max(0, layerCount(structure, layers.axis) - 1));
-    int at = layerOf(structure, layers.axis, local);
+    int at = axisValue(local, layers.axis);
     if (layers.mode == LayerMode::Only) return at == cut;
     return layers.keep == LayerKeep::Low ? at <= cut : at >= cut;
 }
@@ -308,10 +307,53 @@ inline bool layerShown(Layers const& layers, Size structure, Placement const& pl
     return layerShown(layers, structure, placement, placedOffset,
         cutInStructure ? placedToLocal(structure, placement, placedOffset) : placedOffset);
 }
+// Whether the view shows every layer, in either form; needs no structure.
+inline bool showsAllLayers(Layers const& layers) {
+    return (layers.legacy ? layers.legacyMode : layers.mode) == LayerMode::All;
+}
+// A set cut plane must be rewritten for the new turn, which needs the size.
+inline bool turnNeedsStructure(Layers const& layers) { return !layers.legacy && layers.mode != LayerMode::All; }
+// The shown cells as a slab of the placed box, resolved once per placement so
+// a scan can reject hidden cells before mapping them into the structure.
+struct PlacedSlab {
+    bool all = true;
+    LayerAxis axis = LayerAxis::Y;
+    int low = 0, high = 0;
+    bool shown(Point placedOffset) const {
+        if (all) return true;
+        int at = axisValue(placedOffset, axis);
+        return at >= low && at <= high;
+    }
+};
+inline PlacedSlab placedSlab(Layers const& layers, Size structure, Placement const& placement) {
+    PlacedSlab slab;
+    if (showsAllLayers(layers)) return slab;
+    slab.all = false;
+    constexpr int below = std::numeric_limits<int>::min(), above = std::numeric_limits<int>::max();
+    if (layers.legacy) {
+        slab.axis = layerAxisOf(layers.legacyAxis);
+        int extent = layerCount(placedSize(structure, placement.rotation), slab.axis);
+        bool high = legacyHighSide(layers.legacyAxis);
+        int p = high ? extent - 1 - layers.legacyIndex : layers.legacyIndex;
+        if (layers.legacyMode == LayerMode::Only) slab.low = slab.high = p;
+        else if (high) { slab.low = p; slab.high = above; }
+        else { slab.low = below; slab.high = p; }
+        return slab;
+    }
+    AxisMap map = localToPlacedAxis(layers.axis, structure, placement);
+    int cut = std::clamp(layers.cut, 0, std::max(0, layerCount(structure, layers.axis) - 1));
+    int p = axisValue(localToPlaced(structure, placement, axisPoint(layers.axis, cut)), map.axis);
+    slab.axis = map.axis;
+    bool placedLow = (layers.keep == LayerKeep::Low) == (map.sign > 0);
+    if (layers.mode == LayerMode::Only) slab.low = slab.high = p;
+    else if (placedLow) { slab.low = below; slab.high = p; }
+    else { slab.low = p; slab.high = above; }
+    return slab;
+}
 // Turns or mirrors a placement. With the structure known, a legacy view
 // becomes a cut plane first so it stays on the same build cells, and the old
 // fields are rewritten for the new turn. Without it a legacy view keeps its
-// placed-box meaning; callers refuse to turn a new view then.
+// placed-box meaning; callers refuse to turn a set cut plane then.
 template <class Turn>
 void turnPlacement(Placement& placement, Layers& layers, Size const* structure, Turn&& turn) {
     if (structure && layers.legacy) layers = fromLegacy(layers, *structure, placement);

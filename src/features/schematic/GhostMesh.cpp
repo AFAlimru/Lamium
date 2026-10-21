@@ -332,6 +332,7 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
     auto const& placement = shown.placement;
     Size placed = placedSize(structure.size, placement.placement.rotation);
     Point const& origin = placement.placement.origin;
+    auto const slab = placedSlab(placement.layers, structure.size, placement.placement);
     auto [index, sx, sy, sz] = key;
     Point low{sx * sectionSize, sy * sectionSize, sz * sectionSize};
     // Reset in place: meshes cannot be copied or assigned.
@@ -361,9 +362,9 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
     for (int x = std::max(low.x, origin.x); x < std::min(low.x + sectionSize, origin.x + placed.x); ++x)
         for (int y = std::max(low.y, origin.y); y < std::min(low.y + sectionSize, origin.y + placed.y); ++y)
             for (int z = std::max(low.z, origin.z); z < std::min(low.z + sectionSize, origin.z + placed.z); ++z) {
-                Point offset{x - origin.x, y - origin.y, z - origin.z};
+                if (!slab.shown({x - origin.x, y - origin.y, z - origin.z})) continue;
                 auto local = toLocal(structure.size, placement.placement, {x, y, z});
-                if (!local || !layerShown(placement.layers, structure.size, placement.placement, offset, *local)) continue;
+                if (!local) continue;
                 auto paletteIndex = structure.blocks[static_cast<size_t>(structure.cell(local->x, local->y, local->z))];
                 if (paletteIndex == voidCell || static_cast<size_t>(paletteIndex) >= blocks.blocks.size()) continue;
                 if (owned && owned({x, y, z})) continue;
@@ -487,10 +488,10 @@ void buildSection(ScreenContext& screen, BlockSource& region, SchematicRegion& v
         for (int x = std::max(low.x, origin.x); x < std::min(low.x + sectionSize, origin.x + placed.x); ++x)
             for (int y = std::max(low.y, origin.y); y < std::min(low.y + sectionSize, origin.y + placed.y); ++y)
                 for (int z = std::max(low.z, origin.z); z < std::min(low.z + sectionSize, origin.z + placed.z); ++z) {
+                    if (!slab.shown({x - origin.x, y - origin.y, z - origin.z})) continue;
                     if (owned && owned({x, y, z})) continue;
                     auto local = toLocal(structure.size, placement.placement, {x, y, z});
-                    if (!local || !layerShown(placement.layers, structure.size, placement.placement,
-                        {x - origin.x, y - origin.y, z - origin.z}, *local)) continue;
+                    if (!local) continue;
                     auto index = structure.liquids[static_cast<size_t>(structure.cell(local->x, local->y, local->z))];
                     if (index == voidCell || static_cast<size_t>(index) >= blocks.blocks.size()) continue;
                     Block const* liquid = blocks.blocks[static_cast<size_t>(index)];

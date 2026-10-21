@@ -323,7 +323,8 @@ std::optional<ui::hud_editor::Box> drawSchematicHud(MinecraftUIRenderContext& co
     // Texts first, so the card is only as wide as its content.
     std::string name = selected ? selected->name : ui::translated("feature.schematicHud");
     std::string layers;
-    if (selected) {
+    // All needs no structure; skip the per-frame file check then.
+    if (selected && !schematic::showsAllLayers(selected->layers)) {
         auto structure = schematic::session::structure(selected->file);
         if (structure) {
             auto view = schematic::resolvedLayers(selected->layers, structure->size, selected->placement);

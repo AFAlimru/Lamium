@@ -120,13 +120,14 @@ std::shared_ptr<Structure const> selectedStructure() {
     if (set.selected < 0 || set.selected >= static_cast<int>(set.placements.size())) return nullptr;
     return session::structure(set.placements[static_cast<size_t>(set.selected)].file);
 }
-// A new-form layer view depends on the placed size, so turning the placement
-// while its structure is missing would leave the old fields stale.
+// A new-form cut plane depends on the placed size, so turning the placement
+// while its structure is missing would leave the old fields stale. All
+// layers do not depend on the turn.
 bool turnRefused(Structure const* structure) {
     if (structure) return false;
     auto set = session::current();
     bool refused = set.selected >= 0 && set.selected < static_cast<int>(set.placements.size())
-        && !set.placements[static_cast<size_t>(set.selected)].layers.legacy;
+        && turnNeedsStructure(set.placements[static_cast<size_t>(set.selected)].layers);
     if (refused) ui::showMessageToast(ui::translated("schematic.rotationNeedsStructure"));
     return refused;
 }
