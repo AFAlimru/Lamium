@@ -3486,6 +3486,25 @@ two new sprite paths load (icons appear at all).
 
 ## Design
 
+### L-238 One set of schematic operations for the menu and the keys
+Kind: Design (strong model). Maintainer 2026-10-22: make the complex
+schematic operations easy to understand and use whether the player works
+from the radial menu, from keys, or both; neither path may be required for
+an operation. The adopted principles, menu layout and key groups are in
+[SCHEMATIC-CONTROLS.md](SCHEMATIC-CONTROLS.md) ("Menu and key parity").
+In short: every operation is reachable from the menu alone and from keys
+alone; accelerators for one path (open menu, Repeat, cycle target) need no
+counterpart; the menu and the key settings share names, groups and order;
+a menu item shows its bound key. The menu goes from eight categories to six
+of five or six items; eight new actions are appended, all unbound. Default
+keys stay Alt+Wheel only. Watch long names: every ring plate takes the
+widest label, so one long label grows the whole ring (see the spec).
+Implemented 2026-10-22 on `main` (as-built notes in the spec); build and
+pure tests pass, including the parity check and a long-name check that the
+ring fits 480x253 GUI units in English, Japanese and Chinese. Closed
+2026-10-22: in-game check passed on `41d3ea7` (DLL `CC1A5422…`). Further
+adjustments are expected only from use and get their own items.
+
 ### L-234 Replace the six-direction layer model with a cut plane
 Kind: Design. Closed 2026-10-22: merged in PR #37 (merge commit `75152f1`)
 after two review-fix rounds, each checked in game (last on `27311d8`, DLL

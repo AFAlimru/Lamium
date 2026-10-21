@@ -21,6 +21,18 @@ public history; the DLL SHA-256 in each entry identifies the build that was
 actually run. The binding-display item was renumbered from L-232 to L-235 at
 the same time, because origin took L-232 for the slime chunk indicator.
 
+## L-238 schematic menu and key parity checked in game (2026-10-22)
+
+`main` (`41d3ea7`), deployed DLL SHA-256
+`CC1A542260C958CF29419C0BCF8E8DFCE45EB90A940A0DF8DA639B576879C159`, default
+release build, local `1.26.51.01 LIP` deployment, Windows x64. Maintainer
+report: the menu has six categories (Move, Placement, Layers, Show and
+check, Area, Screen) of five or six items and stays on screen, English
+included; hovering Forward/back shows its Alt+Wheel keys above the ring; the
+key settings follow the menu's groups and order with the eight new keys, and
+a newly bound one works. The long-name fit is otherwise covered by
+`LamiumTests` only; not every new key was bound and tried.
+
 ## Docked tool titles checked in game (2026-10-22)
 
 `main` (`18a1102`, fix in `147008f`), deployed DLL SHA-256
