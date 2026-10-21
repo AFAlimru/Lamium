@@ -382,6 +382,56 @@ only context, conflicts with other actions, and whether to start with the
 wheel subset only. L-169 owns transfer extensions; do not start without
 choosing the subset and model.
 
+### L-239 Leaving "All" returns to the last layer mode
+Kind: Ready (decided with the maintainer 2026-10-22). Today a cut change made
+while the layer mode is All switches the mode to Only (L-234): the first Cut
+step from the menu or the Layer up/down keys only switches, and Cut here sets
+the cut and switches. Users who work with Up to then have to change the mode
+back each time. The Schematics screen is also inconsistent: its Cut +/- and
+typed cut keep All, and only "Match the layer you are in" switches.
+
+Decided: leaving All returns to the mode used before All (Only or Up to);
+Only when there is none. The memory lasts for the world session; the
+settings file format does not change.
+
+Do:
+
+1. **Pure rule** in `src/features/schematic/Placement.h`, tested in
+   `tests/SchematicTests.cpp`: `Layers` gains `LayerMode lastShown =
+   LayerMode::Only`, not saved (`PlacementStore.cpp` does not write or read
+   it; `layerVisibilityKey`/`drawKey` ignore it; `fromLegacy` keeps the
+   default). Add `setLayerMode(Layers&, LayerMode next)`, which records
+   `lastShown` when the mode leaves Only or Up to for All, and
+   `leaveAll(Layers&)`, which sets `mode = lastShown` when the mode is All
+   and returns whether it changed. Tests: All -> leaveAll gives Only by
+   default; Up to -> All -> leaveAll gives Up to; Only -> All -> leaveAll
+   gives Only; leaveAll on a non-All mode changes nothing; cycling the mode
+   through All records the mode it left.
+2. **Every mode change goes through `setLayerMode`:** the Mode stepper
+   (`applyLayerStep` in `SchematicActions.cpp`, which also serves the Cycle
+   layer mode key) and the screen's Mode field (`SchematicsView.cpp`).
+3. **Every cut change from All calls `leaveAll`:**
+   - menu Cut stepper and Layer up/down keys: the first step from All only
+     leaves All (the cut stays), as now;
+   - Cut here (key, menu) and the screen's "Match the layer you are in": set
+     the cut, then leave All;
+   - the screen's Cut +/-: like the keys, the first press from All only
+     leaves All;
+   - the screen's typed cut (`applyNumber`): set the cut, then leave All.
+4. **Toasts:** when a cut change left All, say the resulting mode with the
+   existing `schematic.toast.mode` ("{name}: mode {mode} (cut {n}/{count})")
+   instead of `schematic.toast.cutOnly`, and remove `schematic.toast.cutOnly`
+   from `Translations.h`, `TranslationsZhCN.h` and `tests/TranslationsTest.cpp`.
+   The screen keeps its own message line (no toast).
+5. Update SCHEMATIC.md's layer section and SCHEMATIC-CONTROLS.md where they
+   say All switches to Only.
+
+Done when: build and `LamiumTests` pass; docs updated. In-game check for the
+maintainer: (a) Up to, then All, then Cut up: the mode returns to Up to and
+the cut stays; (b) Only, then All, then Cut here: Only at the view's layer;
+(c) in the Schematics screen, from All, Cut + and a typed cut both leave All
+to the last mode; (d) after rejoining the world, leaving All gives Only.
+
 ### L-236 Rebuild only the ghost sections whose visible layer changed
 Kind: Design, low priority. Performance follow-up split from L-234
 (2026-10-21). Maintainer check 2026-10-22 on a desert village: stepping the
