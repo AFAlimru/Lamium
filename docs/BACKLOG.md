@@ -78,8 +78,9 @@ choices live in the L-items. An L-item wins if a summary drifts.
    item's stop/resume conditions. L-181 trident pose is low priority.
 2. **Small and medium work before large features/integration** (maintainer
    2026-10-10): L-196 license/provenance evidence; L-231 controls UX and
-   L-234 cut-plane layers are merged; L-238 menu/key parity is done; L-236/L-237 are follow-ups;
-   L-232 slime chunk indicator (needs in-game
+   L-234 cut-plane layers are merged; L-238 menu/key parity is done;
+   L-237 missing-structure notice is specified (Ready, for Codex); L-236 is
+   a follow-up; L-232 slime chunk indicator (needs in-game
    verification of the rule first); remaining Design/Research in L-166 trade
    helpers,
    L-167 resource packs, L-168 trade finder, L-169 transfer extensions,
@@ -423,13 +424,82 @@ wheel subset only. L-169 owns transfer extensions; do not start without
 choosing the subset and model.
 
 ### L-237 Report a missing schematic structure without selecting it
-Kind: Design. User report 2026-10-21 during the L-234 missing-structure test:
-when a placement's `.mcstructure` cannot be loaded, keys/menu/settings refuse
-to change it and the saved layer state is kept, but nothing warns on world
-join, in Settings, or in the Placed list; the error appears only after the
-placement is selected. Want a bounded one-per-world warning and a marker in
-the list/settings, using the cached load error rather than rescanning files.
-Follows L-234.
+Kind: Ready (spec agreed with the maintainer 2026-10-22; to be implemented
+by Codex, then checked in game by the maintainer). User report 2026-10-21
+during the L-234 missing-structure test: when a placement's `.mcstructure`
+cannot be loaded, its ghosts are simply absent and the error appears only
+after the placement is selected in the Schematics screen.
+
+Found while specifying (2026-10-22): `session::load()`
+(`src/features/schematic/SchematicSession.cpp`) caches only successes. A
+failure is retried on every call, and `session::snapshot()` runs several
+times per frame (ghost renderer, verify, map layers, target info), so a
+missing file is stat-ed and a corrupt file is read, parsed and logged
+several times per frame.
+
+Do, in this order:
+
+1. **Cache failures** in `SchematicSession.cpp`. `Cached` gains the error
+   text (empty on success). A failed load stores an entry with a null
+   structure, the error and `checked = now`, so the same two-second recheck
+   applies; when the file's time changes or it reappears, the next check
+   loads it again. `structure(file, &error)` and `load()` report the cached
+   error. Log a failure only when a file's error text changes (first failure
+   or a different reason), not on every recheck. `loaded()` keeps returning
+   null for failures.
+2. **Session query** (`SchematicSession.h/.cpp`): `std::string
+   loadError(std::string const& relative)` returns the cached error without
+   loading (empty when loaded or not yet tried), and `std::vector<Unreadable>
+   unreadable()` lists the current placements whose file has a cached error:
+   session `id`, `name`, `file`, error. Both only read the cache under the
+   mutex.
+3. **Pure notice rule**, new header `src/features/schematic/UnreadableNotice.h`
+   (no game types) with tests in `tests/SchematicTests.cpp`: a small class
+   fed each frame with the world generation, whether Schematics is on, and
+   the unreadable placements (id + name). It returns the names to announce:
+   - a placement is announced at most once per world generation (no repeat
+     if it recovers and fails again in the same world);
+   - a new generation (world join, session stop) forgets what was announced;
+   - while Schematics is off nothing is announced or marked, so turning it on
+     announces what is still unreadable;
+   - everything newly unreadable in one frame is one announcement.
+   Test those four rules plus the empty case.
+4. **Announce** from `actions::adjustFrame` (`SchematicActions.cpp`, already
+   called every UI frame on the client thread with `syncLifecycle`): feed the
+   rule with `session::generation()`, `preferences().schematic.enabled` and
+   `session::unreadable()`; when it returns names, show one
+   `ui::showMessageToast` with `schematic.toast.unreadable`: the count, then
+   at most two names joined with ", " ("、" is not needed: the same
+   separator in every language), followed by "..." when there are more.
+5. **Placed list marker** (`src/ui/SchematicsView.cpp`, the placement rows
+   near the `label(...p.name...)` call): for a placement whose
+   `session::loadError(p.file)` is not empty, draw a "!" in
+   `palette::warning` before the name and shorten the name by its width.
+   The detail pane already shows `schematic.notLoaded` with the reason for
+   the selected placement; keep it.
+6. **HUD** (`drawSchematicHud` in `src/features/information/InfoHud.cpp`):
+   when the selected placement's structure is null and `loadError` is not
+   empty, the layer cell shows `schematic.hud.unreadable` instead of the
+   layer value (whatever the layer mode).
+7. **Translations** (English, Japanese, then the Chinese row in the same
+   order in `TranslationsZhCN.h`; add the format arguments to
+   `tests/TranslationsTest.cpp`: count, then names):
+   - `schematic.toast.unreadable`: "Can't read the file of {} placement(s): {}" /
+     "設計図ファイルを読めない配置: {} 件（{}）" / "无法读取文件的放置: {} 个（{}）"
+   - `schematic.hud.unreadable`: "File unreadable" / "ファイルを読めない" / "无法读取文件"
+
+Not in scope: Settings rows (decided 2026-10-22: the toast and the list are
+enough), drawing anything for the missing ghosts (the size is unknown without
+the file), and the Files tab.
+
+Done when: build and `LamiumTests` pass; one commit per logical step is fine
+(cache + query, notice + toast, list + HUD); docs updated (this item's status,
+SCHEMATIC.md's missing-structure note). Hand back for the in-game check:
+(a) rename a placed schematic's file, join the world: one toast naming it,
+"!" on its row, HUD (with it selected) says the file is unreadable;
+(b) rename it back: the ghosts return within a few seconds, the marker goes;
+(c) with Schematics off at join, no toast until it is turned on;
+(d) the log has one line per failure, not one per frame.
 
 ### L-236 Rebuild only the ghost sections whose visible layer changed
 Kind: Design. Performance follow-up split from L-234 (2026-10-21). The ghost
