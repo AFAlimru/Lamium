@@ -819,13 +819,42 @@ void drawKeys() {
     a.name = "hut";
     a.file = "hut.mcstructure";
     a.placement.origin = {1, 2, 3};
-    auto renamed = a, hidden = a, moved = a, layered = a;
+    auto renamed = a, hidden = a, moved = a, allCut = a, only = a, onlyKeep = a, upTo = a, upToKeep = a;
     renamed.name = "other";
     hidden.visible = false;
     moved.placement.origin.x = 2;
-    layered.layers.cut = 1;
+    allCut.layers.cut = 1;
+    only.layers.mode = LayerMode::Only;
+    only.layers.cut = 1;
+    onlyKeep = only;
+    onlyKeep.layers.keep = LayerKeep::High;
+    upTo = only;
+    upTo.layers.mode = LayerMode::UpTo;
+    upToKeep = upTo;
+    upToKeep.layers.keep = LayerKeep::High;
     check(drawKey(a) == drawKey(renamed) && drawKey(a) == drawKey(hidden), "renaming or hiding keeps a placement's ghosts");
-    check(drawKey(a) != drawKey(moved) && drawKey(a) != drawKey(layered), "moving or changing layers rebuilds a placement's ghosts");
+    check(drawKey(a) != drawKey(moved), "moving rebuilds a placement's ghosts");
+    check(drawKey(a) == drawKey(allCut), "the cut under All does not rebuild");
+    check(drawKey(a) != drawKey(only), "switching to Only rebuilds");
+    check(drawKey(only) == drawKey(onlyKeep), "the kept side under Only does not rebuild");
+    auto onlyCut = only;
+    onlyCut.layers.cut = 2;
+    check(drawKey(only) != drawKey(onlyCut), "moving the cut under Only rebuilds");
+    check(drawKey(only) != drawKey(upTo) && drawKey(upTo) != drawKey(upToKeep),
+          "UpTo uses its own key and the kept side matters there");
+    auto legacy = a;
+    legacy.layers.legacy = true;
+    legacy.layers.legacyMode = LayerMode::All;
+    legacy.layers.legacyIndex = 2;
+    auto legacyAll = legacy;
+    legacyAll.layers.legacyIndex = 5;
+    check(drawKey(legacy) == drawKey(legacyAll), "an old All view ignores its old index");
+    auto legacyOnly = legacy;
+    legacyOnly.layers.legacyMode = LayerMode::Only;
+    legacyOnly.layers.legacyIndex = 1;
+    auto legacyOnly2 = legacyOnly;
+    legacyOnly2.layers.legacyIndex = 2;
+    check(drawKey(legacyOnly) != drawKey(legacyOnly2), "an old Only view follows its old index");
 }
 
 // L-141: the earlier placement draws the shared cells.

@@ -31,15 +31,26 @@ char const* modeName(LayerMode mode) { return mode == LayerMode::Only ? "only" :
 LayerMode modeFromName(std::string const& name) {
     return name == "only" ? LayerMode::Only : name == "upTo" ? LayerMode::UpTo : LayerMode::All;
 }
+// What the ghost mesh actually depends on: All ignores the cut; Only ignores
+// the kept side; UpTo needs both. Legacy views use the old side/index fields.
+std::string layerVisibilityKey(Layers const& layers) {
+    if (layers.legacy) {
+        if (layers.legacyMode == LayerMode::All) return "a";
+        return std::format("l{}:{}:{}", static_cast<int>(layers.legacyAxis), layers.legacyIndex,
+            static_cast<int>(layers.legacyMode));
+    }
+    if (layers.mode == LayerMode::All) return "a";
+    if (layers.mode == LayerMode::Only)
+        return std::format("v{}:{}", static_cast<int>(layers.axis), layers.cut);
+    return std::format("v{}:{}:{}", static_cast<int>(layers.axis), layers.cut, static_cast<int>(layers.keep));
+}
 }
 
 std::string drawKey(SavedPlacement const& p) {
     auto const& o = p.placement.origin;
-    return std::format("{}|{}|{},{},{}|{}|{}|{},{},{},{},{},{},{}|{}{}{}", p.file, p.dimension, o.x, o.y, o.z,
-        p.placement.rotation, static_cast<int>(p.placement.mirror), static_cast<int>(p.layers.axis),
-        static_cast<int>(p.layers.mode), p.layers.cut, static_cast<int>(p.layers.keep),
-        static_cast<int>(p.layers.legacyAxis), static_cast<int>(p.layers.legacyMode), p.layers.legacyIndex,
-        p.layers.legacy ? 'l' : 'v', p.countExtras ? 'x' : '-', p.entities ? 'e' : '-');
+    return std::format("{}|{}|{},{},{}|{}|{}|{}|{}{}", p.file, p.dimension, o.x, o.y, o.z,
+        p.placement.rotation, static_cast<int>(p.placement.mirror), layerVisibilityKey(p.layers),
+        p.countExtras ? 'x' : '-', p.entities ? 'e' : '-');
 }
 bool safeSchematicPath(std::string_view relative) {
     if (relative.empty() || relative.size() > maxFileBytes || relative.front() == '/' || relative.front() == '\\') return false;
