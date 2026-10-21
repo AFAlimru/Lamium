@@ -21,6 +21,20 @@ public history; the DLL SHA-256 in each entry identifies the build that was
 actually run. The binding-display item was renumbered from L-232 to L-235 at
 the same time, because origin took L-232 for the slime chunk indicator.
 
+## L-234 second review fixes checked in game (2026-10-22)
+
+Branch `schematic-layers` (`27311d8`), deployed DLL SHA-256
+`5DE1B13A1525830C18CD0F0DE6D361524024AFE9DACF2FD76B360DA501C9E1BF`, default
+release build, local `1.26.51.01 LIP` deployment, Windows x64. Maintainer
+report: typing a cut in the Schematics screen for a placement other than the
+HUD-selected one changed that placement within its own layer range; with the
+schematic file renamed, a converted placement back on All could be rotated
+and mirrored while Only refused with the message; Only and Up to (low and
+high side) showed the same ghosts as before under rotation and mirror (the
+section build now rejects hidden cells with a placed slab first). HUD and
+list lookup savings and the translation cleanup were not measured or checked
+separately.
+
 ## L-234 review fixes checked in game (2026-10-21)
 
 Branch `schematic-layers` (`ec8a76e`), deployed DLL SHA-256
