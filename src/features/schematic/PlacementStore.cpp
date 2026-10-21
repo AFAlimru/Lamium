@@ -19,12 +19,25 @@ int integer(Json const& value, int fallback) {
     return static_cast<int>(number);
 }
 bool flag(Json const& value, bool fallback) { return value.is_boolean() ? value.get<bool>() : fallback; }
+char const* axisName(LayerAxis axis) {
+    return axis == LayerAxis::Y ? "y" : axis == LayerAxis::X ? "x" : "z";
+}
+LayerAxis axisFromName(std::string const& name) {
+    return name == "x" ? LayerAxis::X : name == "z" ? LayerAxis::Z : LayerAxis::Y;
+}
+char const* keepName(LayerKeep keep) { return keep == LayerKeep::High ? "high" : "low"; }
+LayerKeep keepFromName(std::string const& name) { return name == "high" ? LayerKeep::High : LayerKeep::Low; }
+char const* modeName(LayerMode mode) { return mode == LayerMode::Only ? "only" : mode == LayerMode::UpTo ? "upTo" : "all"; }
+LayerMode modeFromName(std::string const& name) {
+    return name == "only" ? LayerMode::Only : name == "upTo" ? LayerMode::UpTo : LayerMode::All;
+}
 }
 
 std::string drawKey(SavedPlacement const& p) {
     auto const& o = p.placement.origin;
-    return std::format("{}|{}|{},{},{}|{}|{}|{},{},{}|{}{}", p.file, p.dimension, o.x, o.y, o.z, p.placement.rotation,
-        static_cast<int>(p.placement.mirror), static_cast<int>(p.layers.axis), static_cast<int>(p.layers.mode), p.layers.index,
+    return std::format("{}|{}|{},{},{}|{}|{}|{},{},{},{}|{}{}", p.file, p.dimension, o.x, o.y, o.z,
+        p.placement.rotation, static_cast<int>(p.placement.mirror), static_cast<int>(p.layers.axis),
+        static_cast<int>(p.layers.mode), p.layers.cut, static_cast<int>(p.layers.keep), p.layers.legacy ? 'l' : 'v',
         p.countExtras ? 'x' : '-', p.entities ? 'e' : '-');
 }
 bool safeSchematicPath(std::string_view relative) {
@@ -51,7 +64,8 @@ void normalize(PlacementSet& set) {
         o.x = std::clamp(o.x, -coordinateLimit, coordinateLimit);
         o.y = std::clamp(o.y, -4096, 4096);
         o.z = std::clamp(o.z, -coordinateLimit, coordinateLimit);
-        p.layers.index = std::max(0, p.layers.index);
+        p.layers.cut = std::max(0, p.layers.cut);
+        p.layers.legacyIndex = std::max(0, p.layers.legacyIndex);
     }
     if (set.selected < -1 || set.selected >= static_cast<int>(set.placements.size())) set.selected = -1;
 }
@@ -59,13 +73,19 @@ void normalize(PlacementSet& set) {
 std::string encodePlacements(PlacementSet const& set) {
     Json list = Json::array();
     for (auto const& p : set.placements) {
-        list.push_back({
+        Json entry{
             {"name", p.name}, {"file", p.file}, {"dimension", p.dimension},
             {"x", p.placement.origin.x}, {"y", p.placement.origin.y}, {"z", p.placement.origin.z},
             {"rotation", p.placement.rotation}, {"mirror", static_cast<int>(p.placement.mirror)},
-            {"layerAxis", static_cast<int>(p.layers.axis)}, {"layerMode", static_cast<int>(p.layers.mode)},
-            {"layer", p.layers.index}, {"visible", p.visible}, {"countExtras", p.countExtras}, {"entities", p.entities},
-        });
+            {"layerAxis", static_cast<int>(p.layers.legacyAxis)}, {"layerMode", static_cast<int>(p.layers.legacyMode)},
+            {"layer", p.layers.legacyIndex}, {"visible", p.visible}, {"countExtras", p.countExtras}, {"entities", p.entities},
+        };
+        // A placement still on the old form keeps only the old fields until its
+        // size is known; a converted view carries both for rollback.
+        if (!p.layers.legacy)
+            entry["layerView"] = {{"axis", axisName(p.layers.axis)}, {"cut", p.layers.cut},
+                {"keep", keepName(p.layers.keep)}, {"mode", modeName(p.layers.mode)}};
+        list.push_back(std::move(entry));
     }
     return Json{{"version", 1}, {"placements", std::move(list)}, {"selected", set.selected}}.dump(2);
 }
@@ -90,9 +110,19 @@ PlacementSet decodePlacements(std::string_view text) {
                                   integer(entry.value("z", Json()), 0)};
             p.placement.rotation = integer(entry.value("rotation", Json()), 0);
             p.placement.mirror = static_cast<Mirror>(std::clamp(integer(entry.value("mirror", Json()), 0), 0, 2));
-            p.layers.axis = static_cast<LayerAxis>(std::clamp(integer(entry.value("layerAxis", Json()), 0), 0, 5));
-            p.layers.mode = static_cast<LayerMode>(std::clamp(integer(entry.value("layerMode", Json()), 0), 0, 2));
-            p.layers.index = integer(entry.value("layer", Json()), 0);
+            p.layers.legacyAxis = static_cast<LegacyLayerAxis>(std::clamp(integer(entry.value("layerAxis", Json()), 0), 0, 5));
+            p.layers.legacyMode = static_cast<LayerMode>(std::clamp(integer(entry.value("layerMode", Json()), 0), 0, 2));
+            p.layers.legacyIndex = integer(entry.value("layer", Json()), 0);
+            auto view = entry.find("layerView");
+            if (view != entry.end() && view->is_object()) {
+                p.layers.legacy = false;
+                p.layers.axis = axisFromName(view->value("axis", std::string("y")));
+                p.layers.cut = integer(view->value("cut", Json()), 0);
+                p.layers.keep = keepFromName(view->value("keep", std::string("low")));
+                p.layers.mode = modeFromName(view->value("mode", std::string("all")));
+            } else {
+                p.layers.legacy = true;
+            }
             p.visible = flag(entry.value("visible", Json()), true);
             p.countExtras = flag(entry.value("countExtras", Json()), true);
             p.entities = flag(entry.value("entities", Json()), true);

@@ -120,9 +120,6 @@ std::shared_ptr<Structure const> selectedStructure() {
     if (set.selected < 0 || set.selected >= static_cast<int>(set.placements.size())) return nullptr;
     return session::structure(set.placements[static_cast<size_t>(set.selected)].file);
 }
-int layers(Structure const* structure, SavedPlacement const& p) {
-    return structure ? std::max(1, layerCount(placedSize(structure->size, p.placement.rotation), p.layers.axis)) : 1;
-}
 // Where the view ray enters a box, or nullopt when it misses within `reach`.
 std::optional<double> enter(Vec3 const& eye, Vec3 const& dir, Point low, Size size, double reach) {
     double near = 0, far = reach;
@@ -437,8 +434,56 @@ void moveTargetToFeet(IClientInstance& client, LocalPlayer& player) {
 std::string mirrorName(Mirror mirror) {
     return ui::translated(mirror == Mirror::X ? "schematic.mirror.x" : mirror == Mirror::Z ? "schematic.mirror.z" : "schematic.mirror.none");
 }
+std::string axisText(LayerAxis axis) {
+    return ui::translated(axis == LayerAxis::Y ? "schematic.axis.y" : axis == LayerAxis::X ? "schematic.axis.x" : "schematic.axis.z");
+}
 std::string layerText(Structure const* structure, SavedPlacement const& p) {
-    return ui::translated("schematic.toast.layer", p.name, p.layers.index + 1, layers(structure, p));
+    if (!structure) return p.name;
+    auto placed = placedSize(structure->size, p.placement.rotation);
+    Layers view = p.layers.legacy ? fromLegacy(p.layers, placed) : p.layers;
+    int count = std::max(1, layerCount(placed, view.axis));
+    view.cut = std::clamp(view.cut, 0, count - 1);
+    return ui::translated("schematic.toast.layer", p.name, view.cut + 1, count);
+}
+Layers effectiveLayers(SavedPlacement const& p) {
+    if (!p.layers.legacy) {
+        auto structure = session::structure(p.file);
+        if (!structure) return p.layers;
+        auto placed = placedSize(structure->size, p.placement.rotation);
+        Layers view = p.layers;
+        view.cut = std::clamp(view.cut, 0, std::max(0, layerCount(placed, view.axis) - 1));
+        return view;
+    }
+    auto structure = session::structure(p.file);
+    auto placed = structure ? placedSize(structure->size, p.placement.rotation) : Size{1, 1, 1};
+    return fromLegacy(p.layers, placed);
+}
+// One-shot slice: the dominant view axis, cut at the view's virtual feet,
+// only that layer, keeping the side away from the camera.
+void sliceFromView(IClientInstance& client, LocalPlayer& player) {
+    auto structure = selectedStructure();
+    auto at = viewFeet(client, player);
+    if (!structure) { ui::showMessageToast(ui::translated("schematic.layerNeedsStructure")); return; }
+    if (!at) return;
+    View v = view(client, player);
+    LayerAxis axis = dominantAxis(v.dir.x, v.dir.y, v.dir.z);
+    double along = axis == LayerAxis::Y ? v.dir.y : axis == LayerAxis::X ? v.dir.x : v.dir.z;
+    changeSelected([&](SavedPlacement& p) {
+        auto placed = placedSize(structure->size, p.placement.rotation);
+        if (p.layers.legacy) p.layers = fromLegacy(p.layers, placed);
+        p.layers.axis = axis;
+        p.layers.cut = cutAlong(placed, p.placement.origin, axis, *at);
+        p.layers.mode = LayerMode::Only;
+        int source = axis == LayerAxis::Y ? at->y - p.placement.origin.y
+            : axis == LayerAxis::X ? at->x - p.placement.origin.x : at->z - p.placement.origin.z;
+        p.layers.keep = source < p.layers.cut || (source == p.layers.cut && along > 0) ? LayerKeep::High : LayerKeep::Low;
+        dualWrite(p.layers, placed);
+    }, [&](SavedPlacement const& p) {
+        int world = (p.layers.axis == LayerAxis::Y ? p.placement.origin.y
+            : p.layers.axis == LayerAxis::X ? p.placement.origin.x : p.placement.origin.z) + p.layers.cut;
+        return ui::translated("schematic.toast.slice", p.name, axisText(p.layers.axis), world);
+    });
+    remembered = menu::Stepper::Layer;
 }
 }
 
@@ -447,7 +492,8 @@ bool handles(Action action) {
     case Action::NearestMistake: case Action::SelectLookedPlacement: case Action::NextPlacement: case Action::CycleMoveTarget:
     case Action::MovePlacementForward: case Action::MovePlacementBack: case Action::MovePlacementHere:
     case Action::MovePlacementLeft: case Action::MovePlacementRight: case Action::MovePlacementUp: case Action::MovePlacementDown:
-    case Action::RotatePlacement: case Action::MirrorPlacement: case Action::LayerUp: case Action::LayerDown: case Action::LayerHere:
+    case Action::RotatePlacement: case Action::MirrorPlacement:
+    case Action::LayerUp: case Action::LayerDown: case Action::LayerHere: case Action::SliceFromView:
     case Action::SchematicCorner1: case Action::SchematicCorner2:
         return true;
     default: return false;
@@ -490,35 +536,50 @@ void press(IClientInstance& client, Action action) {
         moveTargetToFeet(client, *player);
         return;
     }
-    case Action::RotatePlacement:
-        changeSelected([](SavedPlacement& p) { p.placement.rotation = quarterTurns(p.placement.rotation + 1); },
-            [](SavedPlacement const& p) { return ui::translated("schematic.toast.rotated", p.name, p.placement.rotation * 90); });
+    case Action::RotatePlacement: {
+        auto structure = selectedStructure();
+        changeSelected([&](SavedPlacement& p) {
+            p.placement.rotation = quarterTurns(p.placement.rotation + 1);
+            if (structure && !p.layers.legacy) dualWrite(p.layers, placedSize(structure->size, p.placement.rotation));
+        }, [](SavedPlacement const& p) { return ui::translated("schematic.toast.rotated", p.name, p.placement.rotation * 90); });
         return;
-    case Action::MirrorPlacement:
-        changeSelected([](SavedPlacement& p) { p.placement.mirror = static_cast<Mirror>((static_cast<int>(p.placement.mirror) + 1) % 3); },
-            [](SavedPlacement const& p) { return ui::translated("schematic.toast.mirror", p.name, mirrorName(p.placement.mirror)); });
+    }
+    case Action::MirrorPlacement: {
+        auto structure = selectedStructure();
+        changeSelected([&](SavedPlacement& p) {
+            p.placement.mirror = static_cast<Mirror>((static_cast<int>(p.placement.mirror) + 1) % 3);
+            if (structure && !p.layers.legacy) dualWrite(p.layers, placedSize(structure->size, p.placement.rotation));
+        }, [](SavedPlacement const& p) { return ui::translated("schematic.toast.mirror", p.name, mirrorName(p.placement.mirror)); });
         return;
+    }
     case Action::LayerUp: case Action::LayerDown: {
         int direction = action == Action::LayerUp ? 1 : -1;
         auto structure = selectedStructure();
+        if (!structure) { ui::showMessageToast(ui::translated("schematic.layerNeedsStructure")); return; }
         changeSelected([&](SavedPlacement& p) {
+            auto placed = placedSize(structure->size, p.placement.rotation);
+            if (p.layers.legacy) p.layers = fromLegacy(p.layers, placed);
             if (p.layers.mode == LayerMode::All) p.layers.mode = LayerMode::Only;
-            else p.layers.index = std::clamp(p.layers.index + direction, 0, layers(structure.get(), p) - 1);
+            else p.layers.cut = std::clamp(p.layers.cut + direction, 0, std::max(0, layerCount(placed, p.layers.axis) - 1));
+            dualWrite(p.layers, placed);
         }, [&](SavedPlacement const& p) { return layerText(structure.get(), p); });
         return;
     }
     case Action::LayerHere: {
         auto at = viewFeet(client, *player);
         auto structure = selectedStructure();
-        if (!at || !structure) return;
+        if (!structure) { ui::showMessageToast(ui::translated("schematic.layerNeedsStructure")); return; }
+        if (!at) return;
         changeSelected([&](SavedPlacement& p) {
             auto placed = placedSize(structure->size, p.placement.rotation);
-            Point offset{at->x - p.placement.origin.x, at->y - p.placement.origin.y, at->z - p.placement.origin.z};
-            p.layers.index = std::clamp(layerOf(placed, p.layers.axis, offset), 0, layerCount(placed, p.layers.axis) - 1);
+            if (p.layers.legacy) p.layers = fromLegacy(p.layers, placed);
+            p.layers.cut = cutAlong(placed, p.placement.origin, p.layers.axis, *at);
             if (p.layers.mode == LayerMode::All) p.layers.mode = LayerMode::Only;
+            dualWrite(p.layers, placed);
         }, [&](SavedPlacement const& p) { return layerText(structure.get(), p); });
         return;
     }
+    case Action::SliceFromView: sliceFromView(client, *player); return;
     default: return;
     }
 }
@@ -577,25 +638,44 @@ void step(IClientInstance& client, menu::Stepper stepper, int amount) {
         return;
     }
     case S::UpDown: moveBy(*player, scaled(viewAxes(client).up, amount)); return;
-    case S::Rotate:
-        changeSelected([&](SavedPlacement& p) { p.placement.rotation = quarterTurns(p.placement.rotation + amount); },
-            [](SavedPlacement const& p) { return ui::translated("schematic.toast.rotated", p.name, p.placement.rotation * 90); });
-        return;
-    case S::Mirror:
-        changeSelected([&](SavedPlacement& p) { p.placement.mirror = static_cast<Mirror>(((static_cast<int>(p.placement.mirror) + amount) % 3 + 3) % 3); },
-            [](SavedPlacement const& p) { return ui::translated("schematic.toast.mirror", p.name, mirrorName(p.placement.mirror)); });
-        return;
-    case S::LayerAxis: case S::LayerMode: case S::Layer: {
+    case S::Rotate: {
         auto structure = selectedStructure();
         changeSelected([&](SavedPlacement& p) {
+            p.placement.rotation = quarterTurns(p.placement.rotation + amount);
+            if (structure && !p.layers.legacy) dualWrite(p.layers, placedSize(structure->size, p.placement.rotation));
+        }, [](SavedPlacement const& p) { return ui::translated("schematic.toast.rotated", p.name, p.placement.rotation * 90); });
+        return;
+    }
+    case S::Mirror: {
+        auto structure = selectedStructure();
+        changeSelected([&](SavedPlacement& p) {
+            p.placement.mirror = static_cast<Mirror>(((static_cast<int>(p.placement.mirror) + amount) % 3 + 3) % 3);
+            if (structure && !p.layers.legacy) dualWrite(p.layers, placedSize(structure->size, p.placement.rotation));
+        }, [](SavedPlacement const& p) { return ui::translated("schematic.toast.mirror", p.name, mirrorName(p.placement.mirror)); });
+        return;
+    }
+    case S::LayerAxis: case S::LayerMode: case S::Layer: case S::LayerKeep: {
+        auto structure = selectedStructure();
+        if (!structure) { ui::showMessageToast(ui::translated("schematic.layerNeedsStructure")); return; }
+        auto at = viewFeet(client, *player);
+        changeSelected([&](SavedPlacement& p) {
+            Size placed = structure ? placedSize(structure->size, p.placement.rotation) : Size{1, 1, 1};
+            if (p.layers.legacy) p.layers = fromLegacy(p.layers, placed);
             if (stepper == S::LayerAxis) {
-                Size placed = structure ? placedSize(structure->size, p.placement.rotation) : Size{1, 1, 1};
-                p.layers = withAxis(p.layers, placed, static_cast<LayerAxis>(((static_cast<int>(p.layers.axis) + amount) % 6 + 6) % 6));
+                int next = ((static_cast<int>(p.layers.axis) + amount) % 3 + 3) % 3;
+                p.layers.axis = static_cast<LayerAxis>(next);
+                if (at) p.layers.cut = cutAlong(placed, p.placement.origin, p.layers.axis, *at);
+            } else if (stepper == S::LayerMode) {
+                p.layers.mode = static_cast<LayerMode>(((static_cast<int>(p.layers.mode) + amount) % 3 + 3) % 3);
+            } else if (stepper == S::LayerKeep) {
+                p.layers.keep = p.layers.keep == LayerKeep::Low ? LayerKeep::High : LayerKeep::Low;
+            } else if (p.layers.mode == LayerMode::All) {
+                p.layers.mode = LayerMode::Only;
+            } else {
+                p.layers.cut += amount;
             }
-            else if (stepper == S::LayerMode) p.layers.mode = static_cast<LayerMode>(((static_cast<int>(p.layers.mode) + amount) % 3 + 3) % 3);
-            else if (p.layers.mode == LayerMode::All) p.layers.mode = LayerMode::Only;
-            else p.layers.index += amount;
-            p.layers.index = std::clamp(p.layers.index, 0, layers(structure.get(), p) - 1);
+            p.layers.cut = std::clamp(p.layers.cut, 0, std::max(0, layerCount(placed, p.layers.axis) - 1));
+            dualWrite(p.layers, placed);
         }, [&](SavedPlacement const& p) { return layerText(structure.get(), p); });
         return;
     }
@@ -628,9 +708,19 @@ void run(IClientInstance& client, menu::Command command) {
             [](SavedPlacement const& p) { return ui::translated("schematic.toast.rotated", p.name, 0); });
         return;
     case C::LayerHere: press(client, Action::LayerHere); return;
-    case C::ShowAll:
-        changeSelected([](SavedPlacement& p) { p.layers.mode = LayerMode::All; },
-            [](SavedPlacement const& p) { return p.name + ": " + ui::translated("schematic.mode.all"); });
+    case C::ShowAll: {
+        auto structure = selectedStructure();
+        if (!structure) { ui::showMessageToast(ui::translated("schematic.layerNeedsStructure")); return; }
+        changeSelected([&](SavedPlacement& p) {
+            Size placed = structure ? placedSize(structure->size, p.placement.rotation) : Size{1, 1, 1};
+            if (p.layers.legacy) p.layers = fromLegacy(p.layers, placed);
+            p.layers.mode = LayerMode::All;
+            dualWrite(p.layers, placed);
+        }, [](SavedPlacement const& p) { return p.name + ": " + ui::translated("schematic.mode.all"); });
+        return;
+    }
+    case C::SliceFromView:
+        sliceFromView(client, *player);
         return;
     case C::ToggleShown:
         changeSelected([](SavedPlacement& p) { p.visible = !p.visible; },
@@ -668,18 +758,23 @@ std::string value(menu::Stepper stepper) {
     case S::Placement: return p ? p->name : std::string{};
     case S::Rotate: return p ? std::format("{}°", p->placement.rotation * 90) : std::string{};
     case S::Mirror: return p ? mirrorName(p->placement.mirror) : std::string{};
-    case S::LayerAxis: {
-        static constexpr std::array<char const*, 6> axes{"schematic.axis.up", "schematic.axis.down", "schematic.axis.east",
-            "schematic.axis.west", "schematic.axis.south", "schematic.axis.north"};
-        return p ? ui::translated(axes[static_cast<size_t>(p->layers.axis)]) : std::string{};
+    case S::LayerAxis:
+        return p ? axisText(effectiveLayers(*p).axis) : std::string{};
+    case S::LayerMode: {
+        if (!p) return {};
+        auto mode = effectiveLayers(*p).mode;
+        return ui::translated(mode == LayerMode::Only ? "schematic.mode.only"
+            : mode == LayerMode::UpTo ? "schematic.mode.upTo" : "schematic.mode.all");
     }
-    case S::LayerMode:
-        return p ? ui::translated(p->layers.mode == LayerMode::Only ? "schematic.mode.only"
-            : p->layers.mode == LayerMode::UpTo ? "schematic.mode.upTo" : "schematic.mode.all") : std::string{};
+    case S::LayerKeep:
+        return p ? ui::translated(effectiveLayers(*p).keep == LayerKeep::High ? "schematic.keep.high" : "schematic.keep.low")
+            : std::string{};
     case S::Layer: {
         if (!p) return {};
         auto structure = session::structure(p->file);
-        return ui::translated("schematic.layerValue", p->layers.index + 1, layers(structure.get(), *p));
+        auto placed = structure ? placedSize(structure->size, p->placement.rotation) : Size{1, 1, 1};
+        auto view = effectiveLayers(*p);
+        return ui::translated("schematic.layerValue", view.cut + 1, std::max(1, layerCount(placed, view.axis)));
     }
     default: return {};
     }

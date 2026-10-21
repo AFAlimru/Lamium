@@ -423,7 +423,8 @@ wheel subset only. L-169 owns transfer extensions; do not start without
 choosing the subset and model.
 
 ### L-234 Replace the six-direction layer model with a cut plane
-Kind: Design, no implementation selected. Maintainer 2026-10-20: the six
+Kind: Design. Implemented on branch `schematic-layers` 2026-10-21; build and
+pure tests pass, in-game check pending. Maintainer 2026-10-20: the six
 directions will not last; move to Axis (Y/X/Z) + Cut + Keep + Mode as
 recorded in [SCHEMATIC-CONTROLS.md](SCHEMATIC-CONTROLS.md). Cut is a local
 offset along the axis (the world coordinate is display only), so moving a
@@ -434,18 +435,18 @@ always dual-writes the exact legacy fields when the placed size is known; cut
 edits wait until the size is known, so the legacy fields never go stale. The
 Layers menu is Axis / Cut / Mode / Keep / Slice from view / Cut here; Show all
 is dropped because Mode has All. Keep is a stepper. The slice cuts at the feet
-in normal play and at the detached camera in Freelook/FreeCamera, on the
+in normal play and at the camera's virtual feet in Freelook/FreeCamera, on the
 dominant full-view axis with Y/X/Z tie order, and sets the remembered
 adjustment to the cut. Third review, adopted 2026-10-20: Cut here keeps the
 axis and keep and sets the cut at the view source's layer (switching All to
 Only); changing the axis sets the cut at the view source's layer along the new
 axis, clamped and toasted. Check and materials keep reading the same region.
-Remaining: prove with pure tests that converting every old direction and mode
-shows the same cells, then implement. Include the post-rotation extents, a
-missing structure file, and an old-version save → new-version → old-version
-round-trip, and confirm the drawing, Check and Materials agree. The 2026-10-20
-reviews recommend L-231
-first and L-234 as a separate step; a prototype may use a separate branch.
+Built: pure conversion from every old direction and mode, the `layerView`
+storage form with legacy dual-write, the Layers menu and slice, and the
+HUD/placed-screen values. Tests cover the all-direction/mode cell match, the
+legacy round-trip, missing-structure saves and post-rotation extents. In-game
+check covers the drawing, Check and Materials agreeing on the cut. L-231 is
+merged; L-234 follows as a separate step.
 
 ### L-206 World map recording range is a fixed radius instead of the view distance
 Kind: Ready, implementation built; runtime coverage pending. User report

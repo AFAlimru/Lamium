@@ -2,8 +2,9 @@
 
 Status: design discussion, 2026-10-20, all recommendations adopted. L-231 is
 implemented and merged (PR #36, merge commit `780bfba`); its in-game checklist
-passed on 2026-10-21 (build `89c7925`). L-234 is not started. This note records
-the agreed direction; the items under "Open questions" remain
+passed on 2026-10-21 (build `89c7925`). L-234 is implemented on branch
+`schematic-layers` and awaits its in-game check. This note records the agreed
+direction; the items under "Open questions" remain
 undecided.
 
 [SCHEMATIC.md](SCHEMATIC.md) still describes the behavior in the game today;
@@ -113,8 +114,8 @@ undecided.
   high); in only/all it has no visible effect but stays editable for "up to".
   The slice is also available as an unbound key.
 - Cut here keeps the axis and keep, sets the cut to the view source's layer
-  along that axis (feet in normal play, detached camera in FreeLook/
-  FreeCamera), and switches All to Only so the change shows.
+  along that axis (the player's feet in normal play, the camera's virtual feet
+  in FreeLook/FreeCamera), and switches All to Only so the change shows.
 - Changing the axis sets the cut to the view source's layer along the new
   axis, clamped and toasted; the numeric offset is not carried across axes.
 - **View slice** is one-shot. The axis is the dominant axis of the full view
@@ -122,7 +123,7 @@ undecided.
   degrees down at a wall still slices on X/Z, while looking 70 degrees down
   slices on Y. Ties use the order Y, X, Z.
 - The slice's cut is the view source's layer along that axis: the player's feet
-  in normal play and the detached camera's block in Freelook or FreeCamera (the
+  in normal play and the camera's virtual feet in Freelook or FreeCamera (the
   same view source as the movement direction). It is clamped to the placement
   and a toast names the world coordinate. The crosshair is not used: it can
   point at a ghost, inside a placement or outside the build, and building from
@@ -151,8 +152,8 @@ undecided.
   `index = extent - 1 - cut`. An older Lamium then shows the same cells.
 - Never convert without the size: a placement whose structure is missing keeps
   its legacy fields and is written back unchanged; other placements can still
-  be saved. `layerView` is added when the structure loads and the placement is
-  next saved.
+  be saved. `layerView` is added when the layer view is next edited while the
+  size is known; unrelated saves keep the legacy fields.
 - Cut edits are allowed only while the placed size is known, so the legacy
   fields are never stale. Without the size the screen says the layer view
   cannot be edited yet.
@@ -185,19 +186,19 @@ above; nothing remains proposed.
 
 ## Open questions
 
-- L-234 implementation order and prototype branch (L-231 is implemented and
-  awaits its in-game check).
+- L-234's in-game check and merge (L-231 is merged).
 
 ## Suggested order
 
 From the 2026-10-20 reviews, for the maintainer to confirm:
 
-1. **L-231 first**: move target, target display and repeat cleanup with the
-   current layer model, so the operation feel can be checked before the layer
-   model changes.
+1. **L-231 first (done)**: move target, target display and repeat cleanup with
+   the current layer model, so the operation feel can be checked before the layer
+   model changes. Merged in PR #36.
 2. **L-234 as a separate step**: prove with pure logic that the conversion from
    every old direction and mode shows the same cells, then implement the cut
-   plane and the storage form.
+   plane and the storage form. Implemented on `schematic-layers`; in-game check
+   pending.
 3. **Then inspection work**: L-183's single-row ignore first; L-190's
    multi-selection after it, sharing only the parts that fit. L-185 stays a
    separate, larger task.

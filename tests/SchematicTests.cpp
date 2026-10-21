@@ -496,21 +496,80 @@ void layerRules() {
     Size placed{4, 6, 3};
     Layers layers;
     check(layerShown(layers, placed, {3, 5, 2}), "all layers show everything");
-    layers = {LayerAxis::UpFromBottom, LayerMode::Only, 2};
-    check(layerShown(layers, placed, {0, 2, 0}) && !layerShown(layers, placed, {0, 3, 0}), "only one height layer");
-    layers = {LayerAxis::DownFromTop, LayerMode::UpTo, 1};
+    layers = {LayerAxis::Y, LayerMode::Only, LayerKeep::Low, 2};
+    check(layerShown(layers, placed, {0, 2, 0}) && !layerShown(layers, placed, {0, 3, 0}), "only one Y layer at the cut");
+    layers = {LayerAxis::Y, LayerMode::UpTo, LayerKeep::High, 4};
     check(layerShown(layers, placed, {0, 5, 0}) && layerShown(layers, placed, {0, 4, 0}) && !layerShown(layers, placed, {0, 3, 0}),
-          "from the top, up to the second layer");
-    layers = {LayerAxis::WestFromEast, LayerMode::Only, 0};
-    check(layerShown(layers, placed, {3, 0, 0}) && !layerShown(layers, placed, {0, 0, 0}), "side layers count from the chosen side");
-    check(layerCount(placed, LayerAxis::SouthFromNorth) == 3 && layerCount(placed, LayerAxis::EastFromWest) == 4,
-          "layer counts follow the axis");
-    Layers bottom{LayerAxis::UpFromBottom, LayerMode::Only, 1};
-    auto top = withAxis(bottom, placed, LayerAxis::DownFromTop);
-    check(top.index == 4 && layerShown(top, placed, {0, 1, 0}) && !layerShown(top, placed, {0, 2, 0}),
-          "turning to the opposite side keeps the same layer");
-    check(withAxis(bottom, placed, LayerAxis::SouthFromNorth).index == 1 && withAxis({LayerAxis::UpFromBottom, LayerMode::Only, 5}, placed,
-          LayerAxis::SouthFromNorth).index == 2, "another axis keeps the number, clamped");
+          "up to with the high side keeps the top");
+    layers = {LayerAxis::X, LayerMode::Only, LayerKeep::Low, 3};
+    check(layerShown(layers, placed, {3, 0, 0}) && !layerShown(layers, placed, {0, 0, 0}), "the X cut is local to the placement");
+    layers = {LayerAxis::Z, LayerMode::UpTo, LayerKeep::Low, 1};
+    check(layerShown(layers, placed, {0, 0, 0}) && layerShown(layers, placed, {0, 0, 1}) && !layerShown(layers, placed, {0, 0, 2}),
+          "Z up to the low side");
+    check(layerCount(placed, LayerAxis::Z) == 3 && layerCount(placed, LayerAxis::X) == 4, "layer counts follow the axis");
+    check(withAxis({LayerAxis::X, LayerMode::Only, LayerKeep::Low, 3}, placed, LayerAxis::Z).cut == 2,
+          "an axis change clamps the cut to the new extent");
+    check(cutAlong(placed, {10, 20, 30}, LayerAxis::Y, {12, 24, 31}) == 4
+              && cutAlong(placed, {10, 20, 30}, LayerAxis::X, {99, 20, 30}) == 3,
+          "the cut comes from the world offset and clamps");
+    check(dominantAxis(0, -2, 0.1) == LayerAxis::Y && dominantAxis(2, 1.5, 0) == LayerAxis::X
+              && dominantAxis(0.5, 0.5, -3) == LayerAxis::Z,
+          "the slice axis is the dominant view axis");
+    check(dominantAxis(1, 1, 1) == LayerAxis::Y && dominantAxis(1, 0, 1) == LayerAxis::X,
+          "ties keep Y, then X");
+
+    auto oldCount = [&](LegacyLayerAxis axis) {
+        switch (axis) {
+        case LegacyLayerAxis::UpFromBottom: case LegacyLayerAxis::DownFromTop: return placed.y;
+        case LegacyLayerAxis::EastFromWest: case LegacyLayerAxis::WestFromEast: return placed.x;
+        default: return placed.z;
+        }
+    };
+    auto oldLayer = [&](LegacyLayerAxis axis, Point offset) {
+        int count = oldCount(axis);
+        switch (axis) {
+        case LegacyLayerAxis::UpFromBottom: return offset.y;
+        case LegacyLayerAxis::DownFromTop: return count - 1 - offset.y;
+        case LegacyLayerAxis::EastFromWest: return offset.x;
+        case LegacyLayerAxis::WestFromEast: return count - 1 - offset.x;
+        case LegacyLayerAxis::SouthFromNorth: return offset.z;
+        default: return count - 1 - offset.z;
+        }
+    };
+    bool same = true;
+    for (int a = 0; a < 6; ++a) {
+        auto axis = static_cast<LegacyLayerAxis>(a);
+        for (int m = 0; m < 3; ++m) {
+            auto mode = static_cast<LayerMode>(m);
+            int count = oldCount(axis);
+            for (int index = 0; index < count; ++index) {
+                Layers old;
+                old.legacy = true;
+                old.legacyAxis = axis;
+                old.legacyMode = mode;
+                old.legacyIndex = index;
+                Layers converted = fromLegacy(old, placed);
+                for (int x = 0; x < placed.x; ++x)
+                    for (int y = 0; y < placed.y; ++y)
+                        for (int z = 0; z < placed.z; ++z) {
+                            int layer = oldLayer(axis, {x, y, z});
+                            bool was = mode == LayerMode::All || (mode == LayerMode::Only ? layer == index : layer <= index);
+                            same = same && layerShown(converted, placed, {x, y, z}) == was;
+                        }
+            }
+        }
+    }
+    check(same, "every old direction and mode converts to the same shown cells");
+    Layers view{LayerAxis::X, LayerMode::UpTo, LayerKeep::High, 1};
+    dualWrite(view, placed);
+    Layers old;
+    old.legacy = true;
+    old.legacyAxis = view.legacyAxis;
+    old.legacyMode = view.legacyMode;
+    old.legacyIndex = view.legacyIndex;
+    Layers back = fromLegacy(old, placed);
+    check(back.axis == view.axis && back.mode == view.mode && back.keep == view.keep && back.cut == view.cut,
+          "a cut-plane view survives the old fields and back");
 }
 
 void verifyRules() {
@@ -674,7 +733,7 @@ void drawKeys() {
     renamed.name = "other";
     hidden.visible = false;
     moved.placement.origin.x = 2;
-    layered.layers.index = 4;
+    layered.layers.cut = 1;
     check(drawKey(a) == drawKey(renamed) && drawKey(a) == drawKey(hidden), "renaming or hiding keeps a placement's ghosts");
     check(drawKey(a) != drawKey(moved) && drawKey(a) != drawKey(layered), "moving or changing layers rebuilds a placement's ghosts");
 }
@@ -728,7 +787,8 @@ void placementDocuments() {
     hut.file = "small/hut.mcstructure";
     hut.dimension = 1;
     hut.placement = {{124, 64, -38}, 3, Mirror::Z};
-    hut.layers = {LayerAxis::WestFromEast, LayerMode::UpTo, 2};
+    hut.layers = {LayerAxis::X, LayerMode::UpTo, LayerKeep::High, 1};
+    dualWrite(hut.layers, Size{4, 6, 3});
     hut.visible = false;
     hut.countExtras = false;
     set.placements.push_back(hut);
@@ -739,6 +799,17 @@ void placementDocuments() {
           && p.placement.origin == Point{124, 64, -38} && p.placement.rotation == 3 && p.placement.mirror == Mirror::Z
           && p.layers == hut.layers && !p.visible && !p.countExtras && p.entities,
           "placements round-trip");
+    auto legacy = decodePlacements(R"({"version":1,"placements":[{"file":"a.mcstructure","layerAxis":3,"layerMode":2,"layer":1}]})");
+    check(legacy.placements.size() == 1 && legacy.placements[0].layers.legacy
+              && legacy.placements[0].layers.legacyAxis == LegacyLayerAxis::WestFromEast
+              && legacy.placements[0].layers.legacyMode == LayerMode::UpTo && legacy.placements[0].layers.legacyIndex == 1,
+          "an old document keeps its six-direction view until the size is known");
+    auto converted = decodePlacements(R"({"version":1,"placements":[{"file":"a.mcstructure","layerAxis":0,"layerMode":0,"layer":0,
+        "layerView":{"axis":"z","cut":2,"keep":"high","mode":"upTo"}}]})");
+    check(converted.placements.size() == 1 && !converted.placements[0].layers.legacy
+              && converted.placements[0].layers.axis == LayerAxis::Z && converted.placements[0].layers.cut == 2
+              && converted.placements[0].layers.keep == LayerKeep::High && converted.placements[0].layers.mode == LayerMode::UpTo,
+          "a layerView document loads the cut plane");
     auto tolerant = decodePlacements(R"({"version":1,"placements":[{"file":"a.mcstructure"},{"file":"../x.mcstructure"},
         {"file":"C:/x.mcstructure"},{"name":"no file"}],"selected":7})");
     check(tolerant.placements.size() == 1 && tolerant.placements[0].name == "a.mcstructure" && tolerant.placements[0].visible

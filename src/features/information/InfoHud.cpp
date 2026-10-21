@@ -323,11 +323,15 @@ std::optional<ui::hud_editor::Box> drawSchematicHud(MinecraftUIRenderContext& co
     // Texts first, so the card is only as wide as its content.
     std::string name = selected ? selected->name : ui::translated("feature.schematicHud");
     std::string layers;
-    if (selected && selected->layers.mode != schematic::LayerMode::All) {
+    if (selected) {
         auto structure = schematic::session::structure(selected->file);
-        int count = structure ? schematic::layerCount(schematic::placedSize(structure->size, selected->placement.rotation),
-            selected->layers.axis) : 1;
-        layers = ui::translated("schematic.layerValue", selected->layers.index + 1, std::max(1, count));
+        auto placed = structure ? schematic::placedSize(structure->size, selected->placement.rotation) : schematic::Size{1, 1, 1};
+        auto view = selected->layers.legacy ? schematic::fromLegacy(selected->layers, placed) : selected->layers;
+        if (view.mode != schematic::LayerMode::All) {
+            int count = std::max(1, schematic::layerCount(placed, view.axis));
+            view.cut = std::clamp(view.cut, 0, count - 1);
+            layers = ui::translated("schematic.layerValue", view.cut + 1, count);
+        }
     }
     struct Cell { ui::Rgb mark; std::string text; };
     std::array<Cell, 4> cells{{

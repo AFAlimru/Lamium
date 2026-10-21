@@ -13,10 +13,11 @@ Experimental, default off; included in 0.1.7. Files live in
 Check and Materials tabs. It opens the file folder and warns before loading
 a file over 2 MB. Placements persist per world/server and dimension.
 
-One selected placement controls movement, turn/mirror, six-direction layer
+One selected placement controls movement, turn/mirror, cut-plane layer
 selection, checking and materials. A radial menu exposes placement and
-save-area operations; a separate held adjust key repeats the last stepper
-operation with the wheel. Dedicated keys remain available, all unbound.
+save-area operations; a separate held adjust key repeats the last adjustment
+made in the menu (movement, rotation/mirror, the cut) with the wheel.
+Dedicated keys remain available, all unbound.
 Movement follows the drawn view (2026-10-20, L-230): all six directions come
 from one camera frame. Forward/back step along the view's dominant axis and
 move on Y past 60 degrees up or down; left/right stay horizontal; up/down are
@@ -28,10 +29,11 @@ wheel direction); Hold actions cannot. Control follow-up: L-231 control
 discoverability. L-230 movement passed its in-game check and its key help now
 explains that steep looks move on Y; L-229's opener repeat and L-235
 binding-name display are fixed and checked (BACKLOG-DONE.md); BACKLOG owns the
-open status. The next controls round (shared move target, repeat scope,
-default Alt+Wheel forward/back) and the six-direction layer model are under
-redesign in [SCHEMATIC-CONTROLS.md](SCHEMATIC-CONTROLS.md); L-234 owns the layer
-model. Nothing in this section is implemented from that note yet.
+open status. The controls round (shared move target, repeat scope, default
+Alt+Wheel forward/back) was merged in PR #36 (2026-10-21), and the cut-plane
+layer model is implemented on branch `schematic-layers`; L-234 owns it. The
+contract in [SCHEMATIC-CONTROLS.md](SCHEMATIC-CONTROLS.md) is the design source
+for both.
 
 The default ghost look is tinted with a light-blue outline. Since 2026-10-15
 (L-186) the tint strength is a 0-100% setting, 70% by default (100% is the
@@ -953,9 +955,12 @@ Decided 2026-10-03 after the first mockup
   default off and changes only when the player switches it (setting, key
   or the screen's switch); placing a schematic never turns it on. Large
   builds would not fit the HUD, and the screen is one key away.
-- Layers work along any axis: height (from below / from above), east-west
-  (from west / east) and north-south (from north / south), each with
-  all / this layer only / up to this layer. Default: height from below.
+- Layers are a cut plane: axis Y/X/Z, a local cut offset from the low corner,
+  a keep side (low/high) and all / this layer only / up to this layer. The
+  Layers menu also has "Slice from view" (dominant view axis, cut at the
+  view's virtual feet, only, far side) and "Cut here" (same cut at the
+  current axis). The old six-direction form is only a storage/rollback
+  representation; see the JSON note below.
 - The file browser shows a rotatable 3D preview of the schematic with
   "up to layer N". It depends on the same research as the ghost look; if
   real block models cannot be drawn there, fall back to a top-down
@@ -1033,9 +1038,10 @@ then rendering, screen and keys.
 - Done: `.mcstructure` read/write (`src/features/schematic/Nbt.*`,
   `Structure.*`): little-endian NBT, layers as int arrays (current exports)
   or int lists (older ones), palette with state keys, block entity data by
-  cell, entities relative to the corner. Placement and layer math
-  (`Placement.h`: mirror then clockwise quarter turns, inverse lookup, six
-  layer axes with all/only/up-to) and verifier/material rules
+  cell, entities relative to the corner. Placement and cut-plane layer math
+  (`Placement.h`: mirror then clockwise quarter turns, inverse lookup, Axis /
+  Cut / Keep / Mode, and conversion from the old six directions) and
+  verifier/material rules
   (`Verify.h`). Covered in `tests/SchematicTests.cpp`; set
   `LAMIUM_SAMPLE_STRUCTURES` to a folder of real exports to parse them too.
 - Block states are turned by the game:
@@ -1049,8 +1055,13 @@ then rendering, screen and keys.
   screen pinned in the sidebar (placements above the files of
   mods/Lamium/schematics; place a file at your feet; edit position,
   rotation, mirror, visibility, layers, extra blocks; delete), placements
-  saved per world beside the waypoints (`schematics.json`), and ghosts
-  drawn per 16-block section (`GhostRenderer.cpp`): tinted ghosts where a
+  saved per world beside the waypoints (`schematics.json`). The document stays
+  `version: 1`; a placement keeps the old `layerAxis`/`layerMode`/`layer`
+  fields and, after its cut plane is edited with a known size, also carries
+  `layerView` (`axis`, `cut`, `keep`, `mode`). Old readers use the old fields;
+  a placement still on the old form is written back unchanged until edited.
+  Ghosts are drawn per 16-block section (`GhostRenderer.cpp`): tinted ghosts
+  where a
   block is missing, red outlines for wrong or extra blocks, yellow for a
   wrong state, orange for unknown block names, block-entity models with an
   outline. Sections rebuild two per frame and refresh every two seconds.
