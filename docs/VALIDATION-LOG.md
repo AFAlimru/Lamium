@@ -21,6 +21,19 @@ public history; the DLL SHA-256 in each entry identifies the build that was
 actually run. The binding-display item was renumbered from L-232 to L-235 at
 the same time, because origin took L-232 for the slime chunk indicator.
 
+## Maintainer use reports for the 0.3.0 badge review (2026-10-22)
+
+Reported in conversation, from everyday use; builds not recorded, not a
+checklist run. FreeCamera: other players still see the body, and it works on
+servers. Edge Guard and Auto Elytra: work on servers without problems; Edge
+Guard cannot guarantee no fall (like vanilla sneaking, lag or a small margin
+can still drop you). Fake Offhand: works on servers to a degree; many items
+and situations stay unverified by design. Death layout restore: sometimes
+restores where the player does not recall dying, or in a layout that looks
+wrong; hard to pin down (L-240). These reports back the decision to drop the
+Experimental badge from FreeCamera, Hand Restock, Tool Protection, Auto
+Elytra and Edge Guard for 0.3.0 (DESIGN.md).
+
 ## L-239 layer mode memory checked in game (2026-10-22)
 
 `main` (`fce4b99`, implemented by Codex, reviewed and built before commit),

@@ -183,6 +183,17 @@ validation checkpoints" (snapshot 2026-10-20).
 
 ## Bugs
 
+### L-240 Death layout restore sometimes restores unexpectedly or wrongly
+Kind: Bug / Research. Maintainer report 2026-10-22 (everyday use, builds not
+recorded): Death layout restore sometimes acts after a death the player does
+not recall ("did I die there?"), and when it restores, the result sometimes
+looks wrong. Hard to reproduce or pin down because deaths and pickups are
+hard to observe. Keeps its Experimental badge in 0.3.0 (DESIGN.md).
+First step: decide what to observe (which death a restore belongs to, the
+recorded layout versus the pickups applied) and whether a bounded trace
+build or an in-game log line per restore is the cheapest way to catch it;
+no fix before a concrete case.
+
 ### L-227 FreeCamera outside the loaded area shows only the sky
 Kind: Bug / Research. Maintainer 2026-10-19 (`9a565f0`): with FreeCamera
 flown out past the render distance, all terrain disappears, also the loaded
