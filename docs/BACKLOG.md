@@ -184,8 +184,8 @@ validation checkpoints" (snapshot 2026-10-20).
 ## Bugs
 
 ### L-243 Large terrain gaps that only reload when the player comes near
-Kind: Bug / Research; blocks 0.3.0 until the cause is known. Maintainer
-report 2026-10-22 on `fca2ef9` (0.3.0), local world, after dimension
+Kind: Bug / Research, not reproduced; watch item. Maintainer report
+2026-10-22 on `fca2ef9` (0.3.0), local world, after dimension
 changes, world map teleports and FreeCamera use: large areas of terrain,
 near and far, are missing (sky shows through the ground). Looking at them
 does not bring them back; only walking or flying near reloads them. Earlier
@@ -198,6 +198,23 @@ L-241, or teleports themselves); whether it happens without FreeCamera,
 with the world map recording off, with Hide effects off, or on 0.2.3.
 First step: the maintainer's A/B answers, then a bounded trace if needed.
 Related: L-227 (FreeCamera far out shows only the sky).
+A/B the same day: with everything on and with FreeCamera, map recording
+and Hide effects each used or avoided, already generated Overworld chunks
+never failed to load again; the gaps did not come back under any condition.
+Not a 0.3.0 blocker while it cannot be reproduced; reopen with the
+conditions if it returns.
+Seen while trying (2026-10-22), likely vanilla: in the Nether, walking
+toward chunks that were never generated only generates them out to about
+the fog distance around the body, whatever the render distance; FreeCamera
+moving alone generates nothing, which with fog hidden looks like missing
+terrain. Chunk generation follows the body; not a Lamium change.
+
+### L-244 FreeCamera keeps the inside-a-block view after starting in a block
+Kind: Bug. Maintainer report 2026-10-22: start FreeCamera while the body's
+head is inside a block (buried in the ground); the camera then shows the
+inside-a-block screen effect the whole time, also while flying in the air.
+The effect should follow the camera, not the body, or be suppressed while
+FreeCamera owns the view. Not a 0.3.0 blocker (leave the block first).
 
 ### L-241 Pre-0.3.0 review: settings, map and schematic fixes
 Kind: Ready (strong model; decided with the maintainer 2026-10-22). A1 and A2
