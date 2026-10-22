@@ -330,8 +330,8 @@ Toggle sneaking or sprinting with a key.
 ### Edge Guard
 
 Stops at block edges without sneaking, with an adjustable margin. Also works
-on servers. Like sneaking, it is not a guarantee: lag or a small margin can
-still let you fall.
+on servers. In rare cases, such as heavy lag or a very small margin, you can
+still drop.
 
 ### Tool Protection
 

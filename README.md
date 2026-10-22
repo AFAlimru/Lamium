@@ -260,9 +260,9 @@ requests are handled. What has been checked in game, per feature, is in
 **Actions**
 
 - **Edge Guard:** checked in local worlds, on a test BDS (including server
-  position corrections) and in server use. Like sneaking, it cannot promise
-  you never fall: lag or a small edge margin can still let you drop. Other
-  servers' anti-cheat is untested.
+  position corrections) and in server use. It keeps you on the edge in
+  normal play; in rare cases, such as heavy lag or a very small edge margin,
+  you can still drop. Other servers' anti-cheat is untested.
 - **Block Restrictions:** the breaking modes will be redesigned.
 - **Auto Attack/Use:** whether several clicks per tick land on servers is not
   verified.

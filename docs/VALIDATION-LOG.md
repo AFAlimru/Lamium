@@ -21,6 +21,19 @@ public history; the DLL SHA-256 in each entry identifies the build that was
 actually run. The binding-display item was renumbered from L-232 to L-235 at
 the same time, because origin took L-232 for the slime chunk indicator.
 
+## 0.3.0 badge review checked in game (2026-10-22)
+
+`main` (`c710e77`), deployed DLL SHA-256
+`22185F3C460CDA10F33390E244E3696B25645A818314CB534218D82403227FBE`, default
+release build, local `1.26.51.01 LIP` deployment, Windows x64. Maintainer
+report: the settings show no Experimental badge on FreeCamera, Hand Restock,
+Tool Protection, Auto Elytra and Edge Guard, and still show it on Inventory
+transfer; Edge Guard's help shows the added sentence. Correction to the entry
+below: the maintainer's point is that Edge Guard, like sneaking, normally
+keeps you from falling and drops only rarely (heavy lag, a very small
+margin); "no fall guarantee" overstated it. The help, README, FEATURES and
+DESIGN wording was softened accordingly after this check.
+
 ## Maintainer use reports for the 0.3.0 badge review (2026-10-22)
 
 Reported in conversation, from everyday use; builds not recorded, not a

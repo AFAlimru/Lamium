@@ -139,8 +139,8 @@ menu and HUD editor keep GUI units.
   Permanent Sprint have no Experimental badge after maintainer use. For
   0.3.0 (decided 2026-10-22) FreeCamera, Hand Restock, Tool Protection, Auto
   Elytra and Edge Guard lose it too after server use; their remaining limits
-  stay in the README's known issues (Edge Guard: no fall guarantee, like
-  sneaking). Inventory transfer keeps it and is off for new installs, so no
+  stay in the README's known issues (Edge Guard: rare drops under heavy lag
+  or a very small margin). Inventory transfer keeps it and is off for new installs, so no
   Experimental feature is on by default. Fake Offhand, Death layout restore,
   the version-sensitive visuals, Game language, Skip server packs, Map and
   Schematics keep the badge.
