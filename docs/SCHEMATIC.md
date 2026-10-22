@@ -982,7 +982,7 @@ Decided 2026-10-03 after the first mockup
   Mode, Keep and "Cut here" (cut at the current axis and view source). Axis
   changes keep the cut. Leaving All through a cut operation returns to the
   mode in which the cut, Keep or Axis was last changed, defaulting to Only
-  (L-239 revision implemented; in-game check pending). Modes only viewed or
+  (L-239, checked in game on `fce4b99`). Modes only viewed or
   passed through and edits under All do not update the memory. Each placement
   remembers that mode only for the world session; it is not saved and does
   not affect the ghost key. Menu Cut steps,

@@ -21,6 +21,20 @@ public history; the DLL SHA-256 in each entry identifies the build that was
 actually run. The binding-display item was renumbered from L-232 to L-235 at
 the same time, because origin took L-232 for the slime chunk indicator.
 
+## L-239 layer mode memory checked in game (2026-10-22)
+
+`main` (`fce4b99`, implemented by Codex, reviewed and built before commit),
+deployed DLL SHA-256
+`743C0B2CA833150DC844FED17B37407F24458769A3EE573392289B376BA39DE3`, default
+release build, local `1.26.51.01 LIP` deployment, Windows x64. Maintainer
+report: all four checks passed: an Only cut edit survives stepping the mode
+through Up to to All and Cut up returns to Only with the cut kept; an Up to
+Keep or cut edit, then All and Cut here, gives Up to at the view's layer; the
+Schematics screen's Cut + and typed cut follow the same rule; after
+rejoining, leaving All gives Only. The first version (`5a6f8ef`, which
+remembered the mode left for All) was not checked in game: the maintainer
+found its rule unpredictable from the spec and it was revised first.
+
 ## L-237 presentation follow-up checked in game (2026-10-22)
 
 `main` (`1bf531e`, implemented by Codex, reviewed before commit), deployed

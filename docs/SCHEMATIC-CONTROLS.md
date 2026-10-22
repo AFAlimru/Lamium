@@ -119,8 +119,8 @@ L-238 menu and keys, L-239 mode memory).
 - Cut here keeps the axis and keep, sets the cut to the view source's layer
   along that axis (the player's feet in normal play, the camera's virtual feet
   in FreeLook/FreeCamera), then leaves All for the mode in which the cut,
-  Keep or Axis was last changed (Only by default; L-239 revision implemented,
-  in-game check pending). Modes only viewed or passed through and edits under
+  Keep or Axis was last changed (Only by default; L-239, checked in game on
+  `fce4b99`). Modes only viewed or passed through and edits under
   All do not update the memory. The memory belongs to each placement for the
   world session and is not saved.
 - Menu Cut steps, Layer up/down keys and screen Cut +/- first leave All
