@@ -503,7 +503,9 @@ B. Ghost drawing (Research, strong model; one runtime round per step):
    own build-order meshes far to near (a whole large liquid ghost re-sorted
    halved the frame rate). Ghost faces that a
    real see-through block's face covers are left out like faces against
-   opaque blocks.
+   opaque blocks. This assumes the real face is drawn; where the game culls
+   the real block's back face (inside it, adjacent glass, a beacon or its
+   beam), both faces can be missing (L-245).
    Faces seen from inside and near ghosts (checked 2026-10-09): in a cell
    the camera is in, a ghost keeps only faces turned toward the camera
    (`dropBackFaces`, like real blocks: from inside a door, spawner or stair

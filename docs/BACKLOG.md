@@ -216,6 +216,21 @@ inside-a-block screen effect the whole time, also while flying in the air.
 The effect should follow the camera, not the body, or be suppressed while
 FreeCamera owns the view. Not a 0.3.0 blocker (leave the block first).
 
+### L-245 Ghost face disappears next to real glass or a beacon from some angles
+
+Kind: Bug / Research, low priority. Maintainer report 2026-10-22 (0.3.0,
+`2900d1dc`): a white stained glass ghost next to real white stained glass
+or a beacon shows no face at the shared plane from some angles.
+`cullAgainstGhosts` treats a real blended full-support block as covering
+the ghost face (`realOpaque`), assuming the real face is drawn. The game
+also culls the real block's back face from inside it or at some angles, and
+draws a beacon beam similarly, so both faces can be absent. Same family as
+L-192/L-193/L-194 (real see-through blocks and ghost faces). Not a 0.3.0
+blocker; record before changing the face rule.
+First step: reproduce with one ghost and one real glass/beacon block, note
+the camera side, then decide whether to keep the ghost face where the real
+block's face is not visible from the camera.
+
 ### L-241 Pre-0.3.0 review: settings, map and schematic fixes
 Kind: Ready (strong model; decided with the maintainer 2026-10-22). A1 and A2
 implemented and checked in game on `fca2ef9` (2026-10-22). Two

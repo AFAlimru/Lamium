@@ -242,6 +242,8 @@ requests are handled. What has been checked in game, per feature, is in
   files are not verified.
 - Under Vibrant Visuals ghosts lose their light-blue tint and the honey
   ghost is black.
+- A ghost face next to real glass or a beacon can disappear from some angles,
+  leaving the shared plane empty (L-245).
 - Entity models stay in their rest pose (a wolf's tail, zombie arms) with the
   default skin, sheep wool is not drawn, and entities without a model show
   as a dashed frame. Entities are checked by type near their spot and saved

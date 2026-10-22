@@ -167,7 +167,9 @@ void cullAgainstGhosts(Tessellator& batch, size_t from, BlockSource& region, ses
             // A real see-through block whose face covers this side (glass,
             // ice) writes depth in the same plane: the ghost's face fought it
             // there, darker or lighter by section and camera position
-            // (L-192, L-193). Its own face shows instead, as for an opaque one.
+            // (L-192, L-193). Its own face usually shows instead; where the
+            // game culls its back face (inside it, adjacent glass, a beacon)
+            // both faces can be missing (L-245).
             bool realOpaque = (real.getBlockType().mIsOpaqueFullBlock && !realBlended)
                 || (realBlended && real.getBlockType().canProvideFullSupport(real, faces::facingToward(side)));
             // This placement's ghost there, else a touching placement's.
