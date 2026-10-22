@@ -136,9 +136,8 @@ struct Layers {
     LayerMode lastShown = LayerMode::Only; // world-session memory, not saved
     bool operator==(Layers const&) const = default;
 };
-inline void setLayerMode(Layers& layers, LayerMode next) {
-    if (next == LayerMode::All && layers.mode != LayerMode::All) layers.lastShown = layers.mode;
-    layers.mode = next;
+inline void noteLayerEdit(Layers& layers) {
+    if (layers.mode == LayerMode::Only || layers.mode == LayerMode::UpTo) layers.lastShown = layers.mode;
 }
 inline bool leaveAll(Layers& layers) {
     if (layers.mode != LayerMode::All) return false;

@@ -383,9 +383,9 @@ wheel subset only. L-169 owns transfer extensions; do not start without
 choosing the subset and model.
 
 ### L-239 Leaving "All" returns to the last layer mode
-Kind: Ready. First version built in `5a6f8ef` (2026-10-22, not checked in
-game); its memory rule is **revised below** and the revision is to be
-implemented by Codex.
+Kind: Ready. Revision implemented in the working tree (2026-10-22);
+in-game check pending. First version built in `5a6f8ef` (not checked in
+game); its memory rule is superseded by the revision below.
 
 **Revision (maintainer 2026-10-22, supersedes "Decided" and step 1's
 recording rule below).** Recording the mode left for All is unpredictable:

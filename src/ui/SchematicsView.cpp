@@ -403,6 +403,7 @@ void activateSchematicField(int index, int part) {
             auto axis = static_cast<schematic::LayerAxis>((static_cast<int>(t.layers.axis) + direction + 3) % 3);
             // Changing the axis keeps the cut; only Cut here moves it.
             t.layers = schematic::withAxis(t.layers, structure->size, axis);
+            schematic::noteLayerEdit(t.layers);
             schematic::dualWrite(t.layers, structure->size, t.placement);
         });
         return;
@@ -412,7 +413,7 @@ void activateSchematicField(int index, int part) {
         if (!structure) { screen::setMessage(translated("schematic.layerNeedsStructure")); return; }
         changeSchematic([&](schematic::SavedPlacement& t) {
             if (t.layers.legacy) t.layers = schematic::fromLegacy(t.layers, structure->size, t.placement);
-            schematic::setLayerMode(t.layers, static_cast<schematic::LayerMode>((static_cast<int>(t.layers.mode) + direction + 3) % 3));
+            t.layers.mode = static_cast<schematic::LayerMode>((static_cast<int>(t.layers.mode) + direction + 3) % 3);
             schematic::dualWrite(t.layers, structure->size, t.placement);
         });
         return;
@@ -426,6 +427,7 @@ void activateSchematicField(int index, int part) {
         changeSchematic([&](schematic::SavedPlacement& t) {
             if (t.layers.legacy) t.layers = schematic::fromLegacy(t.layers, structure->size, t.placement);
             if (!schematic::leaveAll(t.layers)) t.layers.cut = std::clamp(t.layers.cut + direction, 0, count - 1);
+            schematic::noteLayerEdit(t.layers);
             schematic::dualWrite(t.layers, structure->size, t.placement);
         });
         return;
@@ -436,6 +438,7 @@ void activateSchematicField(int index, int part) {
         changeSchematic([&](schematic::SavedPlacement& t) {
             if (t.layers.legacy) t.layers = schematic::fromLegacy(t.layers, structure->size, t.placement);
             t.layers.keep = t.layers.keep == schematic::LayerKeep::Low ? schematic::LayerKeep::High : schematic::LayerKeep::Low;
+            schematic::noteLayerEdit(t.layers);
             schematic::dualWrite(t.layers, structure->size, t.placement);
         });
         return;
@@ -449,6 +452,7 @@ void activateSchematicField(int index, int part) {
             if (t.layers.legacy) t.layers = schematic::fromLegacy(t.layers, structure->size, t.placement);
             t.layers.cut = schematic::cutAlong(structure->size, t.placement, t.layers.axis, {place->x, place->y, place->z});
             schematic::leaveAll(t.layers);
+            schematic::noteLayerEdit(t.layers);
             schematic::dualWrite(t.layers, structure->size, t.placement);
         });
         return;
@@ -1445,6 +1449,7 @@ void applyNumber() {
             if (p.layers.legacy) p.layers = schematic::fromLegacy(p.layers, structure->size, p.placement);
             p.layers.cut = value - 1;
             schematic::leaveAll(p.layers);
+            schematic::noteLayerEdit(p.layers);
             schematic::dualWrite(p.layers, structure->size, p.placement);
         }
         else (field == 0 ? p.placement.origin.x : field == 1 ? p.placement.origin.y : p.placement.origin.z) = value;

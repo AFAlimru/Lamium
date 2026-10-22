@@ -981,9 +981,11 @@ Decided 2026-10-03 after the first mockup
   cells visible; the world plane turns with it. The Layers menu has Axis, Cut,
   Mode, Keep and "Cut here" (cut at the current axis and view source). Axis
   changes keep the cut. Leaving All through a cut operation returns to the
-  last Only or Up to mode, defaulting to Only (L-239, implemented; in-game
-  check pending). Each placement remembers that mode only for the world
-  session; it is not saved and does not affect the ghost key. Menu Cut steps,
+  mode in which the cut, Keep or Axis was last changed, defaulting to Only
+  (L-239 revision implemented; in-game check pending). Modes only viewed or
+  passed through and edits under All do not update the memory. Each placement
+  remembers that mode only for the world session; it is not saved and does
+  not affect the ghost key. Menu Cut steps,
   Layer up/down keys and screen Cut +/- first leave All without moving the
   cut. Cut here, the screen's "Match the layer you are in" and a typed cut
   set the cut and then leave All. Keys/menu announce the resulting mode;

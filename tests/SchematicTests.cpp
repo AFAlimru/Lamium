@@ -567,27 +567,70 @@ void layerModeMemory() {
     layers.cut = 2;
     check(leaveAll(layers) && layers.mode == LayerMode::Only && layers.cut == 2,
           "leaving All defaults to Only and keeps the cut");
-    setLayerMode(layers, LayerMode::UpTo);
+    layers.mode = LayerMode::UpTo;
     auto upTo = layers;
     check(!leaveAll(layers) && layers == upTo, "leaving a non-All mode changes nothing");
-    setLayerMode(layers, LayerMode::All);
-    setLayerMode(layers, LayerMode::All);
-    check(layers.lastShown == LayerMode::UpTo && leaveAll(layers) && layers.mode == LayerMode::UpTo,
-          "All remembers UpTo, including when All is selected again");
-    setLayerMode(layers, LayerMode::Only);
+    layers.mode = LayerMode::All;
+    check(leaveAll(layers) && layers.mode == LayerMode::Only,
+          "a mode only viewed does not replace the default memory");
+
+    ++layers.cut;
+    noteLayerEdit(layers);
+    for (int i = 0; i < 2; ++i)
+        layers.mode = static_cast<LayerMode>((static_cast<int>(layers.mode) + 1) % 3);
+    check(layers.mode == LayerMode::All && layers.lastShown == LayerMode::Only
+              && leaveAll(layers) && layers.mode == LayerMode::Only && layers.cut == 3,
+          "an Only cut edit survives stepping forward through UpTo to All");
     auto only = layers;
     check(!leaveAll(layers) && layers == only, "leaving Only changes nothing");
-    setLayerMode(layers, LayerMode::All);
-    check(layers.lastShown == LayerMode::Only && leaveAll(layers) && layers.mode == LayerMode::Only,
-          "All remembers Only after UpTo");
-    for (int direction : {-1, 1}) {
+
+    for (bool editKeep : {false, true}) {
         layers = {};
-        for (int i = 0; i < 3; ++i)
-            setLayerMode(layers, static_cast<LayerMode>((static_cast<int>(layers.mode) + direction + 3) % 3));
-        auto previous = direction > 0 ? LayerMode::UpTo : LayerMode::Only;
-        check(layers.mode == LayerMode::All && layers.lastShown == previous
-                  && leaveAll(layers) && layers.mode == previous,
-              "cycling through All in either direction remembers the mode it left");
+        layers.mode = LayerMode::UpTo;
+        if (editKeep) layers.keep = LayerKeep::High;
+        else layers.cut = 3;
+        noteLayerEdit(layers);
+        auto edited = layers;
+        layers.mode = LayerMode::Only;
+        layers.mode = LayerMode::All;
+        check(layers.lastShown == LayerMode::UpTo && leaveAll(layers) && layers == edited,
+              "an UpTo Keep or cut edit survives viewing Only before All");
+        layers.mode = LayerMode::All;
+        leaveAll(layers);
+        noteLayerEdit(layers);
+        check(layers == edited, "a cut operation leaving All notes the restored mode without changing it");
+    }
+
+    layers.mode = LayerMode::Only;
+    layers.axis = LayerAxis::X;
+    noteLayerEdit(layers);
+    layers.mode = LayerMode::All;
+    check(layers.lastShown == LayerMode::Only && leaveAll(layers) && layers.mode == LayerMode::Only,
+          "an Axis edit replaces the previous UpTo memory with Only");
+
+    layers.mode = LayerMode::Only;
+    layers.keep = LayerKeep::Low;
+    layers.lastShown = LayerMode::UpTo;
+    noteLayerEdit(layers);
+    check(layers.lastShown == LayerMode::Only, "a Keep edit counts even under Only");
+
+    for (auto remembered : {LayerMode::Only, LayerMode::UpTo}) {
+        layers = {};
+        layers.lastShown = remembered;
+        layers.cut = 4;
+        auto edited = layers;
+        noteLayerEdit(layers);
+        check(layers == edited, "a cut edit under All does not change the mode memory");
+        layers.keep = LayerKeep::High;
+        edited = layers;
+        noteLayerEdit(layers);
+        check(layers == edited, "a Keep edit under All does not change the mode memory");
+        layers.axis = LayerAxis::Z;
+        edited = layers;
+        noteLayerEdit(layers);
+        check(layers == edited, "an Axis edit under All does not change the mode memory");
+        check(leaveAll(layers) && layers.mode == remembered,
+              "All edits preserve the mode restored by leaveAll");
     }
     Layers old;
     old.legacy = true;
@@ -1090,7 +1133,7 @@ void placementDocuments() {
     remembered.placements[0].layers.lastShown = LayerMode::UpTo;
     check(encodePlacements(remembered) == encodePlacements(set), "mode memory is not written to the placement document");
     auto all = remembered;
-    setLayerMode(all.placements[0].layers, LayerMode::All);
+    all.placements[0].layers.mode = LayerMode::All;
     dualWrite(all.placements[0].layers, Size{4, 6, 3}, hut.placement);
     auto rejoined = decodePlacements(encodePlacements(all));
     check(rejoined.placements[0].layers.lastShown == LayerMode::Only

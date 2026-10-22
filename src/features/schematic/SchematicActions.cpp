@@ -506,7 +506,7 @@ void applyLayerStep(menu::Stepper stepper, int amount) {
             // Changing the axis keeps the cut; only Cut here moves it.
             p.layers.axis = static_cast<LayerAxis>(((static_cast<int>(p.layers.axis) + amount) % 3 + 3) % 3);
         } else if (stepper == menu::Stepper::LayerMode) {
-            setLayerMode(p.layers, static_cast<LayerMode>(((static_cast<int>(p.layers.mode) + amount) % 3 + 3) % 3));
+            p.layers.mode = static_cast<LayerMode>(((static_cast<int>(p.layers.mode) + amount) % 3 + 3) % 3);
         } else if (stepper == menu::Stepper::LayerKeep) {
             // A wheel can deliver several notches in one frame; keep the side
             // for an even count, toggle for an odd one.
@@ -517,6 +517,7 @@ void applyLayerStep(menu::Stepper stepper, int amount) {
             if (!leftAll) p.layers.cut += amount;
         }
         p.layers.cut = std::clamp(p.layers.cut, 0, std::max(0, layerCount(structure->size, p.layers.axis) - 1));
+        if (stepper != menu::Stepper::LayerMode) noteLayerEdit(p.layers);
         dualWrite(p.layers, structure->size, p.placement);
     }, [&](SavedPlacement const& p) { return layerChangeText(structure.get(), p, stepper, leftAll); });
 }
@@ -606,6 +607,7 @@ void press(IClientInstance& client, Action action) {
             if (!leftAll) {
                 p.layers.cut = std::clamp(p.layers.cut + direction, 0, std::max(0, layerCount(structure->size, p.layers.axis) - 1));
             }
+            noteLayerEdit(p.layers);
             dualWrite(p.layers, structure->size, p.placement);
         }, [&](SavedPlacement const& p) { return layerChangeText(structure.get(), p, menu::Stepper::Layer, leftAll); });
         return;
@@ -620,6 +622,7 @@ void press(IClientInstance& client, Action action) {
             if (p.layers.legacy) p.layers = fromLegacy(p.layers, structure->size, p.placement);
             p.layers.cut = cutAlong(structure->size, p.placement, p.layers.axis, *at);
             leftAll = leaveAll(p.layers);
+            noteLayerEdit(p.layers);
             dualWrite(p.layers, structure->size, p.placement);
         }, [&](SavedPlacement const& p) { return cutHereText(structure.get(), p, leftAll); });
         return;
