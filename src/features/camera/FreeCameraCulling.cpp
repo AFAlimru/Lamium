@@ -82,7 +82,7 @@ LL_TYPE_INSTANCE_HOOK(TerrainCullerRequest, ll::memory::HookPriority::Normal, Le
     // Other render stages' requests never move the primary camera's hold.
     int choice = undergroundHoldDefault;
     try { if (own) choice = Runtime::instance().snapshot()->camera.freeCameraUndergroundHold; } catch (...) {}
-    bool wanted = own && spectatorHold.wanted(free, inside, seconds(), choice);
+    bool wanted = spectatorTerrainWanted(own, free, inside, spectatorHold, seconds(), choice);
     auto selected = terrainCuller(native, wanted && versionSensitiveAllowed(capability));
     origin(static_cast<LevelCullerType>(selected));
     if (!own || !enabled() || native != 3) return;

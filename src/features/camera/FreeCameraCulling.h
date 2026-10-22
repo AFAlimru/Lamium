@@ -42,6 +42,12 @@ struct SpectatorHold {
         return now - lastInside < seconds;
     }
 };
+// The real gate: only the primary camera's render requests move the hold, and
+// the player's hold choice applies. Tested directly (L-242).
+inline bool spectatorTerrainWanted(bool own, bool freeCamera, bool insideTerrain, SpectatorHold& hold, double now,
+                                   int choice = undergroundHoldDefault) noexcept {
+    return own && hold.wanted(freeCamera, insideTerrain, now, choice);
+}
 // Native updates that did not keep the requested type, counted in a row.
 // Switching between the normal and spectator culler as the camera crosses
 // terrain (L-207) left the previous type for a moment, and one such update

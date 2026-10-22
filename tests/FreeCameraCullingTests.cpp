@@ -17,6 +17,14 @@ void freeCameraCullingTests() {
     check(terrainCuller(3, spectatorTerrainWanted(true, true)) == 5
               && terrainCuller(3, spectatorTerrainWanted(true, false)) == 3,
         "the native request follows the camera being inside terrain");
+    {
+        lamium::camera::SpectatorHold gate;
+        check(!spectatorTerrainWanted(false, true, true, gate, 0, 2),
+              "other render stages' requests do not enter the hold gate");
+        check(spectatorTerrainWanted(true, true, true, gate, 0, 2)
+                  && !spectatorTerrainWanted(true, false, false, gate, 0, 0),
+              "the real gate uses ownership, FreeCamera and the inside result");
+    }
     lamium::camera::SpectatorHold hold;
     bool entered = hold.wanted(true, true, 10);
     bool held = hold.wanted(true, false, 11) && hold.wanted(true, false, 12.9);
