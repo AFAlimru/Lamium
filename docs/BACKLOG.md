@@ -383,11 +383,42 @@ wheel subset only. L-169 owns transfer extensions; do not start without
 choosing the subset and model.
 
 ### L-239 Leaving "All" returns to the last layer mode
-Kind: Ready, implemented; in-game check pending (2026-10-22).
-Steps 1-5 are implemented; `xmake build Lamium` and
-`xmake build LamiumTests` / `xmake run LamiumTests` passed on the working
-tree based on `9c1d5ae`. No in-game check has been performed.
-The following describes the pre-change behavior and the accepted spec.
+Kind: Ready. First version built in `5a6f8ef` (2026-10-22, not checked in
+game); its memory rule is **revised below** and the revision is to be
+implemented by Codex.
+
+**Revision (maintainer 2026-10-22, supersedes "Decided" and step 1's
+recording rule below).** Recording the mode left for All is unpredictable:
+the mode stepper cycles All -> Only -> Up to, so reaching All from Only by
+the forward step passes Up to and remembered it, while the back step did
+not. New rule: leaving All returns to the mode in which the cut, Keep or
+Axis was **last changed** (Only by default). Modes merely passed through or
+viewed are not remembered.
+
+- `Placement.h`: remove `setLayerMode`; mode changes assign the mode again.
+  Add `noteLayerEdit(Layers&)`, which sets `lastShown = mode` when the mode
+  is Only or Up to and does nothing under All. `leaveAll` is unchanged.
+- Call `noteLayerEdit` after every cut, Keep or Axis change, wherever it is
+  made: `applyLayerStep` (Axis, Keep, Cut steps; keys share it), Layer
+  up/down, Cut here, and the screen's Axis, Keep, Cut +/-, typed cut and
+  "Match the layer you are in". A cut operation that leaves All therefore
+  notes the restored mode (no change). Edits made while the mode is All do
+  not change the memory.
+- Tests replace the stepper-recording ones: Only with a cut edit, then the
+  mode stepper forward through Up to to All, then leaveAll -> Only; Up to
+  with a Keep or cut edit, then All -> Up to; an Axis edit counts; edits
+  under All do not count; a mode only passed through does not count; the
+  default is Only; drawKey and the placement document still ignore the
+  memory.
+- Docs: SCHEMATIC.md and SCHEMATIC-CONTROLS.md say "the mode in which the
+  cut, Keep or Axis was last changed".
+- In-game check, replacing (a)-(d) below: (a) in Only move the cut, step
+  the mode forward through Up to to All, then Cut up: back to Only;
+  (b) in Up to change Keep or the cut, switch to All, Cut here: Up to at
+  the view's layer; (c) the same from the Schematics screen with Cut + and
+  a typed cut; (d) after rejoining the world, leaving All gives Only.
+
+The original record follows.
 Decided with the maintainer 2026-10-22. Previously a cut change made
 while the layer mode was All switched the mode to Only (L-234): the first Cut
 step from the menu or the Layer up/down keys only switched, and Cut here set
