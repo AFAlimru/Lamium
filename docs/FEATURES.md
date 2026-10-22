@@ -51,7 +51,7 @@ Turn only the view while the body keeps its direction and movement. Rear
 third person by default; your previous view comes back afterwards. Hold or
 toggle.
 
-### FreeCamera (experimental)
+### FreeCamera
 
 Fly the view freely while the player stays in place. Hold or toggle.
 
@@ -266,7 +266,7 @@ uses ordinary game operations, waits for matching responses between
 operations and revalidates the affected region before continuing. Rejection,
 missing responses or a changed screen stops the plan.
 
-### Inventory transfer (experimental)
+### Inventory transfer (experimental, off by default)
 
 Moves items between your inventory and every item screen: chests, furnaces,
 brewing stands, hoppers, beacons and more, also the inventory screen.
@@ -310,7 +310,7 @@ Swaps the held item with the offhand (`F`, as in Java Edition).
 Uses a hotbar block or item as if it were in the offhand, also when the item
 in your hand has nothing to do where you aim.
 
-### Hand Restock (experimental)
+### Hand Restock
 
 Tops up consumed items in the same hand slot from the inventory or hotbar,
 with a threshold and a source order. Swaps container remainders (bowls,
@@ -327,17 +327,18 @@ the whole inventory, back the way they were when you died.
 
 Toggle sneaking or sprinting with a key.
 
-### Edge Guard (experimental)
+### Edge Guard
 
 Stops at block edges without sneaking, with an adjustable margin. Also works
-on servers.
+on servers. Like sneaking, it is not a guarantee: lag or a small margin can
+still let you fall.
 
-### Tool Protection (experimental)
+### Tool Protection
 
 On by default. At 1 durability a tool or worn elytra is swapped for a spare,
 or mining stops.
 
-### Auto Elytra (experimental)
+### Auto Elytra
 
 A key, a firework jump or a Riptide trident launch puts an elytra on; the
 chestplate returns after landing.

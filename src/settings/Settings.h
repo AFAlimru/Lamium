@@ -87,7 +87,7 @@ struct Settings {
         // Fake Offhand is on: it can launch them (maintainer 2026-10-07).
         bool offhandSwapFireworks = true;
         bool sortContainers = true;
-        bool transfer = true;
+        bool transfer = false; // Experimental: off for new installs (0.3.0)
         bool transferWheelOne = true;
         bool transferWheelStack = true;
         bool transferDragStack = true;

@@ -87,7 +87,7 @@ feature does in detail: [Features](docs/FEATURES.md).
 | --- | --- | --- | --- |
 | Zoom | Zoom up to 50x with the wheel; optional wide angle below 1x | `C` (hold) | — |
 | Freelook | Look around while moving straight on | — | — |
-| FreeCamera *Exp.* | Fly the view while the player stays in place | — | — |
+| FreeCamera | Fly the view while the player stays in place | — | — |
 | Night Vision | Brighten the view locally, optionally without dark rings | — | Off |
 | Hide Offhand Item | Hide the offhand item (shields too) in first person | — | Off |
 | Hide effects *Exp.* | Hide rain, particles, boss bars, nausea, fogs, the portal screen | — | Off |
@@ -147,12 +147,12 @@ world, with both maps off.
 | Repeated trades | Shift + right click repeats a trade | — | On |
 | Search English names too | Recipe and creative search by English name or ID | — | On |
 | Inventory sorting | Sort the inventory or an open container | `R` | On |
-| Inventory transfer *Exp.* | Move items with the wheel, modified clicks and drags | — | On |
+| Inventory transfer *Exp.* | Move items with the wheel, modified clicks and drags | — | Off |
 | Tool Switch | Pick the right tool when mining | — | Off |
 | Weapon Switch | Pick the strongest weapon when attacking | — | Off |
 | Offhand swap | Swap the held item with the offhand | `F` | On |
 | Fake Offhand *Exp.* | Use a hotbar block or item as if it were in the offhand | Right click | Off |
-| Hand Restock *Exp.* | Refill the held slot when it runs low; refill a used totem | — | Off |
+| Hand Restock | Refill the held slot when it runs low; refill a used totem | — | Off |
 | Death layout restore *Exp.* | Put picked-up items back where they were when you died | — | Off |
 
 ### Actions
@@ -161,9 +161,9 @@ world, with both maps off.
 | --- | --- | --- | --- |
 | Permanent Sneak | Toggle sneaking with a key | — | Off |
 | Permanent Sprint | Toggle sprinting with a key | — | Off |
-| Edge Guard *Exp.* | Stop at block edges without sneaking | — | Off |
-| Tool Protection *Exp.* | Swap or stop before a tool or elytra breaks | — | On |
-| Auto Elytra *Exp.* | Put an elytra on for a flight, the chestplate back after | — | Off |
+| Edge Guard | Stop at block edges without sneaking | — | Off |
+| Tool Protection | Swap or stop before a tool or elytra breaks | — | On |
+| Auto Elytra | Put an elytra on for a flight, the chestplate back after | — | Off |
 | Block Restrictions | Limit breaking to a region you start in | — | Off |
 | Auto Attack / Auto Use | Click for you: periodic, while held, or fast | — | Off |
 
@@ -191,8 +191,9 @@ requests are handled. What has been checked in game, per feature, is in
 
 - **FreeCamera:** underground terrain drawing is checked in a local world and
   on BDS; Hold/Toggle operation, menus, focus loss and dimension travel are
-  also checked. Other players' view of the body, controllers and broader
-  graphics/resource configurations remain untested.
+  also checked. Other players still see the body, and it works on servers
+  (maintainer use). Controllers and broader graphics/resource configurations
+  remain untested.
 - **Hide effects:** cannot hide the carved pumpkin overlay or the spyglass
   frame yet. Water, lava and powder snow fog hiding is checked with the
   vanilla resources in Fancy graphics; other packs and graphics modes are
@@ -248,17 +249,20 @@ requests are handled. What has been checked in game, per feature, is in
   Other screen families, other servers and rejected moves on laggy servers
   are untested. The held-stack Shift + click and drop gestures are checked in
   a chest screen in a local world only.
-- **Hand Restock:** checked in local worlds; server timing and very fast use
+- **Hand Restock:** checked in local worlds and in everyday server use; server timing and very fast use
   or ambiguous inventory changes may skip a refill. It does not refill tools
   (Tool Protection swaps a tool before it breaks).
 - **Death layout restore:** checked in local worlds; with instant respawn the
-  inventory may be read as kept and nothing is restored. Servers with
-  latency are untested.
+  inventory may be read as kept and nothing is restored. In use it sometimes
+  restores after a death you did not expect, or in a layout that looks
+  wrong (under investigation). Servers with latency are untested.
 
 **Actions**
 
-- **Edge Guard:** checked in local worlds and on a test BDS (including server
-  position corrections); other servers and their anti-cheat are untested.
+- **Edge Guard:** checked in local worlds, on a test BDS (including server
+  position corrections) and in server use. Like sneaking, it cannot promise
+  you never fall: lag or a small edge margin can still let you drop. Other
+  servers' anti-cheat is untested.
 - **Block Restrictions:** the breaking modes will be redesigned.
 - **Auto Attack/Use:** whether several clicks per tick land on servers is not
   verified.

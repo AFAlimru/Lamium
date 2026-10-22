@@ -335,10 +335,10 @@ void settingsStoreTests() {
     check(!disabledTrading.inventory.repeatTrades, "repeated trading loads an explicit disabled setting");
     check(old.camera.magnification == 3.5f && !old.lighting.nightVision,
           "adding lighting must preserve existing camera settings");
-    check(old.inventory.sorting && old.inventory.sortContainers && old.inventory.transfer
+    check(old.inventory.sorting && old.inventory.sortContainers && !old.inventory.transfer
           && old.inventory.transferWheelOne && old.inventory.transferWheelStack
           && old.inventory.transferDragStack && old.inventory.transferDragOne,
-          "missing inventory transfer settings default to all gestures on");
+          "missing inventory transfer settings: the feature off, every gesture on once enabled");
     check(old.inventory.restockOffhand && !old.inventory.toolSwitchInventory
           && old.interaction.toolGuard && old.interaction.toolGuardStrict && !old.interaction.elytraSwap
           && old.interaction.elytraFireworkJump && old.interaction.elytraRiptide && old.interaction.elytraReturnSeconds == 3,
