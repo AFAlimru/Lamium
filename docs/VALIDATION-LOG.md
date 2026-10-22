@@ -35,7 +35,10 @@ both the card and the line. Not checked: a legacy placement without its
 structure file (the new unavailable display), an unknown restriction mode,
 and map clearing/session-only storage; the settings decode and map range
 helpers are covered by `LamiumTests`, the other cases were not in the
-shortened checklist.
+shortened checklist. A following comment-only record (L-245, `4b3dd528`) rebuilt
+the same code as DLL SHA-256
+`79843CC2EA06B14847DE4B187E6A325913E7C57825DF232F7A19B224746EBBF3`;
+it differs from the checked E484 build only in a source comment and line tables.
 
 ## L-241 pre-0.3.0 review fixes checked in game (2026-10-22)
 
