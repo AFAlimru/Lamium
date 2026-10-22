@@ -27,19 +27,20 @@ experimental in the settings are still settling (see
 [Known issues](#known-issues)). Runtime evidence and
 remaining gaps are tracked in [validation status](docs/VALIDATION.md).
 
-Supported: Minecraft Bedrock 1.26.51.01, LeviLamina Client 26.51.x, Windows
-x64. Android support is not currently planned: it would be a separate ARM64
-port, not a repackaged build. On a game version Lamium has not been checked
-on, the parts that depend on it (for example Night Vision's light, Edge
-Guard, Connected Textures, ghost blocks) stay vanilla; the settings screen,
-toggle toasts and a toast on joining a world say which features are paused.
+Supported: Minecraft Bedrock 1.26.51.01, LeviLamina Client 26.51.5 or later
+(26.51 series), Windows x64. Android support is not currently planned: it
+would be a separate ARM64 port, not a repackaged build. On a game version
+Lamium has not been checked on, the parts that depend on it (for example
+Night Vision's light, Edge Guard, Connected Textures, ghost blocks) stay
+vanilla; the settings screen, toggle toasts and a toast on joining a world
+say which features are paused.
 
 ## Install
 
-**LeviLauncher (recommended).** In an instance with LeviLamina Client 26.51.x
-for Minecraft 1.26.51.01, find Lamium in LeviLauncher's mod browser (Bedrinth)
-and install it. Update and uninstall it the same way. Updates keep your
-settings. Start Minecraft, enter a world and press `L` to open Lamium
+**LeviLauncher (recommended).** In an instance with LeviLamina Client 26.51.5
+or later for Minecraft 1.26.51.01, find Lamium in LeviLauncher's mod browser
+(Bedrinth) and install it. Update and uninstall it the same way. Updates keep
+your settings. Start Minecraft, enter a world and press `L` to open Lamium
 Settings.
 
 **LIP CLI (advanced).** Lamium is the LIP package
@@ -49,7 +50,7 @@ Only the LeviLauncher path has been tested by the maintainer.
 
 **Manual ZIP (fallback).**
 
-1. Install LeviLamina Client 26.51.x for Minecraft 1.26.51.01.
+1. Install LeviLamina Client 26.51.5 or later for Minecraft 1.26.51.01.
 2. Download `Lamium-<version>-client-windows-x64.zip` from the
    [Releases](https://github.com/amatouhake/Lamium/releases) page.
 3. Extract it so that `Lamium.dll` and `manifest.json` end up in
@@ -197,6 +198,10 @@ requests are handled. What has been checked in game, per feature, is in
   remain untested. Started while your head is inside a block, the camera
   keeps the inside-a-block view while it flies; step out of the block
   first. Moving only the camera does not make the game generate new terrain.
+  Flown past the edge of the loaded area, the camera can show only the sky
+  (L-227). Large terrain gaps after dimension changes or teleports were
+  reported once and did not recur in A/B tests; walking near reloads them
+  (L-243).
 - **Hide effects:** cannot hide the carved pumpkin overlay or the spyglass
   frame yet. Water, lava and powder snow fog hiding is checked with the
   vanilla resources in Fancy graphics; other packs and graphics modes are

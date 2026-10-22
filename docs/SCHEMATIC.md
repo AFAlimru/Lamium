@@ -17,11 +17,14 @@ Missing or unreadable structure files (L-237, checked in game
 2026-10-22 on `1fd201b` and `1bf531e`): failures are cached with the same two-second
 recheck as successful loads. L-241 A2 retries read, size and I/O failures on
 the next check even if the file time is unchanged; only parse failures wait
-for a changed file time. Recovery from a held-open file awaits in-game check (e).
+for a changed file time. Recovery from a held-open file was checked in game
+on `fca2ef9` (check (e)).
 A changed or restored file is retried;
 only a new or changed error is logged. While Schematics is on, unreadable
 placements are announced once per world generation, grouped into one toast
-per frame with the count and at most two names. The warning starts with
+per frame with the count and at most two names. While the file is unreadable,
+the placement's layer fields show that the view is unavailable instead of
+guessed values (L-242). The warning starts with
 "Schematics:", lasts six seconds and shows even with toggle toasts off.
 Its text is warning-colored in the HUD and schematic menu; the HUD keeps
 the dim color during the fade. Joining with Schematics off defers the notice

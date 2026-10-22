@@ -224,9 +224,9 @@ was checked against the code. Implement in two Codex batches (A1 settings
 and map, then A2 schematics and docs), each with tests and docs, then the
 maintainer's in-game check. L-242 follows after this item.
 
-Status: A1 implemented (items 1-5); in-game checks (a)-(c) pending. A2
-implemented (items 6-14); in-game checks (d)-(f) pending. Build and test
-verification could not run in this sandbox (`xmake` unavailable).
+Status: A1 implemented (items 1-5); in-game checks (a) and (b) passed on
+`fca2ef9`, (c) not checked. A2 implemented (items 6-14); in-game checks
+(d)-(f) passed. Build, `LamiumTests` and `LamiumNativeTests` pass.
 
 **A1. Settings and map**
 
@@ -341,6 +341,13 @@ L-60 link, `L-232` comments that mean L-235 (`KeyLabel.h`), VALIDATION.md's
 stale "Check tab layout to be redesigned". Research, not a blind fix: the
 FreeCamera culler hook now reads `BlockSource::getBlock` on the render
 thread; confirm its thread safety before changing it.
+
+Status: implemented 2026-10-22 (all listed code and docs fixes except the
+culler research). The LMR2 cross-check now runs as a C++ raw-section
+comparison against the Python golden file, so CI needs no Python dependency;
+the Python verifier stays manual. Build, `LamiumTests` and
+`LamiumNativeTests` pass. The renderer-thread `BlockSource` read remains the
+open research item; it was not changed without runtime proof.
 
 ### L-240 Death layout restore sometimes restores unexpectedly or wrongly
 Kind: Bug / Research. Maintainer report 2026-10-22 (everyday use, builds not

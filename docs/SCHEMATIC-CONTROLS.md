@@ -73,8 +73,8 @@ L-238 menu and keys, L-239 mode memory).
   rotate/mirror and the layer index. Key actions do not replace it, so a menu
   layer change stays repeatable after a key move.
 - The option **Repeat every menu step** (`schematic.repeatAllSteps`, default
-  off) adds the layer axis and mode. The target picker and placement selection
-  are never repeated.
+  off) adds the layer axis, mode and keep side. The target picker and
+  placement selection are never repeated.
 - The memory stores the **kind** of adjustment, not its last sign; the wheel
   direction chooses the sign. After a back step, adjust + wheel up moves
   forward. The toast names the value.

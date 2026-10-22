@@ -90,6 +90,11 @@ Glass, glass panes, bookshelves and sandstone next to the same block draw as
 one surface, without seams. Glass, bookshelves and sandstone keep the
 texture's own scale. Stained glass joins only the same color.
 
+Two child switches are off by default. "Edges at inside corners" keeps the
+border where glass block walls turn a corner, on the inside of the turn;
+"Edges at glass pane corners" adds an edge on the outside of an L-shaped
+pane. The flat-notch corner texel is kept whenever Connected Textures is on.
+
 ## HUD & overlays
 
 ### Info HUD
@@ -223,14 +228,18 @@ build them.
   render distance, by walking along it. Saved files use the game's current
   format and load in a structure block.
 - **Controls:** a radial schematic menu (Move, Placement, Layers, Show and
-  check, Area, Screen) holds every schematic operation, and each one can
-  also have its own key: use the menu, keys or both. The key settings use
-  the menu's groups, and the menu shows the keys you bound. Only Alt + wheel
-  (move the target away or closer) is bound by default. Another key repeats
-  the last menu adjustment with the wheel.
+  check, Area, Screen) holds every schematic operation; use the menu, keys or
+  both. Every operation is reachable from either path (the "Move … →"
+  entries use the target-cycle key). The key settings use the menu's groups,
+  and the menu shows the keys you bound. Only Alt + wheel (move the target
+  away or closer) is bound by default. Another key repeats the last menu
+  adjustment with the wheel; "Repeat every menu step" (off by default) also
+  covers the layer axis, mode and keep side. The menu opens small in the
+  lower right by default.
 - **Missing files:** a placement whose file is missing or cannot be read is
   reported once per world with a yellow notice, marked in the Placed list
-  and named in the HUD.
+  and named in the HUD. Its layer fields say the view is unavailable until
+  the file loads. A file another program held open loads once it is released.
 - **Drawing:** ghosts draw doors, beds, honey, water and lava, block entities
   with their saved data and entities as their models. The Files and Check
   tabs have a turnable 3D preview.
