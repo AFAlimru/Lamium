@@ -1607,6 +1607,7 @@ inline constexpr auto simplifiedChinese = std::to_array<Text>({
     {"key.Lamium.openschematickeys", "打开蓝图按键设置"},
     {"help.key.openschematickeys", "在蓝图按键处打开设置。"},
     {"schematic.layerNeedsStructure", "变更层之前请先加载蓝图。"},
+    {"schematic.layerUnavailable", "文件加载前无法显示图层视图。"},
     {"schematic.rotationNeedsStructure", "设置切断面后旋转或镜像放置前，请先加载蓝图。"},
     {"key.Lamium.cyclelayeraxis", "切换切断轴"},
     {"help.key.cyclelayeraxis", "按结构的 Y、X、Z 顺序切换切断轴。切断位置不变。"},

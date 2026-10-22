@@ -685,6 +685,11 @@ std::string schematicDescription() {
     }
 }
 std::string fieldValue(schematic::SavedPlacement const& p, SchematicField field) {
+    bool layerField = field == SchematicField::LayerAxis || field == SchematicField::LayerMode
+        || field == SchematicField::Layer || field == SchematicField::Keep;
+    // Without the size a legacy view cannot be resolved, and even a new-form
+    // cut has no extent; show no guessed values (L-242).
+    if (layerField && !schematic::session::structure(p.file)) return "—";
     switch (field) {
     case SchematicField::X: return std::to_string(p.placement.origin.x);
     case SchematicField::Y: return std::to_string(p.placement.origin.y);
@@ -705,8 +710,9 @@ std::string fieldValue(schematic::SavedPlacement const& p, SchematicField field)
 std::string layersText(schematic::SavedPlacement const& p) {
     if (schematic::showsAllLayers(p.layers)) return translated("schematic.mode.all");
     auto structure = schematic::session::structure(p.file);
-    auto view = structure ? schematic::resolvedLayers(p.layers, structure->size, p.placement) : p.layers;
-    int count = structure ? std::max(1, schematic::layerCount(structure->size, view.axis)) : 1;
+    if (!structure) return translated("schematic.layerUnavailable");
+    auto view = schematic::resolvedLayers(p.layers, structure->size, p.placement);
+    int count = std::max(1, schematic::layerCount(structure->size, view.axis));
     std::string text = schematic::actions::axisText(view.axis) + " " + translated("schematic.layerValue", view.cut + 1, count)
         + " " + schematic::actions::modeText(view.mode);
     if (view.mode == schematic::LayerMode::UpTo) text += " " + schematic::actions::keepText(view.keep);

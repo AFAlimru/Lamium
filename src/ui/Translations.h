@@ -1642,6 +1642,7 @@ inline constexpr auto entries = std::to_array<Entry>({
     {"key.Lamium.openschematickeys", "Open the schematic key settings", "設計図のキー設定を開く"},
     {"help.key.openschematickeys", "Opens the settings at the Schematics keys.", "設定画面を設計図のキーの位置で開きます。"},
     {"schematic.layerNeedsStructure", "Load the schematic before changing its layers.", "層を変更するには設計図を読み込んでください。"},
+    {"schematic.layerUnavailable", "Layer view unavailable until the file loads.", "ファイルを読み込むまでレイヤー表示は利用できません。"},
     {"schematic.rotationNeedsStructure", "Load the schematic before turning or mirroring it while a cut plane is set.", "切断面を設定した配置を回す・鏡にするには、設計図を読み込んでください。"},
     {"key.Lamium.cyclelayeraxis", "Cycle the cut axis", "切断面の軸を切り替え"},
     {"help.key.cyclelayeraxis", "Cycles the cut plane through the structure's Y, X and Z axes. The cut position stays.", "切断面の軸を、構造物の Y・X・Z の順に切り替えます。切断位置は変わりません。"},

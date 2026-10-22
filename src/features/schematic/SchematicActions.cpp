@@ -26,6 +26,7 @@
 #include <atomic>
 #include <cmath>
 #include <limits>
+#include <memory>
 
 namespace lamium::schematic::actions {
 namespace {
@@ -768,21 +769,23 @@ std::string value(menu::Stepper stepper) {
     auto set = session::current();
     SavedPlacement const* p = set.selected >= 0 && set.selected < static_cast<int>(set.placements.size())
         ? &set.placements[static_cast<size_t>(set.selected)] : nullptr;
+    auto structure = p ? session::structure(p->file) : std::shared_ptr<Structure const>{};
     switch (stepper) {
     case S::Target: return targetName(moveTarget);
     case S::Placement: return p ? p->name : std::string{};
     case S::Rotate: return p ? std::format("{}°", p->placement.rotation * 90) : std::string{};
     case S::Mirror: return p ? mirrorName(p->placement.mirror) : std::string{};
+    // No size: a layer view cannot be resolved; do not show guessed values.
     case S::LayerAxis:
-        return p ? axisText(effectiveLayers(*p).axis) : std::string{};
-    case S::LayerMode: return p ? modeText(effectiveLayers(*p).mode) : std::string{};
-    case S::LayerKeep: return p ? keepText(effectiveLayers(*p).keep) : std::string{};
+        return p ? (structure ? axisText(effectiveLayers(*p).axis) : std::string("—")) : std::string{};
+    case S::LayerMode: return p ? (structure ? modeText(effectiveLayers(*p).mode) : std::string("—")) : std::string{};
+    case S::LayerKeep: return p ? (structure ? keepText(effectiveLayers(*p).keep) : std::string("—")) : std::string{};
     case S::Layer: {
         if (!p) return {};
-        auto structure = session::structure(p->file);
+        if (!structure) return "—";
         auto view = effectiveLayers(*p);
         return ui::translated("schematic.layerValue", view.cut + 1,
-            structure ? std::max(1, layerCount(structure->size, view.axis)) : 1);
+            std::max(1, layerCount(structure->size, view.axis)));
     }
     default: return {};
     }
