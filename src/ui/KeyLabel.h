@@ -2,7 +2,7 @@
 #include <string>
 #include <string_view>
 
-// Key names in the settings table's key column (L-232). The game spells the
+// Key names in the settings table's key column (L-235). The game spells the
 // two long modifier names out; the column is narrow, so Alt and Ctrl use
 // their usual short spelling. Shift already fits and keeps the game's name.
 namespace lamium::ui {

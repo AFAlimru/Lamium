@@ -4,7 +4,7 @@
 #include <utility>
 #include <vector>
 
-// Line breaks for a row of key caps (L-232). Values are measured text widths;
+// Line breaks for a row of key caps (L-235). Values are measured text widths;
 // each cap adds its 6 px padding and caps that are not first on their line get
 // a 6 px "+" gap. Pure so the wrap is tested without a renderer.
 namespace lamium::ui {

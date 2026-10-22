@@ -512,8 +512,9 @@ std::vector<std::string> bindingKeys(IClientInstance& current, input::Action act
         for (auto token : *binding) keys.push_back(bindingChordName(current, input::Chord{token}));
         return keys;
     }
-    auto name = actionBindingName(current, action);
-    if (name != translated("unbound")) keys.push_back(std::move(name));
+    // Defaults draw as one cap per token too, so Alt + Wheel up/down do not
+    // become one clipped cap while the same user-set chord shows two (L-242).
+    for (auto token : input::defaultChord(action)) keys.push_back(bindingChordName(current, input::Chord{token}));
     return keys;
 }
 std::vector<std::string> chordKeys(IClientInstance& current, input::Chord const& chord) {
@@ -709,12 +710,12 @@ void drawConflictTip(MinecraftUIRenderContext& context, IClientInstance& current
     auto const conflicts = input::bindingConflicts(preferences.bindings, action);
     auto const keys = chordKeys(current, chord);
     // Hovering the key cell reveals a binding only when the cell clips it; the
-    // keyboard tip still appears only when there is a conflict (L-232).
+    // keyboard tip still appears only when there is a conflict (L-235).
     if (!hoveredKey && conflicts.empty()) return;
     if (hoveredKey && conflicts.empty() && keycapsWidth(context, keys) <= t.keyWidth) return;
     constexpr float pad = 4, headHeight = 15, lineHeight = 12, titleHeight = 13, itemHeight = 14;
     // Size the tip to the chord it reveals: the count on the right must not
-    // squeeze the caps the row clipped (L-232).
+    // squeeze the caps the row clipped (L-235).
     auto relation = strongestConflict(conflicts);
     std::string count = conflicts.empty() ? std::string{}
         : translated(relation == input::Relation::Shared ? "tip.countShared" : "tip.count", std::to_string(conflicts.size()));

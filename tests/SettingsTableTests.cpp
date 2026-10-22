@@ -162,7 +162,7 @@ void settingsTableTests() {
     }
     {
         // Key caps wrap onto another line only when the next cap plus its gap
-        // would overflow (L-232); a lone cap wider than the line still advances.
+        // would overflow (L-235); a lone cap wider than the line still advances.
         std::array<float, 3> caps{30, 30, 30};
         auto lines = lamium::ui::keycapLines(std::span<float const>{caps}, 100);
         check(lines.size() == 2 && lines[0] == std::pair<size_t, size_t>{0, 2} && lines[1] == std::pair<size_t, size_t>{2, 3},

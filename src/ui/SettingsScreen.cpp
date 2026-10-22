@@ -259,6 +259,11 @@ void seedHeld(input::Chord const& chord) {
         if (keyDown(key) && std::find(uiHeld.begin(), uiHeld.end(), token) == uiHeld.end()) uiHeld.push_back(token);
     }
 }
+// The key that opened a view may still be down; seed its chord so a repeat
+// cannot act in the screen it just opened (L-242, same rule as L-229).
+void seedOpener(input::Action action) {
+    seedHeld(input::effectiveChord(Runtime::instance().preferences().bindings, action));
+}
 std::array<ll::event::ListenerPtr, 5> listeners;
 bool backgroundHook = false;
 bool renderHook = false;
@@ -1293,35 +1298,55 @@ void open(IClientInstance& current) {
 }
 void openShapes(IClientInstance& current) {
     std::lock_guard lock(mutex);
+    bool const openedNow = !scene;
     if (!scene) open(current);
-    if (scene) selectNav(shapesNav, true);
+    if (!scene) return;
+    if (openedNow) seedOpener(input::Action::OpenShapes);
+    selectNav(shapesNav, true);
 }
 void openWaypointPrompt(IClientInstance& current, map::Waypoint draft) {
     std::lock_guard lock(mutex);
     if (scene) return; // Only from gameplay; the open settings screen keeps its own work.
     open(current);
     if (!scene) return;
+    seedOpener(input::Action::AddWaypoint);
     prompt = WaypointPrompt{std::move(draft), {}};
     prompt->name.append(prompt->draft.name);
     prompt->name.selectAll();
 }
 void openWaypoints(IClientInstance& current) {
     std::lock_guard lock(mutex);
+    bool const openedNow = !scene;
     if (!scene) open(current);
-    if (scene && !prompt) selectNav(waypointsNav, true);
+    if (!scene) return;
+    if (openedNow) seedOpener(input::Action::OpenWaypoints);
+    if (!prompt) selectNav(waypointsNav, true);
 }
 void openSchematics(IClientInstance& current, int tab) {
     std::lock_guard lock(mutex);
+    bool const openedNow = !scene;
     if (!scene) open(current);
-    if (!scene || prompt || savePrompt) return;
+    if (!scene) return;
+    if (openedNow) {
+        auto opener = input::Action::OpenSchematics;
+        if (tab == 0) opener = input::Action::OpenSchematicFiles;
+        else if (tab == 1) opener = input::Action::OpenSchematicPlaced;
+        else if (tab == 2) opener = input::Action::OpenSchematicCheck;
+        else if (tab == 3) opener = input::Action::OpenSchematicMaterials;
+        seedOpener(opener);
+    }
+    if (prompt || savePrompt) return;
     selectNav(schematicsNav, true);
     schematics_view::refresh(true);
     if (tab >= 0 && tab < 4) schematics_view::show(static_cast<schematics_view::Tab>(tab));
 }
 void openSchematicKeys(IClientInstance& current) {
     std::lock_guard lock(mutex);
+    bool const openedNow = !scene;
     if (!scene) open(current);
-    if (scene && !prompt && !savePrompt) screen::showFeatureKeys("schematic");
+    if (!scene) return;
+    if (openedNow) seedOpener(input::Action::OpenSchematicKeys);
+    if (!prompt && !savePrompt) screen::showFeatureKeys("schematic");
 }
 void openSchematicSave(IClientInstance& current) {
     std::lock_guard lock(mutex);
@@ -1331,6 +1356,7 @@ void openSchematicSave(IClientInstance& current) {
     if (!area) return;
     open(current);
     if (!scene) return;
+    seedOpener(input::Action::SaveSchematicArea);
     savePrompt = SavePrompt{*area, state.dimension, {}, false, false, {}};
     savePrompt->name.append("schematic");
     savePrompt->name.selectAll();
@@ -1364,6 +1390,7 @@ void openCalculator(IClientInstance& current) {
     if (scene) return; // From gameplay only; over container screens is a later step (L-171).
     open(current);
     if (!scene) return;
+    seedOpener(input::Action::OpenCalculator);
     enterCalculator(false);
 }
 void openWorldMap(IClientInstance& current) {
@@ -1375,16 +1402,20 @@ void openWorldMap(IClientInstance& current) {
 }
 void openHotkeys(IClientInstance& current) {
     std::lock_guard lock(mutex);
+    bool const openedNow = !scene;
     if (!scene) open(current);
-    if (scene) selectNav(hotkeysNav, true);
+    if (!scene) return;
+    if (openedNow) seedOpener(input::Action::OpenHotkeys);
+    selectNav(hotkeysNav, true);
 }
 void openHudLayout(IClientInstance& current) {
     std::lock_guard lock(mutex);
+    bool const openedNow = !scene;
     if (!scene) open(current);
-    if (scene) {
-        selectNav(hudNav, true);
-        hud_editor::select(std::nullopt);
-    }
+    if (!scene) return;
+    if (openedNow) seedOpener(input::Action::OpenHudLayout);
+    selectNav(hudNav, true);
+    hud_editor::select(std::nullopt);
 }
 namespace screen {
 // The Open button on a tool's settings row (L-231). The screen is already
