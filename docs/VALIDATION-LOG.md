@@ -21,6 +21,21 @@ public history; the DLL SHA-256 in each entry identifies the build that was
 actually run. The binding-display item was renumbered from L-232 to L-235 at
 the same time, because origin took L-232 for the slime chunk indicator.
 
+## L-241 pre-0.3.0 review fixes checked in game (2026-10-22)
+
+`main` (`fca2ef9`, version 0.3.0), deployed DLL SHA-256
+`B4030C7020AA53C402AC1AB5E02B89E990CB57606E85723E75F161DB98973B0C`, default
+release build, local `1.26.51.01 LIP` deployment, Windows x64. Maintainer
+report: checks 1-6 passed: `"camera": true` in settings.json kept every
+other setting and the bindings; FreeCamera above the Nether created no
+out-of-range `nether/y*` folders and recorded caves under the camera; "Move
+area →" with corners in another dimension said there is no target; a
+schematic file held open by another process loaded once released; the
+Schematic HUD showed counting right after a cut change; FreeCamera's help
+has no "Experimental" prefix. Not checked: a server without map storage
+(temporary session folder). During these checks the maintainer saw large
+terrain gaps that do not reload when looked at (L-243).
+
 ## Edge Guard help wording checked in game (2026-10-22)
 
 `main` (`610e603`), deployed DLL SHA-256

@@ -183,8 +183,25 @@ validation checkpoints" (snapshot 2026-10-20).
 
 ## Bugs
 
+### L-243 Large terrain gaps that only reload when the player comes near
+Kind: Bug / Research; blocks 0.3.0 until the cause is known. Maintainer
+report 2026-10-22 on `fca2ef9` (0.3.0), local world, after dimension
+changes, world map teleports and FreeCamera use: large areas of terrain,
+near and far, are missing (sky shows through the ground). Looking at them
+does not bring them back; only walking or flying near reloads them. Earlier
+rendering glitches (distance fog hiding) recovered when looked at; this
+does not, and was not seen before.
+Not yet known: which change since 0.2.3 is involved (candidates: the
+FreeCamera spectator culler gate and underground hold L-207/L-213/L-214, the
+distance fog change L-212, map recording now centred on the camera
+L-241, or teleports themselves); whether it happens without FreeCamera,
+with the world map recording off, with Hide effects off, or on 0.2.3.
+First step: the maintainer's A/B answers, then a bounded trace if needed.
+Related: L-227 (FreeCamera far out shows only the sky).
+
 ### L-241 Pre-0.3.0 review: settings, map and schematic fixes
-Kind: Ready (strong model; decided with the maintainer 2026-10-22). Two
+Kind: Ready (strong model; decided with the maintainer 2026-10-22). A1 and A2
+implemented and checked in game on `fca2ef9` (2026-10-22). Two
 independent reviews of `v0.2.3...main` before 0.3.0; every finding below
 was checked against the code. Implement in two Codex batches (A1 settings
 and map, then A2 schematics and docs), each with tests and docs, then the
