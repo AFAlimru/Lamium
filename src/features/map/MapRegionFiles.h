@@ -94,24 +94,10 @@ inline bool deleteAbsorbedLegacy(std::filesystem::path const& path, std::optiona
 inline void writeRegionFiles(std::filesystem::path const& path, RegionKey key, RegionData const& data, RegionCodec& codec) {
     // Recheck at the write path too, in case a future file arrived since load.
     if (inspectRegionFile(path, key) == RegionStatus::Refused)
-        throw std::runtime_error("Refused map region cannot be overwritten");
+        throw RegionSaveError("Refused map region cannot be overwritten");
     writeFileReplacing(path, encodeRegion2(data, key, codec), "map region");
     deleteAbsorbedLegacy(path, data.oldFile);
 }
-// A snapshot in flight does not own changes made after it was queued.
-struct RegionSaveState {
-    bool dirty = false, inFlight = false;
-    std::uint64_t serial = 0;
-    double dirtySince = 0;
-    void changed(double now) { if (!dirty) dirtySince = now; dirty = true; ++serial; }
-    bool due(double now) const { return dirty && !inFlight && now - dirtySince >= 10; }
-    bool begin() { if (!dirty || inFlight) return false; inFlight = true; return true; }
-    void complete(std::uint64_t saved, bool success, double now) {
-        inFlight = false;
-        if (success && saved == serial) dirty = false;
-        dirtySince = now;
-    }
-};
 inline bool idleRegionEligible(bool resident, bool hasLegacy, RegionStatus status) {
     return !resident && hasLegacy && status != RegionStatus::Refused;
 }

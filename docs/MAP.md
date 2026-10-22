@@ -8,10 +8,25 @@ runtime coverage is in [VALIDATION.md](VALIDATION.md), with evidence in
 
 ## Current implementation
 
+L-241 A1 (2026-10-22, implemented; build/tests and in-game checks pending):
+recording follows the camera's X/Y/Z while FreeCamera owns the view; otherwise
+it follows the player. The recording center, cave/surface decision and stable
+cave band use that same reference. Cave recording is limited to Overworld
+-64..319 and Nether 0..127; the End has no cave recording. Out-of-range cave
+folders are ignored when listing saved data and are never written.
+
+Connections without a persistent map folder spill to
+`maps/.session/<n>/` inside the mod's data folder. They use the same region
+files, listing, usage, clearing and resident eviction as persistent worlds,
+so moving far away and returning can reload recorded terrain without keeping
+every region in memory. The worker removes the session's folder on world exit;
+startup removes leftover `.session` data. Waypoints remain session-only in
+memory for unsupported connection identities.
+
 Cave layers and the D controls (2026-10-19, L-228; branch
 `feat/map-cave-freecamera`, final checklist passed 2026-10-20 on `7e0e2f9`):
 the minimap keeps a broad cave view and records the
-Overworld surface plus, while the player is under a roof, a 16-block cave
+Overworld surface plus, while the followed point is under a roof, a 16-block cave
 band in new `overworld/y<Y>` folders. The Nether keeps its bands. Surface and
 cave recording take turns on the existing budget. The world map's top bar
 has one terrain state button; its panel opens under the button, keeps the
@@ -422,7 +437,8 @@ order so that a future file is never taken for a damaged one:
 What each result does:
 - Refused: logged once, not shown, never written; that region's `.lmr` is
   neither read nor deleted. What is recorded there stays in memory for the
-  session only. Clearing the world's map removes it with everything else.
+  session until normal far-resident eviction. Clearing the world's map removes
+  its files with everything else.
 - Damaged: logged; the region is read from its `.lmr` if there is one, and
   the next save replaces the `.lm2` and deletes the `.lmr` as below.
 - Loaded with no `.lmr`: used as is.
@@ -515,13 +531,18 @@ grid cell kind.
   checks its size, modification time and CRC again and deletes it only if
   they still match what was absorbed; otherwise it is left, the `OLDF` no
   longer matches, and the next load merges it (fill only).
-- A region stays marked for saving until its write succeeds, and is not
+- A region stays marked for saving until its write succeeds or fails
+  permanently, and is not
   queued again while a write is in flight. A change while it is in flight
   keeps it marked. Every completion starts a fresh save delay (10 s) for
   any pending changes, including a successful write with newer changes;
-  continuous edits therefore remain batched. A failure is logged once per
-  region per session and leaves the `.lmr` alone. World exit still flushes
-  pending changes without waiting for that delay.
+  continuous edits therefore remain batched. I/O failures retry after 10 s,
+  20 s, 40 s and so on, capped at 5 minutes; success resets the backoff.
+  Section-limit errors, Refused files and invalid region data are permanent:
+  logged once per region per session, with no save retry or conversion requeue,
+  including after eviction and reload. They leave existing files untouched and
+  no longer keep a dirty resident from being evicted. World exit still flushes
+  transient pending changes once without waiting for their delay.
 - An older Lamium does not list `.lm2`, so it cannot damage them (except by
   clearing the world's map, which removes the whole folder as asked); it
   records anew into `.lmr`. When a Loaded `.lm2` and an `.lmr` both exist:
@@ -548,8 +569,11 @@ planes and reusable zstd contexts; `MapRegionFiles.h` shares the bounded
 file reads, migration and guarded atomic save between resident loads,
 non-resident image reads and idle conversion. The file table is checked
 before allocating bodies. Unreadable files also fail closed for saving.
-`MapStore.cpp` retains dirty snapshots until success and retries failed
-resident saves and idle conversions after 10 s. Idle conversion takes at
+`MapSave.h` owns failure classification, save state and backoff.
+`MapStore.cpp` retains transiently dirty snapshots until success and retries
+resident saves and idle conversions with the growing delay above. Permanent
+failures are remembered for the joined world, including across resident eviction.
+Idle conversion takes at
 most one non-resident candidate per 100 ms, after interactive work, and
 recounts folder usage at most once per 5 s. It reloads both files at the
 time of conversion; listing-time file facts never decide a merge.

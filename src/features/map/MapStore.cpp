@@ -1,6 +1,7 @@
 #include "features/map/MapStore.h"
 #include "features/map/MapRegionFiles.h"
 #include "features/map/MapColors.h"
+#include "features/map/MapSessionFiles.h"
 #include "app/Runtime.h"
 #include "ll/api/event/EventBus.h"
 #include "ll/api/event/client/ClientExitLevelEvent.h"
@@ -70,15 +71,21 @@ unsigned generation = 0;
 unsigned epochs = 0;
 std::optional<unsigned> attachedWorld;
 std::optional<std::filesystem::path> root;
+SessionMapFiles sessionFiles;
+std::set<RegionId> permanentFailures; // Under the lock; survives resident eviction.
 std::map<RegionId, Resident> residents;
 std::map<ImageId, Cached> images;
 std::set<ImageId> building; // Images a worker is building now; invalidate must mark them dirty.
 std::deque<Save> saves;
 std::deque<RegionId> loads;
-struct Conversion { RegionId id; std::chrono::steady_clock::time_point after{}; };
+struct Conversion {
+    RegionId id;
+    std::chrono::steady_clock::time_point after{};
+    RegionRetry retry{};
+};
 std::deque<Conversion> conversions;
 std::map<LayerKey, std::set<std::pair<int, int>>> revisionReports;
-std::set<RegionId> refusedLogged, damagedLogged, legacyLogged, saveFailedLogged; // Worker only, reset after joining.
+std::set<RegionId> damagedLogged, legacyLogged, saveFailedLogged; // Worker only, reset after joining.
 std::chrono::steady_clock::time_point nextConversion{};
 RegionCodec* workerCodec = nullptr; // Used only by the worker's image builder.
 std::vector<ImageId> wanted;
@@ -120,6 +127,7 @@ void trace(ImageId const& id, std::string_view why) {
     } catch (...) {}
 }
 std::filesystem::path regionPath(std::filesystem::path const& base, RegionId const& id) {
+    if (!layerAllowed(id.layer)) throw RegionSaveError("Invalid map layer");
     return base / std::filesystem::u8path(layerFolder(id.layer)) / regionFileName(id.key);
 }
 RegionRead readRegion(std::filesystem::path const& path, RegionId const& id) {
@@ -130,7 +138,7 @@ RegionRead readRegion(std::filesystem::path const& path, RegionId const& id) {
         if (!once.insert(id).second) return;
         try { Runtime::instance().self().getLogger().warn("World map: {} {}", why, file.string()); } catch (...) {}
     };
-    if (result.status == RegionStatus::Refused) report(refusedLogged, "refused region; kept for this session only:", path);
+    if (result.status == RegionStatus::Refused) report(saveFailedLogged, "refused region; saving disabled for this session:", path);
     if (result.damaged) report(damagedLogged, "damaged region; will replace on save:", path);
     if (result.legacyStatus == RegionStatus::Damaged)
         report(legacyLogged, "ignored damaged legacy region; kept unchanged:", legacyRegionPath(path));
@@ -169,6 +177,7 @@ bool known(ImageId const& id) {
 Resident& resident(RegionId const& id) {
     auto [at, created] = residents.try_emplace(id);
     if (created) {
+        if (permanentFailures.contains(id)) at->second.save.refuse();
         if (root) loads.push_back(id);
         else at->second.ready = true;
         wake.notify_one();
@@ -386,11 +395,12 @@ void run() {
         if (!saves.empty()) {
             auto save = std::move(saves.front());
             saves.pop_front();
-            if (save.generation != generation) continue;
+            if (save.generation != generation || permanentFailures.contains(save.id)) continue;
             lock.unlock();
-            bool success = false;
-            try { writeRegionFiles(save.path, save.id.key, *save.data, codec); success = true; }
+            auto result = RegionSaveResult::Saved;
+            try { writeRegionFiles(save.path, save.id.key, *save.data, codec); }
             catch (std::exception const& error) {
+                result = saveFailure(error);
                 if (saveFailedLogged.insert(save.id).second)
                     try { Runtime::instance().self().getLogger().warn("World map: could not save {}: {}", save.path.string(), error.what()); } catch (...) {}
             }
@@ -398,9 +408,10 @@ void run() {
             if (save.generation != generation) continue;
             auto found = residents.find(save.id);
             if (found != residents.end()) {
-                found->second.save.complete(save.serial, success, clock);
-                if (finishing && success) queueSave(save.id, found->second);
+                found->second.save.complete(save.serial, result, clock);
+                if (finishing && result == RegionSaveResult::Saved) queueSave(save.id, found->second);
             }
+            if (result == RegionSaveResult::Permanent) permanentFailures.insert(save.id);
             usageDirty = true;
             continue;
         }
@@ -424,6 +435,10 @@ void run() {
             }
             r.refused = disk.status == RegionStatus::Refused;
             if (disk.needsSave) r.save.changed(clock);
+            if (r.refused) {
+                permanentFailures.insert(id);
+                r.save.refuse();
+            }
             r.ready = true;
             invalidate(id);
             if (finishing) queueSave(id, r);
@@ -464,9 +479,10 @@ void run() {
                 return std::chrono::steady_clock::now() >= entry.after;
             });
             if (next == conversions.end()) continue;
-            auto id = next->id;
+            auto conversion = *next;
+            auto id = conversion.id;
             conversions.erase(next);
-            if (residents.contains(id)) continue;
+            if (residents.contains(id) || permanentFailures.contains(id)) continue;
             auto path = regionPath(*root, id);
             unsigned started = generation;
             nextConversion = std::chrono::steady_clock::now() + std::chrono::milliseconds(100);
@@ -475,22 +491,33 @@ void run() {
             lock.lock();
             // Becoming resident while the files were read makes the resident load own migration.
             if (started != generation || finishing || residents.contains(id)) continue;
+            if (disk.status == RegionStatus::Refused) permanentFailures.insert(id);
             if (!idleRegionEligible(false, disk.needsSave, disk.status) || !disk.data) continue;
             lock.unlock();
-            bool success = false;
-            try { writeRegionFiles(path, id.key, *disk.data, codec); success = true; }
+            auto result = RegionSaveResult::Saved;
+            try { writeRegionFiles(path, id.key, *disk.data, codec); }
             catch (std::exception const& error) {
+                result = saveFailure(error);
                 if (saveFailedLogged.insert(id).second)
                     try { Runtime::instance().self().getLogger().warn("World map: could not convert {}: {}", path.string(), error.what()); } catch (...) {}
             }
             lock.lock();
             if (started == generation) {
                 usageDirty = true;
-                if (!success) conversions.push_back({id, std::chrono::steady_clock::now() + std::chrono::seconds(10)});
+                if (result == RegionSaveResult::Permanent) {
+                    permanentFailures.insert(id);
+                    if (auto resident = residents.find(id); resident != residents.end()) resident->second.save.refuse();
+                } else if (result == RegionSaveResult::Transient) {
+                    conversion.after = std::chrono::steady_clock::now()
+                        + std::chrono::seconds(static_cast<int>(conversion.retry.failed()));
+                    conversions.push_back(conversion);
+                }
             }
         }
     }
     workerCodec = nullptr;
+    lock.unlock();
+    if (auto error = sessionFiles.discard()) log("could not delete the session map: " + error.message());
 }
 // Caller holds the lock. Saves what changed, then lets the worker end and
 // joins it; the lock is released while waiting.
@@ -510,6 +537,7 @@ void finish(std::unique_lock<std::mutex>& lock) {
     attachedWorld.reset();
     root.reset();
     residents.clear();
+    permanentFailures.clear();
     images.clear();
     building.clear();
     builtFrom.clear();
@@ -520,7 +548,7 @@ void finish(std::unique_lock<std::mutex>& lock) {
     loads.clear();
     conversions.clear();
     revisionReports.clear();
-    refusedLogged.clear(); damagedLogged.clear(); legacyLogged.clear(); saveFailedLogged.clear();
+    damagedLogged.clear(); legacyLogged.clear(); saveFailedLogged.clear();
     removing.reset();
     usageBytes.reset();
     usageDirty = false;
@@ -538,7 +566,7 @@ void frame(unsigned world, std::optional<std::filesystem::path> const& folder, M
     if (attachedWorld != world) {
         if (attachedWorld) finish(lock);
         attachedWorld = world;
-        root = folder;
+        root = folder && !folder->empty() ? folder : sessionFiles.create();
         usageDirty = root.has_value();
         indexing = root.has_value();
         ++generation;
@@ -547,6 +575,7 @@ void frame(unsigned world, std::optional<std::filesystem::path> const& folder, M
         if (root) log("saving to " + root->string());
         else log("this world is kept for the session only");
     }
+    if (!layerAllowed(layer)) return;
     auto center = regionOfBlock(blockFloor(x), blockFloor(z));
     for (int dz = -keepRegions; dz <= keepRegions; ++dz)
         for (int dx = -keepRegions; dx <= keepRegions; ++dx) resident({layer, {center.x + dx, center.z + dz}});
@@ -555,15 +584,14 @@ void frame(unsigned world, std::optional<std::filesystem::path> const& folder, M
         if (r.save.due(now)) queueSave(id, r);
         bool near = id.layer == layer && std::abs(id.key.x - center.x) <= keepRegions + 1
             && std::abs(id.key.z - center.z) <= keepRegions + 1;
-        // Session-only regions are the only copy; they stay.
-        if (root && !near && r.ready && !r.refused && !r.save.dirty && !r.save.inFlight && now - r.used >= forgetAfter) it = residents.erase(it);
+        if (!near && r.ready && r.save.evictable() && now - r.used >= forgetAfter) it = residents.erase(it);
         else ++it;
     }
 }
 void record(MapLayer layer, ChunkKey chunk, std::array<Column, 256> const& columns,
             ColumnMask const& produced, ColumnMask const& scanned) {
     std::lock_guard lock(mutex);
-    if (!attachedWorld || finishing) return;
+    if (!attachedWorld || finishing || !layerAllowed(layer)) return;
     RegionId id{layer, regionOfChunk(chunk)};
     auto& r = resident(id);
     // The worker may be reading this region; it keeps its own copy.
@@ -599,7 +627,7 @@ bool cached(MapLayer layer, ChunkKey chunk, std::array<Column, 256>& out) {
 }
 bool ensureReady(MapLayer layer, ChunkKey chunk) {
     std::lock_guard lock(mutex);
-    if (!attachedWorld || finishing) return false;
+    if (!attachedWorld || finishing || !layerAllowed(layer)) return false;
     auto& r = resident({layer, regionOfChunk(chunk)});
     r.used = clock;
     return r.ready;
@@ -670,6 +698,7 @@ unsigned epoch() {
     return epochs;
 }
 void start() {
+    sessionFiles.start(Runtime::instance().self().getModDir());
     exitListener = ll::event::EventBus::getInstance().emplaceListener<ll::event::ClientExitLevelEvent>(
         [](auto&) { detach(); });
     if (!exitListener) throw std::runtime_error("Could not subscribe world map world changes");

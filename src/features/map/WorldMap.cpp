@@ -884,8 +884,12 @@ void drawTiles(MinecraftUIRenderContext& context, glm::vec2 size, double pixelsP
         // may still stand in for it (L-215).
         bool hollow = image && !image->pixels;
         if (hollow) ++empty;
-        int index = hollow ? -1 : findSlot(tile);
-        bool current = index >= 0 && slots[static_cast<size_t>(index)].uploaded
+        int index = findSlot(tile);
+        if ((!image || hollow) && index >= 0) {
+            slots[static_cast<size_t>(index)] = Slot{};
+            index = -1;
+        }
+        bool current = image && index >= 0 && slots[static_cast<size_t>(index)].uploaded
             && slots[static_cast<size_t>(index)].version == image->version;
         if (image && !hollow && !current && budget > 0) {
             if (index < 0) {

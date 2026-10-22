@@ -190,6 +190,9 @@ was checked against the code. Implement in two Codex batches (A1 settings
 and map, then A2 schematics and docs), each with tests and docs, then the
 maintainer's in-game check. L-242 follows after this item.
 
+Status: A1 implemented (items 1-5); in-game checks (a)-(c) pending. A2 has
+not started. Build and test verification is pending in this sandbox.
+
 **A1. Settings and map**
 
 1. **Settings type errors wipe every setting** (since before 0.2.3).

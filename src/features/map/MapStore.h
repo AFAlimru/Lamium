@@ -9,7 +9,7 @@
 
 namespace lamium::map::store {
 // The world map's saved regions (BACKLOG L-60 world map). Regions near the
-// player stay in memory: the scan records into them and the minimap reads
+// followed point stay in memory: the scan records into them and the minimap reads
 // them for chunks the client has not loaded. A worker thread reads and saves
 // region files and builds the world map's images; it runs while a world is
 // joined and is joined on world exit and mod stop. Every call is safe from
@@ -18,8 +18,8 @@ void start();
 void stop();
 
 // Each frame while recording: follows world changes (`world` counts joins,
-// `folder` is where this world's map is saved, none for session only),
-// keeps regions around the player loaded, saves changed ones, forgets far ones.
+// `folder` is where this world's map is saved, none uses temporary session files),
+// keeps nearby regions loaded, saves changed ones, forgets far ones.
 void frame(unsigned world, std::optional<std::filesystem::path> const& folder, MapLayer layer, double x, double z,
            double now);
 void record(MapLayer layer, ChunkKey chunk, std::array<Column, 256> const& columns,

@@ -1,5 +1,6 @@
 #pragma once
 #include "features/map/MapRegion.h"
+#include "features/map/MapSave.h"
 #include <memory>
 #include <bit>
 #include <unordered_map>
@@ -185,7 +186,9 @@ inline std::string encodeRegion2(RegionData const& region, RegionKey key, Region
     using namespace regionFormat;
     auto count = 3 + (region.oldFile ? 1 : 0)
         + std::count_if(region.kept.begin(), region.kept.end(), [](auto const& s) { return s.flags & 2; });
-    if (count > 64) throw std::runtime_error("Cannot preserve kept map sections within the 64-section limit");
+    if (count > 64) throw RegionSaveError("Cannot preserve kept map sections within the 64-section limit");
+    if (region.colors.size() != regionColumns || region.heights.size() != regionColumns)
+        throw RegionSaveError("Invalid map region dimensions");
     std::vector<RegionSection> sections;
     auto add = [&](std::string tag, std::string raw, bool compressed = true) {
         auto bytes = compressed ? codec.compress(raw) : raw;
@@ -199,7 +202,7 @@ inline std::string encodeRegion2(RegionData const& region, RegionKey key, Region
     std::vector<std::uint32_t> palette;
     std::vector<std::uint16_t> indices;
     for (auto color : region.colors) {
-        if (color && color >> 24 != 255) throw std::runtime_error("Invalid map color");
+        if (color && color >> 24 != 255) throw RegionSaveError("Invalid map color");
         auto [it, added] = lookup.try_emplace(color, static_cast<std::uint16_t>(palette.size()));
         if (added) palette.push_back(color);
         indices.push_back(it->second);
@@ -234,7 +237,7 @@ inline std::string encodeRegion2(RegionData const& region, RegionKey key, Region
         put(out, s.bytes.size(), 4); put(out, s.crc, 4);
     }
     for (auto const& s : sections) out += s.bytes;
-    if (out.size() > maxRegionBytes) throw std::runtime_error("Map region exceeds the 8 MiB file limit");
+    if (out.size() > maxRegionBytes) throw RegionSaveError("Map region exceeds the 8 MiB file limit");
     return out;
 }
 }

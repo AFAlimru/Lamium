@@ -770,7 +770,7 @@ std::optional<ui::hud_editor::Box> drawMinimap(MinecraftUIRenderContext& context
         if (enlarged) size = std::min(size * 2, std::round(height * .85f));
         double marker = pixels / 216.0 * baseSize / size; // A mockup pixel, in texture pixels.
         bool underground = view->dimension == 1 || state.automatic.mode == ViewMode::Cave;
-        bool saveable = view->dimension != 1 || cave; // No Nether surface layer.
+        bool saveable = cave ? caveHeightAllowed(view->dimension, layer) : view->dimension != 1;
         Saved saved{settings.worldMap && saveable && (cave ? underground : true),
                     mapLayer(view->dimension, layer, cave)};
         if (auto* player = client.getLocalPlayer())
@@ -962,15 +962,17 @@ void record(IClientInstance& client, Settings::Map const& settings, bool scannin
         bool const nether = view->dimension == 1;
         bool const end = view->dimension == 2;
         auto wanted = chooseView(state.recordView.mode, nether, view->covered, view->skyLight);
-        bool const caveWanted = !end && state.recordView.update(wanted, time) == ViewMode::Cave;
-        playerView = nether || caveWanted ? ViewMode::Cave : ViewMode::Surface;
+        bool const caveView = !end && state.recordView.update(wanted, time) == ViewMode::Cave;
+        playerView = nether || caveView ? ViewMode::Cave : ViewMode::Surface;
         bool const surfaceWanted = !nether;
         state.layer = stableLayer(state.layer.value_or(0), blockFloor(view->y), !state.layer);
         int layer = *state.layer;
+        bool const caveWanted = caveView && caveHeightAllowed(view->dimension, blockFloor(view->y))
+            && caveHeightAllowed(view->dimension, layer);
         MapLayer surface = surfaceLayer(view->dimension);
         MapLayer cave = mapLayer(view->dimension, layer, true);
-        if (surfaceWanted) store::frame(place.world, place.mapFolder, surface, view->playerX, view->playerZ, time);
-        if (caveWanted) store::frame(place.world, place.mapFolder, cave, view->playerX, view->playerZ, time);
+        if (surfaceWanted) store::frame(place.world, place.mapFolder, surface, view->x, view->z, time);
+        if (caveWanted) store::frame(place.world, place.mapFolder, cave, view->x, view->z, time);
         if (surfaceWanted)
             for (auto key : store::takeRevisionReports(surface)) {
                 state.recordGrid.outdated(key);
@@ -981,9 +983,9 @@ void record(IClientInstance& client, Settings::Map const& settings, bool scannin
                 state.recordCaveGrid.outdated(key);
                 state.caveGrid.outdated(key);
             }
-        if (!scanning || !settings.worldMap) return;
+        if (!scanning || !settings.worldMap || (!surfaceWanted && !caveWanted)) return;
         // Recording follows the view distance (L-206): what the client keeps
-        // loaded around the player, from the old fixed range up to the game's
+        // loaded around the followed point, from the old fixed range up to the game's
         // own view-distance maximum. Its grid keeps what it saw while the
         // display cache evicts far tiles (keepChunks); complete chunks
         // beyond the display's reach are recorded once per visit.
@@ -1000,7 +1002,7 @@ void record(IClientInstance& client, Settings::Map const& settings, bool scannin
         auto& cache = scanCave ? state.cave : state.surface;
         auto& grid = scanCave ? state.recordCaveGrid : state.recordGrid;
         Saved saved{true, scanCave ? cave : surface};
-        scan(client, *player, cache, grid, view->playerX, view->playerZ, scanCave, layer, blocks, false, time, saved,
+        scan(client, *player, cache, grid, view->x, view->z, scanCave, layer, blocks, false, time, saved,
              recordBudgetSeconds, true, recordStaleRadius);
     } catch (std::exception const& error) {
         state.failed = true;

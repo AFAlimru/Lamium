@@ -267,6 +267,14 @@ struct MapLayer {
 inline constexpr int bandHeight = 16;
 // Overworld cave bands cover the current world range -64..319.
 inline constexpr int overworldCaveMinBand = -4, overworldCaveBands = 24;
+inline constexpr bool caveHeightAllowed(int dimension, int y) {
+    return dimension == 0 ? y >= -64 && y <= 319 : dimension == 1 && y >= 0 && y <= 127;
+}
+inline constexpr bool layerAllowed(MapLayer layer) {
+    if (!layer.cave) return layer.dimension != 1;
+    return layer.dimension == 0 ? layer.band >= -4 && layer.band < 20
+        : layer.dimension == 1 && layer.band >= 0 && layer.band < 8;
+}
 inline MapLayer surfaceLayer(int dimension) { return {dimension, 0, false}; }
 inline MapLayer caveLayer(int dimension, int y) { return {dimension, floorDiv(y, bandHeight), true}; }
 inline MapLayer mapLayer(int dimension, int y, bool cave) {
@@ -317,12 +325,12 @@ inline std::optional<MapLayer> layerOfFolder(std::string_view folder) {
     if (folder == "end") return surfaceLayer(2);
     if (folder.starts_with("overworld/y")) {
         auto y = detail::parseInt(folder.substr(11));
-        if (!y || floorMod(*y, bandHeight)) return std::nullopt;
+        if (!y || floorMod(*y, bandHeight) || !caveHeightAllowed(0, *y)) return std::nullopt;
         return caveLayer(0, *y);
     }
     if (folder.starts_with("nether/y")) {
         auto y = detail::parseInt(folder.substr(8));
-        if (!y || floorMod(*y, bandHeight)) return std::nullopt;
+        if (!y || floorMod(*y, bandHeight) || !caveHeightAllowed(1, *y)) return std::nullopt;
         return caveLayer(1, *y);
     }
     if (folder.starts_with("dimension")) {

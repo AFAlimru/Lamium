@@ -1,6 +1,7 @@
 #include "features/map/MapRegionFiles.h"
 #include "features/map/MapColors.h"
 #include "features/map/MapCave.h"
+#include "features/map/MapSessionFiles.h"
 #include <chrono>
 #include <fstream>
 void check(bool, char const*);
@@ -288,7 +289,8 @@ void migration(RegionCodec& codec) {
     loaded = readRegionFiles(path, key, codec);
     check(loaded.status == RegionStatus::Refused && !loaded.data, "future LMR2 blocks legacy fallback");
     bool refused = false;
-    try { writeRegionFiles(path, key, current, codec); } catch (...) { refused = true; }
+    try { writeRegionFiles(path, key, current, codec); }
+    catch (std::exception const& error) { refused = saveFailure(error) == RegionSaveResult::Permanent; }
     check(refused && read(path) == future && read(old) == oldBytes, "save never overwrites refused files or deletes their legacy data");
     write(path, "JUNK");
     loaded = readRegionFiles(path, key, codec);
@@ -310,7 +312,8 @@ void migration(RegionCodec& codec) {
     auto beforeFailure = read(path);
     std::filesystem::permissions(path, std::filesystem::perms::owner_read, std::filesystem::perm_options::replace);
     bool replaceFailed = false;
-    try { writeRegionFiles(path, key, *pending.data, codec); } catch (...) { replaceFailed = true; }
+    try { writeRegionFiles(path, key, *pending.data, codec); }
+    catch (std::exception const& error) { replaceFailed = saveFailure(error) == RegionSaveResult::Transient; }
     std::filesystem::permissions(path, std::filesystem::perms::owner_all, std::filesystem::perm_options::replace);
     check(replaceFailed && read(path) == beforeFailure && std::filesystem::exists(old),
           "failed atomic replacement preserves both formats");
@@ -365,25 +368,27 @@ void migration(RegionCodec& codec) {
     check(capacityLoad.needsSave && capacityLoad.data->kept.size() == 61 && capacityLoad.data->oldFile,
           "legacy merge retains kept data even when OLDF would require a 65th section");
     std::string capacityError;
+    auto capacityResult = RegionSaveResult::Saved;
     try { writeRegionFiles(capacityPath, key, *capacityLoad.data, codec); }
-    catch (std::exception const& error) { capacityError = error.what(); }
+    catch (std::exception const& error) { capacityError = error.what(); capacityResult = saveFailure(error); }
     check(capacityError.find("kept map sections") != std::string::npos && capacityError.find("64-section limit") != std::string::npos
-              && read(capacityPath) == capacityBytes && read(capacityOld) == capacityLegacy,
+              && read(capacityPath) == capacityBytes && read(capacityOld) == capacityLegacy
+              && capacityResult == RegionSaveResult::Permanent,
           "section overflow explains preservation failure and leaves both files untouched");
     RegionSaveState state;
     state.changed(0);
     check(!state.due(9) && state.due(10) && state.begin() && !state.begin(), "save waits ten seconds and has one snapshot in flight");
     auto serial = state.serial;
-    state.changed(11); state.complete(serial, true, 12);
+    state.changed(11); state.complete(serial, RegionSaveResult::Saved, 12);
     check(state.dirty && !state.inFlight && !state.due(21.99) && state.due(22),
           "changes during a successful write stay dirty and wait a fresh save delay");
-    state.begin(); serial = state.serial; state.complete(serial, false, 12);
+    state.begin(); serial = state.serial; state.complete(serial, RegionSaveResult::Transient, 12);
     check(state.dirty && !state.due(21.99) && state.due(22), "failed save retries after delay, never every frame");
-    state.begin(); state.complete(state.serial, true, 23);
+    state.begin(); state.complete(state.serial, RegionSaveResult::Saved, 23);
     check(!state.dirty, "successful unchanged snapshot clears the dirty mark");
     RegionSaveState batching;
     batching.changed(0); batching.begin(); serial = batching.serial;
-    batching.changed(1); batching.complete(serial, true, 10);
+    batching.changed(1); batching.complete(serial, RegionSaveResult::Saved, 10);
     check(!batching.due(10) && batching.due(20), "successful in-flight changes do not cause immediate re-saves");
     for (int second = 11; second < 20; ++second) {
         batching.changed(second);
@@ -391,13 +396,64 @@ void migration(RegionCodec& codec) {
     }
     check(batching.due(20), "continuous edits do not postpone the next batch indefinitely");
     batching.begin(); serial = batching.serial;
-    batching.changed(20.5); batching.complete(serial, true, 21);
+    batching.changed(20.5); batching.complete(serial, RegionSaveResult::Saved, 21);
     check(!batching.due(30.99) && batching.due(31), "each newer in-flight batch starts its own save delay");
     check(batching.begin(), "world exit can force pending changes to save before their delay");
-    batching.complete(batching.serial, true, 22);
+    batching.complete(batching.serial, RegionSaveResult::Saved, 22);
     check(!batching.dirty, "forced final save clears only the snapshot it persisted");
     check(regionOfFileName("r.-2.3.lm2") == key && regionOfFileName("r.-2.3.lmr") == key
-              && layerOfFolder("nether/y-16") == MapLayer{1, -1, true}, "listing includes both formats and distinct Nether layers");
+              && layerOfFolder("nether/y16") == MapLayer{1, 1, true}, "listing includes both formats and distinct Nether layers");
+    RegionSaveState permanent;
+    permanent.changed(0); permanent.begin();
+    permanent.changed(1);
+    permanent.complete(permanent.serial - 1, RegionSaveResult::Permanent, 2);
+    permanent.changed(30);
+    check(permanent.evictable() && !permanent.dirty && !permanent.due(1000) && !permanent.begin(),
+          "a permanent failure discards pending save attempts and allows eviction even after more scans");
+    RegionSaveState retrying;
+    retrying.changed(0);
+    double time = 10;
+    for (double delay : {10., 20., 40., 80., 160., 300., 300.}) {
+        check(retrying.begin(), "transient retry has a snapshot");
+        retrying.complete(retrying.serial, RegionSaveResult::Transient, time);
+        retrying.changed(time + 1);
+        check(!retrying.evictable() && !retrying.due(time + delay - .01) && retrying.due(time + delay),
+              "I/O retries double from ten seconds to five minutes and scans do not reset the delay");
+        time += delay;
+    }
+    retrying.begin(); retrying.complete(retrying.serial, RegionSaveResult::Saved, time);
+    retrying.changed(time + 1); retrying.begin();
+    retrying.complete(retrying.serial, RegionSaveResult::Transient, time + 2);
+    check(retrying.due(time + 12), "a successful save resets the I/O backoff");
+    check(saveFailure(std::runtime_error("I/O")) == RegionSaveResult::Transient
+              && saveFailure(RegionSaveError("invalid data")) == RegionSaveResult::Permanent,
+          "save failure kind is explicit rather than inferred from a message");
+    RegionData invalidData;
+    invalidData.colors[0] = 1;
+    auto invalidResult = RegionSaveResult::Saved;
+    try { writeRegionFiles(path, key, invalidData, codec); }
+    catch (std::exception const& error) { invalidResult = saveFailure(error); }
+    check(invalidResult == RegionSaveResult::Permanent, "invalid region data is a permanent save failure");
+    SessionMapFiles sessions;
+    auto data = folder / "mod";
+    write(data / "maps/.session/old/overworld/r.0.0.lm2", "leftover");
+    write(data / "maps/saved/keep", "persistent");
+    sessions.start(data);
+    check(!std::filesystem::exists(data / "maps/.session") && read(data / "maps/saved/keep") == "persistent",
+          "startup removes leftover session maps and preserves permanent maps");
+    auto created = sessions.create();
+    check(created.has_value(), "a session map folder is created");
+    auto session = created.value_or(folder);
+    auto region = session / "overworld" / regionFileName(key);
+    writeRegionFiles(region, key, current, codec);
+    check(readRegionFiles(region, key, codec).data->colors == current.colors,
+          "session maps use ordinary region files so evicted residents can reload");
+    check(!sessions.discard() && !std::filesystem::exists(session), "world exit deletes the session map");
+    auto next = sessions.create();
+    check(next && *next != session && std::filesystem::is_directory(*next), "each world gets a separate temporary map folder");
+    SessionMapFiles unstarted;
+    check(!unstarted.create(), "without a base folder the world stays in memory");
+    sessions.discard();
 }
 }
 void mapRegionFormatTests() {

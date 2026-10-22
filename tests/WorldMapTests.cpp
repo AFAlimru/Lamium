@@ -147,7 +147,7 @@ void images() {
     check(layerFolder({0, 0, false}) == "overworld" && layerFolder({1, 4, true}) == "nether/y64"
               && layerFolder({0, -4, true}) == "overworld/y-64" && layerFolder({2, 0, false}) == "end",
           "each dimension, cave layer and surface layer has its folder");
-    check(mapLayer(1, 70, true) == MapLayer{1, 4, true} && mapLayer(1, -1, true) == MapLayer{1, -1, true}
+    check(mapLayer(1, 70, true) == MapLayer{1, 4, true} && mapLayer(1, 0, true) == MapLayer{1, 0, true}
               && mapLayer(0, 70, true) == MapLayer{0, 4, true} && mapLayer(0, 70, false) == MapLayer{0, 0, false},
           "cave layers are 16-block bands; surfaces are one layer");
     check(tileCoversRegion({0, 4, -3}, {4, -3}) && tileCoversRegion({1, 2, -2}, {4, -3})
@@ -159,11 +159,20 @@ void images() {
               && !regionOfFileName("r.1.2.lmr.tmp") && !regionOfFileName("r.-.2.lmr") && !regionOfFileName("r.99999999999.0.lmr"),
           "region file names read back; other files are not regions");
     check(layerOfFolder("overworld") == MapLayer{0, 0, false} && layerOfFolder("nether/y64") == MapLayer{1, 4, true}
-              && layerOfFolder("nether/y-16") == MapLayer{1, -1, true}
+              && !layerOfFolder("nether/y-16") && !layerOfFolder("nether/y128")
               && layerOfFolder("overworld/y-64") == MapLayer{0, -4, true} && layerOfFolder("end") == MapLayer{2, 0, false}
               && layerOfFolder("dimension5") == MapLayer{5, 0, false} && !layerOfFolder("nether/y7") && !layerOfFolder("nether")
               && !layerOfFolder("") && !layerOfFolder("overworld/old") && !layerOfFolder("overworld/y7"),
           "surface and cave layer folders read back");
+    check(caveHeightAllowed(0, -64) && caveHeightAllowed(0, 319) && !caveHeightAllowed(0, -65)
+              && !caveHeightAllowed(0, 320) && caveHeightAllowed(1, 0) && caveHeightAllowed(1, 127)
+              && !caveHeightAllowed(1, -1) && !caveHeightAllowed(1, 128) && !caveHeightAllowed(2, 64),
+          "cave recording stays inside each dimension's build range and never records End caves");
+    check(layerOfFolder("overworld/y304") == MapLayer{0, 19, true} && !layerOfFolder("overworld/y-80")
+              && !layerOfFolder("overworld/y320") && !layerOfFolder("nether/y2147483632")
+              && layerAllowed({0, -4, true}) && layerAllowed({1, 7, true})
+              && !layerAllowed({0, 20, true}) && !layerAllowed({1, -1, true}) && !layerAllowed({2, 0, true}),
+          "listing and store guards reject out-of-range cave bands");
     auto opened = stableLayer(63, 64, false);
     check(layerFolder(caveLayer(0, opened)) == "overworld/y48" && layerFolder(caveLayer(0, 64)) == "overworld/y64",
           "a boundary step opens the band the recorder keeps");
