@@ -99,7 +99,7 @@ choices live in the L-items. An L-item wins if a summary drifts.
    initiation, L-30 dragon hitboxes, L-33 mob timers, L-105 profiling.
    L-151/L-152/L-153 and the previously parked work remain later.
 7. **Before the next release:** changed-feature smoke and the relevant
-   Pre-release checks below. Latest release: 0.2.3, 2026-10-15 (`88462d5`).
+   Pre-release checks below. Latest release: 0.3.0, 2026-10-22 (`v0.3.0`).
    No next date is selected; a full regression is not a release gate.
 
 Notion reconciliation, 2026-10-20: four current schematic notes from the
