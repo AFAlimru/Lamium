@@ -346,8 +346,12 @@ Status: implemented 2026-10-22 (all listed code and docs fixes except the
 culler research). The LMR2 cross-check now runs as a C++ raw-section
 comparison against the Python golden file, so CI needs no Python dependency;
 the Python verifier stays manual. Build, `LamiumTests` and
-`LamiumNativeTests` pass. The renderer-thread `BlockSource` read remains the
-open research item; it was not changed without runtime proof.
+`LamiumNativeTests` pass. In-game checklist 2026-10-22 (`2900d1dc`, DLL
+`E4847CC5…`): keycap display, map open/pan/zoom/close and the Target block
+line/camera tag passed. The legacy unavailable display, unknown mode and
+map-clear/session edges were not in the shortened check. The renderer-thread
+`BlockSource` read remains the open research item; it was not changed
+without runtime proof.
 
 ### L-240 Death layout restore sometimes restores unexpectedly or wrongly
 Kind: Bug / Research. Maintainer report 2026-10-22 (everyday use, builds not

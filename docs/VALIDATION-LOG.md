@@ -21,6 +21,22 @@ public history; the DLL SHA-256 in each entry identifies the build that was
 actually run. The binding-display item was renumbered from L-232 to L-235 at
 the same time, because origin took L-232 for the slime chunk indicator.
 
+## L-242 follow-ups checked in game (2026-10-22)
+
+`main` (`2900d1dc`, version 0.3.0), deployed DLL SHA-256
+`E4847CC53FAB40347AB49FC79BF1D1490C041B4847ED5AEF2362B2736810A9E5`, default
+release build, local `1.26.51.01` LIP deployment, Windows x64. Maintainer
+report: checklist 1-3 passed: (1) the default Alt+Wheel bindings draw as
+separate key caps in the key settings; (2) the world map opens, pans, zooms,
+closes and reopens with no image problem; (3) the Target block line matches
+the Target card, including a ghost in front and the camera tag in FreeCamera.
+The normal-view screenshot showed white stained glass at 1369, 91, 115 on
+both the card and the line. Not checked: a legacy placement without its
+structure file (the new unavailable display), an unknown restriction mode,
+and map clearing/session-only storage; the settings decode and map range
+helpers are covered by `LamiumTests`, the other cases were not in the
+shortened checklist.
+
 ## L-241 pre-0.3.0 review fixes checked in game (2026-10-22)
 
 `main` (`fca2ef9`, version 0.3.0), deployed DLL SHA-256
