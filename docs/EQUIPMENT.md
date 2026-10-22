@@ -74,7 +74,7 @@ and marks it sent.
 
 ## Auto Elytra (L-70)
 
-Experimental, off by default, under Interaction.
+Off by default, under Interaction.
 - Put on: the key "Put on / take off the elytra" (unbound), or any jump while
   holding firework rockets in the main hand (child "Jump with fireworks", on
   by default). The elytra with the most durability comes from the main

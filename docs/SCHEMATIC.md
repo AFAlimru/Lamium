@@ -15,7 +15,10 @@ a file over 2 MB. Placements persist per world/server and dimension.
 
 Missing or unreadable structure files (L-237, checked in game
 2026-10-22 on `1fd201b` and `1bf531e`): failures are cached with the same two-second
-file-time recheck as successful loads. A changed or restored file is retried;
+recheck as successful loads. L-241 A2 retries read, size and I/O failures on
+the next check even if the file time is unchanged; only parse failures wait
+for a changed file time. Recovery from a held-open file awaits in-game check (e).
+A changed or restored file is retried;
 only a new or changed error is logged. While Schematics is on, unreadable
 placements are announced once per world generation, grouped into one toast
 per frame with the count and at most two names. The warning starts with
@@ -37,7 +40,8 @@ One selected placement controls movement, turn/mirror, cut-plane layer
 selection, checking and materials. A radial menu exposes placement and
 save-area operations; a separate held adjust key repeats the last adjustment
 made in the menu (movement, rotation/mirror, the cut) with the wheel.
-Dedicated keys remain available, all unbound.
+Dedicated keys remain available. Only Alt+Wheel is bound by default, moving
+the target away/closer.
 Movement follows the drawn view (2026-10-20, L-230): all six directions come
 from one camera frame. Forward/back step along the view's dominant axis and
 move on Y past 60 degrees up or down; left/right stay horizontal; up/down are
@@ -799,7 +803,8 @@ second round):
   item used last in the menu (for example up/down or the layer), with a
   hint under the crosshair saying what it repeats. No tap/hold
   distinction anywhere.
-- The single-purpose keys stay as advanced shortcuts, unbound by default.
+- The single-purpose keys stay as advanced shortcuts, unbound by default
+  except Alt+Wheel for moving the target away/closer (revised 2026-10-21).
 - A held stick (or any item) as a tool is not built; only if users ask.
 Built 2026-10-07 while the maintainer cannot test (none of it checked in
 game yet):
@@ -891,13 +896,15 @@ To check before 0.1.7: see [Pre-release checks](BACKLOG.md#pre-release-checks).
   (light blue) for a missing one, and per differing state
   "<state>: <now> → <should be>" (yellow) with readable names (L-112); the
   card's own row for that state is left out so it is not listed twice.
-- Menu settings (decided 2026-10-07): background dimming light by default
-  (none and dark selectable); shown centered at full size by default, or
-  as an option small in the lower right so the view stays free; it opens
+- Menu settings (decided 2026-10-07; size default revised L-231): background
+  dimming light by default (none and dark selectable); shown small in the
+  lower right by default (`menuSmall` on), or optionally centered at full
+  size; it opens
   at the category list by default, or as an option exactly where it was
   closed (the level shown at closing; the list if the player had gone back
   up with right click).
-- All keys stay unbound by default (schematics are experimental). The
+- Only Alt+Wheel is bound by default, moving the target away/closer (revised
+  2026-10-21). The
   settings lead to the right ones first: the menu key and the adjust key
   sit right under the Schematics switch, marked as where to start and
   recommended; the single-purpose keys move into a collapsed "Shortcuts
@@ -970,7 +977,8 @@ Decided 2026-10-03 after the first mockup
   area-selection flow (corner keys on the looked-at block, frame, adjust
   numbers on the screen, name and save), the Schematic entry pinned at the
   bottom of the sidebar and a "Schematic" settings category are accepted
-  as in the mockup. All keys unbound by default.
+  as in the mockup. Keys default unbound except Alt+Wheel for moving the
+  target away/closer (revised 2026-10-21).
 - The material list lives on the dedicated screen. Its HUD list is
   default off and changes only when the player switches it (setting, key
   or the screen's switch); placing a schematic never turns it on. Large
@@ -1127,7 +1135,8 @@ then rendering, screen and keys.
   editor; child switches for check counts and materials left) shows the
   selected placement's counts in the shown layers, the distance to the
   nearest mistake and up to five materials left with icons (yellow when
-  short). Keys, all unbound: nearest mistake (again: the next), select
+  short). Keys (unbound except Alt+Wheel for moving away/closer, revised
+  2026-10-21): nearest mistake (again: the next), select
   the looked-at placement, next placement, move one block along the view
   (steep views move up or down) or back, move to feet, turn 90° right,
   mirror, shown layer up/down; each confirms with a toast. The target card

@@ -1,7 +1,7 @@
 # Detached camera implementation notes
 
-Freelook and FreeCamera are disabled and unbound by default. FreeCamera remains
-experimental. Both passed local runtime checks. Current product behavior is in
+Freelook and FreeCamera are disabled and unbound by default.
+Both passed local runtime checks. Current product behavior is in
 [DESIGN.md](DESIGN.md#camera-decided-2026-09-26-unless-noted); current coverage
 and remaining checks are in [VALIDATION.md](VALIDATION.md). This file records
 the native integration and its evolution. Dated checkpoints retain earlier
@@ -153,7 +153,7 @@ settings. Do not enable the old fixed-angle `camera_probe` simultaneously.
 
 ## FreeCamera
 
-FreeCamera (experimental, unbound Toggle) reuses Freelook's detached session
+FreeCamera (unbound Toggle) reuses Freelook's detached session
 and adds position. Verified in game 2026-09-24 on build 31323b8 (trace build):
 
 - Rotation: the same detachment as Freelook; the two never run together.
@@ -369,7 +369,7 @@ On `d20fdf8` the maintainer confirmed improved elytra motion, normal reference
 switching and release. The log confirms native interpolation-writer reach;
 it does not establish every caller's consumption order. Check different frame
 rates, menus/focus, targeting and exit/death/dimension cleanup on the normal
-release build. The adapter remains experimental.
+release build.
 
 ### Lamium view entry (L-78)
 

@@ -34,7 +34,7 @@ settings. Bindings are edited under each feature or in the Hotkeys view.
 - Default keys: `L` settings, `M` world map, `Tab` player list (hold), `C`
   zoom (hold), `R` sort (in a container), `F` offhand swap, `F3` Debug View,
   `F3+B` Hitboxes, `F3+G` Chunk Borders and right click for Fake Offhand's
-  use.
+  use, and `Alt+Wheel` to move the schematic target away/closer.
 - `C` replaces Minecraft's "copy coordinates" while Lamium is installed
   unless you rebind it.
 

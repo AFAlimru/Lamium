@@ -21,7 +21,8 @@ layout below; where they differ, these win.
 - Default keys: none, except where a convention exists or the action is
   used constantly (L settings, C zoom, R sort, F3 / F3+G / F3+B, M world
   map, right button fake offhand, F swap with offhand (2026-10-06, Java's
-  key; Bedrock has none)). Record the date when one is added.
+  key; Bedrock has none), Alt+Wheel to move the schematic target away/closer
+  (2026-10-21)). Record the date when one is added.
 - A toggle key shows the toggle toast, as all toggles do now.
 - New action ids are appended (never reordered); moving an action to
   another row changes only presentation, and existing bindings stay.

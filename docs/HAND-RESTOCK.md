@@ -4,7 +4,7 @@ Current behavior and how it works. Scope decisions are in BACKLOG-DONE.md
 (L-66, L-68); test results in [VALIDATION.md](VALIDATION.md) and the evidence
 behind them in [VALIDATION-LOG.md](VALIDATION-LOG.md). The screenless move it
 uses is shared with the equipment features ([EQUIPMENT.md](EQUIPMENT.md)).
-Experimental, off by default, toggle action unbound.
+Off by default, toggle action unbound.
 
 ## Behavior
 

@@ -140,8 +140,10 @@ menu and HUD editor keep GUI units.
   0.3.0 (decided 2026-10-22) FreeCamera, Hand Restock, Tool Protection, Auto
   Elytra and Edge Guard lose it too after server use; their remaining limits
   stay in the README's known issues (Edge Guard: rare drops under heavy lag
-  or a very small margin). Inventory transfer keeps it and is off for new installs, so no
-  Experimental feature is on by default. Fake Offhand, Death layout restore,
+  or a very small margin). Inventory transfer keeps it and is off for new
+  installs (a saved on stays on); none of the features reviewed for 0.3.0
+  keeps the badge while on by default. Radar and Waypoints remain on inside
+  the Experimental Map. Fake Offhand, Death layout restore,
   the version-sensitive visuals, Game language, Skip server packs, Map and
   Schematics keep the badge.
 
@@ -684,8 +686,9 @@ exactly one switch, one mode and one set of keys:
 
 ## Inventory transfer (Decided 2026-09-27, BACKLOG L-41)
 
-- The feature has one saved switch, on by default, and an unbound toggle
-  action usable in gameplay or an item screen. Transfers act in screens
+- The feature has one saved switch, off for new installs since 0.3.0 (a saved
+  on stays on), and an unbound toggle action usable in gameplay or an item
+  screen. Transfers act in screens
   with a player inventory and another side; the inventory screen moves between
   main inventory and hotbar. Four original child
   switches enable ordinary wheel, Shift+wheel, Shift+left drag and Ctrl+left

@@ -18,7 +18,7 @@
 
 ## Status
 
-Lamium 0.2.3 is an early (0.x) release. The main settings, hotkey, HUD,
+Lamium 0.3.0 is an early (0.x) release. The main settings, hotkey, HUD,
 target card, camera and overlay flows have been exercised in Minecraft on a
 local single-player setup. Map features also have external BDS checks;
 server coverage for other features, controllers and broad resource-pack/graphics
@@ -134,6 +134,7 @@ world, with both maps off.
 | --- | --- | --- | --- |
 | Schematics | Place `.mcstructure` files as ghost blocks, check the build, count materials, save an area | — | Off |
 | Schematic menu | A radial menu with every schematic operation; each can also get its own key | — | — |
+| Move schematic target | Move the placement, corner or area away/closer | Alt+Wheel | — |
 | Schematic HUD | Check counts and materials left for the selected placement | — | Off |
 
 ### Inventory

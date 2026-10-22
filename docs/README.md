@@ -46,7 +46,7 @@ build named there and may include superseded experiments.
 | Item Transfer and L-169 native-handler investigation | [ITEM-TRANSFER.md](ITEM-TRANSFER.md) |
 | Minimap, radar, waypoints and world map | [MAP.md](MAP.md) |
 | Schematics, checking, materials and area save | [SCHEMATIC.md](SCHEMATIC.md) |
-| Schematic controls redesign (design note, no implementation) | [SCHEMATIC-CONTROLS.md](SCHEMATIC-CONTROLS.md) |
+| Schematic controls and cut-plane layers (implemented contract) | [SCHEMATIC-CONTROLS.md](SCHEMATIC-CONTROLS.md) |
 | Integration between features (proposal, L-111) | [INTEGRATION.md](INTEGRATION.md) |
 
 ## Keeping the docs consistent

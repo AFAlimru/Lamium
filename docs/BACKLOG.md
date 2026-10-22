@@ -190,8 +190,9 @@ was checked against the code. Implement in two Codex batches (A1 settings
 and map, then A2 schematics and docs), each with tests and docs, then the
 maintainer's in-game check. L-242 follows after this item.
 
-Status: A1 implemented (items 1-5); in-game checks (a)-(c) pending. A2 has
-not started. Build and test verification is pending in this sandbox.
+Status: A1 implemented (items 1-5); in-game checks (a)-(c) pending. A2
+implemented (items 6-14); in-game checks (d)-(f) pending. Build and test
+verification could not run in this sandbox (`xmake` unavailable).
 
 **A1. Settings and map**
 
