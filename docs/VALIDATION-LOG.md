@@ -21,6 +21,14 @@ public history; the DLL SHA-256 in each entry identifies the build that was
 actually run. The binding-display item was renumbered from L-232 to L-235 at
 the same time, because origin took L-232 for the slime chunk indicator.
 
+## Edge Guard help wording checked in game (2026-10-22)
+
+`main` (`610e603`), deployed DLL SHA-256
+`22BF09C0B7FA9A825E4A22A7B95586CE935DC95EA040A951E1A9FF3AA19B278E`, default
+release build, local `1.26.51.01 LIP` deployment, Windows x64. Maintainer
+report: Edge Guard's help ends with the softened sentence (normally no fall;
+rare drops under heavy lag or a very small margin).
+
 ## 0.3.0 badge review checked in game (2026-10-22)
 
 `main` (`c710e77`), deployed DLL SHA-256
