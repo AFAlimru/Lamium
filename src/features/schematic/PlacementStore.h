@@ -26,6 +26,11 @@ struct PlacementSet {
     std::vector<SavedPlacement> placements;
     int selected = -1; // Index into placements, or -1.
 };
+inline int steppedPlacement(int selected, int count, int amount) {
+    if (count <= 0) return -1;
+    int from = selected < 0 && amount < 0 ? 0 : selected;
+    return ((from + amount) % count + count) % count;
+}
 // Keeps the selection valid; clamps rotations, layers and names.
 void normalize(PlacementSet&);
 std::string encodePlacements(PlacementSet const&);

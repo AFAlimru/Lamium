@@ -16,7 +16,7 @@ void press(IClientInstance& client, input::Action action);
 // The schematic menu's steppers and its commands that act in the world
 // (screen commands and settings switches are the screen's). Client thread.
 MoveTarget target();
-void setTarget(menu::Target);
+void setTarget(IClientInstance& client, menu::Target);
 // A placement was selected or placed: movement goes back to it.
 void placementSelected();
 // Drop the move target and repeat memory (feature off, world/dimension change).

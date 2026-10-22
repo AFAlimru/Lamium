@@ -287,7 +287,7 @@ std::optional<ui::hud_editor::Box> drawSchematicHud(MinecraftUIRenderContext& co
     schematic::SavedPlacement const* selected = set.selected >= 0 && set.selected < static_cast<int>(set.placements.size())
         ? &set.placements[static_cast<size_t>(set.selected)] : nullptr;
     if (!selected && !preview) return std::nullopt;
-    bool ready = selected && result->placement == set.selected && result->complete;
+    bool ready = selected && result->ready(set.selected);
     schematic::Tally tally = ready ? result->visible : schematic::Tally{};
     if (!selected) { tally.correct = 99; tally.missing = 18; tally.wrong = 2; tally.state = 1; }
     std::optional<int> nearest;

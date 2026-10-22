@@ -79,9 +79,9 @@ std::shared_ptr<Structure const> load(std::string const& relative, std::string* 
     // Snapshots run every frame: look at the file's time at most every two seconds.
     if (found != cache.end() && now - found->second.checked < std::chrono::seconds(2)) return cached();
     std::optional<std::filesystem::file_time_type> modified;
-    auto fail = [&](std::string const& why) -> std::shared_ptr<Structure const> {
+    auto fail = [&](std::string const& why, bool parsed = false) -> std::shared_ptr<Structure const> {
         if (found == cache.end() || found->second.error != why) log(relative + ": " + why);
-        cache[relative] = {modified, now, nullptr, why};
+        cache[relative] = {parsed ? modified : std::nullopt, now, nullptr, why};
         if (error) *error = why;
         return nullptr;
     };
@@ -96,7 +96,8 @@ std::shared_ptr<Structure const> load(std::string const& relative, std::string* 
         return cached();
     }
     auto size = std::filesystem::file_size(path, code);
-    if (code || size > maxFileSize) return fail("file too large");
+    if (code) return fail("could not read the file");
+    if (size > maxFileSize) return fail("file too large");
     std::ifstream file(path, std::ios::binary);
     std::vector<std::uint8_t> bytes(static_cast<size_t>(size));
     if (!file.read(reinterpret_cast<char*>(bytes.data()), static_cast<std::streamsize>(bytes.size()))) return fail("could not read the file");
@@ -106,7 +107,7 @@ std::shared_ptr<Structure const> load(std::string const& relative, std::string* 
         if (error) error->clear();
         return structure;
     } catch (std::exception const& problem) {
-        return fail(problem.what());
+        return fail(problem.what(), true);
     }
 }
 }

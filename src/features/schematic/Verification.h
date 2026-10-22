@@ -37,6 +37,7 @@ struct Verification {
     Tally visible;              // counts within the shown layers
     std::vector<Mismatch> mismatches; // within the shown layers, nearest first, capped
     std::vector<MaterialLine> materials, visibleMaterials;
+    bool ready(int selected) const { return selected >= 0 && placement == selected && complete && !stale; }
 };
 inline constexpr size_t maxMismatches = 2000;
 

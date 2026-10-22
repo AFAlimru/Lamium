@@ -1451,7 +1451,33 @@ void unreadableNoticeRules() {
     notice.update(4, false, {});
     check(notice.update(5, true, failed) == names, "session stop and rejoin forget announcements");
 }
+void placementSteps() {
+    using namespace lamium::schematic;
+    check(steppedPlacement(-1, 3, 1) == 0 && steppedPlacement(-1, 3, -1) == 2,
+          "from no selection, Next starts at the first placement and Previous at the last");
+    check(steppedPlacement(0, 3, -1) == 2 && steppedPlacement(2, 3, 1) == 0,
+          "placement steps wrap in both directions");
+    check(steppedPlacement(-1, 4, -2) == 2 && steppedPlacement(1, 4, 6) == 3,
+          "menu placement steps keep the key start rule for multiple steps");
+    check(steppedPlacement(-1, 0, -1) == -1 && steppedPlacement(-1, 1, -1) == 0,
+          "placement steps handle an empty list or a single placement");
+}
+void verificationReadiness() {
+    using namespace lamium::schematic;
+    Verification result;
+    result.placement = 2;
+    check(!result.ready(2), "an unfinished verification is counting");
+    result.complete = true;
+    check(result.ready(2) && !result.ready(1) && !result.ready(-1),
+          "only a completed verification for the selected placement is ready");
+    result.stale = true;
+    check(!result.ready(2), "a cut or move invalidates completed counts until the next pass");
+    result.stale = false;
+    check(result.ready(2), "a fresh completed pass makes counts ready again");
+}
 void schematicTests() {
+    placementSteps();
+    verificationReadiness();
     unreadableNoticeRules();
     rayCells();
     ghostLook();

@@ -302,7 +302,11 @@ void selectLooked(IClientInstance& client, LocalPlayer& player) {
         if (distance && *distance < bestDistance && (overlaps || *distance <= opaqueAt + face)) { best = i; bestDistance = *distance; }
     }
     if (best >= 0) {
-        session::change([&](PlacementSet& s) { s.selected = best; return true; });
+        session::change([&](PlacementSet& s) {
+            if (s.selected == best) return false;
+            s.selected = best;
+            return true;
+        });
         placementSelected();
         ui::showMessageToast(ui::translated("schematic.toast.selected", set.placements[static_cast<size_t>(best)].name));
         return;
@@ -567,9 +571,7 @@ void press(IClientInstance& client, Action action) {
         bool any = session::change([&](PlacementSet& set) {
             if (set.placements.empty()) return false;
             int count = static_cast<int>(set.placements.size());
-            // From no selection, Previous starts at the last placement.
-            int from = set.selected < 0 && direction < 0 ? 0 : set.selected;
-            set.selected = ((from + direction) % count + count) % count;
+            set.selected = steppedPlacement(set.selected, count, direction);
             name = set.placements[static_cast<size_t>(set.selected)].name;
             return true;
         });
@@ -641,19 +643,11 @@ void press(IClientInstance& client, Action action) {
 }
 
 MoveTarget target() { return moveTarget; }
-void setTarget(menu::Target value) {
+void setTarget(IClientInstance& client, menu::Target value) {
     MoveTarget next = static_cast<MoveTarget>(value);
-    auto set = session::current();
-    auto state = selection::current();
-    bool exists = false;
-    switch (next) {
-    case MoveTarget::Placement: exists = set.selected >= 0 && set.selected < static_cast<int>(set.placements.size()); break;
-    case MoveTarget::Corner1: exists = state.first.has_value(); break;
-    case MoveTarget::Corner2: exists = state.second.has_value(); break;
-    case MoveTarget::Area: exists = state.first && state.second; break;
-    default: break;
-    }
-    if (!exists) { ui::showMessageToast(ui::translated("schematic.toast.targetUnset")); return; }
+    auto* player = client.getLocalPlayer();
+    syncLifecycle(client);
+    if (!player || !valid(next, validity(*player))) { ui::showMessageToast(ui::translated("schematic.toast.targetUnset")); return; }
     changeTarget(next);
     ui::showMessageToast(ui::translated("schematic.menu.moveTarget") + ": " + targetName(next));
 }
@@ -719,7 +713,7 @@ void step(IClientInstance& client, menu::Stepper stepper, int amount) {
         bool any = session::change([&](PlacementSet& set) {
             if (set.placements.empty()) return false;
             int count = static_cast<int>(set.placements.size());
-            set.selected = ((set.selected + amount) % count + count) % count;
+            set.selected = steppedPlacement(set.selected, count, amount);
             name = set.placements[static_cast<size_t>(set.selected)].name;
             return true;
         });

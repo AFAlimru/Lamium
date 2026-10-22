@@ -589,7 +589,7 @@ void runMenuItem(schematic::menu::Item const& item, int amount) {
     auto command = std::get<menu::Command>(item.what);
     menu::Target target{};
     if (menu::choosesTarget(command, target)) {
-        schematic::actions::setTarget(target);
+        schematic::actions::setTarget(*client, target);
         schematicMenu->show(menu::moveCategory);
         return;
     }

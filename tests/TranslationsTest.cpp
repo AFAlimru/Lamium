@@ -34,6 +34,13 @@ void translationTests() {
             auto pattern = find(entry.key, locale);
             std::string rendered;
             if (entry.key == "shape.entry") rendered = std::vformat(pattern, std::make_format_args(key,on,remaining));
+            else if (entry.key == "schematic.menu.key") {
+                std::string chords = "A / B";
+                rendered = std::vformat(pattern, std::make_format_args(chords));
+                auto slot = pattern.find("{}");
+                check(slot != std::string_view::npos && pattern.find("{}", slot + 2) == std::string_view::npos);
+                check(rendered.ends_with(chords));
+            }
             else if (entry.key == "hudXYZ" || entry.key == "hudExactPosition") rendered = std::vformat(pattern, std::make_format_args(number,number,number));
             else if (entry.key == "hudScaledCoordinates") rendered = std::vformat(pattern, std::make_format_args(key,number,number,number));
             else if (entry.key == "targetBlockPosition" || entry.key == "worldMap.teleported") rendered = std::vformat(pattern, std::make_format_args(remaining,remaining,remaining));
