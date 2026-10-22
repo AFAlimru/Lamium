@@ -84,13 +84,16 @@ bool Runtime::load() {
         mod.getLogger().warn("Could not create Lamium log: {}", error.what());
     }
     auto path = mod.getConfigDir() / "settings.json";
+    bool recovered = false;
     try {
-        if (std::filesystem::exists(path)) settings = readSettings(path);
+        if (std::filesystem::exists(path)) settings = readSettings(path, &recovered);
         else writeSettings(path, settings);
     } catch (std::exception const& error) {
-        mod.getLogger().error("Settings load failed: {}", error.what());
+        mod.getLogger().error("Settings load failed: {}; changes stay unsaved this session", error.what());
         settings = {};
+        writable = false;
     }
+    if (recovered) mod.getLogger().warn("Unreadable settings moved to settings.json.broken; loaded defaults");
     settings.normalize();
     published.store(std::make_shared<Settings const>(settings));
     // These capture the client's button handlers as they are registered, which
@@ -254,7 +257,7 @@ bool Runtime::save(Settings value) {
     std::lock_guard lock(settingsMutex);
     value.normalize();
     try {
-        writeSettings(mod.getConfigDir() / "settings.json", value);
+        if (writable) writeSettings(mod.getConfigDir() / "settings.json", value);
         bool cameraChanged = !(settings.camera == value.camera);
         if (settings.interaction.breaking != value.interaction.breaking
             || settings.interaction.breakingMode != value.interaction.breakingMode) interaction::breaking::reset();

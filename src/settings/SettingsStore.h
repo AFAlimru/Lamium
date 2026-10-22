@@ -5,7 +5,9 @@
 
 namespace lamium {
 Settings decodeSettings(std::string_view text);
-Settings readSettings(std::filesystem::path const& path);
+// A file decodeSettings rejects is moved to a sibling .broken file before
+// defaults are saved; a read error still throws.
+Settings readSettings(std::filesystem::path const& path, bool* recovered = nullptr);
 // Writes a complete sibling temporary file before replacing the destination.
 // On error the existing file stays intact and an exception describes the error.
 void writeSettings(std::filesystem::path const& path, Settings const& settings);

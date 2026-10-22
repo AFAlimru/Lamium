@@ -510,17 +510,61 @@ void settingsStoreTests() {
     check(!old.visuals.hideOffhand, "existing settings keep the offhand visible");
     check(partial.camera.magnification == 6 && !partial.camera.zoomToggle, "missing fields use defaults");
     for (auto invalid : {R"({"version":999})", R"({"version":4294967297})", R"({"version":1.5})",
-                         R"({"version":true})", R"({"camera":{"zoomToggle":"yes"}})", "[]", "{"}) {
+                         R"({"version":true})", "[]", "{"}) {
         bool rejected = false;
         try { (void)decodeSettings(invalid); } catch (...) { rejected = true; }
         check(rejected, "invalid or future settings must be rejected");
+    }
+    {
+        auto mixed = decodeSettings(R"({"camera":true,"map":{"minimap":true,"size":"large","rotate":false},
+            "inventory":{"sorting":false,"restockThreshold":[]},"orderedBindings":true,
+            "bindings":{"sort":[{"device":"key","code":75}]},"hud":{"info":{"dx":123,"scale":"huge","shadow":false}}})");
+        Settings defaults;
+        check(mixed.camera.magnification == defaults.camera.magnification && mixed.map.minimap && !mixed.map.rotate
+              && mixed.map.size == defaults.map.size && !mixed.inventory.sorting
+              && mixed.inventory.restockThreshold == defaults.inventory.restockThreshold,
+              "wrong section and field types keep defaults without discarding valid settings");
+        check(mixed.bindings[static_cast<size_t>(input::Action::Sort)] == input::Chord{{input::Device::Key, 75}}
+              && mixed.hud.info.dx == 123 && !mixed.hud.info.shadow && mixed.hud.info.scale == defaults.hud.info.scale,
+              "bindings and valid HUD fields survive unrelated type errors");
+        for (auto const* section : {"interaction", "information", "visuals", "overlays", "bindings", "camera", "map",
+                                   "schematic", "lighting", "inspection", "inventory", "interface", "hud"}) {
+            auto skipped = decodeSettings(std::string("{\"") + section + "\":[],\"extension\":{\"keep\":true}}");
+            check(skipped.camera.magnification == defaults.camera.magnification,
+                  "every non-object settings section is skipped");
+        }
+        auto fields = decodeSettings(R"({"camera":{"magnification":"6","zoomToggle":1,"freeCameraSpeed":null},
+            "map":{"worldMapList":4294967297,"waypointsWorld":18446744073709551615},
+            "interaction":{"breakingBand":"3"},"hud":{"info":{"dx":1e300}}})");
+        check(fields.camera.magnification == defaults.camera.magnification && !fields.camera.zoomToggle
+              && fields.camera.freeCameraSpeed == defaults.camera.freeCameraSpeed
+              && fields.map.worldMapList == defaults.map.worldMapList && fields.map.waypointsWorld == defaults.map.waypointsWorld
+              && fields.interaction.breakingBand == defaults.interaction.breakingBand && fields.hud.info.dx == defaults.hud.info.dx,
+              "wrong scalar types and overflowing numbers never narrow into settings");
     }
     auto path = std::filesystem::temp_directory_path() /
         ("lamium-settings-test-" + std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()) + ".json");
     struct Cleanup {
         std::filesystem::path path;
-        ~Cleanup() { std::error_code ignored; std::filesystem::remove(path, ignored); }
+        ~Cleanup() {
+            std::error_code ignored;
+            std::filesystem::remove(path, ignored);
+            auto broken = path; broken += ".broken";
+            std::filesystem::remove(broken, ignored);
+        }
     } cleanup{path};
+    {
+        auto broken = path; broken += ".broken";
+        { std::ofstream file(broken); file << "older backup"; }
+        { std::ofstream file(path); file << "{invalid settings"; }
+        bool recovered = false;
+        auto restored = readSettings(path, &recovered);
+        std::ifstream backup(broken);
+        std::string bytes{std::istreambuf_iterator<char>(backup), {}};
+        check(recovered && bytes == "{invalid settings" && restored.camera.magnification == Settings{}.camera.magnification
+              && readSettings(path).bindings == Settings{}.bindings,
+              "invalid JSON replaces the old broken backup before saving defaults");
+    }
     writeSettings(path, disabledTrading);
     check(!readSettings(path).inventory.repeatTrades, "disabled repeated trading survives saving");
     {
@@ -609,10 +653,16 @@ void settingsStoreTests() {
                              R"({"bindings":{"zoom":[{"device":"wheel","code":1}]}})",
                              R"({"bindings":{"sort":[{"device":"key","code":4294967350}]}})",
                              R"({"bindings":{"sort":[{"device":"key","code":51.5}]}})"}) {
-            bool rejected = false;
-            try { (void)decodeSettings(invalid); } catch (...) { rejected = true; }
-            check(rejected, "malformed binding files rejected without integer narrowing");
+            auto skipped = decodeSettings(invalid);
+            check(!skipped.bindings[static_cast<size_t>(input::Action::Zoom)]
+                  && !skipped.bindings[static_cast<size_t>(input::Action::Sort)],
+                  "malformed bindings keep their defaults without integer narrowing");
         }
+        auto mixed = decodeSettings(R"({"bindings":{"zoom":[{"device":true,"code":4}],
+            "sort":[{"device":"key","code":75}]},"camera":{"magnification":6}})");
+        check(!mixed.bindings[static_cast<size_t>(input::Action::Zoom)]
+              && mixed.bindings[static_cast<size_t>(input::Action::Sort)] == input::Chord{{input::Device::Key, 75}}
+              && mixed.camera.magnification == 6, "one malformed binding leaves other bindings and settings intact");
     }
     {
         std::ofstream initial(path);

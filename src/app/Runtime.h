@@ -13,6 +13,7 @@ class Runtime {
     // entity and per frame.
     std::atomic<std::shared_ptr<Settings const>> published{std::make_shared<Settings const>()};
     std::atomic<bool> running{false};
+    bool writable = true; // false when settings.json could not be read: never overwrite it
     mutable std::mutex settingsMutex;
 public:
     static Runtime& instance();

@@ -1,4 +1,5 @@
 #include "settings/SettingsStore.h"
+#include "settings/SettingsValue.h"
 #include "nlohmann/json.hpp"
 #include <array>
 #include <fstream>
@@ -32,18 +33,28 @@ std::string read(std::filesystem::path const& path) {
     if (stream.bad()) throw std::runtime_error("Could not read settings file");
     return text;
 }
+void preserveBroken(std::filesystem::path const& path) {
+    auto broken = path;
+    broken += ".broken";
+#ifdef _WIN32
+    if (!MoveFileExW(path.c_str(), broken.c_str(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH))
+        throw std::system_error(static_cast<int>(GetLastError()), std::system_category(), "Preserving broken settings");
+#else
+    std::filesystem::rename(path, broken);
+#endif
+}
 Json encodeHudElement(ui::HudElement const& element) {
     return {{"anchor", static_cast<int>(element.anchor)}, {"dx", element.dx},
             {"dy", element.dy}, {"scale", element.scale},
             {"background", static_cast<int>(element.background)}, {"shadow", element.shadow}};
 }
 void decodeHudElement(Json const& data, ui::HudElement& element, ui::HudElement defaultValue) {
-    element.anchor = static_cast<ui::Anchor>(data.value("anchor", static_cast<int>(defaultValue.anchor)));
-    element.dx = data.value("dx", defaultValue.dx);
-    element.dy = data.value("dy", defaultValue.dy);
-    element.scale = data.value("scale", defaultValue.scale);
-    element.background = static_cast<ui::ElementBackground>(data.value("background", static_cast<int>(defaultValue.background)));
-    element.shadow = data.value("shadow", defaultValue.shadow);
+    element.anchor = static_cast<ui::Anchor>(settingsValue(data, "anchor", static_cast<int>(defaultValue.anchor)));
+    element.dx = settingsValue(data, "dx", defaultValue.dx);
+    element.dy = settingsValue(data, "dy", defaultValue.dy);
+    element.scale = settingsValue(data, "scale", defaultValue.scale);
+    element.background = static_cast<ui::ElementBackground>(settingsValue(data, "background", static_cast<int>(defaultValue.background)));
+    element.shadow = settingsValue(data, "shadow", defaultValue.shadow);
 }
 Json encode(Settings const& settings) {
     Json bindings = Json::object();
@@ -251,20 +262,20 @@ Json encode(Settings const& settings) {
 Settings decodeSettings(std::string_view text) {
     auto data = parse(text);
     Settings value;
-    if (data.contains("interaction")) {
+    if (data.contains("interaction") && data.at("interaction").is_object()) {
         auto const& options = data.at("interaction");
         // Older files stored the periodic interval in seconds.
         auto ticks = [&](char const* key, char const* seconds) {
-            if (options.contains(key)) return options.value(key, 10.f);
-            return options.value(seconds, .5f) * 20;
+            if (options.contains(key)) return settingsValue(options, key, 10.f);
+            return settingsValue(options, seconds, .5f) * 20;
         };
         value.interaction.attackTicks = ticks("attackTicks", "attackInterval");
         value.interaction.useTicks = ticks("useTicks", "useInterval");
-        value.interaction.attackClicks = options.value("attackClicks", value.interaction.attackClicks);
-        value.interaction.useClicks = options.value("useClicks", value.interaction.useClicks);
+        value.interaction.attackClicks = settingsValue(options, "attackClicks", value.interaction.attackClicks);
+        value.interaction.useClicks = settingsValue(options, "useClicks", value.interaction.useClicks);
         // An unknown mode name falls back to Periodic rather than failing the load.
         auto autoMode = [&](char const* key) {
-            auto name = options.value(key, std::string("periodic"));
+            auto name = settingsValue(options, key, std::string("periodic"));
             for (size_t i = 0; i < interaction::autoModeNames.size(); ++i)
                 if (interaction::autoModeNames[i] == name) return static_cast<interaction::AutoMode>(i);
             return interaction::AutoMode::Periodic;
@@ -273,168 +284,169 @@ Settings decodeSettings(std::string_view text) {
         value.interaction.useMode = autoMode("useMode");
         // A short-lived build saved this as "attackTrigger": "held".
         auto heldOnly = [&](char const* key, char const* trigger) {
-            if (options.contains(key)) return options.value(key, false);
-            return options.value(trigger, std::string("always")) == "held";
+            if (options.contains(key)) return settingsValue(options, key, false);
+            return settingsValue(options, trigger, std::string("always")) == "held";
         };
         value.interaction.attackHeldOnly = heldOnly("attackHeldOnly", "attackTrigger");
         value.interaction.useHeldOnly = heldOnly("useHeldOnly", "useTrigger");
-        value.interaction.breaking = options.value("breaking", value.interaction.breaking);
-        value.interaction.edgeGuard = options.value("edgeGuard", value.interaction.edgeGuard);
-        value.interaction.edgeMargin = options.value("edgeMargin", value.interaction.edgeMargin);
-        value.interaction.toolGuard = options.value("toolGuard", value.interaction.toolGuard);
-        value.interaction.toolGuardStrict = options.value("toolGuardStrict", value.interaction.toolGuardStrict);
-        value.interaction.elytraSwap = options.value("elytraSwap", value.interaction.elytraSwap);
-        value.interaction.elytraReturnSeconds = options.value("elytraReturnSeconds", value.interaction.elytraReturnSeconds);
-        value.interaction.elytraFireworkJump = options.value("elytraFireworkJump", value.interaction.elytraFireworkJump);
-        value.interaction.elytraRiptide = options.value("elytraRiptide", value.interaction.elytraRiptide);
+        value.interaction.breaking = settingsValue(options, "breaking", value.interaction.breaking);
+        value.interaction.edgeGuard = settingsValue(options, "edgeGuard", value.interaction.edgeGuard);
+        value.interaction.edgeMargin = settingsValue(options, "edgeMargin", value.interaction.edgeMargin);
+        value.interaction.toolGuard = settingsValue(options, "toolGuard", value.interaction.toolGuard);
+        value.interaction.toolGuardStrict = settingsValue(options, "toolGuardStrict", value.interaction.toolGuardStrict);
+        value.interaction.elytraSwap = settingsValue(options, "elytraSwap", value.interaction.elytraSwap);
+        value.interaction.elytraReturnSeconds = settingsValue(options, "elytraReturnSeconds", value.interaction.elytraReturnSeconds);
+        value.interaction.elytraFireworkJump = settingsValue(options, "elytraFireworkJump", value.interaction.elytraFireworkJump);
+        value.interaction.elytraRiptide = settingsValue(options, "elytraRiptide", value.interaction.elytraRiptide);
         auto mode = [&](char const* key) {
-            auto name = options.value(key,std::string("plane"));
+            auto name = settingsValue(options, key,std::string("plane"));
             for (size_t i=0;i<interaction::restrictionNames.size();++i)
                 if (name == interaction::restrictionNames[i]) return static_cast<interaction::RestrictionMode>(i);
             throw std::runtime_error("Unknown restriction mode");
         };
         value.interaction.breakingMode = mode("breakingMode");
         value.interaction.placementMode = mode("placementMode");
-        value.interaction.breakingBand = options.value("breakingBand", value.interaction.breakingBand);
+        value.interaction.breakingBand = settingsValue(options, "breakingBand", value.interaction.breakingBand);
     }
-    if (data.contains("information")) {
+    if (data.contains("information") && data.at("information").is_object()) {
         auto const& info = data.at("information");
-        value.information.debug = info.value("debug", value.information.debug);
-        value.information.debugLabels = info.value("debugLabels", value.information.debugLabels);
-        value.information.debugHideHud = info.value("debugHideHud", value.information.debugHideHud);
-        value.information.debugHideTarget = info.value("debugHideTarget", value.information.debugHideTarget);
-        value.information.debugHideVanilla = info.value("debugHideVanilla", value.information.debugHideVanilla);
-        value.information.hudHidePaperDoll = info.value("hudHidePaperDoll", value.information.hudHidePaperDoll);
-        value.information.debugShadow = info.value("debugShadow", value.information.debugShadow);
-        value.information.debugBackground = info.value("debugBackground", value.information.debugBackground);
-        value.information.debugEntityKinds = info.value("debugEntityKinds", value.information.debugEntityKinds);
-        value.information.debugEntityTypes = info.value("debugEntityTypes", value.information.debugEntityTypes);
-        value.information.target = info.value("target", value.information.target);
-        value.information.targetIdentifier = info.value("targetIdentifier", value.information.targetIdentifier);
-        value.information.targetStates = info.value("targetStates", value.information.targetStates);
-        value.information.targetIcon = info.value("targetIcon", value.information.targetIcon);
-        value.information.targetHealth = info.value("targetHealth", value.information.targetHealth);
-        value.information.targetArmor = info.value("targetArmor", value.information.targetArmor);
-        value.information.targetGrowth = info.value("targetGrowth", value.information.targetGrowth);
-        value.information.targetDistance = info.value("targetDistance", value.information.targetDistance);
-        value.information.targetCoordinates = info.value("targetCoordinates", value.information.targetCoordinates);
+        value.information.debug = settingsValue(info, "debug", value.information.debug);
+        value.information.debugLabels = settingsValue(info, "debugLabels", value.information.debugLabels);
+        value.information.debugHideHud = settingsValue(info, "debugHideHud", value.information.debugHideHud);
+        value.information.debugHideTarget = settingsValue(info, "debugHideTarget", value.information.debugHideTarget);
+        value.information.debugHideVanilla = settingsValue(info, "debugHideVanilla", value.information.debugHideVanilla);
+        value.information.hudHidePaperDoll = settingsValue(info, "hudHidePaperDoll", value.information.hudHidePaperDoll);
+        value.information.debugShadow = settingsValue(info, "debugShadow", value.information.debugShadow);
+        value.information.debugBackground = settingsValue(info, "debugBackground", value.information.debugBackground);
+        value.information.debugEntityKinds = settingsValue(info, "debugEntityKinds", value.information.debugEntityKinds);
+        value.information.debugEntityTypes = settingsValue(info, "debugEntityTypes", value.information.debugEntityTypes);
+        value.information.target = settingsValue(info, "target", value.information.target);
+        value.information.targetIdentifier = settingsValue(info, "targetIdentifier", value.information.targetIdentifier);
+        value.information.targetStates = settingsValue(info, "targetStates", value.information.targetStates);
+        value.information.targetIcon = settingsValue(info, "targetIcon", value.information.targetIcon);
+        value.information.targetHealth = settingsValue(info, "targetHealth", value.information.targetHealth);
+        value.information.targetArmor = settingsValue(info, "targetArmor", value.information.targetArmor);
+        value.information.targetGrowth = settingsValue(info, "targetGrowth", value.information.targetGrowth);
+        value.information.targetDistance = settingsValue(info, "targetDistance", value.information.targetDistance);
+        value.information.targetCoordinates = settingsValue(info, "targetCoordinates", value.information.targetCoordinates);
         // Test builds of 2026-10-15 saved a number here (0 meant hidden).
         if (auto found = info.find("targetSchematic"); found != info.end())
-            value.information.targetSchematic = found->is_number() ? found->get<int>() != 0
+            value.information.targetSchematic = found->is_number() ? found->get<double>() != 0
                 : found->is_boolean() ? found->get<bool>() : value.information.targetSchematic;
-        value.information.durabilityHud = info.value("durabilityHud", value.information.durabilityHud);
-        value.information.durabilityLook = info.value("durabilityLook", value.information.durabilityLook);
-        value.information.durabilityOffhand = info.value("durabilityOffhand", value.information.durabilityOffhand);
-        value.information.durabilityArmor = info.value("durabilityArmor", value.information.durabilityArmor);
-        value.information.durabilityAmmo = info.value("durabilityAmmo", value.information.durabilityAmmo);
-        value.information.durabilityElytra = info.value("durabilityElytra", value.information.durabilityElytra);
-        value.information.offhandSlot = info.value("offhandSlot", value.information.offhandSlot);
-        value.information.offhandSlotEmpty = info.value("offhandSlotEmpty", value.information.offhandSlotEmpty);
-        value.information.playerListPlatform = info.value("playerListPlatform", value.information.playerListPlatform);
-        value.information.playerListDimension = info.value("playerListDimension", value.information.playerListDimension);
-        value.information.playerListDistance = info.value("playerListDistance", value.information.playerListDistance);
-        value.information.playerListMembers = info.value("playerListMembers", value.information.playerListMembers);
-        value.information.inventoryHud = info.value("inventoryHud", value.information.inventoryHud);
-        value.information.usedSlots = info.value("usedSlots", value.information.usedSlots);
-        value.information.inventoryHotbar = info.value("inventoryHotbar", value.information.inventoryHotbar);
-        value.information.usedSlotsHotbar = info.value("usedSlotsHotbar", value.information.usedSlotsHotbar);
-        value.information.chatPosition = info.value("chatPosition", value.information.chatPosition);
-        value.information.effectsHud = info.value("effectsHud", value.information.effectsHud);
-        value.information.effectsNames = info.value("effectsNames", value.information.effectsNames);
-        value.information.effectsWarning = info.value("effectsWarning", value.information.effectsWarning);
-        value.information.effectsHideVanilla = info.value("effectsHideVanilla", value.information.effectsHideVanilla);
-        value.information.saturation = info.value("saturation", value.information.saturation);
-        value.information.saturationPreview = info.value("saturationPreview", value.information.saturationPreview);
-        value.information.hud = info.value("hud", value.information.hud);
-        value.information.coordinates = info.value("coordinates", value.information.coordinates);
-        value.information.scaledCoordinates = info.value("scaledCoordinates", value.information.scaledCoordinates);
-        value.information.dimension = info.value("dimension", value.information.dimension);
-        value.information.biome = info.value("biome", value.information.biome);
-        value.information.biomeId = info.value("biomeId", value.information.biomeId);
-        value.information.biomeIdOnly = info.value("biomeIdOnly", value.information.biomeIdOnly);
-        value.information.difficulty = info.value("difficulty", value.information.difficulty);
-        value.information.facing = info.value("facing", value.information.facing);
-        value.information.yaw = info.value("yaw", value.information.yaw);
-        value.information.pitch = info.value("pitch", value.information.pitch);
-        value.information.sprinting = info.value("sprinting", value.information.sprinting);
-        value.information.fps = info.value("fps", value.information.fps);
-        value.information.frameTime = info.value("frameTime", value.information.frameTime);
-        value.information.light = info.value("light", value.information.light);
-        value.information.ping = info.value("ping", value.information.ping);
-        value.information.rotation = info.value("rotation", value.information.rotation);
-        value.information.block = info.value("block", value.information.block);
-        value.information.targetBlock = info.value("targetBlock", value.information.targetBlock);
-        value.information.chunk = info.value("chunk", value.information.chunk);
-        value.information.speed = info.value("speed", value.information.speed);
-        value.information.horizontalSpeed = info.value("horizontalSpeed", value.information.horizontalSpeed);
-        value.information.verticalSpeed = info.value("verticalSpeed", value.information.verticalSpeed);
-        value.information.time = info.value("time", value.information.time);
-        value.information.realTime = info.value("realTime", value.information.realTime);
-        value.information.realTimeDate = info.value("realTimeDate", value.information.realTimeDate);
-        value.information.weather = info.value("weather", value.information.weather);
-        value.information.moon = info.value("moon", value.information.moon);
+        value.information.durabilityHud = settingsValue(info, "durabilityHud", value.information.durabilityHud);
+        value.information.durabilityLook = settingsValue(info, "durabilityLook", value.information.durabilityLook);
+        value.information.durabilityOffhand = settingsValue(info, "durabilityOffhand", value.information.durabilityOffhand);
+        value.information.durabilityArmor = settingsValue(info, "durabilityArmor", value.information.durabilityArmor);
+        value.information.durabilityAmmo = settingsValue(info, "durabilityAmmo", value.information.durabilityAmmo);
+        value.information.durabilityElytra = settingsValue(info, "durabilityElytra", value.information.durabilityElytra);
+        value.information.offhandSlot = settingsValue(info, "offhandSlot", value.information.offhandSlot);
+        value.information.offhandSlotEmpty = settingsValue(info, "offhandSlotEmpty", value.information.offhandSlotEmpty);
+        value.information.playerListPlatform = settingsValue(info, "playerListPlatform", value.information.playerListPlatform);
+        value.information.playerListDimension = settingsValue(info, "playerListDimension", value.information.playerListDimension);
+        value.information.playerListDistance = settingsValue(info, "playerListDistance", value.information.playerListDistance);
+        value.information.playerListMembers = settingsValue(info, "playerListMembers", value.information.playerListMembers);
+        value.information.inventoryHud = settingsValue(info, "inventoryHud", value.information.inventoryHud);
+        value.information.usedSlots = settingsValue(info, "usedSlots", value.information.usedSlots);
+        value.information.inventoryHotbar = settingsValue(info, "inventoryHotbar", value.information.inventoryHotbar);
+        value.information.usedSlotsHotbar = settingsValue(info, "usedSlotsHotbar", value.information.usedSlotsHotbar);
+        value.information.chatPosition = settingsValue(info, "chatPosition", value.information.chatPosition);
+        value.information.effectsHud = settingsValue(info, "effectsHud", value.information.effectsHud);
+        value.information.effectsNames = settingsValue(info, "effectsNames", value.information.effectsNames);
+        value.information.effectsWarning = settingsValue(info, "effectsWarning", value.information.effectsWarning);
+        value.information.effectsHideVanilla = settingsValue(info, "effectsHideVanilla", value.information.effectsHideVanilla);
+        value.information.saturation = settingsValue(info, "saturation", value.information.saturation);
+        value.information.saturationPreview = settingsValue(info, "saturationPreview", value.information.saturationPreview);
+        value.information.hud = settingsValue(info, "hud", value.information.hud);
+        value.information.coordinates = settingsValue(info, "coordinates", value.information.coordinates);
+        value.information.scaledCoordinates = settingsValue(info, "scaledCoordinates", value.information.scaledCoordinates);
+        value.information.dimension = settingsValue(info, "dimension", value.information.dimension);
+        value.information.biome = settingsValue(info, "biome", value.information.biome);
+        value.information.biomeId = settingsValue(info, "biomeId", value.information.biomeId);
+        value.information.biomeIdOnly = settingsValue(info, "biomeIdOnly", value.information.biomeIdOnly);
+        value.information.difficulty = settingsValue(info, "difficulty", value.information.difficulty);
+        value.information.facing = settingsValue(info, "facing", value.information.facing);
+        value.information.yaw = settingsValue(info, "yaw", value.information.yaw);
+        value.information.pitch = settingsValue(info, "pitch", value.information.pitch);
+        value.information.sprinting = settingsValue(info, "sprinting", value.information.sprinting);
+        value.information.fps = settingsValue(info, "fps", value.information.fps);
+        value.information.frameTime = settingsValue(info, "frameTime", value.information.frameTime);
+        value.information.light = settingsValue(info, "light", value.information.light);
+        value.information.ping = settingsValue(info, "ping", value.information.ping);
+        value.information.rotation = settingsValue(info, "rotation", value.information.rotation);
+        value.information.block = settingsValue(info, "block", value.information.block);
+        value.information.targetBlock = settingsValue(info, "targetBlock", value.information.targetBlock);
+        value.information.chunk = settingsValue(info, "chunk", value.information.chunk);
+        value.information.speed = settingsValue(info, "speed", value.information.speed);
+        value.information.horizontalSpeed = settingsValue(info, "horizontalSpeed", value.information.horizontalSpeed);
+        value.information.verticalSpeed = settingsValue(info, "verticalSpeed", value.information.verticalSpeed);
+        value.information.time = settingsValue(info, "time", value.information.time);
+        value.information.realTime = settingsValue(info, "realTime", value.information.realTime);
+        value.information.realTimeDate = settingsValue(info, "realTimeDate", value.information.realTimeDate);
+        value.information.weather = settingsValue(info, "weather", value.information.weather);
+        value.information.moon = settingsValue(info, "moon", value.information.moon);
         if (info.contains("lineOrder") && info.at("lineOrder").is_array()) {
             value.information.lineOrder.clear();
             for (auto const& item : info.at("lineOrder"))
                 if (item.is_string()) value.information.lineOrder.push_back(item.get<std::string>());
         }
     }
-    if (data.contains("visuals")) {
+    if (data.contains("visuals") && data.at("visuals").is_object()) {
         auto const& visuals = data.at("visuals");
-        value.visuals.hideOffhand = visuals.value("hideOffhand", value.visuals.hideOffhand);
-        value.visuals.hideEffects = visuals.value("hideEffects", value.visuals.hideEffects);
-        value.visuals.connectedTextures = visuals.value("connectedTextures", value.visuals.connectedTextures);
-        value.visuals.connectedCorners = visuals.value("connectedCorners", value.visuals.connectedCorners);
-        value.visuals.connectedPaneCorners = visuals.value("connectedPaneCorners", value.visuals.connectedPaneCorners);
-        value.visuals.skipServerPacks = visuals.value("skipServerPacks", value.visuals.skipServerPacks);
-        value.visuals.hideWeather = visuals.value("hideWeather", value.visuals.hideWeather);
-        value.visuals.hideParticles = visuals.value("hideParticles", value.visuals.hideParticles);
-        value.visuals.hideBossBars = visuals.value("hideBossBars", value.visuals.hideBossBars);
-        value.visuals.hideNausea = visuals.value("hideNausea", value.visuals.hideNausea);
-        value.visuals.hideWater = visuals.value("hideWater", value.visuals.hideWater);
-        value.visuals.hideLava = visuals.value("hideLava", value.visuals.hideLava);
-        value.visuals.hidePowderSnow = visuals.value("hidePowderSnow", value.visuals.hidePowderSnow);
-        value.visuals.hideDistanceFog = visuals.value("hideDistanceFog", value.visuals.hideDistanceFog);
-        value.visuals.hidePortal = visuals.value("hidePortal", value.visuals.hidePortal);
+        value.visuals.hideOffhand = settingsValue(visuals, "hideOffhand", value.visuals.hideOffhand);
+        value.visuals.hideEffects = settingsValue(visuals, "hideEffects", value.visuals.hideEffects);
+        value.visuals.connectedTextures = settingsValue(visuals, "connectedTextures", value.visuals.connectedTextures);
+        value.visuals.connectedCorners = settingsValue(visuals, "connectedCorners", value.visuals.connectedCorners);
+        value.visuals.connectedPaneCorners = settingsValue(visuals, "connectedPaneCorners", value.visuals.connectedPaneCorners);
+        value.visuals.skipServerPacks = settingsValue(visuals, "skipServerPacks", value.visuals.skipServerPacks);
+        value.visuals.hideWeather = settingsValue(visuals, "hideWeather", value.visuals.hideWeather);
+        value.visuals.hideParticles = settingsValue(visuals, "hideParticles", value.visuals.hideParticles);
+        value.visuals.hideBossBars = settingsValue(visuals, "hideBossBars", value.visuals.hideBossBars);
+        value.visuals.hideNausea = settingsValue(visuals, "hideNausea", value.visuals.hideNausea);
+        value.visuals.hideWater = settingsValue(visuals, "hideWater", value.visuals.hideWater);
+        value.visuals.hideLava = settingsValue(visuals, "hideLava", value.visuals.hideLava);
+        value.visuals.hidePowderSnow = settingsValue(visuals, "hidePowderSnow", value.visuals.hidePowderSnow);
+        value.visuals.hideDistanceFog = settingsValue(visuals, "hideDistanceFog", value.visuals.hideDistanceFog);
+        value.visuals.hidePortal = settingsValue(visuals, "hidePortal", value.visuals.hidePortal);
     }
-    if (data.contains("overlays")) {
+    if (data.contains("overlays") && data.at("overlays").is_object()) {
         auto const& overlays = data.at("overlays");
-        value.overlays.chunkBorders = overlays.value("chunkBorders", value.overlays.chunkBorders);
-        value.overlays.hitboxes = overlays.value("hitboxes", value.overlays.hitboxes);
-        value.overlays.shapes = overlays.value("shapes", value.overlays.shapes);
-        value.overlays.light = overlays.value("light", value.overlays.light);
+        value.overlays.chunkBorders = settingsValue(overlays, "chunkBorders", value.overlays.chunkBorders);
+        value.overlays.hitboxes = settingsValue(overlays, "hitboxes", value.overlays.hitboxes);
+        value.overlays.shapes = settingsValue(overlays, "shapes", value.overlays.shapes);
+        value.overlays.light = settingsValue(overlays, "light", value.overlays.light);
         // Older files had a sky-light switch instead of the value choice.
-        auto lightValue = overlays.value("lightValue", std::string(overlays.value("skyLight", false) ? "sky" : "block"));
+        auto lightValue = settingsValue(overlays, "lightValue", std::string(settingsValue(overlays, "skyLight", false) ? "sky" : "block"));
         for (size_t i = 0; i < overlay::lightValueNames.size(); ++i)
             if (overlay::lightValueNames[i] == lightValue) value.overlays.lightValue = static_cast<overlay::LightValue>(i);
-        value.overlays.lightRange = overlays.value("lightRange", value.overlays.lightRange);
-        auto lightFacing = overlays.value("lightFacing", std::string("view"));
+        value.overlays.lightRange = settingsValue(overlays, "lightRange", value.overlays.lightRange);
+        auto lightFacing = settingsValue(overlays, "lightFacing", std::string("view"));
         for (size_t i = 0; i < overlay::lightFacingNames.size(); ++i)
             if (overlay::lightFacingNames[i] == lightFacing) value.overlays.lightFacing = static_cast<overlay::LightFacing>(i);
-        value.overlays.hitboxDistance = overlays.value("hitboxDistance", value.overlays.hitboxDistance);
+        value.overlays.hitboxDistance = settingsValue(overlays, "hitboxDistance", value.overlays.hitboxDistance);
     }
-    if (data.contains("bindings")) {
+    if (data.contains("bindings") && data.at("bindings").is_object()) {
         auto const& bindings = data.at("bindings");
-        if (!bindings.is_object()) throw std::runtime_error("Bindings must be an object");
         // Older files stored chords sorted by code; press order was lost.
-        bool const ordered = data.value("orderedBindings", false);
+        bool const ordered = settingsValue(data, "orderedBindings", false);
         for (size_t i = 0; i < input::actions.size(); ++i) {
             auto found = bindings.find(std::string(input::actions[i].id));
             if (found == bindings.end() || found->is_null()) continue;
-            if (!found->is_array()) throw std::runtime_error("Binding must be an input array");
+            if (!found->is_array() || found->size() > 8) continue;
             input::Chord chord;
+            bool valid = true;
+            int wheels = 0;
             for (auto const& item : *found) {
-                auto device = item.at("device").get<std::string>();
-                auto const& code = item.at("code");
-                if (!code.is_number_integer() || code < -1 || code > 255)
-                    throw std::runtime_error("Invalid binding code");
+                if (!item.is_object()) { valid = false; break; }
+                auto device = settingsValue(item, "device", std::string{});
+                int code = settingsValue(item, "code", 0);
                 input::Device kind;
-                if (device == "key") kind = input::Device::Key;
-                else if (device == "mouse") kind = input::Device::Mouse;
-                else if (device == "wheel") kind = input::Device::Wheel;
-                else throw std::runtime_error("Unknown binding device");
-                chord.push_back({kind, code.get<int>()});
+                if (device == "key" && code >= 1 && code <= 255) kind = input::Device::Key;
+                else if (device == "mouse" && code >= 1 && code <= 5) kind = input::Device::Mouse;
+                else if (device == "wheel" && (code == -1 || code == 1)) { kind = input::Device::Wheel; ++wheels; }
+                else { valid = false; break; }
+                chord.push_back({kind, code});
             }
+            if (!valid || wheels > 1 || (wheels && input::actions[i].behavior == input::Behavior::Hold)) continue;
             if (!ordered) chord = input::legacyChordOrder(std::move(chord));
             auto stored = input::canonicalChord(std::move(chord), input::actions[i].behavior);
             // An empty settings binding would lock the screen shut; treat it
@@ -443,139 +455,139 @@ Settings decodeSettings(std::string_view text) {
             value.bindings[i] = std::move(stored);
         }
     }
-    if (data.contains("camera")) {
+    if (data.contains("camera") && data.at("camera").is_object()) {
         auto const& camera = data.at("camera");
-        value.camera.freelookToggle = camera.value("freelookToggle", value.camera.freelookToggle);
-        value.camera.freelookStartPerspective = camera.value("freelookStartPerspective", value.camera.freelookStartPerspective);
-        value.camera.freeCameraToggle = camera.value("freeCameraToggle", value.camera.freeCameraToggle);
-        value.camera.freeCameraWorldFixed = camera.value("freeCameraWorldFixed", value.camera.freeCameraWorldFixed);
-        value.camera.freeCameraLeaveOnHit = camera.value("freeCameraLeaveOnHit", value.camera.freeCameraLeaveOnHit);
-        value.camera.freeCameraHide = camera.value("freeCameraHide", value.camera.freeCameraHide);
-        value.camera.freeCameraUndergroundHold = camera.value("freeCameraUndergroundHold", value.camera.freeCameraUndergroundHold);
-        value.camera.freeCameraSpeed = camera.value("freeCameraSpeed", value.camera.freeCameraSpeed);
-        value.camera.zoomToggle = camera.value("zoomToggle", value.camera.zoomToggle);
-        value.camera.magnification = camera.value("magnification", value.camera.magnification);
-        value.camera.zoomWideAngle = camera.value("zoomWideAngle", value.camera.zoomWideAngle);
-        value.camera.showMagnification = camera.value("showMagnification", value.camera.showMagnification);
+        value.camera.freelookToggle = settingsValue(camera, "freelookToggle", value.camera.freelookToggle);
+        value.camera.freelookStartPerspective = settingsValue(camera, "freelookStartPerspective", value.camera.freelookStartPerspective);
+        value.camera.freeCameraToggle = settingsValue(camera, "freeCameraToggle", value.camera.freeCameraToggle);
+        value.camera.freeCameraWorldFixed = settingsValue(camera, "freeCameraWorldFixed", value.camera.freeCameraWorldFixed);
+        value.camera.freeCameraLeaveOnHit = settingsValue(camera, "freeCameraLeaveOnHit", value.camera.freeCameraLeaveOnHit);
+        value.camera.freeCameraHide = settingsValue(camera, "freeCameraHide", value.camera.freeCameraHide);
+        value.camera.freeCameraUndergroundHold = settingsValue(camera, "freeCameraUndergroundHold", value.camera.freeCameraUndergroundHold);
+        value.camera.freeCameraSpeed = settingsValue(camera, "freeCameraSpeed", value.camera.freeCameraSpeed);
+        value.camera.zoomToggle = settingsValue(camera, "zoomToggle", value.camera.zoomToggle);
+        value.camera.magnification = settingsValue(camera, "magnification", value.camera.magnification);
+        value.camera.zoomWideAngle = settingsValue(camera, "zoomWideAngle", value.camera.zoomWideAngle);
+        value.camera.showMagnification = settingsValue(camera, "showMagnification", value.camera.showMagnification);
     }
     if (data.contains("map") && data.at("map").is_object()) {
         auto const& map = data.at("map");
-        value.map.minimap = map.value("minimap", value.map.minimap);
+        value.map.minimap = settingsValue(map, "minimap", value.map.minimap);
         // "zoom" was an index into 32/64/128/256/512 before the finer steps.
-        if (map.contains("range")) value.map.zoom = map::zoomIndexFor(map.value("range", 128));
+        if (map.contains("range")) value.map.zoom = map::zoomIndexFor(settingsValue(map, "range", 128));
         else if (map.contains("zoom"))
-            value.map.zoom = map::zoomIndexFor(32 << std::clamp(map.value("zoom", 2), 0, 4));
-        value.map.size = map.value("size", value.map.size);
-        value.map.rotate = map.value("rotate", value.map.rotate);
-        value.map.round = map.value("round", value.map.round);
-        value.map.coordinates = map.value("coordinates", value.map.coordinates);
-        value.map.biome = map.value("biome", value.map.biome);
-        value.map.compass = map.value("compass", value.map.compass);
-        value.map.debugHide = map.value("debugHide", value.map.debugHide);
-        value.map.minimapShapes = map.value("minimapShapes", value.map.minimapShapes);
-        value.map.radar = map.value("radar", value.map.radar);
-        value.map.radarPlayers = map.value("radarPlayers", value.map.radarPlayers);
-        value.map.radarHostile = map.value("radarHostile", value.map.radarHostile);
-        value.map.radarPassive = map.value("radarPassive", value.map.radarPassive);
-        value.map.radarItems = map.value("radarItems", value.map.radarItems);
-        value.map.radarInvisible = map.value("radarInvisible", value.map.radarInvisible);
-        value.map.waypoints = map.value("waypoints", value.map.waypoints);
+            value.map.zoom = map::zoomIndexFor(32 << std::clamp(settingsValue(map, "zoom", 2), 0, 4));
+        value.map.size = settingsValue(map, "size", value.map.size);
+        value.map.rotate = settingsValue(map, "rotate", value.map.rotate);
+        value.map.round = settingsValue(map, "round", value.map.round);
+        value.map.coordinates = settingsValue(map, "coordinates", value.map.coordinates);
+        value.map.biome = settingsValue(map, "biome", value.map.biome);
+        value.map.compass = settingsValue(map, "compass", value.map.compass);
+        value.map.debugHide = settingsValue(map, "debugHide", value.map.debugHide);
+        value.map.minimapShapes = settingsValue(map, "minimapShapes", value.map.minimapShapes);
+        value.map.radar = settingsValue(map, "radar", value.map.radar);
+        value.map.radarPlayers = settingsValue(map, "radarPlayers", value.map.radarPlayers);
+        value.map.radarHostile = settingsValue(map, "radarHostile", value.map.radarHostile);
+        value.map.radarPassive = settingsValue(map, "radarPassive", value.map.radarPassive);
+        value.map.radarItems = settingsValue(map, "radarItems", value.map.radarItems);
+        value.map.radarInvisible = settingsValue(map, "radarInvisible", value.map.radarInvisible);
+        value.map.waypoints = settingsValue(map, "waypoints", value.map.waypoints);
         // A switch in the first 5b build: on is "always", off is "off".
         if (auto world = map.find("waypointsWorld"); world != map.end()) {
             if (world->is_boolean()) value.map.waypointsWorld = world->get<bool>() ? 0 : 2;
-            else if (world->is_number_integer()) value.map.waypointsWorld = world->get<int>();
+            else value.map.waypointsWorld = settingsValue(map, "waypointsWorld", value.map.waypointsWorld);
         }
-        value.map.waypointDistance = map.value("waypointDistance", value.map.waypointDistance);
-        value.map.waypointsMinimap = map.value("waypointsMinimap", value.map.waypointsMinimap);
-        value.map.waypointsDeath = map.value("waypointsDeath", value.map.waypointsDeath);
-        value.map.waypointsCrossScale = map.value("waypointsCrossScale", value.map.waypointsCrossScale);
-        value.map.worldMap = map.value("worldMap", value.map.worldMap);
-        value.map.worldMapNetherAuto = map.value("worldMapNetherAuto", value.map.worldMapNetherAuto);
-        value.map.worldMapPanel = map.value("worldMapPanel", value.map.worldMapPanel);
-        value.map.seedLink = map.value("seedLink", value.map.seedLink);
-        value.map.worldMapNames = map.value("worldMapNames", value.map.worldMapNames);
-        value.map.radarFaces = map.value("radarFaces", value.map.radarFaces);
-        value.map.worldMapWaypoints = map.value("worldMapWaypoints", value.map.worldMapWaypoints);
-        value.map.worldMapSchematics = map.value("worldMapSchematics", value.map.worldMapSchematics);
-        value.map.worldMapShapes = map.value("worldMapShapes", value.map.worldMapShapes);
-        value.map.worldMapList = std::clamp(map.value("worldMapList", value.map.worldMapList), 0, 2);
+        value.map.waypointDistance = settingsValue(map, "waypointDistance", value.map.waypointDistance);
+        value.map.waypointsMinimap = settingsValue(map, "waypointsMinimap", value.map.waypointsMinimap);
+        value.map.waypointsDeath = settingsValue(map, "waypointsDeath", value.map.waypointsDeath);
+        value.map.waypointsCrossScale = settingsValue(map, "waypointsCrossScale", value.map.waypointsCrossScale);
+        value.map.worldMap = settingsValue(map, "worldMap", value.map.worldMap);
+        value.map.worldMapNetherAuto = settingsValue(map, "worldMapNetherAuto", value.map.worldMapNetherAuto);
+        value.map.worldMapPanel = settingsValue(map, "worldMapPanel", value.map.worldMapPanel);
+        value.map.seedLink = settingsValue(map, "seedLink", value.map.seedLink);
+        value.map.worldMapNames = settingsValue(map, "worldMapNames", value.map.worldMapNames);
+        value.map.radarFaces = settingsValue(map, "radarFaces", value.map.radarFaces);
+        value.map.worldMapWaypoints = settingsValue(map, "worldMapWaypoints", value.map.worldMapWaypoints);
+        value.map.worldMapSchematics = settingsValue(map, "worldMapSchematics", value.map.worldMapSchematics);
+        value.map.worldMapShapes = settingsValue(map, "worldMapShapes", value.map.worldMapShapes);
+        value.map.worldMapList = std::clamp(settingsValue(map, "worldMapList", value.map.worldMapList), 0, 2);
     }
     if (data.contains("schematic") && data.at("schematic").is_object()) {
         auto const& schematic = data.at("schematic");
-        value.schematic.enabled = schematic.value("enabled", value.schematic.enabled);
-        value.schematic.hud = schematic.value("hud", value.schematic.hud);
-        value.schematic.hudVerify = schematic.value("hudVerify", value.schematic.hudVerify);
-        value.schematic.hudMaterials = schematic.value("hudMaterials", value.schematic.hudMaterials);
-        value.schematic.menuBackground = schematic.value("menuBackground", value.schematic.menuBackground);
+        value.schematic.enabled = settingsValue(schematic, "enabled", value.schematic.enabled);
+        value.schematic.hud = settingsValue(schematic, "hud", value.schematic.hud);
+        value.schematic.hudVerify = settingsValue(schematic, "hudVerify", value.schematic.hudVerify);
+        value.schematic.hudMaterials = settingsValue(schematic, "hudMaterials", value.schematic.hudMaterials);
+        value.schematic.menuBackground = settingsValue(schematic, "menuBackground", value.schematic.menuBackground);
         // Builds of 2026-10-15 saved a choice: 0 strong, 1 weak, 2 none.
-        if (int choice = schematic.value("ghostTint", -1); choice >= 0 && choice <= 2)
+        if (int choice = settingsValue(schematic, "ghostTint", -1); choice >= 0 && choice <= 2)
             value.schematic.ghostTint = std::array{100, 40, 0}[static_cast<size_t>(choice)];
-        value.schematic.ghostTint = schematic.value("ghostTintPercent", value.schematic.ghostTint);
-        value.schematic.ghostLines = schematic.value("ghostLines", value.schematic.ghostLines);
-        value.schematic.menuSmall = schematic.value("menuSmall", value.schematic.menuSmall);
-        value.schematic.repeatAllSteps = schematic.value("repeatAllSteps", value.schematic.repeatAllSteps);
-        value.schematic.menuReopen = schematic.value("menuReopen", value.schematic.menuReopen);
-        value.schematic.outlineDistance = schematic.value("outlineDistance", value.schematic.outlineDistance);
+        value.schematic.ghostTint = settingsValue(schematic, "ghostTintPercent", value.schematic.ghostTint);
+        value.schematic.ghostLines = settingsValue(schematic, "ghostLines", value.schematic.ghostLines);
+        value.schematic.menuSmall = settingsValue(schematic, "menuSmall", value.schematic.menuSmall);
+        value.schematic.repeatAllSteps = settingsValue(schematic, "repeatAllSteps", value.schematic.repeatAllSteps);
+        value.schematic.menuReopen = settingsValue(schematic, "menuReopen", value.schematic.menuReopen);
+        value.schematic.outlineDistance = settingsValue(schematic, "outlineDistance", value.schematic.outlineDistance);
     }
-    if (data.contains("lighting")) {
-        value.lighting.nightVision = data.at("lighting").value("nightVision", value.lighting.nightVision);
-        value.lighting.nightVisionEven = data.at("lighting").value("nightVisionEven", value.lighting.nightVisionEven);
+    if (data.contains("lighting") && data.at("lighting").is_object()) {
+        value.lighting.nightVision = settingsValue(data.at("lighting"), "nightVision", value.lighting.nightVision);
+        value.lighting.nightVisionEven = settingsValue(data.at("lighting"), "nightVisionEven", value.lighting.nightVisionEven);
     }
-    if (data.contains("inspection")) {
-        value.inspection.containerPreviews = data.at("inspection").value("containerPreviews", value.inspection.containerPreviews);
-        value.inspection.durability = data.at("inspection").value("durability", value.inspection.durability);
-        value.inspection.foodValues = data.at("inspection").value("foodValues", value.inspection.foodValues);
-        value.inspection.lockedTrades = data.at("inspection").value("lockedTrades", value.inspection.lockedTrades);
-        value.inspection.englishSearch = data.at("inspection").value("englishSearch", value.inspection.englishSearch);
-        value.inspection.shulkerPreviews = data.at("inspection").value("shulkerPreviews", value.inspection.shulkerPreviews);
-        value.inspection.emptyShulkerPreviews = data.at("inspection").value("emptyShulkerPreviews", value.inspection.emptyShulkerPreviews);
-        value.inspection.hideShulkerContents = data.at("inspection").value("hideShulkerContents", value.inspection.hideShulkerContents);
-        value.inspection.bundlePreviews = data.at("inspection").value("bundlePreviews", value.inspection.bundlePreviews);
-        value.inspection.emptyBundlePreviews = data.at("inspection").value("emptyBundlePreviews", value.inspection.emptyBundlePreviews);
+    if (data.contains("inspection") && data.at("inspection").is_object()) {
+        value.inspection.containerPreviews = settingsValue(data.at("inspection"), "containerPreviews", value.inspection.containerPreviews);
+        value.inspection.durability = settingsValue(data.at("inspection"), "durability", value.inspection.durability);
+        value.inspection.foodValues = settingsValue(data.at("inspection"), "foodValues", value.inspection.foodValues);
+        value.inspection.lockedTrades = settingsValue(data.at("inspection"), "lockedTrades", value.inspection.lockedTrades);
+        value.inspection.englishSearch = settingsValue(data.at("inspection"), "englishSearch", value.inspection.englishSearch);
+        value.inspection.shulkerPreviews = settingsValue(data.at("inspection"), "shulkerPreviews", value.inspection.shulkerPreviews);
+        value.inspection.emptyShulkerPreviews = settingsValue(data.at("inspection"), "emptyShulkerPreviews", value.inspection.emptyShulkerPreviews);
+        value.inspection.hideShulkerContents = settingsValue(data.at("inspection"), "hideShulkerContents", value.inspection.hideShulkerContents);
+        value.inspection.bundlePreviews = settingsValue(data.at("inspection"), "bundlePreviews", value.inspection.bundlePreviews);
+        value.inspection.emptyBundlePreviews = settingsValue(data.at("inspection"), "emptyBundlePreviews", value.inspection.emptyBundlePreviews);
     }
-    if (data.contains("inventory")) {
-        value.inventory.sorting = data.at("inventory").value("sorting", value.inventory.sorting);
-        value.inventory.repeatTrades = data.at("inventory").value("repeatTrades", value.inventory.repeatTrades);
-        value.inventory.offhandSwap = data.at("inventory").value("offhandSwap", value.inventory.offhandSwap);
-        value.inventory.deathRestore = data.at("inventory").value("deathRestore", value.inventory.deathRestore);
-        value.inventory.deathRestoreAll = data.at("inventory").value("deathRestoreAll", value.inventory.deathRestoreAll);
-        value.inventory.offhandSwapFireworks = data.at("inventory").value("offhandSwapFireworks", value.inventory.offhandSwapFireworks);
-        value.inventory.sortContainers = data.at("inventory").value("sortContainers", value.inventory.sortContainers);
-        value.inventory.transfer = data.at("inventory").value("transfer", value.inventory.transfer);
-        value.inventory.transferWheelOne = data.at("inventory").value("transferWheelOne", value.inventory.transferWheelOne);
-        value.inventory.transferWheelStack = data.at("inventory").value("transferWheelStack", value.inventory.transferWheelStack);
-        value.inventory.transferDragStack = data.at("inventory").value("transferDragStack", value.inventory.transferDragStack);
-        value.inventory.transferDragOne = data.at("inventory").value("transferDragOne", value.inventory.transferDragOne);
-        value.inventory.transferWheelMatching = data.at("inventory").value("transferWheelMatching", value.inventory.transferWheelMatching);
-        value.inventory.transferWheelAll = data.at("inventory").value("transferWheelAll", value.inventory.transferWheelAll);
-        value.inventory.transferClickMatching = data.at("inventory").value("transferClickMatching", value.inventory.transferClickMatching);
-        value.inventory.transferClickAll = data.at("inventory").value("transferClickAll", value.inventory.transferClickAll);
-        value.inventory.transferDragKeepOne = data.at("inventory").value("transferDragKeepOne", value.inventory.transferDragKeepOne);
-        value.inventory.transferCursorMatching = data.at("inventory").value("transferCursorMatching", value.inventory.transferCursorMatching);
-        value.inventory.transferDropOne = data.at("inventory").value("transferDropOne", value.inventory.transferDropOne);
-        value.inventory.transferDropKeepOne = data.at("inventory").value("transferDropKeepOne", value.inventory.transferDropKeepOne);
-        value.inventory.transferDropAll = data.at("inventory").value("transferDropAll", value.inventory.transferDropAll);
-        value.inventory.transferDropMatching = data.at("inventory").value("transferDropMatching", value.inventory.transferDropMatching);
-        value.inventory.toolSwitch = data.at("inventory").value("toolSwitch", value.inventory.toolSwitch);
-        value.inventory.handRestock = data.at("inventory").value("handRestock", value.inventory.handRestock);
-        value.inventory.restockFromHotbar = data.at("inventory").value("restockFromHotbar", value.inventory.restockFromHotbar);
-        value.inventory.restockOffhand = data.at("inventory").value("restockOffhand", value.inventory.restockOffhand);
-        value.inventory.restockThreshold = data.at("inventory").value("restockThreshold", value.inventory.restockThreshold);
-        value.inventory.restockOrder = data.at("inventory").value("restockOrder", value.inventory.restockOrder);
-        value.inventory.toolSwitchInventory = data.at("inventory").value("toolSwitchInventory", value.inventory.toolSwitchInventory);
-        value.inventory.weaponSwitch = data.at("inventory").value("weaponSwitch", value.inventory.weaponSwitch);
-        value.inventory.weaponSwitchInventory = data.at("inventory").value("weaponSwitchInventory", value.inventory.weaponSwitchInventory);
-        value.inventory.toolSwitchSlot = data.at("inventory").value("toolSwitchSlot", value.inventory.toolSwitchSlot);
-        value.inventory.weaponSwitchSlot = data.at("inventory").value("weaponSwitchSlot", value.inventory.weaponSwitchSlot);
-        value.inventory.fakeOffhand = data.at("inventory").value("fakeOffhand", value.inventory.fakeOffhand);
-        value.inventory.fakeOffhandSlot = data.at("inventory").value("fakeOffhandSlot", value.inventory.fakeOffhandSlot);
+    if (data.contains("inventory") && data.at("inventory").is_object()) {
+        value.inventory.sorting = settingsValue(data.at("inventory"), "sorting", value.inventory.sorting);
+        value.inventory.repeatTrades = settingsValue(data.at("inventory"), "repeatTrades", value.inventory.repeatTrades);
+        value.inventory.offhandSwap = settingsValue(data.at("inventory"), "offhandSwap", value.inventory.offhandSwap);
+        value.inventory.deathRestore = settingsValue(data.at("inventory"), "deathRestore", value.inventory.deathRestore);
+        value.inventory.deathRestoreAll = settingsValue(data.at("inventory"), "deathRestoreAll", value.inventory.deathRestoreAll);
+        value.inventory.offhandSwapFireworks = settingsValue(data.at("inventory"), "offhandSwapFireworks", value.inventory.offhandSwapFireworks);
+        value.inventory.sortContainers = settingsValue(data.at("inventory"), "sortContainers", value.inventory.sortContainers);
+        value.inventory.transfer = settingsValue(data.at("inventory"), "transfer", value.inventory.transfer);
+        value.inventory.transferWheelOne = settingsValue(data.at("inventory"), "transferWheelOne", value.inventory.transferWheelOne);
+        value.inventory.transferWheelStack = settingsValue(data.at("inventory"), "transferWheelStack", value.inventory.transferWheelStack);
+        value.inventory.transferDragStack = settingsValue(data.at("inventory"), "transferDragStack", value.inventory.transferDragStack);
+        value.inventory.transferDragOne = settingsValue(data.at("inventory"), "transferDragOne", value.inventory.transferDragOne);
+        value.inventory.transferWheelMatching = settingsValue(data.at("inventory"), "transferWheelMatching", value.inventory.transferWheelMatching);
+        value.inventory.transferWheelAll = settingsValue(data.at("inventory"), "transferWheelAll", value.inventory.transferWheelAll);
+        value.inventory.transferClickMatching = settingsValue(data.at("inventory"), "transferClickMatching", value.inventory.transferClickMatching);
+        value.inventory.transferClickAll = settingsValue(data.at("inventory"), "transferClickAll", value.inventory.transferClickAll);
+        value.inventory.transferDragKeepOne = settingsValue(data.at("inventory"), "transferDragKeepOne", value.inventory.transferDragKeepOne);
+        value.inventory.transferCursorMatching = settingsValue(data.at("inventory"), "transferCursorMatching", value.inventory.transferCursorMatching);
+        value.inventory.transferDropOne = settingsValue(data.at("inventory"), "transferDropOne", value.inventory.transferDropOne);
+        value.inventory.transferDropKeepOne = settingsValue(data.at("inventory"), "transferDropKeepOne", value.inventory.transferDropKeepOne);
+        value.inventory.transferDropAll = settingsValue(data.at("inventory"), "transferDropAll", value.inventory.transferDropAll);
+        value.inventory.transferDropMatching = settingsValue(data.at("inventory"), "transferDropMatching", value.inventory.transferDropMatching);
+        value.inventory.toolSwitch = settingsValue(data.at("inventory"), "toolSwitch", value.inventory.toolSwitch);
+        value.inventory.handRestock = settingsValue(data.at("inventory"), "handRestock", value.inventory.handRestock);
+        value.inventory.restockFromHotbar = settingsValue(data.at("inventory"), "restockFromHotbar", value.inventory.restockFromHotbar);
+        value.inventory.restockOffhand = settingsValue(data.at("inventory"), "restockOffhand", value.inventory.restockOffhand);
+        value.inventory.restockThreshold = settingsValue(data.at("inventory"), "restockThreshold", value.inventory.restockThreshold);
+        value.inventory.restockOrder = settingsValue(data.at("inventory"), "restockOrder", value.inventory.restockOrder);
+        value.inventory.toolSwitchInventory = settingsValue(data.at("inventory"), "toolSwitchInventory", value.inventory.toolSwitchInventory);
+        value.inventory.weaponSwitch = settingsValue(data.at("inventory"), "weaponSwitch", value.inventory.weaponSwitch);
+        value.inventory.weaponSwitchInventory = settingsValue(data.at("inventory"), "weaponSwitchInventory", value.inventory.weaponSwitchInventory);
+        value.inventory.toolSwitchSlot = settingsValue(data.at("inventory"), "toolSwitchSlot", value.inventory.toolSwitchSlot);
+        value.inventory.weaponSwitchSlot = settingsValue(data.at("inventory"), "weaponSwitchSlot", value.inventory.weaponSwitchSlot);
+        value.inventory.fakeOffhand = settingsValue(data.at("inventory"), "fakeOffhand", value.inventory.fakeOffhand);
+        value.inventory.fakeOffhandSlot = settingsValue(data.at("inventory"), "fakeOffhandSlot", value.inventory.fakeOffhandSlot);
     }
-    if (data.contains("interface")) {
-        value.ui.toggleToasts = data.at("interface").value("toggleToasts", value.ui.toggleToasts);
-        value.ui.animations = data.at("interface").value("animations", value.ui.animations);
-        value.ui.automationStatus = data.at("interface").value("automationStatus", value.ui.automationStatus);
-        value.ui.hudRowHeight = data.at("interface").value("hudRowHeight", value.ui.hudRowHeight);
-        value.ui.hudBackgroundOpacity = data.at("interface").value("hudBackgroundOpacity", value.ui.hudBackgroundOpacity);
+    if (data.contains("interface") && data.at("interface").is_object()) {
+        value.ui.toggleToasts = settingsValue(data.at("interface"), "toggleToasts", value.ui.toggleToasts);
+        value.ui.animations = settingsValue(data.at("interface"), "animations", value.ui.animations);
+        value.ui.automationStatus = settingsValue(data.at("interface"), "automationStatus", value.ui.automationStatus);
+        value.ui.hudRowHeight = settingsValue(data.at("interface"), "hudRowHeight", value.ui.hudRowHeight);
+        value.ui.hudBackgroundOpacity = settingsValue(data.at("interface"), "hudBackgroundOpacity", value.ui.hudBackgroundOpacity);
     }
     if (data.contains("hud") && data.at("hud").is_object()) {
         auto const& hud = data.at("hud");
@@ -601,7 +613,19 @@ Settings decodeSettings(std::string_view text) {
     value.normalize();
     return value;
 }
-Settings readSettings(std::filesystem::path const& path) { return decodeSettings(read(path)); }
+Settings readSettings(std::filesystem::path const& path, bool* recovered) {
+    if (recovered) *recovered = false;
+    auto text = read(path);
+    // Anything decodeSettings rejects (bad JSON, a future version, an unknown
+    // stored name) is kept aside: saving defaults over it would lose it.
+    try { return decodeSettings(text); }
+    catch (std::exception const&) {
+        preserveBroken(path);
+        if (recovered) *recovered = true;
+        writeSettings(path, Settings{});
+        return {};
+    }
+}
 void writeSettings(std::filesystem::path const& path, Settings const& settings) {
     auto normalized = settings;
     normalized.normalize();
