@@ -50,4 +50,14 @@ void targetPickTests() {
     check(!hit, "the walk ends at a cell that is not loaded");
     hit = nearestCellHit(x, y, z, dx, dy, dz, 1.5, std::nullopt, clip, loaded);
     check(!hit, "nothing past the reach");
+    auto fixed = [](double distance) {
+        return [distance](Point const&) -> std::optional<double> { return distance; };
+    };
+    auto open = [](Point const&) { return false; };
+    auto atTolerance = nearestCellHit(.5, .5, .5, 1, 0, 0, 6, CellHit{{0, 0, 0}, 2}, fixed(2.0005), open);
+    check(atTolerance && std::abs(atTolerance->distance - 2.0005) < 1e-9,
+          "a walked hit at the game distance's tolerance wins");
+    auto outside = nearestCellHit(.5, .5, .5, 1, 0, 0, 6, CellHit{{0, 0, 0}, 2}, fixed(2.002), open);
+    check(outside && std::abs(outside->distance - 2) < 1e-9,
+          "a walked hit beyond the tolerance keeps the game's pick");
 }

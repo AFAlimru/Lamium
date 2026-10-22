@@ -1074,8 +1074,8 @@ bool infoLineEnabled(Settings::Information const& settings, std::string_view id)
 }
 // Lines that read the camera's place and angles during FreeCamera (L-124).
 bool followsCamera(std::string_view id) {
-    for (std::string_view line : {"coordinates", "scaledCoordinates", "block", "chunk", "facing", "yaw", "pitch",
-                                  "rotation", "biome", "light", "weather"})
+    for (std::string_view line : {"coordinates", "scaledCoordinates", "block", "targetBlock", "chunk", "facing", "yaw",
+                                  "pitch", "rotation", "biome", "light", "weather"})
         if (id == line) return true;
     return false;
 }
@@ -1511,17 +1511,19 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
             box(ui::HudElementId::PlayerList) = drawPlayerList(context, width, height, hud.playerList, settings,
                                                                static_cast<float>(runtime.ui.hudRowHeight));
     };
-    if (preview || (settings.target && !listHeld && !(settings.debug && settings.debugHideTarget))) {
+    auto targetRay = viewRay(settings.targetDistance);
+    std::optional<TargetInfo> cardTarget;
+    bool const cardRan = preview || (settings.target && !listHeld && !(settings.debug && settings.debugHideTarget));
+    if (cardRan) {
         // One distance for every viewpoint: the body normally, the camera
         // during Freelook and FreeCamera (it looks elsewhere than the body).
-        auto ray = viewRay(settings.targetDistance);
-        auto target = collectTargetInfo(context.mClient, true, ray, settings.targetSchematic);
-        if (!target && preview) {
+        cardTarget = collectTargetInfo(context.mClient, true, targetRay, settings.targetSchematic);
+        if (!cardTarget && preview) {
             TargetInfo sample{ui::translated("feature.targetInfo"), "minecraft:grass_block"};
             sample.icon = {IconKind::Item, "minecraft:grass_block", 0};
             box(ui::HudElementId::Target) = drawTargetCard(context, width, height, hud.target, sample, settings, false);
         }
-        if (target) box(ui::HudElementId::Target) = drawTargetCard(context, width, height, hud.target, *target, settings, !preview);
+        if (cardTarget) box(ui::HudElementId::Target) = drawTargetCard(context, width, height, hud.target, *cardTarget, settings, !preview);
         else if (!preview) cardMorph = {};
     }
     if (preview || settings.durabilityHud)
@@ -1607,11 +1609,15 @@ ui::hud_editor::Boxes drawHud(MinecraftUIRenderContext& context, float width, fl
         speedSampler.reset();
     auto speed = anySpeed ? speedSampler.read() : std::optional<SpeedValues>{};
     auto realTime = settings.realTime ? localClock(settings.realTimeDate) : std::optional<std::string>{};
-    // The same ray and distance as the target card, without its schematic ghosts.
+    // The same ray as the target card; reuse its real block hit. A ghost target
+    // or a hidden card still needs the cheap real-block query.
     std::optional<TargetInfo::BlockPosition> targetBlock;
-    if (settings.targetBlock)
-        if (auto target = collectTargetInfo(context.mClient, false, viewRay(settings.targetDistance), false))
-            targetBlock = target->blockPosition;
+    if (settings.targetBlock) {
+        if (cardTarget && !cardTarget->ghost) targetBlock = cardTarget->blockPosition;
+        else if (!cardRan || (cardTarget && cardTarget->ghost))
+            if (auto target = collectTargetInfo(context.mClient, false, targetRay, false))
+                targetBlock = target->blockPosition;
+    }
     std::vector<ElementLine> lines;
     int capacity = std::max(1, static_cast<int>((height - 8) / (14 * elementZoom(hud.info))));
     for (auto const& id : settings.lineOrder) {
