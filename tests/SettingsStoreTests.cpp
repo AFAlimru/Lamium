@@ -287,10 +287,11 @@ void settingsStoreTests() {
         for (auto label : interaction::restrictionLabels)
             for (auto locale : ui::translations::locales)
                 check(!ui::translations::find(label, locale).empty(), "every restriction choice is translated");
-        bool rejected = false;
-        try { (void)decodeSettings(R"({"interaction":{"breakingMode":"unknown"}})"); }
-        catch (...) { rejected = true; }
-        check(rejected, "unknown stored restriction mode is not silently reinterpreted");
+        auto unknown = decodeSettings(R"({"interaction":{"breakingMode":"unknown"},
+            "camera":{"magnification":7}})");
+        check(unknown.interaction.breakingMode == interaction::RestrictionMode::Plane
+                  && unknown.camera.magnification == 7,
+              "an unknown stored restriction mode falls back without discarding other settings");
     }
     {
         // L-15: Height band is a breaking mode only; old files keep their mode.
@@ -541,6 +542,12 @@ void settingsStoreTests() {
               && fields.map.worldMapList == defaults.map.worldMapList && fields.map.waypointsWorld == defaults.map.waypointsWorld
               && fields.interaction.breakingBand == defaults.interaction.breakingBand && fields.hud.info.dx == defaults.hud.info.dx,
               "wrong scalar types and overflowing numbers never narrow into settings");
+        auto unknownMode = decodeSettings(R"({"interaction":{"breakingMode":"mystery","placementMode":"plane"},
+            "camera":{"magnification":7}})");
+        check(unknownMode.interaction.breakingMode == interaction::RestrictionMode::Plane
+              && unknownMode.interaction.placementMode == interaction::RestrictionMode::Plane
+              && unknownMode.camera.magnification == 7,
+              "an unknown restriction mode falls back without discarding other settings");
     }
     auto path = std::filesystem::temp_directory_path() /
         ("lamium-settings-test-" + std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()) + ".json");

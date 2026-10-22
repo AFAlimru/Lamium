@@ -302,7 +302,9 @@ Settings decodeSettings(std::string_view text) {
             auto name = settingsValue(options, key,std::string("plane"));
             for (size_t i=0;i<interaction::restrictionNames.size();++i)
                 if (name == interaction::restrictionNames[i]) return static_cast<interaction::RestrictionMode>(i);
-            throw std::runtime_error("Unknown restriction mode");
+            // An unknown name keeps the rest of the file; only this mode falls
+            // back, like an unknown auto mode above.
+            return interaction::RestrictionMode::Plane;
         };
         value.interaction.breakingMode = mode("breakingMode");
         value.interaction.placementMode = mode("placementMode");
