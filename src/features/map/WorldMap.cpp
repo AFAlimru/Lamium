@@ -826,7 +826,7 @@ void drawTiles(MinecraftUIRenderContext& context, glm::vec2 size, double pixelsP
     int lod = lodFor(view.scale(), pixelsPerUnit);
     auto tiles = visibleTiles(view, lod);
     auto focus = focusHeight();
-    int const focusKey = focus.value_or(std::numeric_limits<int>::min());
+    int const focusKey = focus ? caveFocusKey(*focus) : std::numeric_limits<int>::min();
     store::want(layer, tiles, focus);
     double time = now();
     int budget = time - state.openedAt < 1 ? uploadsWhileOpening : uploadsPerFrame;
@@ -1697,6 +1697,7 @@ void open(IClientInstance& client, bool resume) {
     center();
 }
 void close() {
+    store::cancelWanted();
     if (state.client) {
         for (int i = 0; i < slotCount; ++i)
             if (slots[static_cast<size_t>(i)].uploaded) unload(*state.client, slotLocation(i));

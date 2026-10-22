@@ -77,6 +77,12 @@ inline constexpr int caveFocusSlack = 8;
 inline bool caveAtSelectedHeight(int floorY, int focusY) {
     return std::abs(floorY - focusY) <= caveFocusSlack;
 }
+// Image variants only need the slack's resolution: a FreeCamera moving one
+// block must not rebuild every tile for an almost identical dim pattern
+// (L-242). Nearest multiple of the slack, so the boundary moves at most half.
+inline int caveFocusKey(int focus) {
+    return floorDiv(focus + caveFocusSlack / 2, caveFocusSlack) * caveFocusSlack;
+}
 // A column's solid blocks from y = top downward (index 0 is top). Rock at
 // the player's feet and head is a wall. Otherwise the floor is the first
 // solid block below open space; open all the way down is a drop.

@@ -44,6 +44,8 @@ std::optional<Image> image(MapLayer layer, TileKey tile, std::optional<int> focu
 // The tiles the world map shows now, in build order; replaces the last list.
 // `focus`: the cave layer view's selected height; none builds the broad view.
 void want(MapLayer layer, std::vector<TileKey> tiles, std::optional<int> focus = std::nullopt);
+// The world map closed: stop building the last view's tiles.
+void cancelWanted();
 // Wanted tiles not built yet (or being rebuilt).
 size_t pending();
 

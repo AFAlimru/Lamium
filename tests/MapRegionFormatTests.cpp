@@ -97,7 +97,19 @@ void roundTrips(RegionCodec& codec) {
     check(back.data->colors == fixture.colors, "independent Python golden colors decode in C++");
     check(back.data->heights == fixture.heights, "independent Python golden heights decode in C++");
     check(back.data->chunks == fixture.chunks, "independent Python golden stamps decode in C++");
-    write("build/lmr2-cpp.lm2", encodeRegion2(fixture, key, codec));
+    auto golden = sections(read("tests/fixtures/lmr2/r.-2.3.lm2"));
+    auto encoded = encodeRegion2(fixture, key, codec);
+    auto encodedSections = sections(encoded);
+    auto raw = [&](std::vector<RegionSection> const& parts, std::string_view tag) {
+        for (auto const& section : parts)
+            if (section.tag == tag) return codec.decode(section.bytes, section.codec, section.rawSize);
+        return std::optional<std::string>{};
+    };
+    check(raw(golden, "CHNK") && raw(golden, "CHNK") == raw(encodedSections, "CHNK")
+              && raw(golden, "COLR") && raw(golden, "COLR") == raw(encodedSections, "COLR")
+              && raw(golden, "HGHT") && raw(golden, "HGHT") == raw(encodedSections, "HGHT"),
+          "C++ encoder writes the same uncompressed sections as the Python golden file");
+    write("build/lmr2-cpp.lm2", encoded);
 }
 void malformed(RegionCodec& codec) {
     RegionData blank;

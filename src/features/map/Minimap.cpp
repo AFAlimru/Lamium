@@ -389,9 +389,10 @@ std::uint32_t blockColor(BlockLook const& look, BlockSource& region, BlockPos co
 // are not drawn (glass) are looked through. Colors are what the world shows:
 // the top texture's average times the biome tint.
 std::optional<Column> surfaceColumn(IClientInstance& client, BlockSource& region, int x, int z, short minY,
-                                    bool voidFloor) {
+                                    short maxY, bool voidFloor) {
     auto top = region.getHeightmapPos(BlockPos{x, 0, z});
-    int y = top.y + 1;
+    // A column at the build limit starts at maxY - 1, never above the world.
+    int y = std::min<int>(top.y + 1, maxY - 1);
     for (int steps = 0; y >= minY && steps < 16; --y, ++steps) {
         BlockPos pos{x, y, z};
         auto const& block = region.getBlock(pos);
@@ -474,7 +475,7 @@ Scan scanChunk(IClientInstance& client, BlockSource& region, TileCache& cache, C
                 int x = origin.x + dx, z = origin.z + dz;
                 columnProvisional = false;
                 auto column = cave ? caveColumnAt(client, region, x, z, layer, minY, maxY)
-                                   : surfaceColumn(client, region, x, z, minY, state.dimension == 2);
+                                   : surfaceColumn(client, region, x, z, minY, maxY, state.dimension == 2);
                 if (!column) return Scan::Waiting;
                 columns[static_cast<size_t>(columnIndex(x, z))] = *column;
                 provisional[static_cast<size_t>(columnIndex(x, z))] = columnProvisional;
@@ -569,7 +570,7 @@ void scan(IClientInstance& client, LocalPlayer& player, TileCache& cache, ScanGr
         // Around every path's center, not only this one's: the recording
         // follows the player while the display may follow a far camera.
         std::vector<ChunkKey> centers;
-        for (auto const* path : {&state.surfaceGrid, &state.caveGrid, &state.recordGrid})
+        for (auto const* path : {&state.surfaceGrid, &state.caveGrid, &state.recordGrid, &state.recordCaveGrid})
             if (path->following()) centers.push_back(path->center());
         state.surface.evict(centers, keepChunks);
         state.cave.evict(centers, keepChunks);

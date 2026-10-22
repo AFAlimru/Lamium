@@ -27,7 +27,9 @@ def encode():
     lookup = {c: i for i, c in enumerate(palette)}
     indices = [lookup[c] for c in colors]
     colr = struct.pack("<I", len(palette)) + struct.pack(f"<{len(palette)}I", *palette)
-    colr += bytes(i & 255 for i in indices) + bytes(i >> 8 for i in indices)
+    colr += bytes(i & 255 for i in indices)
+    if len(palette) > 256:
+        colr += bytes(i >> 8 for i in indices)
     deltas = []
     for i, h in enumerate(heights):
         prev = heights[i - 1] if i % 256 else heights[i - 256] if i >= 256 else 0

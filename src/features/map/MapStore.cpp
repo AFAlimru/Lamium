@@ -5,6 +5,7 @@
 #include "app/Runtime.h"
 #include "ll/api/event/EventBus.h"
 #include "ll/api/event/client/ClientExitLevelEvent.h"
+#include <atomic>
 #include <condition_variable>
 #include <deque>
 #include <limits>
@@ -103,7 +104,7 @@ unsigned versions = 0;
 double clock = 0;
 std::map<ImageId, std::array<unsigned, 4>> builtFrom; // Worker side: the child versions each coarse image was made from.
 bool missingTurn = true; // Worker only: never-built and stale images take turns (L-215).
-int logged = 0;
+std::atomic<int> logged{0};
 ll::event::ListenerPtr exitListener;
 
 // About 40 MB of images; tiles not wanted now go first, finest and oldest
@@ -114,7 +115,7 @@ constexpr int keepRegions = 2; // Around the player: the minimap reads them.
 
 void log(std::string const& text) {
     // Bounded: the log is for the first runs of an experimental feature.
-    if (++logged > 30) return;
+    if (logged.fetch_add(1, std::memory_order_relaxed) >= 30) return;
     try { Runtime::instance().self().getLogger().info("World map: {}", text); } catch (...) {}
 }
 // Why an image with recorded land under it came out without it (L-215):
@@ -643,7 +644,7 @@ std::optional<Column> column(MapLayer layer, int x, int z) {
 }
 std::optional<Image> image(MapLayer layer, TileKey tile, std::optional<int> focus) {
     std::lock_guard lock(mutex);
-    auto found = images.find({layer, tile, focus.value_or(noFocus)});
+    auto found = images.find({layer, tile, focus ? caveFocusKey(*focus) : noFocus});
     if (found == images.end()) return std::nullopt;
     found->second.used = clock;
     return Image{found->second.pixels, found->second.version};
@@ -652,7 +653,12 @@ void want(MapLayer layer, std::vector<TileKey> tiles, std::optional<int> focus) 
     std::lock_guard lock(mutex);
     if (!attachedWorld || finishing) return;
     wanted.clear();
-    for (auto tile : tiles) wanted.push_back({layer, tile, focus.value_or(noFocus)});
+    for (auto tile : tiles) wanted.push_back({layer, tile, focus ? caveFocusKey(*focus) : noFocus});
+    wake.notify_one();
+}
+void cancelWanted() {
+    std::lock_guard lock(mutex);
+    wanted.clear();
     wake.notify_one();
 }
 size_t pending() {
@@ -672,6 +678,7 @@ bool clear() {
     ++generation;
     ++epochs;
     residents.clear();
+    permanentFailures.clear();
     images.clear();
     building.clear();
     builtFrom.clear();
