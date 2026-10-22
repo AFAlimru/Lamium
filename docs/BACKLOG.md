@@ -126,7 +126,7 @@ server case are not release gates. [VALIDATION.md](VALIDATION.md) owns
 current per-feature coverage; VALIDATION-LOG.md owns build/hash evidence.
 Do not infer game success from a build or unit-test result.
 
-### Since 0.2.3 (unreleased)
+### In 0.3.0 (since 0.2.3)
 
 - **Maps (L-205/L-206/L-210/L-211/L-215/L-225/L-226):** local scan/image
   fixes and the 96-chunk scan-grid checks are recorded in VALIDATION.

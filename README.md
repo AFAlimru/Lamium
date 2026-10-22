@@ -194,7 +194,9 @@ requests are handled. What has been checked in game, per feature, is in
   on BDS; Hold/Toggle operation, menus, focus loss and dimension travel are
   also checked. Other players still see the body, and it works on servers
   (maintainer use). Controllers and broader graphics/resource configurations
-  remain untested.
+  remain untested. Started while your head is inside a block, the camera
+  keeps the inside-a-block view while it flies; step out of the block
+  first. Moving only the camera does not make the game generate new terrain.
 - **Hide effects:** cannot hide the carved pumpkin overlay or the spyglass
   frame yet. Water, lava and powder snow fog hiding is checked with the
   vanilla resources in Fancy graphics; other packs and graphics modes are
