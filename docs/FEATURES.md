@@ -207,8 +207,12 @@ A full-screen map (`M`) of the areas you have visited, recorded per world.
 Place `.mcstructure` files from `mods/Lamium/schematics/` as ghost blocks and
 build them.
 
-- **Place:** move, turn and mirror placements, and show layers along any
-  axis. A ghost tint strength and outline width of your choice.
+- **Place:** move, turn and mirror placements; moves follow the way you
+  look. A ghost tint strength and outline width of your choice.
+- **Layers:** show one layer of a placement, or everything up to it from
+  either side, cut along the schematic's own X, Y or Z, so turning or
+  mirroring the placement keeps the cut on the same blocks. Moving the cut
+  while showing "All" goes back to the view you last adjusted.
 - **Check:** see what is missing, wrong or in the wrong state in the world,
   in a Check list and a HUD. The target card names the ghost you aim at (not
   placed yet) with the expected block and what to change; a real block that
@@ -218,8 +222,15 @@ build them.
 - **Save:** save an area of the world as a schematic, also larger than the
   render distance, by walking along it. Saved files use the game's current
   format and load in a structure block.
-- **Controls:** a radial schematic menu and a key that repeats the last
-  adjustment with the wheel.
+- **Controls:** a radial schematic menu (Move, Placement, Layers, Show and
+  check, Area, Screen) holds every schematic operation, and each one can
+  also have its own key: use the menu, keys or both. The key settings use
+  the menu's groups, and the menu shows the keys you bound. Only Alt + wheel
+  (move the target away or closer) is bound by default. Another key repeats
+  the last menu adjustment with the wheel.
+- **Missing files:** a placement whose file is missing or cannot be read is
+  reported once per world with a yellow notice, marked in the Placed list
+  and named in the HUD.
 - **Drawing:** ghosts draw doors, beds, honey, water and lava, block entities
   with their saved data and entities as their models. The Files and Check
   tabs have a turnable 3D preview.

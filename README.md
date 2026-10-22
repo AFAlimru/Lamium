@@ -133,7 +133,7 @@ world, with both maps off.
 | Feature | What it does | Key | Default |
 | --- | --- | --- | --- |
 | Schematics | Place `.mcstructure` files as ghost blocks, check the build, count materials, save an area | — | Off |
-| Schematic menu | A radial menu for placements, layers, checks and saving | — | — |
+| Schematic menu | A radial menu with every schematic operation; each can also get its own key | — | — |
 | Schematic HUD | Check counts and materials left for the selected placement | — | Off |
 
 ### Inventory
